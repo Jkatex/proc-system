@@ -31,6 +31,7 @@
 ## Complete Unified ERD — All 63 Entities, All Attributes, All Relationships
 
 ```mermaid
+%%{init: {'themeVariables': { 'fontSize': '100px', 'fontFamily': 'arial'}}}%%
 erDiagram
     %% ╔═══════════════════════════════════════════════════════════════╗
     %% ║  DOMAIN 1 — IDENTITY & ACCESS (Logics 1, 2, 37)             ║
