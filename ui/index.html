@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ProcureIQ — Procurement Intelligence & Governance Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+<body>
+  <!-- ─── SIDEBAR ─── -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L2 7l10 5 10-5-10-5z" fill="currentColor" opacity=".9"/>
+          <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
+      <div class="logo-text">
+        <span class="logo-main">ProcureIQ</span>
+        <span class="logo-sub">v2.0</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section-label">Main</div>
+    <ul class="sidebar-nav">
+      <li class="nav-item active" data-page="dashboard">
+        <span class="nav-icon">⬛</span>
+        <span class="nav-label">Dashboard</span>
+        <span class="nav-badge active-dot"></span>
+      </li>
+      <li class="nav-item" data-page="tenders">
+        <span class="nav-icon">📋</span>
+        <span class="nav-label">Tenders</span>
+        <span class="nav-badge">12</span>
+      </li>
+      <li class="nav-item" data-page="bids">
+        <span class="nav-icon">💼</span>
+        <span class="nav-label">Bids</span>
+        <span class="nav-badge">5</span>
+      </li>
+      <li class="nav-item" data-page="evaluations">
+        <span class="nav-icon">⚖️</span>
+        <span class="nav-label">Evaluations</span>
+        <span class="nav-badge warn">3</span>
+      </li>
+      <li class="nav-item" data-page="awards">
+        <span class="nav-icon">🏆</span>
+        <span class="nav-label">Awards</span>
+      </li>
+      <li class="nav-item" data-page="contracts">
+        <span class="nav-icon">📝</span>
+        <span class="nav-label">Contracts</span>
+      </li>
+    </ul>
+
+    <div class="sidebar-section-label">Operations</div>
+    <ul class="sidebar-nav">
+      <li class="nav-item" data-page="invoices">
+        <span class="nav-icon">💰</span>
+        <span class="nav-label">Invoices</span>
+        <span class="nav-badge warn">2</span>
+      </li>
+      <li class="nav-item" data-page="suppliers">
+        <span class="nav-icon">🏢</span>
+        <span class="nav-label">Suppliers</span>
+      </li>
+      <li class="nav-item" data-page="disputes">
+        <span class="nav-icon">⚠️</span>
+        <span class="nav-label">Disputes</span>
+      </li>
+    </ul>
+
+    <div class="sidebar-section-label">Intelligence</div>
+    <ul class="sidebar-nav">
+      <li class="nav-item" data-page="risk">
+        <span class="nav-icon">🛡️</span>
+        <span class="nav-label">Risk & Compliance</span>
+        <span class="nav-badge danger">1</span>
+      </li>
+      <li class="nav-item" data-page="intelligence">
+        <span class="nav-icon">📈</span>
+        <span class="nav-label">Market Intelligence</span>
+      </li>
+      <li class="nav-item" data-page="audit">
+        <span class="nav-icon">📋</span>
+        <span class="nav-label">Audit Trail</span>
+      </li>
+    </ul>
+
+    <div class="sidebar-bottom">
+      <div class="user-card">
+        <div class="user-avatar">A</div>
+        <div class="user-info">
+          <div class="user-name">Admin User</div>
+          <div class="user-role">Procurement Officer</div>
+        </div>
+        <div class="user-status"></div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ─── MAIN CONTENT ─── -->
+  <main class="main-content" id="mainContent">
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-toggle" id="menuToggle">&#9776;</button>
+        <div class="breadcrumb" id="breadcrumb">
+          <span class="bc-home">Home</span>
+          <span class="bc-sep">›</span>
+          <span class="bc-current" id="bcCurrent">Dashboard</span>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-search">
+          <span class="search-icon">🔍</span>
+          <input type="text" placeholder="Search tenders, suppliers, bids…" />
+        </div>
+        <button class="topbar-btn" title="Notifications">
+          🔔 <span class="notif-count">6</span>
+        </button>
+        <button class="topbar-btn" title="Settings">⚙️</button>
+        <div class="topbar-avatar">A</div>
+      </div>
+    </header>
+
+    <!-- PAGE CONTAINER -->
+    <div class="page-container" id="pageContainer">
+      <!-- Pages are injected here by JS -->
+    </div>
+  </main>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
