@@ -1,0 +1,424 @@
+Below is the **complete system-level design and procedural framework** for:
+
+# 🔷 LOGIC 8 – Evaluation Framework & Scoring Logic
+
+---
+
+# 1️⃣ PURPOSE OF THIS LOGIC
+
+This logic ensures that:
+
+* Bids are evaluated using predefined criteria (from Logic 3)
+* Scoring is objective and structured
+* Comparisons are transparent and reproducible
+* Decisions are defensible in audits or legal challenges
+* Bias and arbitrary judgment are minimized
+
+If this logic is weak → awards become vulnerable to dispute, corruption allegations, and reputational damage.
+
+---
+
+# 2️⃣ CORE PRINCIPLES
+
+✔ Criteria defined and locked before publication (Logic 3)
+✔ Scoring aligned with envelope model (Logic 6 & 7)
+✔ Separation of duties (Logic 2 RBAC)
+✔ Audit trail for every score
+✔ Weighted mathematical aggregation
+✔ Justification mandatory for non-automated scoring
+
+---
+
+# 3️⃣ HIGH-LEVEL EVALUATION FLOW
+
+```
+Technical Envelope Opened (Logic 7)
+        ↓
+Evaluator Assignment Confirmed
+        ↓
+Individual Scoring Phase
+        ↓
+Score Submission Lock
+        ↓
+Consensus / Moderation Phase
+        ↓
+Technical Finalization Lock
+        ↓
+Financial Envelope Opening (if staged)
+        ↓
+Price Scoring Applied
+        ↓
+Weighted Aggregation
+        ↓
+Ranking Generated
+        ↓
+Award Recommendation Report
+```
+
+---
+
+# 4️⃣ CRITERIA STRUCTURE
+
+Criteria are defined during procurement structuring (Logic 3) and cannot be changed after publication.
+
+Example Weighted Model:
+
+| Criterion         | Weight | Type                      |
+| ----------------- | ------ | ------------------------- |
+| Technical Quality | 40%    | Manual scoring            |
+| Price             | 35%    | Automated formula         |
+| Delivery Timeline | 10%    | Formula                   |
+| Experience        | 10%    | Manual + documented proof |
+| Risk Profile      | 5%     | Automated                 |
+
+System enforces:
+
+* Total weight = 100%
+* No hidden criteria
+* No post-opening modification
+
+---
+
+# 5️⃣ TYPES OF SCORING MECHANISMS
+
+---
+
+## 🔹 A. Automated Formula-Based Scoring (Objective)
+
+Used for:
+
+* Price comparison
+* Delivery time comparison
+* Quantitative metrics
+
+Example (Lowest Price Formula):
+
+```
+Price Score = (Lowest Bid / Bid Price) × Maximum Price Points
+```
+
+Example (Delivery Time Formula):
+
+```
+Delivery Score = (Shortest Delivery / Bid Delivery) × Points
+```
+
+These are calculated automatically by system.
+
+---
+
+## 🔹 B. Manual Scoring (Subject-Matter Judgment)
+
+Used for:
+
+* Methodology quality
+* Team expertise
+* Innovation
+* Technical compliance
+
+Controls:
+
+* Predefined scoring rubric
+* Numeric scale (e.g., 0–10)
+* Mandatory justification text
+* Reference to evidence
+
+---
+
+## 🔹 C. Binary Compliance Checks
+
+Used for:
+
+* Mandatory certifications
+* Legal eligibility
+* Required documents
+
+If non-compliant:
+
+* Automatic disqualification
+* Or zero score for that criterion
+
+---
+
+# 6️⃣ INDIVIDUAL SCORING PHASE
+
+Each evaluator:
+
+* Scores independently
+* Cannot see others’ scores initially
+* Must provide justification for non-maximum or low scores
+
+System logs:
+
+* Timestamp
+* Score given
+* Comments entered
+* IP address
+
+Prevents group bias.
+
+---
+
+# 7️⃣ SCORE LOCKING MECHANISM
+
+Once evaluator submits score:
+
+* Score becomes immutable
+* Cannot be edited without formal revision workflow
+* Any revision requires:
+
+  * Justification
+  * Audit log entry
+  * Approval (if policy requires)
+
+---
+
+# 8️⃣ CONSENSUS / MODERATION PHASE
+
+After individual scoring:
+
+```
+All Scores Submitted
+        ↓
+System Displays Score Spread
+        ↓
+Outlier Detection Triggered
+        ↓
+Committee Discussion
+        ↓
+Optional Moderated Adjustment
+        ↓
+Final Technical Score Locked
+```
+
+Outlier logic example:
+
+```
+If Score Deviation > 30% from Mean
+Flag as Outlier
+```
+
+Moderation must:
+
+* Record reason
+* Record participants
+* Be time-stamped
+
+---
+
+# 9️⃣ FINANCIAL SCORING PHASE
+
+After technical phase locked:
+
+* Financial envelopes decrypted (Logic 7)
+* Price scoring formula applied automatically
+* No manual override allowed (unless policy defined)
+
+System ensures:
+
+* Technical score cannot be changed post-financial opening.
+
+---
+
+# 🔟 WEIGHTED AGGREGATION ENGINE
+
+Final score calculation:
+
+```
+Final Score =
+(Technical Score × Technical Weight)
++ (Price Score × Price Weight)
++ (Other Criteria × Their Weights)
+```
+
+System produces:
+
+* Raw score per criterion
+* Weighted score
+* Final aggregate score
+* Ranking order
+
+No manual re-ranking allowed without override protocol.
+
+---
+
+# 1️⃣1️⃣ RISK-ADJUSTED SCORING (Optional Advanced Layer)
+
+System may include:
+
+* Risk penalty factor (from Logic 1)
+* Past performance adjustment
+* Dispute frequency modifier
+
+Example:
+
+```
+Adjusted Score = Final Score − Risk Penalty
+```
+
+Must be predefined before tender publication.
+
+---
+
+# 1️⃣2️⃣ DISQUALIFICATION LOGIC
+
+Automatic triggers:
+
+* Missing mandatory document
+* Non-compliant technical requirement
+* Arithmetic error beyond threshold
+* Conflict of interest discovered
+
+System logs reason and prevents further scoring.
+
+---
+
+# 1️⃣3️⃣ COMPARATIVE ANALYSIS DASHBOARD
+
+Evaluation interface includes:
+
+* Side-by-side comparison
+* Score breakdown by criterion
+* Variance analysis
+* Financial deviation analysis
+* Risk indicator display
+
+No hidden scoring fields.
+
+---
+
+# 1️⃣4️⃣ JUSTIFICATION & DEFENSIBILITY CONTROLS
+
+For each bid:
+
+System generates:
+
+* Score summary
+* Individual evaluator comments
+* Consensus explanation
+* Final ranking rationale
+* Compliance confirmation
+
+This becomes the official evaluation report.
+
+---
+
+# 1️⃣5️⃣ BIAS & MANIPULATION PREVENTION CONTROLS
+
+System prevents:
+
+❌ Changing weights after opening
+❌ Editing scores without trace
+❌ Viewing financial bids early
+❌ Evaluator seeing supplier identity (if blind mode enabled)
+❌ Single-person award authority
+
+Optional blind evaluation:
+
+* Supplier identity hidden during technical scoring.
+
+---
+
+# 1️⃣6️⃣ DATA MODEL STRUCTURE
+
+Core Tables:
+
+* Evaluation_Criteria
+* Evaluator_Assignments
+* Individual_Scores
+* Score_Justifications
+* Moderation_Log
+* Final_Scores
+* Disqualification_Log
+* Evaluation_Report
+
+Relationship:
+
+```
+Tender
+   ↓
+Criteria
+   ↓
+Bids
+   ↓
+Individual Scores
+   ↓
+Final Aggregation
+```
+
+---
+
+# 1️⃣7️⃣ SECURITY & GOVERNANCE CONTROLS
+
+* MFA for evaluators
+* Session timeout
+* Score submission deadline
+* Role validation (Logic 2)
+* Immutable logs
+* Conflict-of-interest validation before scoring
+
+---
+
+# 1️⃣8️⃣ EDGE CASE HANDLING
+
+* Evaluator fails to submit score
+* Deadlocked scoring spread
+* Tie scores
+* Arithmetic anomalies
+* Court-ordered re-evaluation
+* Discovered compliance violation mid-evaluation
+
+Tie-breaking rule must be predefined.
+
+---
+
+# 1️⃣9️⃣ KPI METRICS
+
+* Evaluation duration
+* Score variance rate
+* Outlier frequency
+* Re-evaluation frequency
+* Post-award dispute rate
+* Score override frequency
+* Tie occurrence rate
+
+---
+
+# 2️⃣0️⃣ COMMON FAILURE POINTS (TO DESIGN AGAINST)
+
+* Unstructured scoring
+* Weight manipulation
+* Manual ranking adjustment
+* Hidden criteria
+* No written justification
+* Financial influence on technical review
+
+System must technically prevent these weaknesses.
+
+---
+
+# 2️⃣1️⃣ END-TO-END SUMMARY
+
+Logic 8 ensures:
+
+* Objective, structured evaluation
+* Weighted and formula-driven comparison
+* Mandatory justification
+* Controlled moderation
+* Locked technical-to-financial sequencing
+* Audit-ready evaluation reports
+
+It transforms:
+
+**Opened bids (Logic 7)**
+into
+**Defensible award recommendations (Logic 9 – Award & Contract Finalization)**
+
+---
+
+If you'd like, next I can design:
+
+* 🔹 Logic 9 – Award Decision & Contract Finalization
+* 🔹 Full lifecycle architecture integrating Logics 1–8
+* 🔹 AI-assisted scoring safeguards
+* 🔹 Or regulatory compliance mapping (public procurement law alignment)

@@ -1,0 +1,328 @@
+# 🔷 LOGIC 25 – Supplier Reputation & Trust Scoring Logic
+
+This logic generates a **dynamic, evidence-based trust score** for each supplier, built from verified performance history, compliance behavior, dispute outcomes, and execution reliability.
+
+Unlike public “star ratings,” this system:
+
+* Uses structured procurement data
+* Is context-aware (category, value, risk level)
+* Is resistant to manipulation
+* Evolves over time
+* Directly influences eligibility and risk assessment
+
+It creates **long-term accountability and institutional memory**.
+
+---
+
+# 1️⃣ CORE OBJECTIVE
+
+Logic 25 ensures that:
+
+* Trust is earned through performance
+* Risky suppliers are visible before award
+* High-value procurements favor proven reliability
+* Past behavior informs future eligibility
+* Accountability compounds over time
+
+It transforms procurement from transactional to reputation-based governance.
+
+---
+
+# 2️⃣ WHY SIMPLE RATINGS FAIL
+
+Traditional ratings systems are:
+
+* Subjective
+* Easy to manipulate
+* Emotion-driven
+* Non-contextual
+* Vulnerable to retaliation bias
+
+Logic 25 uses **verified system data**, not informal opinions.
+
+---
+
+# 3️⃣ CORE TRUST COMPONENTS
+
+Trust Score may combine:
+
+1. Delivery Reliability
+2. Quality Compliance
+3. Dispute Frequency & Outcomes (Logic 20)
+4. Financial Integrity (Logic 19)
+5. Capacity Accuracy (Logic 22)
+6. Ethical & Compliance Record
+7. Anti-Collusion Risk (Logic 23)
+8. Contract Completion Consistency
+
+Each component weighted contextually.
+
+---
+
+# 4️⃣ CONTEXTUAL TRUST MODEL
+
+Trust is not universal.
+
+A supplier may have:
+
+* High trust in low-complexity goods
+* Moderate trust in high-value consulting
+* Low trust in urgent delivery contracts
+
+System calculates:
+
+```
+Trust Score (Category, Risk Level) =
+Weighted Performance Factors
+```
+
+Context-sensitive scoring improves fairness.
+
+---
+
+# 5️⃣ SAMPLE TRUST SCORE MODEL
+
+Example simplified structure:
+
+```
+Trust Score =
+
+30% Delivery Performance
++ 20% Quality Compliance
++ 15% Dispute Outcome Index
++ 15% Financial Accuracy
++ 10% Capacity Reliability
++ 10% Ethical Compliance
+```
+
+Weights may vary by procurement type.
+
+---
+
+# 6️⃣ DELIVERY PERFORMANCE METRIC
+
+Derived from:
+
+* On-time completion rate
+* Delay duration severity
+* Milestone adherence
+* Emergency intervention frequency
+
+Late deliveries reduce reliability factor.
+
+---
+
+# 7️⃣ QUALITY COMPLIANCE METRIC
+
+Derived from:
+
+* Sample match rate (Logic 17)
+* Rejection rate
+* Rework frequency
+* Technical compliance audit results
+
+Repeated non-conformance lowers trust.
+
+---
+
+# 8️⃣ DISPUTE IMPACT ADJUSTMENT
+
+Not all disputes reduce trust equally.
+
+System differentiates:
+
+* Resolved in supplier favor → minimal impact
+* Shared responsibility → moderate impact
+* Confirmed supplier breach → strong penalty
+
+Encourages fair conflict resolution.
+
+---
+
+# 9️⃣ FINANCIAL ACCURACY & DOCUMENT INTEGRITY
+
+Measured by:
+
+* Duplicate invoice attempts
+* Overbilling frequency
+* Credit note history
+* Tax compliance consistency
+
+Links to Logic 19.
+
+---
+
+# 🔟 CAPACITY HONESTY FACTOR
+
+If supplier:
+
+* Overstates capacity
+* Repeatedly overloads (Logic 22)
+* Misses deadlines due to saturation
+
+Trust declines.
+
+---
+
+# 1️⃣1️⃣ ETHICAL & COLLUSION RISK ADJUSTMENT
+
+If Logic 23 flags:
+
+* High collusion risk
+* Repeated suspicious patterns
+
+Trust score may be risk-adjusted downward.
+
+Severe confirmed violations may trigger eligibility suspension.
+
+---
+
+# 1️⃣2️⃣ TIME-DECAY FUNCTION
+
+Older issues may lose weight over time.
+
+Example:
+
+```
+Impact Weight =
+Severity × e^(-Time Factor)
+```
+
+Encourages rehabilitation and long-term improvement.
+
+---
+
+# 1️⃣3️⃣ TRUST TIERS
+
+Suppliers may be categorized:
+
+* Tier A – High Trust
+* Tier B – Reliable
+* Tier C – Moderate Risk
+* Tier D – High Risk
+* Tier E – Restricted
+
+Eligibility rules may apply.
+
+---
+
+# 1️⃣4️⃣ ELIGIBILITY INFLUENCE
+
+Trust score may influence:
+
+* Access to high-value tenders
+* Fast-track approvals
+* Reduced guarantee requirements
+* Shortlisted supplier lists
+* Invitation-only procurements
+
+High trust reduces friction.
+
+---
+
+# 1️⃣5️⃣ PROBATION & REHABILITATION MECHANISM
+
+If trust drops below threshold:
+
+* Warning status
+* Conditional participation
+* Performance improvement plan
+* Monitoring period
+
+System supports recovery, not permanent exclusion.
+
+---
+
+# 1️⃣6️⃣ MARKET-WIDE TRUST (WITH LOGIC 21)
+
+In centralized systems:
+
+* Trust score visible across buyers
+* Cross-institution reputation accumulates
+* Prevents “buyer hopping” after poor performance
+
+Builds ecosystem-level accountability.
+
+---
+
+# 1️⃣7️⃣ DATA MODEL STRUCTURE
+
+Core entities:
+
+* Supplier_Trust_Profile
+* Performance_Record
+* Dispute_Adjustment_Record
+* Financial_Compliance_Record
+* Capacity_Reliability_Record
+* Ethics_Flag_Record
+* Time_Decay_Adjustment_Record
+* Trust_Tier_Record
+
+Relationship:
+
+```
+Supplier
+    ↓
+Performance Data Streams
+    ↓
+Trust Algorithm
+    ↓
+Contextual Trust Score
+    ↓
+Eligibility & Evaluation Impact
+```
+
+---
+
+# 1️⃣8️⃣ GOVERNANCE CONTROLS
+
+Logic 25 enforces:
+
+* Transparent scoring criteria
+* No hidden punitive adjustments
+* Audit logging of score changes (Logic 14)
+* Supplier right to review major changes
+* Protection against retaliation scoring
+
+Trust must be data-driven and defensible.
+
+---
+
+# 1️⃣9️⃣ RISK MITIGATION OUTCOMES
+
+Prevents:
+
+❌ Repeat engagement with unreliable suppliers
+❌ Short-term opportunistic behavior
+❌ Hidden risk accumulation
+❌ Supplier cycling between buyers
+❌ Arbitrary blacklist decisions
+
+---
+
+# 2️⃣0️⃣ STRATEGIC IMPACT
+
+Logic 25 creates:
+
+* Long-term accountability
+* Market stability
+* Behavioral incentives for excellence
+* Reduced dispute frequency
+* Higher procurement reliability
+
+It transforms procurement into a **reputation-weighted economic ecosystem**.
+
+---
+
+# 2️⃣1️⃣ SYSTEM INTEGRATION MAP
+
+* Logic 15 → Performance memory foundation
+* Logic 20 → Dispute outcomes
+* Logic 22 → Capacity reliability
+* Logic 23 → Anti-collusion risk
+* Logic 19 → Financial integrity
+* Logic 21 → Market centralization
+
+Logic 25 ensures that **trust compounds, risk accumulates visibly, and performance matters long-term**.
+
+---

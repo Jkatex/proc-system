@@ -1,0 +1,351 @@
+Below is the **complete control architecture and operational design** for:
+
+# 🔷 LOGIC 17 – Sample-Based Procurement Management Logic
+
+This logic governs procurements where **physical or digital samples must be evaluated before final award**.
+
+It prevents:
+
+* Informal sample handling
+* Undocumented quality comparison
+* Sample substitution after evaluation
+* Bias in physical inspection
+* Loss or tampering of submitted materials
+
+It transforms sample evaluation into a **structured, auditable, and legally defensible process**.
+
+---
+
+# 1️⃣ PURPOSE OF LOGIC 17
+
+This logic ensures:
+
+* Samples are requested transparently
+* Submission timelines are enforced
+* Samples are traceable and verifiable
+* Evaluation is objective and documented
+* Award decisions reflect tested quality
+* No post-evaluation substitution occurs
+
+---
+
+# 2️⃣ WHEN THIS LOGIC APPLIES
+
+Used for procurements such as:
+
+* Manufacturing goods
+* Textiles, uniforms
+* Construction materials
+* Medical supplies
+* Food products
+* Equipment prototypes
+* Software demos
+* Creative design submissions
+
+It integrates with:
+
+* Logic 6 (Bid Submission)
+* Logic 7 (Controlled Disclosure)
+* Logic 8 (Evaluation)
+* Logic 14 (Audit Trail)
+* Logic 15 (Performance Memory)
+
+---
+
+# 3️⃣ SAMPLE REQUIREMENT DEFINITION (LOGIC 3 INTEGRATION)
+
+During procurement structuring, system defines:
+
+* Sample type (physical / digital)
+* Quantity required
+* Technical specifications
+* Testing standards
+* Submission deadline
+* Return or disposal policy
+* Confidentiality conditions
+
+These rules are locked before tender publication.
+
+---
+
+# 4️⃣ SAMPLE SUBMISSION FLOW
+
+```
+Tender Published
+        ↓
+Supplier Submits Bid
+        ↓
+Sample Submission Required
+        ↓
+Sample Registered in System
+        ↓
+Receipt Confirmation Generated
+        ↓
+Sample Stored Securely
+        ↓
+Evaluation Scheduled
+```
+
+---
+
+# 5️⃣ SAMPLE REGISTRATION & TRACKING
+
+Each sample receives:
+
+* Unique Sample ID
+* Linked Bid ID
+* Supplier identity
+* Date & time received
+* Receiving officer identity
+* Storage location
+* Condition status upon receipt
+
+Chain-of-custody maintained.
+
+---
+
+# 6️⃣ PHYSICAL SAMPLE HANDLING CONTROLS
+
+To prevent tampering:
+
+* Sealed packaging verification
+* Tamper-evident labeling
+* Secure storage room
+* Controlled access logging
+* Storage environment controls (if perishable)
+* CCTV monitoring (optional)
+
+All access logged under Logic 14.
+
+---
+
+# 7️⃣ DIGITAL SAMPLE MANAGEMENT
+
+For digital submissions (e.g., software demo, designs):
+
+* File hash generated upon upload
+* Virus/malware scanning
+* Format validation
+* Version locking
+* Access permission control
+* Secure sandbox environment for testing
+
+Prevents post-deadline modification.
+
+---
+
+# 8️⃣ SAMPLE EVALUATION FRAMEWORK
+
+Evaluation criteria defined before submission deadline.
+
+Examples:
+
+| Criterion         | Example                  |
+| ----------------- | ------------------------ |
+| Material quality  | Lab test results         |
+| Durability        | Stress testing           |
+| Functionality     | Performance benchmark    |
+| Compliance        | Regulatory certification |
+| Aesthetic quality | Design assessment        |
+| Usability         | User testing             |
+
+Each criterion weighted and scored.
+
+---
+
+# 9️⃣ BLIND SAMPLE EVALUATION OPTION
+
+To prevent bias:
+
+System may:
+
+* Anonymize supplier identity
+* Label samples by coded ID
+* Reveal supplier name only after scoring
+
+Enhances fairness and objectivity.
+
+---
+
+# 🔟 TESTING & VERIFICATION PROCESS
+
+Sample testing may include:
+
+* Internal lab testing
+* Third-party laboratory certification
+* On-site demonstration
+* Field trial
+* User acceptance testing (UAT)
+
+Test results recorded digitally and linked to sample ID.
+
+---
+
+# 1️⃣1️⃣ SAMPLE SCORING INTEGRATION
+
+Sample score integrated into:
+
+```
+Final Evaluation Score =
+Technical Score
++ Financial Score
++ Sample Quality Score
+```
+
+Or used as:
+
+* Pass/fail threshold
+* Pre-qualification filter
+
+Cannot modify weighting after submission deadline.
+
+---
+
+# 1️⃣2️⃣ SAMPLE REJECTION RULES
+
+System flags rejection if:
+
+* Sample not submitted
+* Sample submitted late
+* Sample non-compliant with specifications
+* Tampering detected
+* Sample differs materially from technical proposal
+
+All rejections require documented justification.
+
+---
+
+# 1️⃣3️⃣ SAMPLE SUBSTITUTION PREVENTION
+
+After evaluation:
+
+* Winning sample fingerprint recorded
+* Technical parameters documented
+* If contract awarded, delivered goods must match evaluated sample
+
+System enforces:
+
+```
+Delivered Product ≠ Approved Sample → Non-Compliance Alert
+```
+
+---
+
+# 1️⃣4️⃣ SAMPLE RETURN / DISPOSAL LOGIC
+
+Policy options:
+
+* Return to supplier
+* Retain for record
+* Destroy after evaluation
+* Keep as reference sample
+
+All actions logged.
+
+---
+
+# 1️⃣5️⃣ DISPUTE HANDLING
+
+Supplier can:
+
+* Request evaluation report
+* Challenge scoring
+* Request re-testing (if allowed)
+
+System records:
+
+* Complaint submission
+* Evidence attached
+* Review committee decision
+* Final outcome
+
+---
+
+# 1️⃣6️⃣ DATA MODEL STRUCTURE
+
+Core tables:
+
+* Sample_Registry
+* Sample_Custody_Log
+* Sample_Test_Result
+* Sample_Evaluation_Score
+* Digital_File_Hash_Record
+* Sample_Disposition_Record
+* Sample_Dispute_Record
+
+Relationship:
+
+```
+Bid
+   ↓
+Sample
+   ↓
+Test Result
+   ↓
+Evaluation Score
+   ↓
+Award Impact
+```
+
+---
+
+# 1️⃣7️⃣ SECURITY & GOVERNANCE CONTROLS
+
+* No unregistered sample allowed
+* No informal evaluation allowed
+* Mandatory multi-reviewer scoring (if high value)
+* Locked criteria before submission deadline
+* Tamper detection mechanism
+* Access logs immutable
+
+---
+
+# 1️⃣8️⃣ RISK MITIGATION OUTCOMES
+
+Logic 17 prevents:
+
+* Informal “preferred” samples
+* Hidden sample replacement
+* Quality downgrade post-award
+* Biased physical inspections
+* Unrecorded testing
+* Supplier favoritism
+
+---
+
+# 1️⃣9️⃣ COMMON FAILURE POINTS TO AVOID
+
+❌ No sample ID tracking
+❌ No chain-of-custody record
+❌ Evaluators know supplier identity prematurely
+❌ No documentation of test method
+❌ Sample scoring done offline
+❌ No linkage to contract enforcement
+
+---
+
+# 2️⃣0️⃣ STRATEGIC IMPACT
+
+Logic 17:
+
+* Strengthens quality assurance
+* Increases fairness in product-based procurement
+* Protects against post-award quality substitution
+* Enhances trust in evaluation outcomes
+* Reduces technical failure risk
+* Aligns procurement with operational standards
+
+---
+
+# 2️⃣1️⃣ RELATIONSHIP TO OTHER LOGICS
+
+* Logic 3 → Defines sample requirement
+* Logic 6 → Links sample to bid
+* Logic 7 → Controls disclosure timing
+* Logic 8 → Integrates sample score
+* Logic 14 → Logs custody & evaluation
+* Logic 15 → Records supplier quality performance
+
+Logic 17 ensures procurement decisions reflect **verified quality, not just claims**.
+
+---

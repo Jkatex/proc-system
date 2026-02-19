@@ -1,0 +1,423 @@
+Below is a **complete system-level breakdown** of **Logic 1 – User Identity, Verification & Trust Establishment** in a procurement system, including flows, decision points, components, data, integrations, and governance controls.
+
+---
+
+# 🔷 LOGIC 1 – USER IDENTITY, VERIFICATION & TRUST ESTABLISHMENT
+
+## 1️⃣ Purpose of This Logic
+
+This logic defines:
+
+* Who can participate in the procurement ecosystem
+* How they are verified
+* What trust level they are assigned
+* What actions they are allowed to perform
+* How risk and accountability are managed
+
+It forms the foundation for:
+
+* Legal enforceability
+* Fraud prevention
+* Reputation tracking
+* Risk scoring
+* Access control to procurement activities
+
+---
+
+# 🔷 A. USER TYPES IN THE SYSTEM
+
+The system must support multiple identity categories:
+
+### 1. Buying Organizations
+
+* Government entities
+* Corporates
+* NGOs
+
+### 2. Supplier Organizations
+
+* Large enterprises
+* SMEs
+* Startups
+* Registered partnerships
+* Sole proprietors
+
+### 3. Individual Professionals
+
+* Consultants
+* Freelancers
+* Independent contractors
+
+Each category follows slightly different verification rules.
+
+---
+
+# 🔷 B. HIGH-LEVEL FLOW OVERVIEW
+
+Below is the complete identity and trust lifecycle:
+
+```
+User Registration
+      ↓
+Account Creation
+      ↓
+Identity Declaration (Business / Individual)
+      ↓
+Document Submission
+      ↓
+Automated Validation
+      ↓
+Manual Review (if required)
+      ↓
+Trust Level Assignment
+      ↓
+Access Rights Provisioning
+      ↓
+Ongoing Monitoring & Risk Scoring
+      ↓
+Reputation & Trust Updates
+```
+
+---
+
+# 🔷 C. DETAILED SYSTEM FLOW
+
+---
+
+## 🔹 Step 1: Registration Flow
+
+### User Inputs:
+
+* Email
+* Mobile number
+* Legal entity name
+* Country
+* Business type
+* Tax ID (if applicable)
+
+### System Actions:
+
+* Email verification (OTP)
+* SMS verification
+* CAPTCHA / Bot protection
+* IP logging
+* Device fingerprint capture
+
+### Output:
+
+* Temporary account created
+* Status = "Unverified"
+
+---
+
+## 🔹 Step 2: Identity Classification Logic
+
+User must select identity type:
+
+| Type               | Required Data                            |
+| ------------------ | ---------------------------------------- |
+| Registered Company | Registration number, tax ID              |
+| SME                | Business registration + size declaration |
+| Sole Proprietor    | Personal ID + business registration      |
+| Individual         | Government ID                            |
+
+System stores:
+
+* Entity structure
+* Ownership declaration
+* Authorized signatory details
+
+---
+
+## 🔹 Step 3: Document Upload & KYC
+
+### Required Documents (based on type)
+
+For Companies:
+
+* Certificate of Incorporation
+* Tax registration certificate
+* Authorized signatory ID
+* Board resolution (if needed)
+
+For Sole Proprietors:
+
+* Business registration
+* Personal ID
+* Tax ID
+
+For Individuals:
+
+* Government-issued ID
+* Address proof
+
+---
+
+## 🔹 Step 4: Automated Verification Layer
+
+### Integrations (country-specific examples)
+
+* Business registry validation (e.g., Companies House in the UK)
+* Tax authority validation
+* Government ID API verification
+* Sanctions list screening
+* Politically Exposed Persons (PEP) screening
+* Watchlist screening (e.g., UN, OFAC)
+* Duplicate account detection
+* Fraud pattern detection
+
+### Automated Risk Flags:
+
+* Mismatched registration numbers
+* High-risk country
+* Sanctions hit
+* Suspicious IP patterns
+* Repeated failed registrations
+
+---
+
+## 🔹 Step 5: Manual Compliance Review (if triggered)
+
+Triggered when:
+
+* Risk score exceeds threshold
+* Document inconsistency detected
+* Sanctions potential match
+* High-value buyer access requested
+
+Compliance officer can:
+
+* Approve
+* Request additional documentation
+* Reject
+* Escalate for legal review
+
+---
+
+# 🔷 D. TRUST LEVEL FRAMEWORK
+
+The system assigns graduated trust levels:
+
+| Level   | Description                 | Capabilities                 |
+| ------- | --------------------------- | ---------------------------- |
+| Level 0 | Registered but not verified | Cannot bid                   |
+| Level 1 | Basic verified              | Can submit small bids        |
+| Level 2 | Fully verified              | Can bid normally             |
+| Level 3 | Premium verified            | Access to high-value tenders |
+| Level 4 | Government-certified        | Full unrestricted access     |
+
+Trust level depends on:
+
+* Verification completeness
+* Time in system
+* Past performance
+* Dispute history
+* Financial validation
+* Transaction history
+
+---
+
+# 🔷 E. ROLE-BASED ACCESS CONTROL (RBAC)
+
+Each entity can create internal users:
+
+Example:
+
+* Admin
+* Procurement officer
+* Finance officer
+* Viewer
+* Legal representative
+
+Access matrix determines:
+
+* Who can submit bids
+* Who can sign contracts
+* Who can upload documents
+* Who can withdraw bids
+
+---
+
+# 🔷 F. RISK SCORING ENGINE
+
+Each user gets a dynamic risk score based on:
+
+### Static Factors:
+
+* Country risk
+* Industry risk
+* Corporate structure complexity
+
+### Behavioral Factors:
+
+* Bid withdrawal frequency
+* Abnormal pricing patterns
+* Multiple accounts from same device
+* Contract default history
+
+### Transactional Factors:
+
+* Payment disputes
+* Delayed deliveries
+* Performance penalties
+
+Risk score updates continuously.
+
+---
+
+# 🔷 G. REPUTATION SYSTEM
+
+After each transaction:
+
+* Buyer rating
+* Supplier rating
+* Contract performance metrics
+* On-time delivery score
+* Dispute resolution outcome
+
+Reputation affects:
+
+* Trust level upgrades
+* Tender eligibility
+* Visibility in search results
+
+---
+
+# 🔷 H. LEGAL & ENFORCEABILITY LAYER
+
+This logic must integrate with:
+
+* Digital signature infrastructure
+* Electronic contract acceptance
+* Audit trails
+* Timestamping
+* IP logging
+* Version control
+
+Ensures:
+
+* Legally binding agreements
+* Evidence in disputes
+* Traceability of all actions
+
+---
+
+# 🔷 I. DATA MODEL STRUCTURE
+
+Key Tables:
+
+1. Users
+2. Organizations
+3. Identity Documents
+4. Verification Status
+5. Trust Levels
+6. Risk Scores
+7. Sanctions Checks
+8. Roles & Permissions
+9. Audit Logs
+10. Reputation Metrics
+
+Each action must create:
+
+* Immutable audit record
+* Timestamp
+* Actor ID
+* Device/IP record
+
+---
+
+# 🔷 J. SECURITY CONTROLS REQUIRED
+
+* Multi-factor authentication
+* Encrypted document storage
+* Field-level encryption for IDs
+* Secure API integrations
+* Session monitoring
+* Anomaly detection
+* Data retention policy
+* GDPR compliance where applicable
+
+---
+
+# 🔷 K. ONGOING MONITORING FLOW
+
+Trust is not static.
+
+Continuous checks:
+
+* Periodic re-verification (annually)
+* Business registration status refresh
+* Sanctions list re-screening
+* Financial health recheck
+* Suspicious activity monitoring
+
+If violation detected:
+
+```
+Risk Flag Triggered
+       ↓
+Trust Level Downgrade
+       ↓
+Temporary Suspension
+       ↓
+Compliance Review
+       ↓
+Final Decision
+```
+
+---
+
+# 🔷 L. EDGE CASES TO HANDLE
+
+* Merged companies
+* Ownership changes
+* Company liquidation
+* Cross-border subsidiaries
+* Shell companies
+* Proxy bidding attempts
+* Identity theft attempts
+
+---
+
+# 🔷 M. KPI & GOVERNANCE METRICS
+
+Track:
+
+* Verification turnaround time
+* Fraud attempt rate
+* Trust level upgrade rate
+* Sanctions hit rate
+* Dispute frequency by trust tier
+* False positive rate in compliance screening
+
+---
+
+# 🔷 N. SYSTEM ARCHITECTURE COMPONENTS REQUIRED
+
+1. Identity Service
+2. KYC Service
+3. Risk Engine
+4. Compliance Module
+5. Access Control Service
+6. Audit & Logging System
+7. Document Storage System
+8. Reputation Engine
+9. Notification Service
+
+All services must be modular and API-driven.
+
+---
+
+# 🔷 O. COMPLETE END-TO-END SUMMARY
+
+Logic 1 ensures:
+
+* Only real, accountable entities can participate
+* Every user has a verifiable identity
+* Trust is measurable and dynamic
+* Fraud risk is minimized
+* Legal enforceability is guaranteed
+* System integrity is protected
+
+This logic becomes the **foundation layer** upon which all other procurement logics (tendering, bidding, contracting, payment, dispute resolution) depend.
+

@@ -1,0 +1,388 @@
+Below is the **complete system-level architecture and procedural flow** for:
+
+# 🔷 LOGIC 7 – Bid Opening & Controlled Disclosure Logic
+
+---
+
+# 1️⃣ PURPOSE OF THIS LOGIC
+
+This logic ensures:
+
+* Bids are opened only at the legally defined time
+* No premature access to confidential information
+* Controlled disclosure based on role and stage
+* Transparent opening records
+* Proper staged evaluation (technical → financial)
+* Full auditability and legal defensibility
+
+If this logic fails → risk of manipulation, bid rigging, legal challenge, and institutional mistrust.
+
+---
+
+# 2️⃣ CORE PRINCIPLES
+
+### ✔ Time-locked disclosure
+
+### ✔ Role-restricted visibility (RBAC enforced from Logic 2)
+
+### ✔ Envelope separation (from Logic 6)
+
+### ✔ Multi-person control for opening
+
+### ✔ Immutable opening record
+
+---
+
+# 3️⃣ HIGH-LEVEL BID OPENING FLOW
+
+```
+Submission Deadline Reached
+        ↓
+Automatic System Lock
+        ↓
+Opening Authorization Trigger
+        ↓
+Opening Committee Authentication
+        ↓
+Multi-Person Control Verified
+        ↓
+Decryption of Allowed Envelope
+        ↓
+Opening Report Generated
+        ↓
+Controlled Disclosure Based on Stage
+        ↓
+Audit Log Finalized
+```
+
+---
+
+# 4️⃣ DEADLINE-TRIGGERED LOCK LOGIC
+
+Immediately at deadline:
+
+* Submission portal closes automatically
+* No further edits allowed
+* All bids move to "Ready for Opening" status
+* Timestamp captured from server clock (not user device)
+
+No manual override without:
+
+* Escalation protocol
+* Audit trail
+* Legal justification log
+
+---
+
+# 5️⃣ OPENING AUTHORIZATION MODEL
+
+Opening cannot be done by a single person.
+
+### Multi-Control Rule:
+
+Example:
+
+* Minimum 2 committee members required
+* Both must authenticate via MFA
+* Both digitally approve opening
+
+Flow:
+
+```
+Member 1 Authenticates
+        ↓
+Member 2 Authenticates
+        ↓
+System Validates Role Authorization
+        ↓
+Opening Event Enabled
+```
+
+Prevents:
+
+* Insider manipulation
+* Unauthorized preview
+
+---
+
+# 6️⃣ ENVELOPE-BASED DISCLOSURE LOGIC
+
+Supports:
+
+---
+
+## 🔹 A. Single Envelope Model
+
+* Entire bid decrypted at opening.
+* Summary visible immediately to committee.
+
+---
+
+## 🔹 B. Two-Envelope Model (Technical First)
+
+Stage 1:
+
+* Only technical proposals decrypted.
+* Financial envelope remains encrypted.
+* Financial data inaccessible even to admins.
+
+Stage 2 (After technical scoring finalized):
+
+```
+Technical Evaluation Locked
+        ↓
+Financial Opening Authorization
+        ↓
+Financial Envelopes Decrypted
+```
+
+System ensures:
+
+* Financial scores cannot influence technical evaluation.
+* Technical evaluators cannot see pricing prematurely.
+
+---
+
+## 🔹 C. Multi-Stage / Multi-Lot Model
+
+Each lot:
+
+* Opened independently
+* Decrypted separately
+* Controlled per lot evaluation stage
+
+---
+
+# 7️⃣ CONTROLLED DISCLOSURE MATRIX
+
+Different actors see different information:
+
+| Role                        | Before Opening      | After Technical Opening | After Financial Opening  |
+| --------------------------- | ------------------- | ----------------------- | ------------------------ |
+| Supplier                    | Own submission only | No change               | Award results only       |
+| Evaluator                   | No access           | Technical only          | Technical + financial    |
+| Finance Officer             | No access           | No access               | Financial only           |
+| Auditor                     | No access           | View opening log        | Full view                |
+| Public Portal (if required) | No access           | Bidder names only       | Price summary (optional) |
+
+Visibility depends on:
+
+* Tender type
+* Regulatory framework
+* Organizational policy
+
+---
+
+# 8️⃣ OPENING REPORT GENERATION
+
+Upon opening, system auto-generates:
+
+* List of bidders
+* Submission timestamps
+* Confirmation of deadline compliance
+* Envelope status
+* Digital hash verification
+* Committee members present
+* Opening time
+
+Report properties:
+
+* Digitally signed
+* Timestamped
+* Immutable
+* Stored permanently
+
+Optional:
+
+* Public version (limited disclosure)
+* Internal detailed version
+
+---
+
+# 9️⃣ HASH & INTEGRITY VERIFICATION
+
+Before decryption:
+
+System verifies:
+
+```
+Stored Hash = Calculated Hash
+```
+
+If mismatch detected:
+
+* Flag integrity breach
+* Freeze evaluation
+* Alert compliance
+
+Ensures:
+
+* Bid not altered post-submission.
+
+---
+
+# 🔟 DISCLOSURE RULES BY PROCUREMENT TYPE
+
+---
+
+## 🔹 Government / Public Procurement
+
+Often requires:
+
+* Public announcement of bidder names
+* Price disclosure after opening
+* Public opening ceremony record
+
+System must support:
+
+* Public-facing report export
+* Observer login mode
+* Transparency log
+
+---
+
+## 🔹 Private Procurement
+
+May restrict disclosure:
+
+* No price visibility until award
+* Confidential evaluation notes
+* Internal-only opening logs
+
+System must allow configurable disclosure policies.
+
+---
+
+# 1️⃣1️⃣ STAGED EVALUATION CONTROL
+
+To prevent cross-contamination:
+
+```
+Technical Scoring Active
+        ↓
+Financial Envelope Access = Disabled
+        ↓
+Technical Finalization Required
+        ↓
+System Lock Technical Scores
+        ↓
+Financial Opening Enabled
+```
+
+No retroactive technical changes allowed after financial opening.
+
+---
+
+# 1️⃣2️⃣ AUDIT TRAIL REQUIREMENTS
+
+Every action logs:
+
+* User ID
+* Role
+* Timestamp
+* IP address
+* Action performed
+* Envelope accessed
+* Hash verification result
+
+Audit logs must be:
+
+* Immutable
+* Tamper-evident
+* Retained per policy
+
+---
+
+# 1️⃣3️⃣ SECURITY CONTROLS REQUIRED
+
+* End-to-end encryption
+* Hardware Security Module (HSM) for key management
+* MFA for opening committee
+* IP restriction option
+* Session monitoring
+* Real-time anomaly detection
+
+---
+
+# 1️⃣4️⃣ EDGE CASE HANDLING
+
+* Committee member unavailable
+* Decryption key failure
+* Corrupted submission file
+* Emergency legal injunction
+* System crash during opening
+* Cross-border legal compliance differences
+
+Each must have predefined contingency protocols.
+
+---
+
+# 1️⃣5️⃣ DATA MODEL STRUCTURE
+
+Core Tables:
+
+* Bid_Opening_Event
+* Opening_Committee_Log
+* Envelope_Status
+* Disclosure_Policy
+* Opening_Report
+* Hash_Verification_Log
+* Stage_Lock_Status
+
+Relationship:
+
+```
+Tender
+   ↓
+Bids
+   ↓
+Opening Event
+   ↓
+Disclosure Rules Applied
+```
+
+---
+
+# 1️⃣6️⃣ KPI METRICS
+
+* On-time opening rate
+* Opening irregularity incidents
+* Technical-to-financial stage duration
+* Disclosure compliance rate
+* Integrity verification failures
+* Audit findings frequency
+
+---
+
+# 1️⃣7️⃣ COMMON FAILURE POINTS (TO DESIGN AGAINST)
+
+❌ Early financial disclosure
+❌ Single-person opening authority
+❌ Weak encryption key storage
+❌ Manual override without audit trail
+❌ Lack of immutable opening report
+❌ Uncontrolled visibility to unauthorized roles
+
+System design must eliminate these risks.
+
+---
+
+# 1️⃣8️⃣ END-TO-END SUMMARY
+
+Logic 7 ensures:
+
+* Procedural correctness
+* Controlled, stage-based disclosure
+* Transparency without manipulation
+* Enforced separation between technical and financial review
+* Immutable opening records
+* Multi-person governance control
+
+It creates the secure transition between:
+
+**Bid Submission (Logic 6)**
+and
+**Evaluation & Scoring (Logic 8)**
+
+---
+

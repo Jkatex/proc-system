@@ -1,0 +1,440 @@
+Below is the **complete system-level definition and flow design** for:
+
+# 🔷 LOGIC 6 – Bid Submission & Validation Logic
+
+---
+
+# 1️⃣ PURPOSE OF THIS LOGIC
+
+This logic ensures that:
+
+* Bids are submitted in a structured format
+* Mandatory requirements are met before acceptance
+* Deadlines are strictly enforced
+* Bids remain confidential until official opening
+* No bid is altered after submission
+* Evaluation integrity is preserved
+
+If this logic fails → fairness collapses, disputes rise, and legal defensibility is lost.
+
+---
+
+# 2️⃣ HIGH-LEVEL BID SUBMISSION FLOW
+
+```
+Supplier Views Tender (Logic 4)
+        ↓
+Eligibility Check
+        ↓
+Bid Draft Creation
+        ↓
+Structured Data Entry
+        ↓
+Mandatory Validation Engine
+        ↓
+Compliance Validation
+        ↓
+Final Submission Confirmation
+        ↓
+Bid Encryption & Timestamping
+        ↓
+Submission Receipt Issued
+        ↓
+Bid Locked Until Opening
+```
+
+---
+
+# 3️⃣ BID ELIGIBILITY CHECK
+
+Before supplier can start a bid:
+
+System validates:
+
+* Supplier trust level ≥ required level (Logic 1)
+* Supplier not suspended
+* Supplier not conflicted
+* Tender still open
+* Submission deadline not passed
+
+If any condition fails → bid creation blocked.
+
+---
+
+# 4️⃣ BID TYPES SUPPORTED
+
+The system must support multiple formats:
+
+---
+
+## 🔹 A. Price-Only Bid
+
+Used for:
+
+* Commoditized goods
+
+Structure:
+
+* Line-item pricing
+* Tax declaration
+* Delivery timeline
+* Confirmation of compliance
+
+---
+
+## 🔹 B. Two-Envelope Model (Technical + Financial)
+
+Used for:
+
+* Complex services
+* Infrastructure
+* Consulting
+
+Structure:
+
+Envelope 1:
+
+* Technical proposal
+* Methodology
+* Experience
+* Team profiles
+
+Envelope 2:
+
+* Financial proposal
+* Pricing breakdown
+
+System ensures:
+
+* Financial envelope cannot be viewed until technical scoring complete.
+
+---
+
+## 🔹 C. Service Proposal Model
+
+Includes:
+
+* Work plan
+* Milestones
+* Resource allocation
+* KPIs
+* Payment schedule
+
+---
+
+## 🔹 D. Multi-Lot Bidding
+
+Supplier may:
+
+* Bid on one lot
+* Bid on multiple lots
+* Offer bundled pricing
+
+System tracks lot-level submissions independently.
+
+---
+
+# 5️⃣ STRUCTURED DATA ENTRY ENGINE
+
+Bids must be structured—not free-form PDFs only.
+
+System enforces:
+
+* Line-item pricing forms
+* Mandatory compliance checkboxes
+* Numeric validation (no negative prices)
+* Required document uploads
+* File size limits
+* Accepted file formats
+
+All required fields must be completed before submission.
+
+---
+
+# 6️⃣ VALIDATION ENGINE
+
+Before submission, system runs:
+
+---
+
+## 🔹 A. Mandatory Field Validation
+
+* All required documents uploaded
+* All pricing fields completed
+* Eligibility declarations signed
+* Bid security attached (if required)
+
+---
+
+## 🔹 B. Logical Validation
+
+Examples:
+
+* Total = Sum of line items
+* Currency matches tender currency
+* Delivery timeline ≤ allowed maximum
+* No pricing in technical envelope
+
+---
+
+## 🔹 C. Compliance Validation
+
+Checks:
+
+* Supplier certifications valid
+* No sanctions flag triggered
+* No duplicate bid submission
+* Digital signature valid
+
+If validation fails → submission blocked with error explanation.
+
+---
+
+# 7️⃣ DEADLINE ENFORCEMENT LOGIC
+
+System must enforce:
+
+```
+If Current_Time > Submission_Deadline
+Then Block Submission
+```
+
+Controls:
+
+* Server-based timestamp (not user device)
+* Timezone normalization
+* Grace period policy (if defined)
+* System lock at exact deadline
+
+No manual acceptance after deadline unless:
+
+* Official extension recorded
+* Logged with justification
+
+---
+
+# 8️⃣ CONFIDENTIALITY & ENCRYPTION
+
+Upon submission:
+
+* Bid is encrypted using public key cryptography
+* Separate keys for technical and financial envelopes
+* Stored in secure encrypted storage
+* Only accessible at official opening time
+
+Encryption flow:
+
+```
+Supplier Submits Bid
+        ↓
+System Encrypts with Tender-Specific Public Key
+        ↓
+Stored Encrypted
+        ↓
+Private Key Released Only at Opening Time
+```
+
+Prevents:
+
+* Internal tampering
+* Early access
+* Insider manipulation
+
+---
+
+# 9️⃣ BID LOCKING MECHANISM
+
+After submission:
+
+* Bid status = "Locked"
+* Supplier cannot edit
+* Supplier cannot withdraw (unless policy allows)
+* Any modification requires:
+
+  * Withdrawal before deadline
+  * Resubmission before deadline
+
+Audit log records:
+
+* Submission time
+* IP address
+* Device fingerprint
+* Version hash
+
+---
+
+# 🔟 BID WITHDRAWAL & RESUBMISSION LOGIC
+
+If allowed:
+
+```
+Supplier Withdraws Bid
+        ↓
+Withdrawal Logged
+        ↓
+Bid Marked Withdrawn
+        ↓
+Supplier May Resubmit (Before Deadline)
+```
+
+After deadline:
+
+* Withdrawal may require formal request.
+* Logged and visible in audit.
+
+---
+
+# 1️⃣1️⃣ BID OPENING LOGIC
+
+At official opening time:
+
+```
+Deadline Passed
+        ↓
+System Locks Submission Portal
+        ↓
+Authorized Opening Committee Logs In
+        ↓
+Multi-Person Authentication Required
+        ↓
+Decryption Triggered
+        ↓
+Opening Report Generated
+```
+
+For two-envelope model:
+
+* Only technical proposals opened first.
+* Financial proposals remain encrypted until technical scoring finalized.
+
+---
+
+# 1️⃣2️⃣ OPENING REPORT GENERATION
+
+System auto-generates:
+
+* List of bidders
+* Submission timestamps
+* Bid completeness status
+* Lot participation
+* Financial summary (if applicable)
+
+Report is:
+
+* Timestamped
+* Digitally signed
+* Stored immutably
+
+---
+
+# 1️⃣3️⃣ INTEGRITY CONTROLS
+
+To preserve fairness:
+
+* No late bid visibility
+* No editing after lock
+* No internal preview before opening
+* Blind evaluation support
+* Version hashing of submitted files
+
+Hash verification ensures:
+
+* Bid not altered post-submission.
+
+---
+
+# 1️⃣4️⃣ DATA MODEL STRUCTURE
+
+Core Tables:
+
+* Bids
+* Bid_Line_Items
+* Bid_Documents
+* Bid_Status
+* Bid_Envelope
+* Bid_Validation_Log
+* Bid_Withdrawal_Log
+* Bid_Opening_Report
+* Bid_Hash_Record
+
+Relationship:
+
+```
+Tender
+   ↓
+Bids
+   ↓
+Technical & Financial Envelopes
+```
+
+---
+
+# 1️⃣5️⃣ SECURITY CONTROLS REQUIRED
+
+* End-to-end encryption
+* Multi-factor authentication
+* Rate limiting
+* Anti-bot protection
+* Virus scanning on uploads
+* Secure key management system
+* Hardware security module (HSM) for key storage
+* Immutable audit logging
+
+---
+
+# 1️⃣6️⃣ EDGE CASE HANDLING
+
+* Power outage at deadline
+* Partial upload failures
+* Corrupted document upload
+* Duplicate submissions
+* System outage during submission window
+* Cross-border timezone disputes
+* Emergency tender extensions
+
+All require predefined policy logic.
+
+---
+
+# 1️⃣7️⃣ KPI METRICS
+
+* Bid rejection rate due to validation
+* Average submission time before deadline
+* Withdrawal frequency
+* Technical disqualification rate
+* Late attempt rate
+* Encryption integrity error rate
+
+---
+
+# 1️⃣8️⃣ COMMON FAILURE POINTS (TO PREVENT)
+
+* Allowing PDF-only unstructured bids
+* Allowing editing after submission
+* Weak encryption
+* Allowing evaluation access before deadline
+* Inconsistent deadline enforcement
+* Manual override without audit log
+
+System must eliminate these vulnerabilities.
+
+---
+
+# 1️⃣9️⃣ END-TO-END SUMMARY
+
+Logic 6 ensures:
+
+* Structured bid submission
+* Mandatory compliance validation
+* Strict deadline enforcement
+* Confidentiality before opening
+* Immutable locking after submission
+* Controlled envelope separation
+* Transparent opening process
+
+It protects the **integrity of competition** and forms the foundation for:
+
+**Logic 7 – Evaluation & Scoring Governance**
+
+---
+

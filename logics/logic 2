@@ -1,0 +1,442 @@
+Below is the **complete system definition and flow design** for:
+
+# 🔷 LOGIC 2 – Role-Based Access Control (RBAC)
+
+---
+
+# 1️⃣ PURPOSE OF RBAC IN A PROCUREMENT SYSTEM
+
+RBAC ensures:
+
+* Users can only perform authorized actions
+* Separation of duties (SoD) is enforced
+* No conflict-of-interest actions occur
+* Institutional governance is maintained
+* Auditability and legal defensibility are ensured
+
+Without RBAC, procurement systems become legally and operationally risky.
+
+---
+
+# 2️⃣ CORE PRINCIPLES OF RBAC
+
+### ✔ Least Privilege
+
+Users get the minimum permissions required.
+
+### ✔ Separation of Duties
+
+No single user controls the full procurement lifecycle.
+
+### ✔ Contextual Access
+
+Permissions depend on:
+
+* Organization
+* Tender
+* Project
+* Trust level (from Logic 1)
+
+### ✔ Traceability
+
+Every permission-based action is logged.
+
+---
+
+# 3️⃣ HIGH-LEVEL ACCESS CONTROL FLOW
+
+```
+User Login
+      ↓
+Authentication (MFA)
+      ↓
+System Fetches:
+   - Organization
+   - Assigned Roles
+   - Trust Level
+      ↓
+Permission Matrix Evaluation
+      ↓
+Access Token Issued (Scoped)
+      ↓
+User Attempts Action
+      ↓
+Authorization Check
+      ↓
+Allow or Deny
+      ↓
+Audit Log Entry
+```
+
+---
+
+# 4️⃣ SYSTEM ACTOR TYPES
+
+## 🔹 A. Buyer-Side Roles
+
+### Organization-Level Roles
+
+| Role                        | Capabilities                      |
+| --------------------------- | --------------------------------- |
+| Super Admin                 | Full organization control         |
+| Procurement Admin           | Create tenders, assign evaluators |
+| Tender Creator              | Draft & publish tenders           |
+| Evaluation Committee Member | Score bids                        |
+| Finance Officer             | Budget approval                   |
+| Contract Officer            | Issue awards                      |
+| Auditor                     | Read-only oversight               |
+
+---
+
+## 🔹 B. Supplier-Side Roles
+
+| Role            | Capabilities             |
+| --------------- | ------------------------ |
+| Supplier Admin  | Manage company account   |
+| Bid Manager     | Submit bids              |
+| Finance Officer | Upload financial docs    |
+| Legal Signatory | Digitally sign contracts |
+| Viewer          | Read-only access         |
+
+---
+
+## 🔹 C. Individual Professionals
+
+| Role                 | Capabilities                |
+| -------------------- | --------------------------- |
+| Independent Bidder   | Submit proposals            |
+| Consultant Evaluator | Score tenders (if assigned) |
+
+---
+
+## 🔹 D. Platform-Level Roles
+
+| Role               | Capabilities     |
+| ------------------ | ---------------- |
+| Platform Admin     | Global oversight |
+| Compliance Officer | Risk review      |
+| Technical Support  | Account recovery |
+| Audit Supervisor   | System-wide logs |
+
+---
+
+# 5️⃣ PERMISSION MODEL STRUCTURE
+
+RBAC operates at three levels:
+
+### Level 1 – System-Level Permissions
+
+* Manage platform users
+* View global analytics
+* Override suspensions
+
+### Level 2 – Organization-Level Permissions
+
+* Create tenders
+* Approve budgets
+* Assign committee members
+
+### Level 3 – Object-Level Permissions
+
+* Access specific tender
+* Edit specific bid
+* View specific contract
+
+---
+
+# 6️⃣ PERMISSION MATRIX DESIGN
+
+Example (Simplified):
+
+| Action          | Buyer Admin | Evaluator | Supplier | Auditor |
+| --------------- | ----------- | --------- | -------- | ------- |
+| Create Tender   | ✅           | ❌         | ❌        | ❌       |
+| Publish Tender  | ✅           | ❌         | ❌        | ❌       |
+| Submit Bid      | ❌           | ❌         | ✅        | ❌       |
+| Evaluate Bid    | ❌           | ✅         | ❌        | ❌       |
+| Approve Award   | ✅           | ❌         | ❌        | ❌       |
+| View Audit Logs | ❌           | ❌         | ❌        | ✅       |
+
+---
+
+# 7️⃣ SEPARATION OF DUTIES (SoD) LOGIC
+
+Critical governance rule:
+
+No single user can:
+
+* Create tender
+* Evaluate bids
+* Approve award
+
+The system must automatically prevent:
+
+```
+IF user = TenderCreator
+AND user assigned as Evaluator
+THEN system blocks assignment
+```
+
+Other SoD rules:
+
+* Evaluator cannot see other scores before submission (blind scoring)
+* Supplier cannot modify bid after deadline
+* Finance cannot approve own budget submission
+
+---
+
+# 8️⃣ ROLE ASSIGNMENT FLOW
+
+```
+Organization Admin Invites User
+        ↓
+User Accepts Invitation
+        ↓
+Admin Assigns Role(s)
+        ↓
+System Validates:
+   - No SoD conflict
+   - Role allowed by trust level
+        ↓
+Permissions Activated
+        ↓
+Audit Entry Logged
+```
+
+---
+
+# 9️⃣ DYNAMIC PERMISSION LOGIC
+
+Permissions may depend on:
+
+### 🔹 Trust Level (from Logic 1)
+
+Example:
+
+* Trust Level 1 suppliers cannot access high-value tenders.
+
+### 🔹 Tender Stage
+
+Example:
+
+* During evaluation phase:
+
+  * Suppliers cannot edit bids.
+  * Evaluators cannot change tender specs.
+
+### 🔹 Time Constraints
+
+* After deadline → submission locked.
+* After award → scoring locked.
+
+---
+
+# 🔟 ATTRIBUTE-BASED EXTENSIONS (ABAC Layer)
+
+For advanced control, combine RBAC with attributes:
+
+Access may depend on:
+
+* Organization ID
+* Tender value
+* Geographic region
+* Risk score
+* Department
+* Clearance level
+
+Example rule:
+
+```
+Allow EvaluateBid
+IF Role = Evaluator
+AND AssignedToTender = TRUE
+AND ConflictOfInterest = FALSE
+AND EvaluationPhase = ACTIVE
+```
+
+---
+
+# 1️⃣1️⃣ INTERNAL GOVERNANCE SUPPORT
+
+RBAC supports:
+
+### Dual Control
+
+Example:
+
+* Award requires:
+
+  * Procurement approval
+  * Finance approval
+
+### Escalation Rules
+
+If no approval within X days:
+
+* Escalate to senior admin.
+
+### Temporary Delegation
+
+* Role reassignment during leave.
+* Expiration date enforced.
+
+---
+
+# 1️⃣2️⃣ CONFLICT OF INTEREST CONTROL
+
+System must:
+
+* Detect shared ownership between buyer and supplier.
+* Prevent evaluator from scoring a known related company.
+* Block bidding by blacklisted entity.
+
+If conflict detected:
+
+```
+Trigger Risk Flag
+Freeze Action
+Notify Compliance
+```
+
+---
+
+# 1️⃣3️⃣ ACCESS TOKEN & SECURITY MODEL
+
+After login:
+
+* System generates scoped JWT token.
+* Token includes:
+
+  * User ID
+  * Organization ID
+  * Roles
+  * Permission claims
+  * Expiration time
+
+All APIs validate:
+
+* Token validity
+* Permission scope
+* Action authorization
+
+---
+
+# 1️⃣4️⃣ AUDIT & TRACEABILITY
+
+Every permission-based action logs:
+
+* User ID
+* Role used
+* Timestamp
+* IP address
+* Object affected
+* Before/After state
+
+Audit logs must be:
+
+* Immutable
+* Tamper-evident
+* Retained per policy
+
+---
+
+# 1️⃣5️⃣ DATA STRUCTURE (DATABASE MODEL)
+
+Core Tables:
+
+* Users
+* Organizations
+* Roles
+* Permissions
+* Role_Permissions
+* User_Roles
+* Tender_Assignments
+* Conflict_of_Interest_Records
+* Audit_Logs
+
+Relationships:
+
+```
+User → User_Roles → Roles → Role_Permissions → Permissions
+```
+
+---
+
+# 1️⃣6️⃣ API ENFORCEMENT EXAMPLE
+
+When user attempts to publish tender:
+
+```
+POST /tender/{id}/publish
+
+System checks:
+- Token valid?
+- Role includes PublishTender?
+- Tender status = Draft?
+- User belongs to owning organization?
+- No SoD violation?
+```
+
+If all true → allow
+Else → 403 Forbidden
+
+---
+
+# 1️⃣7️⃣ SECURITY CONTROLS REQUIRED
+
+* Multi-Factor Authentication (MFA)
+* Session timeout policies
+* IP anomaly detection
+* Permission change logging
+* Periodic role review
+* Privileged access monitoring
+
+---
+
+# 1️⃣8️⃣ PERIODIC ACCESS REVIEW FLOW
+
+To prevent privilege creep:
+
+```
+Quarterly Review Trigger
+      ↓
+Organization Admin Receives Role Report
+      ↓
+Confirm / Revoke Access
+      ↓
+System Logs Changes
+```
+
+For high-risk organizations:
+
+* Mandatory review every 90 days.
+
+---
+
+# 1️⃣9️⃣ EDGE CASE HANDLING
+
+* User moves departments
+* Merged organizations
+* Emergency override access
+* Suspended organization
+* Legal injunction blocking actions
+
+All must be handled with temporary permission states.
+
+---
+
+# 2️⃣0️⃣ COMPLETE END-TO-END RBAC SUMMARY
+
+RBAC in procurement must:
+
+* Clearly define actor roles
+* Enforce separation of duties
+* Prevent unauthorized cross-role actions
+* Dynamically adjust permissions
+* Maintain full audit traceability
+* Integrate with trust and risk scoring
+
+It is the **institutional governance engine** of the procurement ecosystem.
+
+---
+

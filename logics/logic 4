@@ -1,0 +1,434 @@
+Below is the **complete system-level definition and flow design** for:
+
+# 🔷 LOGIC 4 – Tender Publication & Market Visibility Logic
+
+---
+
+# 1️⃣ PURPOSE OF THIS LOGIC
+
+This logic governs:
+
+* How tenders are published
+* Who can see them
+* When they become visible
+* How they are distributed across the marketplace
+* How fairness and equal access are ensured
+
+It directly impacts:
+
+* Competition levels
+* Supplier participation
+* Market transparency
+* Anti-corruption safeguards
+* Reduction of market fragmentation
+
+---
+
+# 2️⃣ HIGH-LEVEL FLOW OVERVIEW
+
+```
+Tender Draft Approved (from Logic 3)
+        ↓
+Pre-Publication Validation
+        ↓
+Visibility Rule Configuration
+        ↓
+Supplier Eligibility Matching
+        ↓
+Publication Execution
+        ↓
+Notification & Distribution
+        ↓
+Clarification Window Activation
+        ↓
+Ongoing Monitoring & Fairness Enforcement
+        ↓
+Submission Deadline Lock
+```
+
+---
+
+# 3️⃣ PRE-PUBLICATION VALIDATION
+
+Before a tender can go live, the system checks:
+
+### A. Structural Completeness
+
+* Evaluation criteria locked
+* Budget defined
+* Timeline valid
+* Scope complete
+
+### B. Governance Checks
+
+* All approvals completed (Logic 2 RBAC enforced)
+* No pending compliance flags
+* No conflict-of-interest flags
+
+### C. Fairness Validation
+
+* Minimum response time met
+* No discriminatory eligibility criteria
+* Amendment rules configured
+
+If any validation fails → publication blocked.
+
+---
+
+# 4️⃣ VISIBILITY MODELS
+
+The system must support multiple visibility types:
+
+---
+
+## 🔹 1. Open Public Tender
+
+* Visible to all verified suppliers
+* Searchable marketplace listing
+* Appears in public feed
+
+Use case:
+
+* High transparency procurements
+* Government tenders
+
+---
+
+## 🔹 2. Category-Restricted Tender
+
+Visible only to suppliers:
+
+* Registered under specific category codes
+* With matching certifications
+* Meeting minimum trust level
+
+Matching logic:
+
+```
+IF Supplier.Category = Tender.Category
+AND Supplier.TrustLevel ≥ RequiredLevel
+THEN Show Tender
+```
+
+---
+
+## 🔹 3. Geographic-Restricted Tender
+
+Visible only to suppliers:
+
+* Operating in selected regions
+* Licensed in required jurisdiction
+
+Used for:
+
+* Local compliance
+* Regional supply requirements
+
+---
+
+## 🔹 4. Prequalified / Closed Tender
+
+Visible only to:
+
+* Pre-approved supplier list
+* Framework agreement participants
+* Invitation-only vendors
+
+System ensures:
+
+* Invitation list locked
+* All invited suppliers notified simultaneously
+* No late additions without audit trail
+
+---
+
+# 5️⃣ SUPPLIER MATCHING ENGINE
+
+When tender is published, the system runs:
+
+### Matching Criteria:
+
+* Category codes
+* Industry classification
+* Geographic presence
+* Certifications
+* Financial capacity
+* Trust level
+* Risk score threshold
+
+Matching produces:
+
+* Eligible Supplier Pool
+* Suggested Supplier List
+* Automatic notification group
+
+---
+
+# 6️⃣ MARKET DISTRIBUTION MECHANISMS
+
+Upon publication:
+
+### A. Internal Marketplace Feed
+
+* Appears in supplier dashboard
+* Sorted by relevance
+
+### B. Notification Engine
+
+* Email alerts
+* In-app alerts
+* SMS (optional)
+* API distribution (if integrated partners)
+
+### C. Public Portal Listing (if open)
+
+* Public search index
+* SEO indexing
+* RSS feed export
+
+---
+
+# 7️⃣ FAIRNESS & ANTI-ADVANTAGE CONTROLS
+
+The system enforces:
+
+### Simultaneous Visibility
+
+* All eligible suppliers see tender at same timestamp.
+
+### No Early Access
+
+* Drafts cannot be previewed externally.
+* Internal users cannot share secure preview links.
+
+### Amendment Rules
+
+If tender amended:
+
+```
+Amendment Published
+        ↓
+All Suppliers Notified
+        ↓
+Deadline Auto-Extended (if material change)
+```
+
+---
+
+# 8️⃣ TIMING WINDOW LOGIC
+
+Mandatory timeline enforcement:
+
+### Minimum Bid Period Rules
+
+Example:
+
+| Tender Value | Minimum Response Time |
+| ------------ | --------------------- |
+| Low          | 7 days                |
+| Medium       | 14 days               |
+| High         | 30 days               |
+
+System prevents:
+
+* Artificially short deadlines
+* Retroactive deadline changes
+* Deadline shortening after publish
+
+---
+
+# 9️⃣ CLARIFICATION WINDOW MANAGEMENT
+
+After publication:
+
+```
+Clarification Period Opens
+        ↓
+Suppliers Submit Questions
+        ↓
+Questions Logged (Anonymous View)
+        ↓
+Buyer Responds
+        ↓
+Response Visible to All Suppliers
+```
+
+Controls:
+
+* No private answers allowed
+* All Q&A logged
+* Time-stamped
+* Immutable
+
+Ensures:
+
+* No supplier receives privileged information
+
+---
+
+# 🔟 MARKET FRAGMENTATION REDUCTION LOGIC
+
+To reduce fragmentation:
+
+### Unified Categorization System
+
+* Standard taxonomy across marketplace
+* Prevents duplicate classifications
+
+### Intelligent Recommendation Engine
+
+* Suggests tenders to SMEs
+* Suggests smaller lots for small suppliers
+
+### Lot Structuring Option
+
+Tender can be split into lots:
+
+* Lot 1: Hardware
+* Lot 2: Installation
+* Lot 3: Maintenance
+
+Enables:
+
+* SME participation
+* Increased competition
+
+---
+
+# 1️⃣1️⃣ ELIGIBILITY FILTERING DURING VISIBILITY
+
+System hides tenders from suppliers if:
+
+* Trust level below threshold
+* Sanctioned entity
+* Suspended account
+* Conflict-of-interest flag
+* Category mismatch
+
+But system logs:
+
+* Why tender was not shown
+* For audit purposes
+
+---
+
+# 1️⃣2️⃣ SEARCH & DISCOVERY LOGIC
+
+Suppliers can:
+
+* Filter by category
+* Filter by value range
+* Filter by region
+* Filter by deadline
+* Filter by buyer organization
+
+Search ranking factors:
+
+* Category relevance
+* Supplier past performance match
+* Location proximity
+* Capacity match
+
+No ranking bias toward specific suppliers.
+
+---
+
+# 1️⃣3️⃣ AUDIT & TRANSPARENCY REQUIREMENTS
+
+For every publication:
+
+Log:
+
+* Publish timestamp
+* Visibility type
+* Eligible supplier count
+* Notification batch ID
+* Amendment history
+* Deadline history
+
+All stored in immutable audit log.
+
+---
+
+# 1️⃣4️⃣ DATA MODEL STRUCTURE
+
+Core Tables:
+
+* Tenders
+* Tender_Visibility_Rules
+* Supplier_Eligibility_Match
+* Tender_Notifications
+* Clarification_Log
+* Publication_Audit_Log
+* Amendments
+* Deadline_History
+
+Relationship:
+
+```
+Tender
+   ↓
+Visibility Rules
+   ↓
+Eligible Supplier Pool
+   ↓
+Notifications
+```
+
+---
+
+# 1️⃣5️⃣ SECURITY & GOVERNANCE CONTROLS
+
+* No manual override of publish time without audit log
+* Two-factor authentication before high-value publication
+* IP logging of publisher
+* Automatic freeze if legal injunction issued
+* System-wide suspension capability
+
+---
+
+# 1️⃣6️⃣ EDGE CASE HANDLING
+
+* Emergency procurement (shortened timeline with justification log)
+* Tender cancellation (must record reason)
+* Tender extension (automatic notifications)
+* Partial cancellation of lots
+* Re-publication after cancellation
+* Cross-border tenders
+
+All must maintain transparency history.
+
+---
+
+# 1️⃣7️⃣ KPIs TO TRACK
+
+* Supplier reach per tender
+* Average number of bids per tender
+* Time-to-bid ratio
+* Amendment frequency
+* Clarification response time
+* SME participation rate
+* Market concentration index
+
+---
+
+# 1️⃣8️⃣ COMPLETE END-TO-END SUMMARY
+
+Logic 4 ensures:
+
+* Equal access to opportunities
+* Transparent publication timing
+* Intelligent supplier matching
+* Fair clarification process
+* Controlled amendments
+* Reduced market fragmentation
+* Increased competition
+
+It connects:
+
+**Structured procurement needs (Logic 3)**
+with
+**Active supplier participation (Logic 5 – Bidding & Submission)**
+
+---
+

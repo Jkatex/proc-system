@@ -1,0 +1,446 @@
+Below is the **complete system-level architecture and flow definition** for:
+
+# 🔷 LOGIC 5 – Supplier Discovery & Matching Logic
+
+---
+
+# 1️⃣ PURPOSE OF THIS LOGIC
+
+This logic moves the system from:
+
+> Passive listing marketplace
+> to
+> Intelligent supplier discovery engine
+
+It ensures:
+
+* Buyers discover suppliers beyond personal networks
+* SMEs gain fair visibility
+* Matching is data-driven, not relationship-driven
+* Procurement competition increases
+* Market fragmentation decreases
+
+This logic works **in parallel with Logic 4 (Tender Publication)** but can also function **before tender creation** during market research.
+
+---
+
+# 2️⃣ HIGH-LEVEL DISCOVERY FLOW
+
+There are two primary trigger paths:
+
+---
+
+## 🔹 Path A – Buyer-Initiated Search
+
+```
+Buyer Enters Requirement
+        ↓
+System Extracts Structured Attributes
+        ↓
+Matching Engine Runs
+        ↓
+Ranked Supplier List Generated
+        ↓
+Buyer Can:
+    - Invite to Tender
+    - Add to Prequalified List
+    - Start Market Consultation
+```
+
+---
+
+## 🔹 Path B – Tender-Based Automatic Matching
+
+```
+Tender Published (Logic 4)
+        ↓
+Matching Engine Evaluates Supplier Pool
+        ↓
+Eligible Suppliers Ranked
+        ↓
+Targeted Notifications Sent
+        ↓
+Supplier Dashboard Highlighted
+```
+
+---
+
+# 3️⃣ MATCHING INPUT DIMENSIONS
+
+The matching engine evaluates suppliers across multiple dimensions:
+
+---
+
+## 🔹 1. Category Alignment
+
+* Industry classification codes
+* Product/service taxonomy
+* Certification requirements
+* Specialization tags
+
+Matching rule:
+
+```
+Category Match Score = Overlap(Requirement Categories, Supplier Categories)
+```
+
+---
+
+## 🔹 2. Capability & Capacity Fit
+
+Evaluates:
+
+* Production capacity
+* Delivery volume history
+* Technical certifications
+* Equipment ownership
+* Staff size
+* Project complexity handled
+
+Prevents:
+
+* Micro supplier matched to mega infrastructure project
+* Overqualified supplier ignored for niche task
+
+---
+
+## 🔹 3. Historical Performance Score
+
+Uses data from past procurements:
+
+* On-time delivery rate
+* Contract completion rate
+* Quality ratings
+* Dispute frequency
+* Buyer satisfaction scores
+
+Performance scoring formula example:
+
+```
+Performance Score =
+(Delivery Reliability × 0.4) +
+(Quality Score × 0.3) +
+(Contract Compliance × 0.2) +
+(Low Dispute Ratio × 0.1)
+```
+
+---
+
+## 🔹 4. Trust & Risk Score (From Logic 1)
+
+Evaluates:
+
+* Trust level
+* Risk flags
+* Compliance history
+* Sanctions screening status
+* Financial stability indicators
+
+High-risk suppliers:
+
+* Ranked lower
+* Or excluded if threshold breached
+
+---
+
+## 🔹 5. Geographic & Logistical Feasibility
+
+Considers:
+
+* Supplier operating region
+* Warehouse location
+* Cross-border shipping capability
+* Regulatory licensing region
+* Delivery time feasibility
+
+Matching logic example:
+
+```
+Logistics Score =
+Distance Factor +
+Shipping Capability +
+Regional Compliance Fit
+```
+
+---
+
+## 🔹 6. Financial Capacity Matching
+
+Checks:
+
+* Minimum turnover requirement
+* Bonding capacity
+* Insurance coverage
+* Previous contract size handled
+
+Prevents:
+
+* Overexposure risk
+* Financially unfit supplier match
+
+---
+
+## 🔹 7. ESG / Sustainability Profile (Optional Advanced Layer)
+
+* Environmental certifications
+* Diversity classification
+* Carbon reporting
+* Local supplier preference
+
+Useful for:
+
+* Government policy compliance
+* Corporate ESG procurement targets
+
+---
+
+# 4️⃣ MATCHING ENGINE ARCHITECTURE
+
+The engine uses weighted scoring.
+
+### Composite Matching Score
+
+```
+Final Match Score =
+(Category Fit × W1)
++ (Capability Fit × W2)
++ (Performance Score × W3)
++ (Logistics Fit × W4)
++ (Financial Capacity × W5)
++ (Risk Adjustment Factor)
+```
+
+Weights adjustable by:
+
+* Procurement type
+* Value threshold
+* Industry category
+
+---
+
+# 5️⃣ RANKING & BIAS CONTROL
+
+To prevent favoritism:
+
+* Algorithm cannot prioritize specific named suppliers
+* No manual rank override without audit trail
+* Randomization among equally scored suppliers
+* SME promotion adjustment factor (if policy enabled)
+
+Example SME policy:
+
+```
+If SME = TRUE
+AND Score within 5% of Top Score
+Then boost ranking slightly
+```
+
+All adjustments logged.
+
+---
+
+# 6️⃣ SUPPLIER RECOMMENDATION TYPES
+
+System outputs:
+
+### A. Ranked List
+
+Sorted by match score.
+
+### B. Tiered Recommendations
+
+| Tier   | Meaning        |
+| ------ | -------------- |
+| Tier 1 | Strong match   |
+| Tier 2 | Good match     |
+| Tier 3 | Possible match |
+
+### C. Diversity Suggestions
+
+Optional policy-driven inclusion suggestions.
+
+---
+
+# 7️⃣ PRE-TENDER MARKET EXPLORATION MODE
+
+Before publishing a tender, buyers can:
+
+* Run supplier market scan
+* See available suppliers count
+* Estimate competition level
+* Adjust requirement structuring (Logic 3)
+
+Prevents:
+
+* Creating unrealistic or overly restrictive tenders
+
+---
+
+# 8️⃣ COLD START PROBLEM HANDLING
+
+For new suppliers with no history:
+
+System uses:
+
+* Category alignment
+* Certification verification
+* Capacity declaration
+* Trust level
+* External validation sources (if integrated)
+
+Prevents:
+
+* Established suppliers dominating ranking permanently
+
+---
+
+# 9️⃣ CONTINUOUS LEARNING LOOP
+
+After every procurement:
+
+```
+Contract Completed
+        ↓
+Performance Metrics Updated
+        ↓
+Supplier Score Recalculated
+        ↓
+Future Matching Adjusted
+```
+
+The engine improves over time.
+
+---
+
+# 🔟 DATA MODEL STRUCTURE
+
+Core Tables:
+
+* Suppliers
+* Supplier_Categories
+* Supplier_Capabilities
+* Supplier_Performance
+* Supplier_Logistics_Profile
+* Supplier_Financial_Profile
+* ESG_Profile
+* Matching_Results_Log
+* Match_Score_History
+
+Relationships:
+
+```
+Supplier
+   ↓
+Capabilities / Performance / Risk
+   ↓
+Matching Engine
+   ↓
+Ranked Output
+```
+
+---
+
+# 1️⃣1️⃣ DISCOVERY INTERFACE FOR BUYERS
+
+Buyer dashboard includes:
+
+* Smart search bar (structured search)
+* Filter by region, size, trust level
+* Performance analytics preview
+* Capacity indicator
+* Risk indicator
+* Invitation button
+
+No direct access to sensitive competitor data.
+
+---
+
+# 1️⃣2️⃣ SUPPLIER SIDE VISIBILITY LOGIC
+
+Suppliers see:
+
+* Why they were recommended
+* Matching criteria summary
+* Capability gaps (optional)
+* Suggested profile improvements
+
+Encourages:
+
+* Data completeness
+* Capability development
+
+---
+
+# 1️⃣3️⃣ FAIRNESS & GOVERNANCE CONTROLS
+
+System prevents:
+
+* Hidden supplier promotion
+* Manual blacklisting without audit
+* Manipulated match weights
+* Discriminatory filtering
+
+All matching runs logged with:
+
+* Timestamp
+* Weight configuration
+* Output list
+* Ranking logic version
+
+---
+
+# 1️⃣4️⃣ EDGE CASES TO HANDLE
+
+* Joint ventures
+* Consortium bids
+* Multi-lot tenders
+* Cross-border regulatory conflicts
+* Emergency procurement
+* Rapid supplier scaling
+
+---
+
+# 1️⃣5️⃣ KPIs TO TRACK
+
+* New supplier discovery rate
+* SME inclusion rate
+* Buyer-supplier diversity index
+* Match-to-bid conversion rate
+* Match-to-award conversion rate
+* Supplier churn rate
+* Overconcentration risk score
+
+---
+
+# 1️⃣6️⃣ RISK MITIGATION BENEFITS
+
+This logic reduces:
+
+* Collusion risk
+* Repetitive award concentration
+* Insider favoritism
+* Supplier monopolization
+* Relationship-driven procurement bias
+
+---
+
+# 1️⃣7️⃣ COMPLETE END-TO-END SUMMARY
+
+Logic 5 ensures:
+
+* Buyers discover suppliers intelligently
+* Matching is data-driven
+* Historical performance influences opportunity
+* Risk and capacity are evaluated
+* SMEs gain fair exposure
+* Competition increases
+* Procurement becomes merit-based
+
+It bridges:
+
+**Tender Publication (Logic 4)**
+with
+**Bid Submission & Evaluation (Logic 6)**
+
+---
+
