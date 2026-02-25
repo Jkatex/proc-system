@@ -1,0 +1,405 @@
+🟢 1. PUBLIC / ENTRY PAGES
+
+Landing Page
+
+About the Platform
+
+Features Overview
+
+How It Works
+
+Marketplace Overview
+
+Supplier Directory (Public View)
+
+Public Tender Listings
+
+Pricing Page
+
+Enterprise Solutions Page
+
+SME Solutions Page
+
+Regulatory & Compliance Page
+
+Security Overview Page
+
+Contact Us
+
+Help Center Landing
+
+Blog / Insights
+
+Case Studies
+
+API Documentation (Public)
+
+Sign Up – Buyer
+
+Sign Up – Supplier
+
+Sign Up – Professional
+
+Login Page
+
+Multi-Factor Authentication Page
+
+Password Reset
+
+Email Verification
+
+Terms & Conditions
+
+Privacy Policy
+
+Cookie Policy
+
+🟢 2. USER ONBOARDING & TRUST TIER
+
+Account Setup Wizard
+
+Organization Profile Setup
+
+Business Verification Upload
+
+Identity Verification Page
+
+Trust Tier Overview
+
+Trust Tier Upgrade Requirements
+
+Compliance Checklist Page
+
+Banking Information Setup
+
+Tax Information Setup
+
+User Role Assignment Page
+
+Access Permission Matrix
+
+Risk Disclosure Acknowledgment
+
+🟢 3. USER DASHBOARDS
+
+Buyer Dashboard
+
+Supplier Dashboard
+
+Professional Dashboard
+
+Admin Dashboard
+
+Risk Intelligence Dashboard
+
+Market Transparency Dashboard
+
+Network Liquidity Dashboard
+
+AI Insights Dashboard
+
+Spend Overview Dashboard
+
+Supplier Performance Dashboard
+
+Dispute Monitoring Dashboard
+
+🟢 4. PROCUREMENT CREATION
+
+Create New Procurement
+
+Procurement Category Selection
+
+Requirements Definition Page
+
+Specification Builder
+
+Evaluation Criteria Builder
+
+Budget Allocation Page
+
+Timeline & Milestones Page
+
+Risk Assessment Pre-Check
+
+Logistics Requirement Page
+
+Tender Bias Detection Feedback
+
+Standard Template Selection
+
+Custom Template Editor
+
+Preview Tender Page
+
+Publish Tender Confirmation
+
+🟢 5. TENDER MANAGEMENT
+
+My Active Tenders
+
+Draft Tenders
+
+Closed Tenders
+
+Cancelled Tenders
+
+Tender Analytics
+
+Tender Edit Page
+
+Tender Access Control
+
+Tender Visibility Settings
+
+Tender Clarifications Page
+
+Tender Addendum Page
+
+Tender Audit Trail
+
+🟢 6. SUPPLIER DISCOVERY & MATCHING
+
+Supplier Search Page
+
+AI Supplier Recommendations
+
+Supplier Profile View
+
+Supplier Comparison Page
+
+Supplier Capacity Overview
+
+Supplier Saturation Alert Page
+
+Supplier Trust Score Breakdown
+
+Supplier Performance History
+
+Supplier Risk Profile
+
+🟢 7. BIDDING INTERFACE
+
+Submit Bid Page
+
+Technical Proposal Upload
+
+Financial Proposal Submission
+
+Sample Submission Tracking
+
+Bid Confirmation Page
+
+Bid Withdrawal Page
+
+Bid History Page
+
+Bid Validation Error Page
+
+Confidentiality Confirmation Page
+
+🟢 8. BID EVALUATION
+
+Bid Opening Panel
+
+Technical Evaluation Page
+
+Financial Evaluation Page
+
+Weighted Scoring Interface
+
+Cross-Regional Price Comparison
+
+Price Benchmark Analysis Page
+
+Risk Forecasting View
+
+Collusion Detection Report
+
+Evaluation Summary Page
+
+Evaluation Justification Page
+
+Internal Review Page
+
+🟢 9. APPROVAL & CONTRACTING
+
+Approval Workflow Page
+
+Sequential Approval View
+
+Budget Validation Page
+
+Authority Escalation Page
+
+Award Decision Page
+
+Award Notification Page
+
+Contract Draft Page
+
+Digital Signature Page
+
+Contract Version History
+
+Contract Archive
+
+🟢 10. POST-AWARD MANAGEMENT
+
+Contract Performance Dashboard
+
+Delivery Tracking Page
+
+Milestone Completion Page
+
+Quality Review Page
+
+Supplier Performance Review Form
+
+Performance History Log
+
+Invoice Submission Page
+
+Invoice Verification Page
+
+Payment Status Page
+
+Documentation Archive
+
+🟢 11. DISPUTES & EXCEPTIONS
+
+Raise Dispute Page
+
+Dispute Evidence Upload
+
+Dispute Discussion Thread
+
+Dispute Escalation Page
+
+Dispute Resolution Summary
+
+Arbitration Panel View
+
+Exception Handling Log
+
+🟢 12. MARKET INTELLIGENCE
+
+Market Price Trends
+
+Category Benchmark Page
+
+Regional Price Normalization Page
+
+Supplier Win Rotation Analysis
+
+Aggregated Market Behavior Report
+
+Buyer Performance Benchmark Page
+
+Transparency Analytics View
+
+🟢 13. GOVERNANCE & COMPLIANCE
+
+Governance Rules Configuration
+
+Suspension & Penalty Management
+
+Misconduct Reporting Page
+
+Audit Logs Viewer
+
+System Activity Monitoring
+
+Regulatory Reporting Dashboard
+
+Data Retention Settings
+
+Compliance Certification Page
+
+🟢 14. NETWORK & ECOSYSTEM
+
+Marketplace Health Monitor
+
+Supply-Demand Balance View
+
+Network Liquidity Controls
+
+Cross-Border Procurement Page
+
+Currency & Tax Settings
+
+Regulatory Integration Settings
+
+ERP Integration Setup
+
+API Token Management
+
+Webhook Configuration Page
+
+🟢 15. AI & LEARNING MANAGEMENT
+
+Model Performance Dashboard
+
+Risk Model Configuration
+
+Trust Score Algorithm Settings
+
+Bias Detection Report
+
+Data Compounding Analytics
+
+Predictive Insights Panel
+
+🟢 16. FUTURE MODULES (Expansion Ready)
+
+Supplier Financing Page
+
+Early Payment Request Page
+
+Insurance Coverage Page
+
+Performance Guarantee Page
+
+Cross-Border Logistics Planner
+
+Trade Documentation Generator
+
+🟢 17. USER SETTINGS & ADMINISTRATION
+
+User Profile Page
+
+Organization Settings
+
+Notification Preferences
+
+Security Settings
+
+Access Logs
+
+Team Management
+
+Subscription Management
+
+Billing & Invoices
+
+Language & Localization Settings
+
+🟢 18. SYSTEM ADMIN (SUPER ADMIN)
+
+Tenant Management
+
+Platform Configuration
+
+Global Taxonomy Manager
+
+AI Model Deployment Page
+
+Incident Management Page
+
+System Health Dashboard
+
+Database Monitoring
+
+Feature Flag Management
+
+Environment Configuratio
