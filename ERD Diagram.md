@@ -241,7 +241,72 @@ erDiagram
 
 ## 3. Supplier Profile & Discovery Domain (Logics 5, 15, 22, 25)
 
+erDiagram
+    %% Core Entities
+    USER {
+        uuid user_id PK
+        string name
+        string email
+        string user_type
+    }
+
+    ORGANIZATION {
+        uuid org_id PK
+        string org_name
+        string org_type
+    }
+
+    SUPPLIER_PROFILE {
+        uuid supplier_id PK
+        uuid user_id FK
+        string business_type
+        float trust_score
+    }
+
+    TENDER {
+        uuid tender_id PK
+        uuid org_id FK
+        string title
+        string status
+        decimal estimated_value
+    }
+
+    BID {
+        uuid bid_id PK
+        uuid tender_id FK
+        uuid supplier_id FK
+        decimal total_bid_price
+        string status
+    }
+
+    CONTRACT {
+        uuid contract_id PK
+        uuid tender_id FK
+        uuid supplier_id FK
+        uuid org_id FK
+        decimal contract_value
+        string status
+    }
+
+    BUDGET {
+        uuid budget_id PK
+        uuid org_id FK
+        decimal allocated_amount
+        decimal spent_amount
+    }
+
+    %% Relationships
+    USER ||--o{ SUPPLIER_PROFILE : "has_profile"
+    ORGANIZATION ||--o{ TENDER : "publishes"
+    ORGANIZATION ||--o{ BUDGET : "allocates"
+    TENDER ||--o{ BID : "receives"
+    SUPPLIER_PROFILE ||--o{ BID : "submits"
+    TENDER ||--|| CONTRACT : "results_in"
+    SUPPLIER_PROFILE ||--o{ CONTRACT : "awarded_to"
+    ORGANIZATION ||--o{ CONTRACT : "buyer_of"
+
 ```mermaid
+
 erDiagram
     SUPPLIER_PROFILE {
         uuid supplier_id PK

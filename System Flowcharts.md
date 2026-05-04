@@ -440,15 +440,15 @@ flowchart TD
     D --> C
     C -->|All Clear| E[Distribute Bids to Evaluators]
     
-    E --> F[Phase 1: Compliance Screening]
+    E --> F[ 1: Compliance Screening]
     F --> G{For Each Bid}
     G --> H{Mandatory Requirements Met?}
     H -->|No| I[Disqualify Bid + Record Reason]
     I --> J{More Bids?}
-    H -->|Yes| K[Pass to Scoring Phase]
+    H -->|Yes| K[Pass to Scoring ]
     K --> J
     J -->|Yes| G
-    J -->|No| L[Phase 2: Independent Scoring]
+    J -->|No| L[ 2: Independent Scoring]
     
     L --> M[Each Evaluator Scores Independently]
     M --> N{Evaluation Type?}
@@ -463,7 +463,7 @@ flowchart TD
     R --> S[Lock Individual Score — Immutable]
     S --> T{All Evaluators Done?}
     T -->|No| M
-    T -->|Yes| U[Phase 3: Variance Analysis]
+    T -->|Yes| U[ 3: Variance Analysis]
     
     U --> V{Score Variance > Threshold?}
     V -->|Yes| W[Initiate Consensus/Moderation Session]
@@ -471,7 +471,7 @@ flowchart TD
     X --> Y[Record Consensus Score + Notes]
     V -->|No| Z[Calculate Average Score]
     
-    Y --> AA[Phase 4: Financial Scoring]
+    Y --> AA[ 4: Financial Scoring]
     Z --> AA
     
     AA --> AB{Two-Envelope Process?}
@@ -1615,43 +1615,43 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A([🟢 START]) --> B["PHASE 1: IDENTITY
+    A([🟢 START]) --> B[" 1: IDENTITY
     Register Users
     Verify Documents
     Assign Trust Tiers
     Configure RBAC"]
     
-    B --> C["PHASE 2: DESIGN
+    B --> C[" 2: DESIGN
     Define Procurement Need
     Create Specifications & BOQ
     Set Evaluation Criteria
     Run Quality & Bias Checks"]
     
-    C --> D["PHASE 3: APPROVAL
+    C --> D[" 3: APPROVAL
     Route Through Authority Hierarchy
     Value-Based Escalation
     Delegation Handling
     Budget Pre-Commitment"]
     
-    D --> E["PHASE 4: PUBLICATION
+    D --> E[" 4: PUBLICATION
     Publish to Centralized Index
     Match Eligible Suppliers
     Send Notifications
     Handle Clarifications"]
     
-    E --> F["PHASE 5: BIDDING
+    E --> F[" 5: BIDDING
     Eligibility Verification
     Bid Preparation & Validation
     Encryption & Sealing
     Deadline Enforcement"]
     
-    F --> G["PHASE 6: OPENING
+    F --> G[" 6: OPENING
     Multi-Person Authorization
     Decryption & Hash Verification
     Envelope-Based Disclosure
     Immutable Opening Records"]
     
-    G --> H["PHASE 7: EVALUATION
+    G --> H[" 7: EVALUATION
     Compliance Screening
     Independent Scoring
     Consensus Review
@@ -1659,52 +1659,52 @@ flowchart TD
     Sample/Interview (if applicable)
     Risk-Adjusted Rankings"]
     
-    H --> I["PHASE 8: INTELLIGENCE
+    H --> I[" 8: INTELLIGENCE
     Price Intelligence & Normalization
     Collusion Detection
     Risk Forecasting
     Delivery Feasibility"]
     
-    I --> J["PHASE 9: AWARD
+    I --> J[" 9: AWARD
     Award Recommendation
     Approval Routing
     Winner/Loser Notification
     Standstill Period
     Challenge Handling"]
     
-    J --> K["PHASE 10: CONTRACT
+    J --> K[" 10: CONTRACT
     Auto-Generate Contract
     Digital Signing (Both Parties)
     Budget Commitment
     Performance Security"]
     
-    K --> L["PHASE 11: EXECUTION
+    K --> L[" 11: EXECUTION
     Milestone Tracking
     Goods Receipt
     Invoice Submission
     3-Way Matching
     Payment Processing"]
     
-    L --> M["PHASE 12: PERFORMANCE
+    L --> M[" 12: PERFORMANCE
     Supplier Scoring
     Trust Recalculation
     Tier Progression
     Capacity Updates"]
     
-    M --> N["PHASE 13: DISPUTES (if any)
+    M --> N[" 13: DISPUTES (if any)
     Formal Filing
     Evidence Exchange
     Mediation/Resolution
     Penalty Enforcement
     Appeals"]
     
-    N --> O["PHASE 14: GOVERNANCE
+    N --> O[" 14: GOVERNANCE
     Audit Trail Maintenance
     Violation Detection
     Enforcement Actions
     Compliance Reporting"]
     
-    O --> P["PHASE 15: LEARNING
+    O --> P[" 15: LEARNING
     Data Accumulation
     Model Training
     AI Recommendations
@@ -1754,7 +1754,7 @@ flowchart TD
 | 31 | Platform Learning | 2 | 16 | 31 |
 | 32 | ERP Integration | 3 | 24 | 35 |
 | 33 | Platform Modularity | 3 | 22 | 40 |
-| 34 | **Complete E2E Lifecycle** | 0 | 15 phases | **All 40** |
+| 34 | **Complete E2E Lifecycle** | 0 | 15 s | **All 40** |
 | **TOTAL** | **34 flowcharts** | **~120** | **~850+** | |
 
 ---
