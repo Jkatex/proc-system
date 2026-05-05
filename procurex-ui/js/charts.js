@@ -87,6 +87,9 @@ function createChart(canvasId, configKey) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return null;
 
+    const existingChart = Chart.getChart(canvas);
+    if (existingChart) existingChart.destroy();
+
     const ctx = canvas.getContext('2d');
     return new Chart(ctx, chartConfigs[configKey]);
 }

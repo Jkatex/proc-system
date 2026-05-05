@@ -1,0 +1,85 @@
+// Sign-in page shown after account registration.
+
+function renderSignIn() {
+    const savedEmail = mockData.pendingAccount?.email || mockData.registrationDraft?.email || '';
+    const demoAccounts = mockData.mockAuth?.accounts || [];
+
+    return `
+        <div class="register-page-new auth-page">
+            <header class="register-header-new">
+                <div class="register-header-inner-new">
+                    <div class="brand-new" data-navigate="welcome">
+                        <span class="brand-mark-new">PX</span>
+                        <span class="brand-text-new">ProcureX</span>
+                    </div>
+                    <a href="#" data-navigate="register" class="login-link-new">Create an account</a>
+                </div>
+            </header>
+
+            <div class="register-container-new">
+                <div class="register-card-new auth-card">
+                    <div class="screens-container-new">
+                        <div class="screen-header-new">
+                            <h2>Sign In</h2>
+                            <p>Use the credentials created during account setup.</p>
+                        </div>
+
+                        <form class="screen-form-new" data-action="sign-in">
+                            <div class="form-group-new">
+                                <label class="form-label-new">Email Address *</label>
+                                <input type="email" class="form-input-new" name="email" value="${savedEmail}" placeholder="you@company.com" required>
+                                <span class="form-error-new"></span>
+                            </div>
+
+                            <div class="form-group-new">
+                                <label class="form-label-new">Password *</label>
+                                <div class="password-input-wrapper-new">
+                                    <input type="password" class="form-input-new" name="password" placeholder="Enter your password" required>
+                                    <button type="button" class="password-toggle-new" aria-label="Show password">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                            <circle cx="12" cy="12" r="3"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <span class="form-error-new"></span>
+                            </div>
+
+                            <div class="auth-row">
+                                <label class="auth-check">
+                                    <input type="checkbox" name="remember">
+                                    <span>Remember me</span>
+                                </label>
+                                <a href="#" class="link-new">Forgot password?</a>
+                            </div>
+
+                            <button type="submit" class="btn-continue-new">
+                                Sign In
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                                </svg>
+                            </button>
+                        </form>
+
+                        <div class="auth-note">
+                            New accounts continue to eKYC before dashboard access.
+                        </div>
+
+                        <div class="demo-credentials">
+                            <h3>Mock sign-in data</h3>
+                            ${demoAccounts.map(account => `
+                                <button type="button" class="demo-account" data-demo-email="${account.email}" data-demo-password="${account.password}">
+                                    <span>
+                                        <strong>${account.displayName}</strong>
+                                        <small>${account.role}${account.isNewUser ? ' - new user eKYC' : ' - returning user'}</small>
+                                    </span>
+                                    <code>${account.email}</code>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}

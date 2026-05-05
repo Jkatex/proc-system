@@ -14,15 +14,15 @@ function renderGuestMarketplace() {
             </div>
 
             <!-- Hero Section -->
-            <div style="background: linear-gradient(135deg, var(--primary-blue) 0%, #1e40af 100%); color: white; padding: 60px 0; text-align: center; margin-bottom: 40px;">
-                <h2 style="font-size: 32px; margin-bottom: 16px;">Discover Procurement Opportunities</h2>
-                <p style="font-size: 18px; margin-bottom: 32px;">Browse active tenders and government contracts</p>
+            <div class="marketplace-hero">
+                <h2>Discover Procurement Opportunities</h2>
+                <p>Browse active tenders and government contracts</p>
 
                 <!-- Search Bar -->
-                <div style="max-width: 600px; margin: 0 auto;">
-                    <div style="display: flex; gap: 8px;">
-                        <input type="text" placeholder="Search tenders..." style="flex: 1; padding: 12px; border: none; border-radius: 6px; font-size: 16px;">
-                        <button class="btn btn-secondary" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3);">Search</button>
+                <div class="marketplace-search-wrap">
+                    <div class="marketplace-search">
+                        <input type="text" placeholder="Search tenders...">
+                        <button class="btn btn-secondary">Search</button>
                     </div>
                 </div>
             </div>
@@ -35,7 +35,7 @@ function renderGuestMarketplace() {
 
                     <div style="margin-bottom: 20px;">
                         <label style="display: block; font-weight: 500; margin-bottom: 8px;">Sector</label>
-                        <select style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                        <select class="form-input">
                             <option>All Sectors</option>
                             <option>Health</option>
                             <option>Education</option>
@@ -46,7 +46,7 @@ function renderGuestMarketplace() {
 
                     <div style="margin-bottom: 20px;">
                         <label style="display: block; font-weight: 500; margin-bottom: 8px;">Tender Type</label>
-                        <select style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                        <select class="form-input">
                             <option>All Types</option>
                             <option>Goods</option>
                             <option>Works</option>
@@ -57,7 +57,7 @@ function renderGuestMarketplace() {
 
                     <div style="margin-bottom: 20px;">
                         <label style="display: block; font-weight: 500; margin-bottom: 8px;">Budget Range</label>
-                        <select style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px;">
+                        <select class="form-input">
                             <option>All Ranges</option>
                             <option>Under 1M TZS</option>
                             <option>1M - 10M TZS</option>

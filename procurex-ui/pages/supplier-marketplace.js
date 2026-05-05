@@ -15,9 +15,11 @@ function renderSupplierMarketplace() {
 
                 <ul class="sidebar-nav">
                     <li><a href="#" data-navigate="supplier-marketplace" class="active">Marketplace</a></li>
-                    <li><a href="#" data-navigate="coming-soon">My Bids</a></li>
-                    <li><a href="#" data-navigate="coming-soon">Contracts</a></li>
-                    <li><a href="#" data-navigate="coming-soon">Performance</a></li>
+                    <li><a href="#" data-navigate="supplier-dashboard">Dashboard</a></li>
+                    <li><a href="#" data-navigate="supplier-journey">Supplier Journey</a></li>
+                    <li><a href="#" data-navigate="bidding-workspace">My Bids</a></li>
+                    <li><a href="#" data-navigate="contract-negotiation">Contracts</a></li>
+                    <li><a href="#" data-navigate="post-award-tracking">Performance</a></li>
                     <li><a href="#" data-navigate="welcome">Logout</a></li>
                 </ul>
             </div>
@@ -28,7 +30,7 @@ function renderSupplierMarketplace() {
                     <h1>Supplier Marketplace</h1>
                     <div style="display: flex; align-items: center; gap: 16px;">
                         <span>Welcome, ${mockData.users.supplier.name}</span>
-                        <button class="btn btn-secondary">Settings</button>
+                        <button class="btn btn-secondary" data-navigate="supplier-journey">Open Journey</button>
                     </div>
                 </div>
 
@@ -90,7 +92,7 @@ function renderSupplierMarketplace() {
                                     <span class="badge badge-success">${tender.status}</span>
                                     <div style="display: flex; gap: 4px;">
                                         <button class="btn btn-secondary" style="font-size: 12px; padding: 4px 8px;">Watch</button>
-                                        <button class="btn btn-primary" style="font-size: 12px; padding: 4px 8px;" data-navigate="tender-details">View Details</button>
+                                        <button class="btn btn-primary" style="font-size: 12px; padding: 4px 8px;" data-navigate="supplier-tender-detail">View Details</button>
                                     </div>
                                 </div>
                                 <h4 class="tender-title">${tender.title}</h4>
@@ -113,7 +115,7 @@ function renderSupplierMarketplace() {
                                     <span class="badge badge-warning">${tender.status}</span>
                                     <div style="display: flex; gap: 4px;">
                                         <button class="btn btn-secondary" style="font-size: 12px; padding: 4px 8px;">Watch</button>
-                                        <button class="btn btn-primary" style="font-size: 12px; padding: 4px 8px;" data-navigate="tender-details">View Details</button>
+                                        <button class="btn btn-primary" style="font-size: 12px; padding: 4px 8px;" data-navigate="supplier-tender-detail">View Details</button>
                                     </div>
                                 </div>
                                 <h4 class="tender-title">${tender.title}</h4>
@@ -144,7 +146,7 @@ function renderSupplierMarketplace() {
                             <div class="tender-card">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                                     <span class="badge badge-${tender.status === 'Open' ? 'success' : tender.status === 'Evaluation' ? 'warning' : 'info'}">${tender.status}</span>
-                                    <button class="btn btn-primary" style="font-size: 12px; padding: 4px 8px;" data-navigate="tender-details">View Details</button>
+                                    <button class="btn btn-primary" style="font-size: 12px; padding: 4px 8px;" data-navigate="supplier-tender-detail">View Details</button>
                                 </div>
                                 <h4 class="tender-title">${tender.title}</h4>
                                 <div class="tender-meta">

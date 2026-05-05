@@ -3,6 +3,8 @@
 function renderVerificationStatus() {
     const user = mockData.users[mockData.currentRole] || {};
     const docs = mockData.complianceDocs;
+    const profile = mockData.eKycProfile || {};
+    const dashboardPage = `${mockData.currentRole || 'buyer'}-dashboard`;
 
     return `
         <div class="main-layout">
@@ -15,6 +17,7 @@ function renderVerificationStatus() {
                     </div>
                     <div style="font-size: 12px; color: var(--text-secondary);">Risk Score: ${user.riskScore}/100</div>
                     <div style="font-size: 12px; color: var(--text-secondary);">Bid Limit: TZS ${user.bidLimit?.toLocaleString()}</div>
+                    ${profile.businessName ? `<div style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">${profile.businessName}</div>` : ''}
                 </div>
 
                 <ul class="sidebar-nav">
@@ -40,6 +43,11 @@ function renderVerificationStatus() {
                 <!-- Compliance Checklist -->
                 <div class="card">
                     <h3 style="margin-bottom: 20px;">Compliance Checklist</h3>
+                    ${profile.status === 'submitted' ? `
+                        <div style="background: #ecfdf5; border: 1px solid #bbf7d0; border-radius: 8px; padding: 14px; margin-bottom: 18px; color: #166534;">
+                            eKYC submitted for <strong>${profile.role}</strong>${profile.businessLine ? ` in ${profile.businessLine}` : ''}. Digital signature and uploaded documents are now under review.
+                        </div>
+                    ` : ''}
 
                     <div style="space-y: 16px;">
                         ${docs.map(doc => `
@@ -61,7 +69,7 @@ function renderVerificationStatus() {
                     <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border);">
                         <div style="display: flex; gap: 12px;">
                             <button class="btn btn-secondary" data-navigate="iam-verification">← Re-upload Documents</button>
-                            <button class="btn btn-primary" data-navigate="${mockData.currentRole}-dashboard">Continue to Dashboard</button>
+                            <button class="btn btn-primary" data-navigate="${dashboardPage}">Continue to Dashboard</button>
                         </div>
                     </div>
                 </div>

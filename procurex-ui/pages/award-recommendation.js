@@ -11,7 +11,7 @@ function renderAwardRecommendation() {
                 </div>
 
                 <ul class="sidebar-nav">
-                    <li><a href="#" data-navigate="bid-evaluation">← Back to Evaluation</a></li>
+                    <li><a href="#" data-navigate="bid-evaluation">Back to Evaluation</a></li>
                     <li><a href="#" data-navigate="buyer-dashboard">Dashboard</a></li>
                     <li><a href="#" data-navigate="welcome">Logout</a></li>
                 </ul>
@@ -42,7 +42,7 @@ function renderAwardRecommendation() {
                                     <td>85%</td>
                                     <td>90%</td>
                                     <td style="font-weight: 600;">87.5%</td>
-                                    <td>4,800,000</td>
+                                    <td>4,800,000,000</td>
                                     <td><input type="radio" name="winner" value="abc" checked></td>
                                 </tr>
                                 <tr>
@@ -51,7 +51,7 @@ function renderAwardRecommendation() {
                                     <td>92%</td>
                                     <td>82%</td>
                                     <td style="font-weight: 600;">88.4%</td>
-                                    <td>4,650,000</td>
+                                    <td>4,650,000,000</td>
                                     <td><input type="radio" name="winner" value="buildright"></td>
                                 </tr>
                                 <tr>
@@ -60,7 +60,7 @@ function renderAwardRecommendation() {
                                     <td>88%</td>
                                     <td>88%</td>
                                     <td style="font-weight: 600;">88.0%</td>
-                                    <td>4,750,000</td>
+                                    <td>4,750,000,000</td>
                                     <td><input type="radio" name="winner" value="prime"></td>
                                 </tr>
                             </tbody>
@@ -93,7 +93,7 @@ We are pleased to inform you that your bid for the Construction of Rural Health 
 
 Tender Details:
 - Tender ID: T001
-- Contract Value: TZS 4,800,000
+- Contract Value: TZS 4,800,000,000
 - Award Date: [Current Date]
 
 Please contact us within 7 working days to commence contract finalization.
@@ -151,11 +151,11 @@ Ministry of Health</textarea>
                             </div>
                             <div>
                                 <label class="form-label">Notification Date</label>
-                                <input type="date" class="form-input" value="2024-02-20">
+                                <input type="date" class="form-input" value="2026-06-30">
                             </div>
                             <div>
                                 <label class="form-label">Contract Start Date</label>
-                                <input type="date" class="form-input" value="2024-03-01">
+                                <input type="date" class="form-input" value="2026-07-05">
                             </div>
                         </div>
                     </div>
@@ -200,7 +200,7 @@ Ministry of Health</textarea>
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
                                 <div>
                                     <label class="form-label">Contract Value</label>
-                                    <input type="text" class="form-input" value="TZS 4,800,000" readonly>
+                                    <input type="text" class="form-input" value="TZS 4,800,000,000" readonly>
                                 </div>
                                 <div>
                                     <label class="form-label">Payment Milestones</label>

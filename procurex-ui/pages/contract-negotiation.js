@@ -17,11 +17,11 @@ function renderContractNegotiation() {
                     <!-- Status Indicators -->
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px;">
                         <div style="text-align: center; padding: 16px; background: var(--success-green); color: white; border-radius: 8px;">
-                            <div style="font-size: 18px; font-weight: 600; margin-bottom: 4px;">✓</div>
+                            <div style="font-size: 18px; font-weight: 600; margin-bottom: 4px;">OK</div>
                             <div style="font-size: 14px;">PO Matched</div>
                         </div>
                         <div style="text-align: center; padding: 16px; background: var(--success-green); color: white; border-radius: 8px;">
-                            <div style="font-size: 18px; font-weight: 600; margin-bottom: 4px;">✓</div>
+                            <div style="font-size: 18px; font-weight: 600; margin-bottom: 4px;">OK</div>
                             <div style="font-size: 14px;">Budget Verified</div>
                         </div>
                         <div style="text-align: center; padding: 16px; background: var(--warning-amber); color: white; border-radius: 8px;">
@@ -47,7 +47,7 @@ function renderContractNegotiation() {
                         <div style="background: var(--background); padding: 16px; border-radius: 6px; margin-bottom: 12px;">
                             <strong>Employer:</strong> Ministry of Health, United Republic of Tanzania<br>
                             <strong>Contractor:</strong> ABC Construction Ltd<br>
-                            <strong>Contract Price:</strong> TZS 4,800,000 (Four Million Eight Hundred Thousand Only)<br>
+                            <strong>Contract Price:</strong> TZS 4,800,000,000 (Four Billion Eight Hundred Million Only)<br>
                             <strong>Contract Duration:</strong> 12 months from contract signing
                         </div>
                     </div>
@@ -73,13 +73,13 @@ function renderContractNegotiation() {
                         <div style="background: var(--background); padding: 16px; border-radius: 6px; margin-bottom: 12px;">
                             <div style="display: grid; grid-template-columns: 1fr auto; gap: 16px;">
                                 <div>
-                                    <strong>Milestone 1:</strong> Foundation completion (20%) - TZS 960,000<br>
-                                    <strong>Milestone 2:</strong> Structural completion (30%) - TZS 1,440,000<br>
-                                    <strong>Milestone 3:</strong> MEP completion (25%) - TZS 1,200,000<br>
-                                    <strong>Milestone 4:</strong> Final completion (25%) - TZS 1,200,000
+                                    <strong>Milestone 1:</strong> Foundation completion (20%) - TZS 960,000,000<br>
+                                    <strong>Milestone 2:</strong> Structural completion (30%) - TZS 1,440,000,000<br>
+                                    <strong>Milestone 3:</strong> MEP completion (25%) - TZS 1,200,000,000<br>
+                                    <strong>Milestone 4:</strong> Final completion (25%) - TZS 1,200,000,000
                                 </div>
                                 <div style="text-align: right;">
-                                    <div style="color: var(--success-green); font-weight: 600;">✓ Agreed</div>
+                                    <div style="color: var(--success-green); font-weight: 600;">Agreed</div>
                                     <div style="color: var(--text-secondary); font-size: 12px;">Last updated: 2 hours ago</div>
                                 </div>
                             </div>
@@ -131,9 +131,13 @@ function renderContractNegotiation() {
 
                     <div style="margin-top: 24px; padding: 16px; background: var(--primary-blue-light); border-radius: 6px;">
                         <p style="font-size: 14px; color: var(--primary-blue); margin: 0;">
-                            <strong>Smart Contract:</strong> This agreement will be automatically executed on the blockchain once both parties sign digitally.
-                            All terms and conditions are legally binding and enforceable.
+                            <strong>Digital signature audit:</strong> This agreement records signer identity, document hash, timestamp, and certificate metadata once both parties sign.
+                            After signatures are complete, the contract moves to post-award milestone tracking.
                         </p>
+                    </div>
+                    <div class="inline-actions" style="margin-top: 20px;">
+                        <button class="btn btn-secondary" data-navigate="award-recommendation">Back to Award</button>
+                        <button class="btn btn-primary" data-navigate="post-award-tracking">Activate Contract Tracking</button>
                     </div>
                 </div>
             </div>

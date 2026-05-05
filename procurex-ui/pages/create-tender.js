@@ -1,146 +1,274 @@
-// Create Tender Page Component (Wizard)
+// Create Tender Page Component (Buyer procurement design wizard)
 
 function renderCreateTender() {
+    const steps = [
+        ['01', 'Procurement Type', 'Works, goods, services, category, method'],
+        ['02', 'Scope', 'Specifications, objectives, deliverables'],
+        ['03', 'BOQ', 'Items, units, rates, totals'],
+        ['04', 'Evaluation', 'Criteria, weights, pass marks'],
+        ['05', 'Timeline', 'Milestones, closing, opening, award'],
+        ['06', 'Budget', 'Budget line, approvals, funds check'],
+        ['07', 'Visibility', 'Public, restricted, invitation model'],
+        ['08', 'Review', 'Attachments, declarations, final preview'],
+        ['09', 'Risk Check', 'Quality flags, fixes, justifications']
+    ];
+
     return `
         <div class="main-layout">
-            <!-- Sidebar -->
             <div class="sidebar">
                 <div style="padding: 0 16px 20px;">
                     <h3>Create Tender</h3>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Design and approval package</div>
                 </div>
 
                 <ul class="sidebar-nav">
-                    <li><a href="#" data-navigate="buyer-dashboard">← Back to Dashboard</a></li>
+                    <li><a href="#" data-navigate="buyer-dashboard">Dashboard</a></li>
+                    <li><a href="#" data-navigate="buyer-journey">Buyer Journey</a></li>
+                    <li><a href="#" data-navigate="tender-publication">Draft Detail</a></li>
                     <li><a href="#" data-navigate="welcome">Logout</a></li>
                 </ul>
             </div>
 
-            <!-- Main Content -->
             <div class="main-content">
-                <div class="wizard-container">
-                    <!-- Step Indicator -->
-                    <div class="wizard-steps">
-                        <div class="step-indicator">
-                            <div class="step active">
-                                <div class="step-circle">1</div>
-                                <span>General Info</span>
-                            </div>
-                            <div class="step-line"></div>
-                            <div class="step">
-                                <div class="step-circle">2</div>
-                                <span>BOQ & Budget</span>
-                            </div>
-                            <div class="step-line"></div>
-                            <div class="step">
-                                <div class="step-circle">3</div>
-                                <span>Timelines</span>
-                            </div>
-                            <div class="step-line"></div>
-                            <div class="step">
-                                <div class="step-circle">4</div>
-                                <span>Evaluation</span>
-                            </div>
+                <div class="journey-page">
+                    <section class="journey-hero compact">
+                        <div>
+                            <span class="badge badge-info">Procurement design</span>
+                            <h1>Create Tender Wizard</h1>
+                            <p>Build the tender package, validate compliance quality, and submit it for internal approval before publication.</p>
                         </div>
-                    </div>
-
-                    <!-- Wizard Content -->
-                    <div class="wizard-content">
-                        <h2 style="margin-bottom: 24px;">Step 1: General Information</h2>
-
-                        <!-- Tender Classification -->
-                        <div style="margin-bottom: 32px;">
-                            <h3 style="margin-bottom: 16px;">Tender Classification</h3>
-                            <p style="color: var(--text-secondary); margin-bottom: 16px;">Select the type of goods, works, or services you want to procure</p>
-
-                            <div class="classification-grid">
-                                <div class="classification-card selected">
-                                    <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-bottom: 12px;">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                                    </svg>
-                                    <h4>Goods</h4>
-                                    <p>Purchase of physical items, equipment, or supplies</p>
-                                </div>
-
-                                <div class="classification-card">
-                                    <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-bottom: 12px;">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                    </svg>
-                                    <h4>Works</h4>
-                                    <p>Construction, infrastructure, or building projects</p>
-                                </div>
-
-                                <div class="classification-card">
-                                    <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-bottom: 12px;">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                    </svg>
-                                    <h4>Services</h4>
-                                    <p>Professional services, maintenance, or consulting</p>
-                                </div>
-
-                                <div class="classification-card">
-                                    <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-bottom: 12px;">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                                    </svg>
-                                    <h4>Consultancy</h4>
-                                    <p>Expert advice, studies, or technical assistance</p>
-                                </div>
-                            </div>
+                        <div class="hero-action-stack">
+                            <button class="btn btn-secondary" data-navigate="buyer-dashboard">Save Draft</button>
+                            <button class="btn btn-primary" data-navigate="tender-publication">Submit for Approval</button>
                         </div>
+                    </section>
 
-                        <!-- Tender Details -->
-                        <div style="margin-bottom: 32px;">
-                            <h3 style="margin-bottom: 16px;">Tender Details</h3>
+                    <div class="wizard-shell">
+                        <aside class="wizard-rail">
+                            ${steps.map((step, index) => `
+                                <a href="#wizard-step-${index + 1}" class="wizard-rail-step ${index === 0 ? 'active' : ''}">
+                                    <strong>${step[0]}</strong>
+                                    <span>${step[1]}</span>
+                                </a>
+                            `).join('')}
+                        </aside>
 
-                            <div class="form-group">
-                                <label class="form-label">Tender Title *</label>
-                                <input type="text" class="form-input" placeholder="Enter a clear, descriptive title for your tender" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label class="form-label">Scope of Work *</label>
-                                <textarea class="form-input" rows="4" placeholder="Describe the goods, works, or services required in detail" required></textarea>
-                            </div>
-
-                            <div class="form-group">
-                                <label class="form-label">Procuring Entity</label>
-                                <input type="text" class="form-input" value="${mockData.users.buyer.organization}" readonly>
-                            </div>
-                        </div>
-
-                        <!-- Compliance Sentinel Sidebar -->
-                        <div style="background: var(--background); padding: 20px; border-radius: 8px; border: 1px solid var(--border);">
-                            <h4 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                Compliance Sentinel
-                            </h4>
-
-                            <div style="space-y: 12px;">
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--success-green);"></div>
-                                    <span style="font-size: 14px;">Tender classification selected</span>
+                        <div class="wizard-workspace">
+                            <section class="journey-panel" id="wizard-step-1">
+                                <div class="panel-heading">
+                                    <div>
+                                        <span class="section-kicker">Step 1</span>
+                                        <h2>Procurement Type & Category</h2>
+                                    </div>
+                                    <span class="badge badge-success">Method valid</span>
                                 </div>
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--warning-amber);"></div>
-                                    <span style="font-size: 14px;">Tender title required</span>
+                                <div class="option-grid four">
+                                    ${['Goods', 'Works', 'Services', 'Consultancy'].map((type, index) => `
+                                        <label class="option-card ${index === 1 ? 'selected' : ''}">
+                                            <input type="radio" name="procurementType" ${index === 1 ? 'checked' : ''}>
+                                            <strong>${type}</strong>
+                                            <span>${index === 1 ? 'Construction and infrastructure projects' : 'Buyer controlled procurement category'}</span>
+                                        </label>
+                                    `).join('')}
                                 </div>
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--warning-amber);"></div>
-                                    <span style="font-size: 14px;">Scope description required</span>
+                                <div class="form-grid two">
+                                    <div class="form-group">
+                                        <label class="form-label">Procurement method</label>
+                                        <select class="form-input">
+                                            <option>Open competitive tender</option>
+                                            <option>Restricted tender</option>
+                                            <option>Request for quotation</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Category</label>
+                                        <select class="form-input">
+                                            <option>Healthcare infrastructure</option>
+                                            <option>Medical equipment</option>
+                                            <option>ICT and digital services</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--success-green);"></div>
-                                    <span style="font-size: 14px;">Procuring entity verified</span>
-                                </div>
-                            </div>
-                        </div>
+                            </section>
 
-                        <!-- Navigation -->
-                        <div style="display: flex; justify-content: space-between; margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border);">
-                            <button class="btn btn-secondary" data-navigate="buyer-dashboard">Cancel</button>
-                            <button class="btn btn-primary" data-navigate="tender-publication">Next: BOQ & Budget</button>
+                            <section class="journey-panel" id="wizard-step-2">
+                                <div class="panel-heading">
+                                    <div>
+                                        <span class="section-kicker">Step 2</span>
+                                        <h2>Specifications / Scope</h2>
+                                    </div>
+                                    <span class="badge badge-warning">Needs detail</span>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Tender title</label>
+                                    <input class="form-input" value="Construction of Rural Health Centers" aria-label="Tender title">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Scope of work</label>
+                                    <textarea class="form-input" rows="5">Construction of five rural health centers in Dodoma region, including civil works, MEP installation, site preparation, finishing, equipment rooms, and handover documentation.</textarea>
+                                </div>
+                                <div class="split-list">
+                                    <div>
+                                        <h3>Key deliverables</h3>
+                                        <ul class="clean-list">
+                                            <li>Site readiness and foundation certification</li>
+                                            <li>Structural, electrical, plumbing, and finishing works</li>
+                                            <li>Final inspection pack and as-built drawings</li>
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <h3>Required attachments</h3>
+                                        <ul class="clean-list">
+                                            <li>Technical specifications</li>
+                                            <li>Drawings and BOQ template</li>
+                                            <li>Draft contract conditions</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section class="journey-panel" id="wizard-step-3">
+                                <div class="panel-heading">
+                                    <div>
+                                        <span class="section-kicker">Step 3</span>
+                                        <h2>BOQ Editor</h2>
+                                    </div>
+                                    <span class="badge badge-info">TZS 4.8B estimate</span>
+                                </div>
+                                <div class="data-table">
+                                    <table>
+                                        <thead>
+                                            <tr><th>Item</th><th>Description</th><th>Qty</th><th>Unit</th><th>Rate</th><th>Amount</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td>1.1</td><td>Site clearing and preparation</td><td>5</td><td>Sites</td><td>32,000,000</td><td>160,000,000</td></tr>
+                                            <tr><td>2.1</td><td>Foundation and structural frame</td><td>5</td><td>Centers</td><td>380,000,000</td><td>1,900,000,000</td></tr>
+                                            <tr><td>3.1</td><td>MEP installations</td><td>5</td><td>Centers</td><td>210,000,000</td><td>1,050,000,000</td></tr>
+                                            <tr><td>4.1</td><td>Finishes, fixtures, handover</td><td>5</td><td>Centers</td><td>338,000,000</td><td>1,690,000,000</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="inline-actions">
+                                    <button class="btn btn-secondary">Import BOQ</button>
+                                    <button class="btn btn-secondary">Add Item</button>
+                                    <button class="btn btn-secondary">Recalculate</button>
+                                </div>
+                            </section>
+
+                            <section class="journey-panel" id="wizard-step-4">
+                                <div class="panel-heading">
+                                    <div>
+                                        <span class="section-kicker">Step 4</span>
+                                        <h2>Evaluation Criteria & Weights</h2>
+                                    </div>
+                                    <span class="badge badge-success">100% balanced</span>
+                                </div>
+                                <div class="criteria-grid">
+                                    ${[
+                                        ['Technical capacity', 30, 'Team, equipment, methodology'],
+                                        ['Relevant experience', 25, 'Healthcare construction history'],
+                                        ['Financial proposal', 25, 'Price and payment realism'],
+                                        ['Delivery schedule', 10, 'Milestone feasibility'],
+                                        ['Compliance and ESG', 10, 'Licenses, safety, local participation']
+                                    ].map(item => `
+                                        <div class="criterion-row">
+                                            <div><strong>${item[0]}</strong><span>${item[2]}</span></div>
+                                            <input type="number" class="form-input" value="${item[1]}" min="0" max="100">
+                                            <span>%</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </section>
+
+                            <section class="journey-panel" id="wizard-step-5">
+                                <div class="panel-heading">
+                                    <div>
+                                        <span class="section-kicker">Step 5</span>
+                                        <h2>Timeline & Milestones</h2>
+                                    </div>
+                                    <span class="badge badge-success">Compliant window</span>
+                                </div>
+                                <div class="timeline-grid">
+                                    ${[
+                                        ['Publication', 'May 12, 2026'],
+                                        ['Clarification deadline', 'May 28, 2026'],
+                                        ['Bid closing', 'June 12, 2026'],
+                                        ['Bid opening', 'June 12, 2026'],
+                                        ['Evaluation complete', 'June 24, 2026'],
+                                        ['Award approval', 'June 30, 2026']
+                                    ].map(item => `<div class="timeline-tile"><strong>${item[0]}</strong><span>${item[1]}</span></div>`).join('')}
+                                </div>
+                            </section>
+
+                            <section class="journey-panel" id="wizard-step-6">
+                                <div class="panel-heading">
+                                    <div>
+                                        <span class="section-kicker">Step 6</span>
+                                        <h2>Budget Link</h2>
+                                    </div>
+                                    <span class="badge badge-success">Funds reserved</span>
+                                </div>
+                                <div class="form-grid three">
+                                    <div class="form-group"><label class="form-label">Budget code</label><input class="form-input" value="MOH-CAPEX-2026-042"></div>
+                                    <div class="form-group"><label class="form-label">Available funds</label><input class="form-input" value="TZS 5,200,000,000"></div>
+                                    <div class="form-group"><label class="form-label">Tender estimate</label><input class="form-input" value="TZS 4,800,000,000"></div>
+                                </div>
+                            </section>
+
+                            <section class="journey-panel" id="wizard-step-7">
+                                <div class="panel-heading">
+                                    <div>
+                                        <span class="section-kicker">Step 7</span>
+                                        <h2>Visibility Model</h2>
+                                    </div>
+                                    <span class="badge badge-info">Marketplace ready</span>
+                                </div>
+                                <div class="option-grid three">
+                                    <label class="option-card selected"><input type="radio" checked><strong>Public</strong><span>Visible to all verified suppliers.</span></label>
+                                    <label class="option-card"><input type="radio"><strong>Restricted</strong><span>Only pre-qualified suppliers.</span></label>
+                                    <label class="option-card"><input type="radio"><strong>Invitation</strong><span>Direct invited supplier list.</span></label>
+                                </div>
+                            </section>
+
+                            <section class="journey-panel" id="wizard-step-8">
+                                <div class="panel-heading">
+                                    <div>
+                                        <span class="section-kicker">Step 8</span>
+                                        <h2>Review & Attachments</h2>
+                                    </div>
+                                    <span class="badge badge-warning">2 unsigned files</span>
+                                </div>
+                                <div class="attachment-grid">
+                                    ${['Technical Specifications.pdf', 'BOQ Template.xlsx', 'Draft Contract.docx', 'Drawings.zip'].map((file, index) => `
+                                        <div class="attachment-card">
+                                            <strong>${file}</strong>
+                                            <span>${index < 2 ? 'Verified' : 'Needs final sign-off'}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </section>
+
+                            <section class="journey-panel risk-panel" id="wizard-step-9">
+                                <div class="panel-heading">
+                                    <div>
+                                        <span class="section-kicker">Step 9</span>
+                                        <h2>Quality Flags & Risk Check</h2>
+                                    </div>
+                                    <span class="badge badge-warning">Fix or justify</span>
+                                </div>
+                                <div class="risk-list">
+                                    <div class="risk-item warning"><strong>Clarification period is tight</strong><span>Add 3 days or justify urgency.</span><button class="btn btn-secondary">Justify</button></div>
+                                    <div class="risk-item success"><strong>Weights total 100%</strong><span>Evaluation criteria are balanced.</span><button class="btn btn-secondary">View</button></div>
+                                    <div class="risk-item warning"><strong>Two attachments unsigned</strong><span>Route drawings and draft contract for e-signature.</span><button class="btn btn-secondary">Fix</button></div>
+                                </div>
+                                <div class="submit-strip">
+                                    <div>
+                                        <strong>Ready to submit for approval</strong>
+                                        <span>Creates Tender Draft Detail with status Pending Approval.</span>
+                                    </div>
+                                    <button class="btn btn-primary" data-navigate="tender-publication">Submit for Approval</button>
+                                </div>
+                            </section>
                         </div>
                     </div>
                 </div>
@@ -149,7 +277,6 @@ function renderCreateTender() {
     `;
 }
 
-// Register the page render function
 if (window.app) {
     window.app.renderCreateTender = renderCreateTender;
 }

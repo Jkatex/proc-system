@@ -1,118 +1,323 @@
-// IAM Verification Page Component
+// eKYC onboarding for first-time signed-in users.
 
 function renderIAMVerification() {
+    const selectedRole = mockData.eKycProfile?.role || mockData.currentRole || 'buyer';
+    const account = mockData.pendingAccount || {};
+    const profile = mockData.eKycProfile || {};
+
     return `
-        <div class="app-container">
-            <div style="max-width: 800px; margin: 40px auto;">
-                <div style="text-align: center; margin-bottom: 40px;">
-                    <h1>Identity Verification</h1>
-                    <p style="color: var(--text-secondary);">Complete your verification to access the platform</p>
-                </div>
-
-                <!-- Step Indicator -->
-                <div class="step-indicator" style="margin-bottom: 40px;">
-                    <div class="step completed">
-                        <div class="step-circle">✓</div>
-                        <span>Choose Role</span>
-                    </div>
-                    <div class="step-line"></div>
-                    <div class="step completed">
-                        <div class="step-circle">✓</div>
-                        <span>Organization</span>
-                    </div>
-                    <div class="step-line"></div>
-                    <div class="step active">
-                        <div class="step-circle">3</div>
-                        <span>Verification</span>
-                    </div>
-                </div>
-
-                <!-- OTP Verification -->
-                <div class="card" style="margin-bottom: 32px;">
-                    <h3 style="margin-bottom: 16px;">Phone Number Verification</h3>
-                    <p style="color: var(--text-secondary); margin-bottom: 24px;">
-                        We've sent a 6-digit code to +255 XXX XXX XXX
-                    </p>
-                    <form data-action="verify-otp">
-                        <div class="otp-inputs">
-                            <input type="text" class="otp-input" maxlength="1" required>
-                            <input type="text" class="otp-input" maxlength="1" required>
-                            <input type="text" class="otp-input" maxlength="1" required>
-                            <input type="text" class="otp-input" maxlength="1" required>
-                            <input type="text" class="otp-input" maxlength="1" required>
-                            <input type="text" class="otp-input" maxlength="1" required>
-                        </div>
-                        <div style="text-align: center; margin-top: 24px;">
-                            <button type="submit" class="btn btn-primary">Verify Code</button>
-                        </div>
-                    </form>
-                    <div style="text-align: center; margin-top: 16px;">
-                        <button class="btn btn-secondary" style="font-size: 14px;">Resend Code</button>
-                    </div>
-                </div>
-
-                <!-- Document Upload -->
-                <div class="card">
-                    <h3 style="margin-bottom: 16px;">Document Verification</h3>
-                    <p style="color: var(--text-secondary); margin-bottom: 24px;">
-                        Upload the required documents for compliance verification
-                    </p>
-
-                    <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-                        <div class="upload-area">
-                            <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-bottom: 8px;">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            <div>BRELA Registration</div>
-                            <input type="file" hidden>
-                        </div>
-
-                        <div class="upload-area">
-                            <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-bottom: 8px;">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            <div>TIN Certificate</div>
-                            <input type="file" hidden>
-                        </div>
-
-                        <div class="upload-area">
-                            <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-bottom: 8px;">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            <div>Tax Clearance</div>
-                            <input type="file" hidden>
-                        </div>
-
-                        <div class="upload-area">
-                            <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-bottom: 8px;">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            <div>Director's ID</div>
-                            <input type="file" hidden>
+        <div class="ekyc-page">
+            <div class="ekyc-shell">
+                <aside class="ekyc-side">
+                    <div class="ekyc-brand">
+                        <span class="brand-mark">PX</span>
+                        <div>
+                            <strong>ProcureX eKYC</strong>
+                            <span>Business verification</span>
                         </div>
                     </div>
 
-                    <div style="margin-top: 24px;">
-                        <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
-                            <input type="checkbox" required>
-                            <span style="font-size: 14px;">I consent to the processing of my personal data for verification purposes</span>
-                        </label>
+                    <div class="ekyc-side-status">
+                        <span class="badge badge-warning">New user</span>
+                        <h2>Complete onboarding before platform access.</h2>
+                        <p>Buyer and supplier accounts are verified against business details, procurement scope, signatures, and supporting documents.</p>
+                    </div>
 
-                        <div style="display: flex; gap: 12px; justify-content: space-between;">
-                            <button class="btn btn-secondary" data-navigate="role-selection">← Back</button>
-                            <div style="display: flex; gap: 8px;">
-                                <button class="btn btn-secondary" data-action="upload-documents" form="document-form">AI Auto-Verification</button>
-                                <button class="btn btn-primary" data-action="upload-documents" form="document-form">Expert Manual Review</button>
+                    <ol class="ekyc-steps">
+                        <li class="active"><span>1</span>Account type</li>
+                        <li><span>2</span>Business profile</li>
+                        <li><span>3</span>Procurement scope</li>
+                        <li><span>4</span>Digital signature</li>
+                        <li><span>5</span>Documents</li>
+                    </ol>
+                </aside>
+
+                <main class="ekyc-main">
+                    <div class="ekyc-header">
+                        <div>
+                            <span class="section-label">Secure onboarding</span>
+                            <h1>Electronic Know Your Customer</h1>
+                            <p>Submit your company identity, procurement focus, authority details, digital signature, and verification documents.</p>
+                        </div>
+                        <button class="btn btn-secondary" data-navigate="sign-in">Sign out</button>
+                    </div>
+
+                    <form class="ekyc-form" data-action="complete-ekyc">
+                        <section class="ekyc-section">
+                            <div class="ekyc-section-heading">
+                                <span class="ekyc-step-badge">1</span>
+                                <div>
+                                    <h2>Select account type</h2>
+                                    <p>Choose how this organization will participate on ProcureX.</p>
+                                </div>
+                            </div>
+
+                            <div class="ekyc-role-grid">
+                                <label class="ekyc-role-card ${selectedRole === 'buyer' ? 'selected' : ''}">
+                                    <input type="radio" name="accountRole" value="buyer" ${selectedRole === 'buyer' ? 'checked' : ''} required>
+                                    <span class="ekyc-role-icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M3 7h18M6 7v13h12V7M9 7V4h6v3"/>
+                                        </svg>
+                                    </span>
+                                    <strong>Buyer</strong>
+                                    <small>Procures goods, works, and services through tenders.</small>
+                                </label>
+
+                                <label class="ekyc-role-card ${selectedRole === 'supplier' ? 'selected' : ''}">
+                                    <input type="radio" name="accountRole" value="supplier" ${selectedRole === 'supplier' ? 'checked' : ''} required>
+                                    <span class="ekyc-role-icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M21 16V8l-9-5-9 5v8l9 5 9-5z"/>
+                                            <path d="M3.3 7.5L12 12l8.7-4.5M12 22V12"/>
+                                        </svg>
+                                    </span>
+                                    <strong>Supplier</strong>
+                                    <small>Supplies products, services, or works to buyers.</small>
+                                </label>
+                            </div>
+                        </section>
+
+                        <section class="ekyc-section">
+                            <div class="ekyc-section-heading">
+                                <span class="ekyc-step-badge">2</span>
+                                <div>
+                                    <h2>Business and authorized person</h2>
+                                    <p>These details identify the organization and the person signing on its behalf.</p>
+                                </div>
+                            </div>
+
+                            <div class="ekyc-grid two">
+                                <div class="form-group">
+                                    <label class="form-label">Legal Business Name *</label>
+                                    <input class="form-input" name="businessName" value="${profile.businessName || ''}" placeholder="Registered company name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Registration Number *</label>
+                                    <input class="form-input" name="registrationNumber" value="${profile.registrationNumber || ''}" placeholder="BRELA or authority number" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">TIN / VAT Number *</label>
+                                    <input class="form-input" name="taxNumber" value="${profile.taxNumber || ''}" placeholder="Tax identification number" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Business License Number</label>
+                                    <input class="form-input" name="licenseNumber" value="${profile.licenseNumber || ''}" placeholder="License or permit number">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Country *</label>
+                                    <select class="form-input" name="country" required>
+                                        <option value="Tanzania">Tanzania</option>
+                                        <option value="Kenya">Kenya</option>
+                                        <option value="Uganda">Uganda</option>
+                                        <option value="Rwanda">Rwanda</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Region / City *</label>
+                                    <input class="form-input" name="region" value="${profile.region || ''}" placeholder="Dar es Salaam" required>
+                                </div>
+                                <div class="form-group span-2">
+                                    <label class="form-label">Physical Address *</label>
+                                    <input class="form-input" name="address" value="${profile.address || ''}" placeholder="Street, building, ward, district" required>
+                                </div>
+                            </div>
+
+                            <div class="ekyc-grid two">
+                                <div class="form-group">
+                                    <label class="form-label">Authorized Representative *</label>
+                                    <input class="form-input" name="representativeName" value="${profile.representativeName || ''}" placeholder="Full name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Job Title *</label>
+                                    <input class="form-input" name="representativeTitle" value="${profile.representativeTitle || ''}" placeholder="Director, officer, owner" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Email *</label>
+                                    <input type="email" class="form-input" name="representativeEmail" value="${account.email || ''}" placeholder="name@company.com" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Phone *</label>
+                                    <input class="form-input" name="representativePhone" value="${account.phone || mockData.registrationDraft?.phone || ''}" placeholder="+255 XXX XXX XXX" required>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="ekyc-section">
+                            <div class="ekyc-section-heading">
+                                <span class="ekyc-step-badge">3</span>
+                                <div>
+                                    <h2>Business line and products</h2>
+                                    <p>Define procurement categories, products, services, capacity, and operating areas.</p>
+                                </div>
+                            </div>
+
+                            <div class="ekyc-grid two">
+                                <div class="form-group">
+                                    <label class="form-label">Primary Business Line *</label>
+                                    <select class="form-input" name="businessLine" required>
+                                        <option value="">Select category</option>
+                                        <option>Construction and civil works</option>
+                                        <option>Medical and laboratory supplies</option>
+                                        <option>ICT hardware and software</option>
+                                        <option>Office supplies and furniture</option>
+                                        <option>Transport and logistics</option>
+                                        <option>Consultancy and professional services</option>
+                                        <option>Energy and utilities</option>
+                                        <option>Agriculture and food supplies</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Business Size *</label>
+                                    <select class="form-input" name="businessSize" required>
+                                        <option value="">Select size</option>
+                                        <option>Micro enterprise</option>
+                                        <option>Small business</option>
+                                        <option>Medium business</option>
+                                        <option>Large enterprise</option>
+                                        <option>Government entity</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Annual Procurement / Bid Capacity *</label>
+                                    <input class="form-input" name="annualCapacity" placeholder="TZS 500,000,000" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Preferred Regions *</label>
+                                    <input class="form-input" name="deliveryRegions" placeholder="Dar es Salaam, Dodoma, Arusha" required>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Products and Services *</label>
+                                <div class="chip-grid">
+                                    ${[
+                                        'Medical equipment',
+                                        'Construction materials',
+                                        'IT hardware',
+                                        'Software licenses',
+                                        'Consultancy services',
+                                        'Office furniture',
+                                        'Vehicles and fleet',
+                                        'Maintenance services',
+                                        'Food and agriculture',
+                                        'Logistics services'
+                                    ].map(item => `
+                                        <label class="check-chip">
+                                            <input type="checkbox" name="products" value="${item}">
+                                            <span>${item}</span>
+                                        </label>
+                                    `).join('')}
+                                </div>
+                            </div>
+
+                            <div class="ekyc-grid two">
+                                <div class="form-group">
+                                    <label class="form-label">Special Requirements</label>
+                                    <textarea class="form-input" name="requirements" rows="4" placeholder="Certifications, delivery constraints, framework agreements, or eligibility notes"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Bank / Payment Details</label>
+                                    <textarea class="form-input" name="bankDetails" rows="4" placeholder="Bank name, account name, account number, branch"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="ekyc-declarations">
+                                <label>
+                                    <input type="checkbox" name="beneficialOwnership" required>
+                                    <span>I confirm the declared owners and authorized representatives are accurate.</span>
+                                </label>
+                                <label>
+                                    <input type="checkbox" name="antiCorruption" required>
+                                    <span>I accept the anti-corruption, conflict-of-interest, and procurement integrity declaration.</span>
+                                </label>
+                            </div>
+                        </section>
+
+                        <section class="ekyc-section">
+                            <div class="ekyc-section-heading">
+                                <span class="ekyc-step-badge">4</span>
+                                <div>
+                                    <h2>Create digital signature</h2>
+                                    <p>The signature links this eKYC submission to the authorized representative.</p>
+                                </div>
+                            </div>
+
+                            <div class="signature-panel">
+                                <div class="ekyc-grid two">
+                                    <div class="form-group">
+                                        <label class="form-label">Signer Name *</label>
+                                        <input class="form-input" name="signatureName" placeholder="Type legal signer name" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Signer Title *</label>
+                                        <input class="form-input" name="signatureTitle" placeholder="Director, procurement head" required>
+                                    </div>
+                                </div>
+
+                                <div class="signature-preview" id="signature-preview">
+                                    <span>Typed signature preview</span>
+                                </div>
+
+                                <label class="signature-consent">
+                                    <input type="checkbox" name="signatureConsent" required>
+                                    <span>I authorize ProcureX to use this digital signature for eKYC verification and procurement workflow consent.</span>
+                                </label>
+                            </div>
+                        </section>
+
+                        <section class="ekyc-section">
+                            <div class="ekyc-section-heading">
+                                <span class="ekyc-step-badge">5</span>
+                                <div>
+                                    <h2>Upload verification documents</h2>
+                                    <p>Attach documents needed for business, tax, identity, and authority checks.</p>
+                                </div>
+                            </div>
+
+                            <div class="ekyc-upload-grid">
+                                ${[
+                                    'Business registration certificate',
+                                    'TIN / VAT certificate',
+                                    'Tax clearance certificate',
+                                    'Authorized representative ID',
+                                    'Business license or permit',
+                                    'Bank confirmation letter',
+                                    'Product catalogue or procurement mandate',
+                                    'Sector certification or compliance license'
+                                ].map((documentName, index) => `
+                                    <label class="upload-area ekyc-upload">
+                                        <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01.88-7.9A5 5 0 0117.9 9H18a3 3 0 010 6h-1m-5-4v9m0-9l-3 3m3-3l3 3"/>
+                                        </svg>
+                                        <strong>${documentName}</strong>
+                                        <span>PDF, JPG, or PNG</span>
+                                        <small class="file-name">No file selected</small>
+                                        <input type="file" name="document${index + 1}" accept=".pdf,.jpg,.jpeg,.png" hidden>
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </section>
+
+                        <div class="ekyc-actions">
+                            <button type="button" class="btn btn-secondary" data-navigate="sign-in">Cancel</button>
+                            <div>
+                                <button type="button" class="btn btn-secondary" id="save-ekyc-draft">Save Draft</button>
+                                <button type="submit" class="btn btn-primary">Submit eKYC</button>
                             </div>
                         </div>
-                    </div>
-                </div>
+                    </form>
+                </main>
             </div>
         </div>
     `;
 }
 
-// Register the page render function
+function renderIamVerification() {
+    return renderIAMVerification();
+}
+
 if (window.app) {
     window.app.renderIAMVerification = renderIAMVerification;
+    window.app.renderIamVerification = renderIamVerification;
 }
