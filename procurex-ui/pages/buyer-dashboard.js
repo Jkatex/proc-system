@@ -3,6 +3,8 @@
 function renderBuyerDashboard() {
     const kpis = mockData.kpis.buyer;
     const tenders = mockData.tenders.slice(0, 3); // Recent tenders
+    const savedTenderDraft = typeof getCreateTenderSavedDraft === 'function' ? getCreateTenderSavedDraft() : null;
+    const draftTenderCount = kpis.draftTenders + (savedTenderDraft ? 1 : 0);
 
     return `
         <div class="main-layout">
@@ -42,7 +44,7 @@ function renderBuyerDashboard() {
                         <div class="kpi-label">ACTIVE TENDERS</div>
                     </div>
                     <div class="kpi-card">
-                        <div class="kpi-value">${kpis.draftTenders}</div>
+                        <div class="kpi-value">${draftTenderCount}</div>
                         <div class="kpi-label">DRAFT TENDERS</div>
                     </div>
                     <div class="kpi-card">
@@ -107,6 +109,7 @@ function renderBuyerDashboard() {
                         <div style="margin-bottom: 24px;">
                             <h4 style="margin-bottom: 12px;">Quick Actions</h4>
                             <div style="display: flex; flex-direction: column; gap: 8px;">
+                                ${savedTenderDraft ? `<button class="btn btn-secondary" data-navigate="create-tender">${savedTenderDraft.title || 'Untitled tender'} - saved as draft</button>` : ''}
                                 <button class="btn btn-secondary" data-navigate="buyer-journey">Continue Buyer Journey</button>
                                 <button class="btn btn-primary" data-navigate="create-tender">Create New Tender</button>
                                 <button class="btn btn-secondary" data-navigate="tender-details">Clarifications Inbox</button>

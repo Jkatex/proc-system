@@ -3,10 +3,9 @@
 function renderBuyerJourney() {
     const journeyStages = [
         ['Onboarding', 'Approved buyer account', 'Register, verify OTP, sign in, upload KYB documents, receive approval.', 'verification-status', 'Approved'],
-        ['Tender Design', 'Tender draft pending approval', 'Create the tender, BOQ, evaluation criteria, budget link, visibility, risk fixes.', 'create-tender', 'In progress'],
-        ['Publication', 'Active tender detail', 'Approved draft goes live in the marketplace with buyer-side detail controls.', 'tender-publication', 'Next'],
+        ['Tender Design', 'Tender ready to publish', 'Create the tender, scope, attachments, BOQ, evaluation criteria, timeline, and buyer review.', 'create-tender', 'In progress'],
+        ['Publication', 'Active tender detail', 'Reviewed tender goes live in the marketplace with buyer-side detail controls.', 'supplier-marketplace', 'Next'],
         ['Clarifications', 'Supplier Q&A handled', 'Review inbox, answer questions, create amendments, and update tender documents.', 'tender-details', '3 open'],
-        ['Bid Opening', 'Immutable opening report', 'Authorize bid opening with two users and generate a sealed report.', 'bid-evaluation', 'Ready'],
         ['Evaluation', 'Oversight dashboard', 'Monitor evaluator progress, score variance, conflicts, and bid ranking intelligence.', 'bid-evaluation', '72%'],
         ['Award Approval', 'Approved recommendation', 'Submit award recommendation, route approvals, and notify successful bidder.', 'award-recommendation', 'Pending'],
         ['Standstill', 'No unresolved challenge', 'Run standstill period, review challenges, resolve outcomes, and continue contracting.', 'award-recommendation', '14 days'],
@@ -24,7 +23,7 @@ function renderBuyerJourney() {
                 </div>
 
                 <ul class="sidebar-nav">
-                    <li><a href="#" data-navigate="buyer-dashboard">Dashboard</a></li>
+                    <li><a href="#" data-navigate="procurement-dashboard">Procurement Dashboard</a></li>
                     <li><a href="#" data-navigate="buyer-journey" class="active">Journey</a></li>
                     <li><a href="#" data-navigate="create-tender">Create Tender</a></li>
                     <li><a href="#" data-navigate="bid-evaluation">Evaluation</a></li>
@@ -39,7 +38,7 @@ function renderBuyerJourney() {
                         <div>
                             <span class="badge badge-info">Buyer command center</span>
                             <h1>Buyer Journey: Start to Contract Completion</h1>
-                            <p>A single operational workspace for the procurement officer to move from onboarding through tender design, publication, bid opening, award, contracting, execution, payment, and closure.</p>
+                            <p>A single operational workspace for the procurement officer to move from onboarding through tender design, publication, evaluation, award, contracting, execution, payment, and closure.</p>
                         </div>
                         <div class="journey-scorecard">
                             <div><strong>11</strong><span>Journey stages</span></div>
@@ -72,17 +71,17 @@ function renderBuyerJourney() {
                                     <span class="section-kicker">Tender workbench</span>
                                     <h2>Current Tender Draft</h2>
                                 </div>
-                                <span class="badge badge-warning">Pending approval</span>
+                                <span class="badge badge-warning">Draft</span>
                             </div>
                             <div class="record-summary">
                                 <div><span>Tender</span><strong>Construction of Rural Health Centers</strong></div>
                                 <div><span>Procurement type</span><strong>Works / Healthcare infrastructure</strong></div>
-                                <div><span>Budget line</span><strong>MOH-CAPEX-2026-042</strong></div>
-                                <div><span>Risk result</span><strong>2 flags require justification</strong></div>
+                                <div><span>Publication path</span><strong>Submit and publish to marketplace</strong></div>
+                                <div><span>Buyer review</span><strong>Ready before publication</strong></div>
                             </div>
                             <div class="inline-actions">
                                 <button class="btn btn-primary" data-navigate="create-tender">Continue Wizard</button>
-                                <button class="btn btn-secondary" data-navigate="tender-publication">Review Draft Detail</button>
+                                <button class="btn btn-secondary" data-navigate="supplier-marketplace">Open Marketplace</button>
                             </div>
                         </div>
 
@@ -103,17 +102,6 @@ function renderBuyerJourney() {
                     </section>
 
                     <section class="journey-grid three-col">
-                        <div class="journey-panel control-panel">
-                            <span class="section-kicker">Bid opening</span>
-                            <h2>Two-User Authorization</h2>
-                            <div class="approval-pair">
-                                <span class="badge badge-success">User 1 signed</span>
-                                <span class="badge badge-warning">User 2 pending</span>
-                            </div>
-                            <p>Opening report becomes immutable once the second authorized user confirms the opening.</p>
-                            <button class="btn btn-primary" data-navigate="bid-evaluation">Open Report</button>
-                        </div>
-
                         <div class="journey-panel control-panel">
                             <span class="section-kicker">Evaluation oversight</span>
                             <h2>Evaluator Progress</h2>

@@ -13,8 +13,8 @@ function renderPostAwardTracking() {
 
                 <ul class="sidebar-nav">
                     <li><a href="#" data-navigate="contract-negotiation">Back to Negotiation</a></li>
-                    <li><a href="#" data-navigate="buyer-dashboard">Buyer Dashboard</a></li>
-                    <li><a href="#" data-navigate="supplier-dashboard">Supplier Dashboard</a></li>
+                    <li><a href="#" data-navigate="procurement-dashboard">Procurement Dashboard</a></li>
+                    <li><a href="#" data-navigate="supplier-marketplace">Marketplace</a></li>
                     <li><a href="#" data-navigate="welcome">Logout</a></li>
                 </ul>
             </div>

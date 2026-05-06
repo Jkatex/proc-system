@@ -19,7 +19,7 @@ function renderBidEvaluation() {
                 </div>
 
                 <ul class="sidebar-nav">
-                    <li><a href="#" data-navigate="buyer-dashboard">Back to Dashboard</a></li>
+                    <li><a href="#" data-navigate="procurement-dashboard">Procurement Dashboard</a></li>
                     <li><a href="#" data-navigate="bid-evaluation" class="active">Evaluation</a></li>
                     <li><a href="#" data-navigate="award-recommendation">Award Recommendation</a></li>
                     <li><a href="#" data-navigate="welcome">Logout</a></li>
@@ -201,7 +201,6 @@ function renderBidEvaluation() {
                             <div class="record-summary">
                                 <div><span>Opening time</span><strong>${opening.openingTime}</strong></div>
                                 <div><span>Envelope opened</span><strong>${opening.envelope}</strong></div>
-                                <div><span>Authorized by</span><strong>${opening.authorizedBy.join(' + ')}</strong></div>
                                 <div><span>Audit reference</span><strong>${opening.auditReference}</strong></div>
                             </div>
                         </div>

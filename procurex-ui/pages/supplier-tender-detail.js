@@ -1,7 +1,12 @@
 // Supplier Tender Detail Page Component
 
 function renderSupplierTenderDetail() {
-    const tender = mockData.tenders[0];
+    const tender = typeof getProcurexSelectedTender === 'function' ? getProcurexSelectedTender() : mockData.tenders[0];
+    const clarifications = tender.clarifications || [];
+    const profile = typeof getCreateTenderTypeProfile === 'function'
+        ? getCreateTenderTypeProfile(tender)
+        : { commercialName: 'BOQ', defaultAttachments: [{ text: 'Technical specifications' }, { text: 'BOQ template' }, { text: 'Draft contract conditions' }] };
+    const documents = tender.documents?.length ? tender.documents : profile.defaultAttachments?.map(item => item.text) || ['Tender document'];
 
     return `
         <div class="main-layout">
@@ -14,7 +19,7 @@ function renderSupplierTenderDetail() {
                     <li><a href="#" data-navigate="supplier-marketplace">Marketplace</a></li>
                     <li><a href="#" data-navigate="supplier-journey">Supplier Journey</a></li>
                     <li><a href="#" data-navigate="bidding-workspace">Start Bid</a></li>
-                    <li><a href="#" data-navigate="supplier-dashboard">Dashboard</a></li>
+                    <li><a href="#" data-navigate="procurement-dashboard">Procurement Dashboard</a></li>
                     <li><a href="#" data-navigate="welcome">Logout</a></li>
                 </ul>
             </div>
@@ -37,7 +42,7 @@ function renderSupplierTenderDetail() {
                     <section class="journey-grid three-col">
                         <div class="kpi-card"><div class="kpi-value">95%</div><div class="kpi-label">Supplier match</div></div>
                         <div class="kpi-card"><div class="kpi-value">12d</div><div class="kpi-label">Time remaining</div></div>
-                        <div class="kpi-card"><div class="kpi-value">3</div><div class="kpi-label">Clarifications</div></div>
+                        <div class="kpi-card"><div class="kpi-value">${clarifications.length || 3}</div><div class="kpi-label">Clarifications</div></div>
                     </section>
 
                     <section class="journey-grid two-col">
@@ -68,7 +73,7 @@ function renderSupplierTenderDetail() {
                             <div class="inbox-list">
                                 <div class="inbox-item"><strong>Ask buyer</strong><span>Submit a private clarification request before the deadline.</span><button class="btn btn-secondary">Ask</button></div>
                                 <div class="inbox-item"><strong>Solar backup answer</strong><span>Buyer confirmed solar-ready wiring is included.</span><button class="btn btn-secondary">View</button></div>
-                                <div class="inbox-item"><strong>Amendment 01</strong><span>BOQ item 3.1 unit label corrected.</span><button class="btn btn-secondary">Acknowledge</button></div>
+                                <div class="inbox-item"><strong>Amendment 01</strong><span>${profile.commercialName} line updated by the buyer.</span><button class="btn btn-secondary">Acknowledge</button></div>
                             </div>
                         </div>
                     </section>
@@ -83,14 +88,14 @@ function renderSupplierTenderDetail() {
                                 <span class="badge badge-success">Downloaded</span>
                             </div>
                             <div class="attachment-grid">
-                                ${tender.documents.map(doc => `<div class="attachment-card"><strong>${doc}</strong><span>PDF / 2.3 MB</span></div>`).join('')}
+                                ${documents.map(doc => `<div class="attachment-card"><strong>${doc}</strong><span>PDF / 2.3 MB</span></div>`).join('')}
                             </div>
                         </div>
 
                         <div class="journey-panel control-panel">
                             <span class="section-kicker">Bid submission</span>
                             <h2>Start Sealed Bid</h2>
-                            <p>Prepare technical and financial envelopes, add uploads and samples, validate requirements, review summary, and submit sealed bid for receipt hash.</p>
+                            <p>Prepare a ${profile.commercialName.toLowerCase()} response, add tender-specific uploads, validate requirements, review summary, and submit sealed bid for receipt hash.</p>
                             <button class="btn btn-primary" data-navigate="bidding-workspace">Start Bid</button>
                         </div>
                     </section>

@@ -195,11 +195,17 @@ function renderRegister() {
                                     <span class="form-error-new"></span>
                                 </div>
 
-                                <div class="form-group-new checkbox-group-new">
-                                    <input type="checkbox" id="terms-accept-new" name="termsAccepted" required>
-                                    <label for="terms-accept-new">
-                                        I agree to the <a href="#" class="link-new">Terms of Service</a> and <a href="#" class="link-new">Privacy Policy</a>
-                                    </label>
+                                <div class="form-group-new confirm-action" data-confirm-control>
+                                    <input type="checkbox" class="confirm-action-input" id="terms-accept-new" name="termsAccepted" required>
+                                    <button type="button" class="confirm-action-button" data-confirm-toggle aria-pressed="false">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <path d="M20 6L9 17l-5-5"/>
+                                        </svg>
+                                        <span>Confirm agreement</span>
+                                    </button>
+                                    <p class="confirm-action-note" data-confirm-note>
+                                        Confirm that you accept the <a href="#" class="link-new">Terms of Service</a> and <a href="#" class="link-new">Privacy Policy</a>.
+                                    </p>
                                 </div>
 
                                 <button type="submit" class="btn-continue-new btn-create-new" disabled>
@@ -221,7 +227,7 @@ function renderRegister() {
                             <div class="success-card-new">
                                 <div class="success-detail">
                                     <strong>Next step: Sign in</strong>
-                                    <p>After sign-in, new users complete buyer or supplier onboarding before entering the platform.</p>
+                                    <p>After sign-in, new users complete eKYC onboarding before entering the platform.</p>
                                 </div>
                             </div>
 

@@ -1,170 +1,81 @@
-// Supplier Marketplace Page Component
+// Procurement app marketplace. No dashboard inside the app.
 
 function renderSupplierMarketplace() {
-    const kpis = mockData.kpis.supplier;
-    const tenders = mockData.tenders;
+    const tenders = typeof getProcurexMarketplaceTenders === 'function' ? getProcurexMarketplaceTenders() : (mockData.tenders || []);
+    const openCount = tenders.filter(tender => tender.status === 'Open').length;
 
     return `
-        <div class="main-layout">
-            <!-- Sidebar -->
-            <div class="sidebar">
-                <div style="padding: 0 16px 20px;">
-                    <h3>ProcureX Supplier</h3>
-                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${mockData.users.supplier.organization}</div>
-                </div>
+        <div class="procurement-app-page">
+            <main class="procurement-market-shell">
+                <section class="procurement-market-hero">
+                    <div>
+                        <span class="section-kicker">Procurement app</span>
+                        <h1>Marketplace</h1>
+                        <p>View available tenders, create a new tender when buying, or bid when interested in an open opportunity.</p>
+                    </div>
+                    <div class="procurement-market-actions">
+                        <button class="btn btn-primary" data-navigate="create-tender">Create Tender</button>
+                            </div>
+                </section>
 
-                <ul class="sidebar-nav">
-                    <li><a href="#" data-navigate="supplier-marketplace" class="active">Marketplace</a></li>
-                    <li><a href="#" data-navigate="supplier-dashboard">Dashboard</a></li>
-                    <li><a href="#" data-navigate="supplier-journey">Supplier Journey</a></li>
-                    <li><a href="#" data-navigate="bidding-workspace">My Bids</a></li>
-                    <li><a href="#" data-navigate="contract-negotiation">Contracts</a></li>
-                    <li><a href="#" data-navigate="post-award-tracking">Performance</a></li>
-                    <li><a href="#" data-navigate="welcome">Logout</a></li>
-                </ul>
-            </div>
+                <section class="procurement-search-panel">
+                    <div class="market-search-field">
+                        <input type="text" placeholder="Search tenders, buyer, sector, or category">
+                    </div>
+                    <select class="form-input">
+                        <option>All sectors</option>
+                        <option>Health</option>
+                        <option>Infrastructure</option>
+                        <option>ICT</option>
+                    </select>
+                    <select class="form-input">
+                        <option>All tender types</option>
+                        <option>Goods</option>
+                        <option>Works</option>
+                        <option>Services</option>
+                    </select>
+                    <button class="btn btn-primary">Search</button>
+                </section>
 
-            <!-- Main Content -->
-            <div class="main-content">
-                <div class="header">
-                    <h1>Supplier Marketplace</h1>
-                    <div style="display: flex; align-items: center; gap: 16px;">
-                        <span>Welcome, ${mockData.users.supplier.name}</span>
-                        <button class="btn btn-secondary" data-navigate="supplier-journey">Open Journey</button>
-                    </div>
-                </div>
+                <section class="procurement-market-summary">
+                    <div class="kpi-card"><div class="kpi-value">${openCount}</div><div class="kpi-label">Open tenders</div></div>
+                    <div class="kpi-card"><div class="kpi-value">${mockData.kpis.supplier.bidsInProgress}</div><div class="kpi-label">Draft bids</div></div>
+                    <div class="kpi-card"><div class="kpi-value">${Math.min(mockData.kpis.supplier.closing48h, openCount)}</div><div class="kpi-label">Closing soon</div></div>
+                </section>
 
-                <!-- KPI Row -->
-                <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 24px;">
-                    <div class="kpi-card">
-                        <div class="kpi-value">${kpis.matchedTenders}</div>
-                        <div class="kpi-label">MATCHED TENDERS</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-value">${kpis.bidsInProgress}</div>
-                        <div class="kpi-label">BIDS IN PROGRESS</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-value">${kpis.closing48h}</div>
-                        <div class="kpi-label">CLOSING 48H</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-value">${kpis.watchlist}</div>
-                        <div class="kpi-label">WATCHLIST</div>
-                    </div>
-                </div>
-
-                <!-- Search and Filters -->
-                <div class="card" style="margin-bottom: 24px;">
-                    <div style="display: flex; gap: 16px; align-items: center;">
-                        <div style="flex: 1;">
-                            <input type="text" placeholder="Search tenders..." style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;">
+                <section class="procurement-list-panel">
+                    <div class="panel-heading">
+                        <div>
+                            <span class="section-kicker">Tender list</span>
+                            <h2>Available opportunities</h2>
                         </div>
-                        <select style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;">
-                            <option>All Sectors</option>
-                            <option>Health</option>
-                            <option>Infrastructure</option>
-                            <option>ICT</option>
-                        </select>
-                        <select style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;">
-                            <option>All Types</option>
-                            <option>Goods</option>
-                            <option>Works</option>
-                            <option>Services</option>
-                        </select>
-                        <button class="btn btn-primary">Search</button>
+                        <span class="badge badge-success">${openCount} open</span>
                     </div>
-                </div>
 
-                <!-- Tabs -->
-                <div class="tabs">
-                    <div class="tab active" data-tab="matched">Matched Opportunities</div>
-                    <div class="tab" data-tab="watchlist">My Watchlist</div>
-                    <div class="tab" data-tab="all">All Tenders</div>
-                </div>
-
-                <!-- Tab Content -->
-                <div class="tab-content" data-tab="matched" style="display: block;">
-                    <div class="tenders-grid">
-                        ${tenders.filter(t => t.status === 'Open').map(tender => `
-                            <div class="tender-card">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                                    <span class="badge badge-success">${tender.status}</span>
-                                    <div style="display: flex; gap: 4px;">
-                                        <button class="btn btn-secondary" style="font-size: 12px; padding: 4px 8px;">Watch</button>
-                                        <button class="btn btn-primary" style="font-size: 12px; padding: 4px 8px;" data-navigate="supplier-tender-detail">View Details</button>
-                                    </div>
-                                </div>
-                                <h4 class="tender-title">${tender.title}</h4>
-                                <div class="tender-meta">
-                                    <div>${tender.organization}</div>
-                                    <div>Budget: TZS ${tender.budget.toLocaleString()}</div>
-                                    <div>Closes: ${tender.closingDate}</div>
-                                </div>
-                                <p class="tender-description">${tender.description}</p>
-                                <div style="margin-top: 16px; display: flex; gap: 8px;">
-                                    <button class="btn btn-primary" style="flex: 1;" data-navigate="bidding-workspace">Bid Now</button>
-                                    <div style="font-size: 12px; color: var(--text-secondary); align-self: center;">Match: 95%</div>
-                                </div>
-                            </div>
-                        `).join('')}
-
-                        ${tenders.filter(t => t.status !== 'Open').map(tender => `
-                            <div class="tender-card" style="opacity: 0.7;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                                    <span class="badge badge-warning">${tender.status}</span>
-                                    <div style="display: flex; gap: 4px;">
-                                        <button class="btn btn-secondary" style="font-size: 12px; padding: 4px 8px;">Watch</button>
-                                        <button class="btn btn-primary" style="font-size: 12px; padding: 4px 8px;" data-navigate="supplier-tender-detail">View Details</button>
-                                    </div>
-                                </div>
-                                <h4 class="tender-title">${tender.title}</h4>
-                                <div class="tender-meta">
-                                    <div>${tender.organization}</div>
-                                    <div>Budget: TZS ${tender.budget.toLocaleString()}</div>
-                                    <div>Closes: ${tender.closingDate}</div>
-                                </div>
-                                <p class="tender-description">${tender.description}</p>
-                                <div style="margin-top: 16px; display: flex; gap: 8px;">
-                                    <button class="btn btn-secondary" style="flex: 1;" disabled>Compliance Required</button>
-                                    <div style="font-size: 12px; color: var(--error-red); align-self: center;">Match: 45%</div>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-
-                <div class="tab-content" data-tab="watchlist" style="display: none;">
-                    <div class="card">
-                        <p>Your watchlist is empty. Start watching tenders to get notified about updates.</p>
-                    </div>
-                </div>
-
-                <div class="tab-content" data-tab="all" style="display: none;">
-                    <div class="tenders-grid">
+                    <div class="procurement-tender-list market-list">
                         ${tenders.map(tender => `
-                            <div class="tender-card">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                                    <span class="badge badge-${tender.status === 'Open' ? 'success' : tender.status === 'Evaluation' ? 'warning' : 'info'}">${tender.status}</span>
-                                    <button class="btn btn-primary" style="font-size: 12px; padding: 4px 8px;" data-navigate="supplier-tender-detail">View Details</button>
+                            <article class="procurement-tender-row market-row">
+                                <div>
+                                    <div class="tender-row-title">
+                                        <strong>${tender.title}</strong>
+                                        <span class="badge badge-${tender.status === 'Open' ? 'success' : tender.status === 'Evaluation' ? 'warning' : 'info'}">${tender.status}</span>
+                                    </div>
+                                    <p>${tender.organization} / ${tender.type} / Budget: TZS ${tender.budget.toLocaleString()}</p>
+                                    <span>${tender.description}</span>
                                 </div>
-                                <h4 class="tender-title">${tender.title}</h4>
-                                <div class="tender-meta">
-                                    <div>${tender.organization}</div>
-                                    <div>Budget: TZS ${tender.budget.toLocaleString()}</div>
-                                    <div>Closes: ${tender.closingDate}</div>
+                                <div class="tender-row-actions">
+                                    <button class="btn btn-secondary" data-select-tender="${tender.id}" data-navigate="${tender.createdByCurrentUser ? 'tender-details' : 'supplier-tender-detail'}">View Tender</button>
+                                    <button class="btn btn-primary" data-select-tender="${tender.id}" ${tender.status === 'Open' && !tender.createdByCurrentUser ? 'data-navigate="bidding-workspace"' : 'disabled'}>${tender.createdByCurrentUser ? 'Your Tender' : 'Bid'}</button>
                                 </div>
-                                <p class="tender-description">${tender.description}</p>
-                            </div>
-                        `).join('')}
+                            </article>
+                        `).join('') || '<div class="scope-empty">No active marketplace tenders right now.</div>'}
                     </div>
-                </div>
-            </div>
+                </section>
+            </main>
         </div>
     `;
 }
 
-// Register the page render function
 if (window.app) {
     window.app.renderSupplierMarketplace = renderSupplierMarketplace;
 }

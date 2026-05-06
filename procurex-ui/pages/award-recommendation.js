@@ -12,7 +12,7 @@ function renderAwardRecommendation() {
 
                 <ul class="sidebar-nav">
                     <li><a href="#" data-navigate="bid-evaluation">Back to Evaluation</a></li>
-                    <li><a href="#" data-navigate="buyer-dashboard">Dashboard</a></li>
+                    <li><a href="#" data-navigate="procurement-dashboard">Procurement Dashboard</a></li>
                     <li><a href="#" data-navigate="welcome">Logout</a></li>
                 </ul>
             </div>

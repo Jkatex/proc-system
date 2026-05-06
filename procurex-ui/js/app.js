@@ -6,6 +6,7 @@ class ProcureXApp {
         this.currentRole = null;
         this.pages = {};
         this.registrationTimer = null;
+        this.procurementFeedTimer = null;
         this.init();
     }
 
@@ -42,6 +43,10 @@ class ProcureXApp {
             const link = e.target.closest('[data-navigate]');
             if (link) {
                 e.preventDefault();
+                const tenderId = link.getAttribute('data-select-tender');
+                if (tenderId && typeof window.selectProcurexTender === 'function') {
+                    window.selectProcurexTender(tenderId);
+                }
                 const page = link.getAttribute('data-navigate');
                 const role = link.getAttribute('data-role');
                 if (role) {
@@ -71,6 +76,12 @@ class ProcureXApp {
     }
 
     navigateTo(page, updateHistory = true) {
+        const pageAliases = {
+            'buyer-dashboard': 'workspace-dashboard',
+            'supplier-dashboard': 'workspace-dashboard',
+            'procurement-dashboard': 'workspace-dashboard'
+        };
+        page = pageAliases[page] || page;
         this.currentPage = page;
         if (updateHistory) {
             const url = `?page=${page}${this.currentRole ? `&role=${this.currentRole}` : ''}`;
@@ -80,31 +91,105 @@ class ProcureXApp {
     }
 
     getNavigationHeader() {
-        // Auth and onboarding pages include their own focused headers.
-        if (['welcome', 'register', 'sign-in', 'iam-verification'].includes(this.currentPage)) return '';
+        const pagesWithoutAppBar = ['welcome', 'register', 'sign-in', 'iam-verification', 'guest-marketplace'];
+        if (pagesWithoutAppBar.includes(this.currentPage)) return '';
 
-        const backPage = this.getBackPage();
-        const pageTitle = this.getPageTitle();
+        const currentAppName = this.getCurrentAppName();
 
         return `
-            <div class="nav-header">
-                <div class="nav-header-content">
-                    ${backPage ? `<button class="nav-back-btn" data-navigate="${backPage}" title="Go back">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M15 18l-6-6 6-6"/>
-                        </svg>
-                    </button>` : ''}
-                    <h1 class="nav-title">${pageTitle}</h1>
-                    <div class="nav-actions">
-                        <button class="nav-home-btn" data-navigate="welcome" title="Home">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-                            </svg>
+            <header class="app-topbar">
+                <div class="app-topbar-left">
+                    <button class="app-brand-button" type="button" data-navigate="workspace-dashboard">
+                        <span class="brand-mark">PX</span>
+                        <span>${currentAppName}</span>
+                    </button>
+                </div>
+
+                <div class="app-topbar-actions">
+                      <button class="icon-menu-btn" type="button" data-app-menu-toggle aria-label="Open apps" aria-expanded="false">
+                        <span></span><span></span><span></span>
+                        <span></span><span></span><span></span>
+                        <span></span><span></span><span></span>
+                    </button>
+                    <div class="profile-menu-wrap">
+                        <button class="profile-button" type="button" data-profile-menu-toggle aria-label="Open profile menu" aria-expanded="false">
+                            <span>AU</span>
                         </button>
                     </div>
                 </div>
-            </div>
+
+                <div class="app-drawer-menu" data-app-menu>
+                    <div class="app-menu-header">
+                        <strong>ProcureX Apps</strong>
+                        <span>Switch workspace</span>
+                    </div>
+                    <button class="app-menu-card app-menu-iam" data-navigate="verification-status">
+                        <span class="app-menu-icon">${this.getAppMenuIcon('iam')}</span>
+                        <span><strong>IAM</strong><em>Registration and eKYC review</em></span>
+                    </button>
+                    <button class="app-menu-card app-menu-procurement" data-navigate="supplier-marketplace">
+                        <span class="app-menu-icon">${this.getAppMenuIcon('procurement')}</span>
+                        <span><strong>Procurement</strong><em>Marketplace, create tender, bid</em></span>
+                    </button>
+                    <button class="app-menu-card app-menu-contracts" data-navigate="records-history">
+                        <span class="app-menu-icon">${this.getAppMenuIcon('contracts')}</span>
+                        <span><strong>Records & History</strong><em>Past tenders, bids, awards</em></span>
+                    </button>
+                    <button class="app-menu-card app-menu-contracts muted" type="button" disabled>
+                        <span class="app-menu-icon">${this.getAppMenuIcon('contracts')}</span>
+                        <span><strong>Contract Performance</strong><em>Coming later</em></span>
+                    </button>
+                    <button class="app-menu-card app-menu-insights muted" type="button" disabled>
+                        <span class="app-menu-icon">${this.getAppMenuIcon('insights')}</span>
+                        <span><strong>Market Intelligence</strong><em>Coming later</em></span>
+                    </button>
+                </div>
+
+                <div class="profile-menu" data-profile-menu>
+                    <button type="button">Settings</button>
+                    <button type="button" data-navigate="welcome">Logout</button>
+                </div>
+            </header>
         `;
+    }
+
+    getAppMenuIcon(type) {
+        const icons = {
+            iam: '<path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/><path d="M16 11l2 2 4-4"/>',
+            procurement: '<path d="M3 9h18l-2-5H5z"/><path d="M5 9v11h14V9"/><path d="M9 13h6"/><path d="M9 17h4"/>',
+            contracts: '<path d="M8 3h8l3 3v15H5V3z"/><path d="M15 3v4h4"/><path d="M8 12h8"/><path d="M8 16h6"/>',
+            insights: '<path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16v-5"/><path d="M12 16V8"/><path d="M16 16v-9"/>'
+        };
+
+        return `
+            <svg class="app-menu-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                ${icons[type] || icons.procurement}
+            </svg>
+        `;
+    }
+
+    getCurrentAppName() {
+        const pageAppNames = {
+            'app-launcher': 'Apps',
+            'workspace-dashboard': 'Dashboard',
+            'admin-dashboard': 'Admin',
+            'verification-status': 'IAM',
+            'buyer-journey': 'Procurement',
+            'supplier-journey': 'Procurement',
+            'supplier-marketplace': 'Procurement',
+            'supplier-tender-detail': 'Procurement',
+            'create-tender': 'Procurement',
+            'tender-publication': 'Procurement',
+            'tender-details': 'Procurement',
+            'records-history': 'Records & History',
+            'bidding-workspace': 'Procurement',
+            'bid-evaluation': 'Procurement',
+            'award-recommendation': 'Procurement',
+            'contract-negotiation': 'Contract Performance',
+            'post-award-tracking': 'Contract Performance'
+        };
+
+        return pageAppNames[this.currentPage] || this.getPageTitle();
     }
 
     getBackPage() {
@@ -113,20 +198,24 @@ class ProcureXApp {
             'sign-in': 'register',
             'role-selection': 'welcome',
             'iam-verification': 'sign-in',
-            'verification-status': 'iam-verification',
-            'admin-dashboard': 'verification-status',
-            'buyer-dashboard': 'verification-status',
-            'buyer-journey': 'buyer-dashboard',
-            'supplier-dashboard': 'verification-status',
-            'supplier-journey': 'supplier-dashboard',
-            'supplier-marketplace': 'supplier-dashboard',
+            'verification-status': 'app-launcher',
+            'app-launcher': null,
+            'workspace-dashboard': 'app-launcher',
+            'procurement-dashboard': 'workspace-dashboard',
+            'admin-dashboard': null,
+            'buyer-dashboard': 'workspace-dashboard',
+            'buyer-journey': 'workspace-dashboard',
+            'supplier-dashboard': 'workspace-dashboard',
+            'supplier-journey': 'workspace-dashboard',
+            'supplier-marketplace': 'workspace-dashboard',
             'supplier-tender-detail': 'supplier-marketplace',
             'guest-marketplace': 'welcome',
-            'create-tender': 'buyer-dashboard',
+            'create-tender': 'workspace-dashboard',
             'tender-publication': 'create-tender',
-            'tender-details': 'tender-publication',
+            'tender-details': 'supplier-marketplace',
+            'records-history': 'workspace-dashboard',
             'bidding-workspace': 'supplier-tender-detail',
-            'bid-evaluation': 'buyer-dashboard',
+            'bid-evaluation': 'workspace-dashboard',
             'award-recommendation': 'bid-evaluation',
             'contract-negotiation': 'award-recommendation',
             'post-award-tracking': 'contract-negotiation'
@@ -138,20 +227,24 @@ class ProcureXApp {
         const titles = {
             'register': 'Create Account',
             'sign-in': 'Sign In',
-            'role-selection': 'Select Your Role',
+            'role-selection': 'Start Onboarding',
             'iam-verification': 'eKYC Onboarding',
             'verification-status': 'Verification Status',
+            'app-launcher': 'App Launcher',
+            'workspace-dashboard': 'Dashboard',
+            'procurement-dashboard': 'Dashboard',
             'admin-dashboard': 'Admin Dashboard',
             'buyer-dashboard': 'Buyer Dashboard',
             'buyer-journey': 'Buyer Journey',
             'supplier-dashboard': 'Supplier Dashboard',
             'supplier-journey': 'Supplier Journey',
-            'supplier-marketplace': 'Supplier Marketplace',
+            'supplier-marketplace': 'Procurement Marketplace',
             'supplier-tender-detail': 'Tender Detail',
             'guest-marketplace': 'ProcureX Marketplace',
             'create-tender': 'Create Tender',
             'tender-publication': 'Tender Draft Detail',
             'tender-details': 'Tender Detail',
+            'records-history': 'Records & History',
             'bidding-workspace': 'Bidding Workspace',
             'bid-evaluation': 'Bid Evaluation',
             'award-recommendation': 'Award Recommendation',
@@ -163,6 +256,7 @@ class ProcureXApp {
 
     renderPage() {
         const pageContent = document.getElementById('page-content');
+        this.clearProcurementFeedTimer();
         if (this.pages[this.currentPage]) {
             const pageHtml = this.pages[this.currentPage]();
             const navHeader = this.getNavigationHeader();
@@ -183,13 +277,226 @@ class ProcureXApp {
                 createChart('buyer-spend-chart', 'buyerSpend');
             }
         }
+        this.initializeDashboardAnalytics();
 
         // Initialize any interactive components
         this.initializeTabs();
         this.initializeForms();
+        this.initializeConfirmControls();
+        this.initializeWorkspaceMenus();
         this.initializeAuthPage();
         this.initializeRegistrationPage();
         this.initializeEkycPage();
+        if (typeof window.initializeCreateTenderWizard === 'function') {
+            window.initializeCreateTenderWizard();
+        }
+        if (typeof window.initializeBiddingWorkspace === 'function') {
+            window.initializeBiddingWorkspace();
+        }
+        this.initializeProcurementLiveFeed();
+    }
+
+    clearProcurementFeedTimer() {
+        if (this.procurementFeedTimer) {
+            clearInterval(this.procurementFeedTimer);
+            this.procurementFeedTimer = null;
+        }
+    }
+
+    initializeProcurementLiveFeed() {
+        const feed = document.querySelector('[data-procurement-feed]');
+        if (!feed) return;
+
+        const cards = Array.from(feed.querySelectorAll('[data-feed-card]'));
+        const dots = Array.from(feed.querySelectorAll('[data-feed-dot]'));
+        if (cards.length <= 1) return;
+
+        let activeIndex = 0;
+        const setActiveCard = (nextIndex) => {
+            activeIndex = nextIndex % cards.length;
+            cards.forEach((card, index) => {
+                const isActive = index === activeIndex;
+                card.classList.toggle('active', isActive);
+                card.setAttribute('aria-hidden', String(!isActive));
+            });
+            dots.forEach((dot, index) => dot.classList.toggle('active', index === activeIndex));
+        };
+
+        this.procurementFeedTimer = setInterval(() => {
+            setActiveCard(activeIndex + 1);
+        }, 3600);
+    }
+
+    initializeDashboardAnalytics() {
+        const activityCanvas = document.getElementById('user-activity-chart');
+        const valueCanvas = document.getElementById('user-value-chart');
+        const buttons = document.querySelectorAll('[data-dashboard-period]');
+        if (!activityCanvas || !valueCanvas || !buttons.length || typeof window.getWorkspaceDashboardModel !== 'function') return;
+
+        const dashboard = window.getWorkspaceDashboardModel();
+        const fallback = document.querySelector('.dashboard-chart-fallback');
+        const periodBadge = document.querySelector('[data-dashboard-period-badge]');
+        const charts = {};
+        let chartRetryCount = 0;
+        let chartRetryTimer = null;
+
+        const renderFallbackBars = (period) => {
+            if (!fallback) return;
+            const maxValue = Math.max(...period.value);
+            fallback.innerHTML = period.labels.map((label, index) => {
+                const width = Math.max(8, Math.round((period.value[index] / maxValue) * 100));
+                return `
+                    <div>
+                        <span>${label}</span>
+                        <strong>${period.activity[index]}</strong>
+                        <div class="analytics-bar"><i style="width: ${width}%"></i></div>
+                    </div>
+                `;
+            }).join('');
+        };
+
+        const renderChart = (key) => {
+            const period = dashboard.periods[key] || dashboard.periods.monthly;
+            buttons.forEach(button => button.classList.toggle('active', button.dataset.dashboardPeriod === key));
+            if (periodBadge) periodBadge.textContent = period.badge;
+            renderFallbackBars(period);
+
+            if (typeof window.Chart === 'undefined') {
+                activityCanvas.closest('.dashboard-chart-grid')?.classList.add('is-hidden');
+                fallback?.classList.add('is-visible');
+                if (chartRetryCount < 20) {
+                    chartRetryCount += 1;
+                    clearTimeout(chartRetryTimer);
+                    chartRetryTimer = setTimeout(() => renderChart(key), 250);
+                }
+                return;
+            }
+
+            clearTimeout(chartRetryTimer);
+            activityCanvas.closest('.dashboard-chart-grid')?.classList.remove('is-hidden');
+            fallback?.classList.remove('is-visible');
+
+            const sharedOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(148, 163, 184, 0.18)' } },
+                    x: { grid: { display: false } }
+                }
+            };
+
+            charts.activity?.destroy();
+            charts.value?.destroy();
+
+            charts.activity = new Chart(activityCanvas, {
+                type: 'bar',
+                data: {
+                    labels: period.labels,
+                    datasets: [{
+                        label: `${period.label} user activity`,
+                        data: period.activity,
+                        backgroundColor: '#2563eb',
+                        borderRadius: 8
+                    }]
+                },
+                options: sharedOptions
+            });
+
+            charts.value = new Chart(valueCanvas, {
+                type: 'line',
+                data: {
+                    labels: period.labels,
+                    datasets: [{
+                        label: `${period.label} user value`,
+                        data: period.value,
+                        borderColor: '#16a34a',
+                        backgroundColor: 'rgba(22, 163, 74, 0.12)',
+                        fill: true,
+                        tension: 0.35
+                    }]
+                },
+                options: {
+                    ...sharedOptions,
+                    scales: {
+                        ...sharedOptions.scales,
+                        y: {
+                            ...sharedOptions.scales.y,
+                            ticks: {
+                                callback: value => `${Math.round(value / 1000000)}M`
+                            }
+                        }
+                    }
+                }
+            });
+        };
+
+        buttons.forEach(button => {
+            button.addEventListener('click', () => renderChart(button.dataset.dashboardPeriod));
+        });
+
+        renderChart('weekly');
+    }
+
+    initializeWorkspaceMenus() {
+        const appButton = document.querySelector('[data-app-menu-toggle]');
+        const appMenu = document.querySelector('[data-app-menu]');
+        const profileButton = document.querySelector('[data-profile-menu-toggle]');
+        const profileMenu = document.querySelector('[data-profile-menu]');
+
+        const closeMenus = () => {
+            appMenu?.classList.remove('open');
+            profileMenu?.classList.remove('open');
+            appButton?.setAttribute('aria-expanded', 'false');
+            profileButton?.setAttribute('aria-expanded', 'false');
+        };
+
+        appButton?.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const willOpen = !appMenu?.classList.contains('open');
+            closeMenus();
+            appMenu?.classList.toggle('open', willOpen);
+            appButton.setAttribute('aria-expanded', String(willOpen));
+            if (willOpen) {
+                setTimeout(() => document.addEventListener('click', closeMenus, { once: true }), 0);
+            }
+        });
+
+        profileButton?.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const willOpen = !profileMenu?.classList.contains('open');
+            closeMenus();
+            profileMenu?.classList.toggle('open', willOpen);
+            profileButton.setAttribute('aria-expanded', String(willOpen));
+            if (willOpen) {
+                setTimeout(() => document.addEventListener('click', closeMenus, { once: true }), 0);
+            }
+        });
+    }
+
+    initializeConfirmControls() {
+        document.querySelectorAll('[data-confirm-control]').forEach((control) => {
+            const input = control.querySelector('input[type="checkbox"]');
+            const button = control.querySelector('[data-confirm-toggle]');
+            if (!input || !button || button.dataset.confirmReady === 'true') return;
+
+            const sync = () => {
+                const isConfirmed = input.checked;
+                control.classList.toggle('confirmed', isConfirmed);
+                button.classList.toggle('confirmed', isConfirmed);
+                button.setAttribute('aria-pressed', String(isConfirmed));
+            };
+
+            button.dataset.confirmReady = 'true';
+            button.addEventListener('click', () => {
+                input.checked = !input.checked;
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                sync();
+            });
+
+            input.addEventListener('change', sync);
+            sync();
+        });
     }
 
     initializeTabs() {
@@ -347,22 +654,153 @@ class ProcureXApp {
         const ekycForm = document.querySelector('.ekyc-form');
         if (!ekycForm) return;
 
-        const roleCards = ekycForm.querySelectorAll('.ekyc-role-card');
-        roleCards.forEach((card) => {
+        const savedProfile = mockData.eKycProfile || {};
+        const isUpdateMode = ekycForm.dataset.ekycMode === 'update';
+        if (isUpdateMode && savedProfile.registryRecord && ekycForm.dataset.registryFetched === 'true') {
+            mockData.eKycRegistryRecord = savedProfile.registryRecord;
+        }
+
+        const getEntityType = () => ekycForm.querySelector('input[name="entityType"]:checked')?.value || 'individual';
+        const getBusinessRegistrationSource = () => ekycForm.querySelector('input[name="businessRegistrationSource"]:checked')?.value || 'tin';
+
+        const showEkycStep = (stepNumber) => {
+            ekycForm.querySelectorAll('[data-ekyc-step]').forEach((panel) => {
+                panel.classList.toggle('active', panel.getAttribute('data-ekyc-step') === String(stepNumber));
+            });
+
+            document.querySelectorAll('[data-step-indicator]').forEach((indicator) => {
+                const indicatorStep = Number(indicator.getAttribute('data-step-indicator'));
+                indicator.classList.toggle('active', indicatorStep === stepNumber);
+                indicator.classList.toggle('completed', indicatorStep < stepNumber);
+            });
+
+            if (stepNumber === 4) this.updateEkycCompleteSummary(ekycForm);
+            document.querySelector('.ekyc-main')?.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        const syncEntityFields = () => {
+            const entityType = getEntityType();
+            const businessSource = getBusinessRegistrationSource();
+            const usesBusinessTin = entityType === 'business' && businessSource === 'tin';
+            const usesBusinessBrela = entityType === 'business' && businessSource === 'brela';
+            const config = this.getEkycRegistryConfig(entityType, ekycForm);
+            ekycForm.querySelectorAll('.business-registry-fields').forEach(field => field.classList.toggle('ekyc-hidden', entityType !== 'business'));
+            ekycForm.querySelectorAll('.individual-fields').forEach(field => field.classList.toggle('ekyc-hidden', entityType !== 'individual' && !usesBusinessTin));
+            ekycForm.querySelectorAll('.company-fields').forEach(field => field.classList.toggle('ekyc-hidden', entityType !== 'company'));
+            ekycForm.querySelectorAll('.business-fields').forEach(field => field.classList.toggle('ekyc-hidden', !usesBusinessBrela));
+
+            const title = document.querySelector('[data-registry-title]');
+            const copy = document.querySelector('[data-registry-copy]');
+            const source = document.querySelector('[data-registry-source]');
+            const hint = document.querySelector('[data-registry-hint]');
+            if (title) title.textContent = config.title;
+            if (copy) copy.textContent = config.copy;
+            if (source) source.textContent = config.sourceLabel;
+            if (hint) hint.textContent = `The lookup is mocked in this UI. Click fetch to show the ${config.source} record the user must verify.`;
+        };
+
+        const resetRegistryReview = () => {
+            const review = ekycForm.querySelector('[data-registry-review]');
+            const registryVerified = ekycForm.querySelector('input[name="registryVerified"]');
+            review?.classList.add('ekyc-hidden');
+            ekycForm.dataset.registryFetched = '';
+            mockData.eKycRegistryRecord = null;
+            if (registryVerified) registryVerified.checked = false;
+            registryVerified?.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+
+        const restoreSavedRegistryReview = () => {
+            const registryVerified = ekycForm.querySelector('input[name="registryVerified"]');
+            const savedRecord = savedProfile.registryRecord;
+            if (!savedRecord) return;
+            mockData.eKycRegistryRecord = savedRecord;
+            ekycForm.dataset.registryFetched = 'true';
+            if (registryVerified) registryVerified.checked = Boolean(savedProfile.registryVerified || savedRecord.reference);
+            registryVerified?.dispatchEvent(new Event('change', { bubbles: true }));
+            ekycForm.querySelector('[data-registry-review]')?.classList.remove('ekyc-hidden');
+        };
+
+        ekycForm.querySelectorAll('.ekyc-role-card').forEach((card) => {
             card.addEventListener('click', () => {
-                roleCards.forEach(item => item.classList.remove('selected'));
+                const input = card.querySelector('input[type="radio"]');
+                if (!input) return;
+                input.checked = true;
+                const groupCards = ekycForm.querySelectorAll(`input[name="${input.name}"]`);
+                groupCards.forEach(item => item.closest('.ekyc-role-card')?.classList.remove('selected'));
                 card.classList.add('selected');
+
+                if (input.name === 'entityType') {
+                    syncEntityFields();
+                    resetRegistryReview();
+                }
+
+                if (input.name === 'businessRegistrationSource') {
+                    syncEntityFields();
+                    resetRegistryReview();
+                }
+            });
+        });
+
+        syncEntityFields();
+
+        ekycForm.querySelectorAll('input[name="tinNumber"], input[name="brelaNumber"], input[name="businessNumber"]').forEach((input) => {
+            input.addEventListener('input', () => {
+                const verifiedValue = input.dataset.verifiedValue || '';
+                if (isUpdateMode && verifiedValue && input.value.trim() === verifiedValue) {
+                    restoreSavedRegistryReview();
+                    return;
+                }
+                resetRegistryReview();
+            });
+        });
+
+        ekycForm.querySelector('[data-fetch-registry]')?.addEventListener('click', () => {
+            this.fetchMockRegistryRecord(ekycForm);
+        });
+
+        ekycForm.querySelectorAll('[data-ekyc-next]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const panel = button.closest('[data-ekyc-step]');
+                const currentStep = Number(panel?.getAttribute('data-ekyc-step') || 1);
+                if (this.validateEkycStep(ekycForm, currentStep)) {
+                    showEkycStep(Math.min(currentStep + 1, 4));
+                }
+            });
+        });
+
+        ekycForm.querySelectorAll('[data-ekyc-prev]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const panel = button.closest('[data-ekyc-step]');
+                const currentStep = Number(panel?.getAttribute('data-ekyc-step') || 1);
+                showEkycStep(Math.max(currentStep - 1, 1));
             });
         });
 
         const signatureName = ekycForm.querySelector('input[name="signatureName"]');
+        const signatureTitle = ekycForm.querySelector('input[name="signatureTitle"]');
         const signaturePreview = document.getElementById('signature-preview');
+        const resetSignatureConfirmationIfChanged = () => {
+            if (!isUpdateMode) return;
+            const nameChanged = (signatureName?.value.trim() || '') !== (signatureName?.dataset.verifiedValue || '');
+            const titleChanged = (signatureTitle?.value.trim() || '') !== (signatureTitle?.dataset.verifiedValue || '');
+            if (!nameChanged && !titleChanged) return;
+
+            const signatureConsent = ekycForm.querySelector('input[name="signatureConsent"]');
+            if (signatureConsent?.checked) {
+                signatureConsent.checked = false;
+                signatureConsent.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        };
+
         signatureName?.addEventListener('input', () => {
             const value = signatureName.value.trim();
             signaturePreview.innerHTML = value
                 ? `<strong>${value}</strong><span>Digitally signed on ProcureX</span>`
                 : '<span>Typed signature preview</span>';
+            resetSignatureConfirmationIfChanged();
         });
+
+        signatureTitle?.addEventListener('input', resetSignatureConfirmationIfChanged);
 
         document.getElementById('save-ekyc-draft')?.addEventListener('click', () => {
             this.saveEkycProfile(ekycForm, 'draft');
@@ -473,6 +911,7 @@ class ProcureXApp {
             phone: mockData.registrationDraft.phone,
             password,
             role: null,
+            accountType: 'new user',
             isNewUser: true,
             ekycCompleted: false
         };
@@ -510,82 +949,284 @@ class ProcureXApp {
             isNewUser: !account.ekycCompleted,
             email
         };
-        if (account.role) this.setRole(account.role);
+
+        if (account.accountType === 'admin' || account.role === 'admin') {
+            this.setRole('admin');
+            this.navigateTo('admin-dashboard');
+            return;
+        }
 
         if (mockData.session.isNewUser) {
             this.navigateTo('iam-verification');
             return;
         }
 
-        const role = account.role || mockData.currentRole || mockData.eKycProfile?.role || 'buyer';
-        this.setRole(role);
-        this.navigateTo(`${role}-dashboard`);
+        this.navigateTo('workspace-dashboard');
     }
 
     handleEkycCompletion(form) {
-        if (!form.checkValidity()) {
-            form.reportValidity();
+        const isUpdateMode = form.dataset.ekycMode === 'update';
+        for (let step = 1; step <= 3; step += 1) {
+            if (!this.validateEkycStep(form, step)) {
+                const targetPanel = form.querySelector(`[data-ekyc-step="${step}"]`);
+                form.querySelectorAll('[data-ekyc-step]').forEach((panel) => {
+                    panel.classList.toggle('active', panel === targetPanel);
+                });
+                document.querySelectorAll('[data-step-indicator]').forEach((indicator) => {
+                    const indicatorStep = Number(indicator.getAttribute('data-step-indicator'));
+                    indicator.classList.toggle('active', indicatorStep === step);
+                    indicator.classList.toggle('completed', indicatorStep < step);
+                });
+                targetPanel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                return;
+            }
+        }
+
+        if (!mockData.eKycRegistryRecord) {
+            alert('Fetch and verify registry information before completing eKYC.');
             return;
         }
 
-        const selectedProducts = Array.from(form.querySelectorAll('input[name="products"]:checked'));
-        if (!selectedProducts.length) {
-            alert('Select at least one product or service.');
-            return;
-        }
-
-        const uploadedCount = Array.from(form.querySelectorAll('input[type="file"]'))
-            .filter(input => input.files?.length).length;
-
-        if (uploadedCount < 3) {
-            alert('Upload at least three verification documents for this demo flow.');
-            return;
-        }
-
-        this.saveEkycProfile(form, 'submitted');
-        const role = mockData.eKycProfile.role;
+        this.saveEkycProfile(form, 'completed');
         mockData.pendingAccount = {
             ...(mockData.pendingAccount || {}),
-            role,
+            role: null,
+            accountType: 'existing user',
             isNewUser: false,
-            ekycCompleted: true
+            ekycCompleted: true,
+            displayName: mockData.eKycProfile.verifiedName || mockData.pendingAccount?.displayName
         };
         this.upsertMockAuthAccount(mockData.pendingAccount);
         mockData.session.isNewUser = false;
 
-        this.setRole(role);
-        this.navigateTo('verification-status');
+        this.navigateTo(isUpdateMode ? 'verification-status' : 'app-launcher');
+    }
+
+    getEkycRegistryConfig(entityType, form = null) {
+        if (entityType === 'company') {
+            return {
+                applicantLabel: 'Company',
+                source: 'BRELA',
+                sourceLabel: 'BRELA company lookup',
+                title: 'Enter BRELA company number',
+                copy: 'Company details will be fetched from BRELA and shown here for user confirmation.',
+                inputSelector: 'input[name="brelaNumber"]',
+                missingMessage: 'Enter the BRELA company number.'
+            };
+        }
+
+        if (entityType === 'business') {
+            const root = form || (typeof document !== 'undefined' ? document : null);
+            const businessSource = root?.querySelector('input[name="businessRegistrationSource"]:checked')?.value || 'tin';
+
+            if (businessSource === 'brela') {
+                return {
+                    applicantLabel: 'Business',
+                    registrationMethod: 'BRELA number',
+                    source: 'BRELA',
+                    sourceLabel: 'BRELA business lookup',
+                    title: 'Enter BRELA business number',
+                    copy: 'Business registration details will be fetched from BRELA and shown here for user confirmation.',
+                    inputSelector: 'input[name="businessNumber"]',
+                    missingMessage: 'Enter the BRELA business number.'
+                };
+            }
+
+            return {
+                applicantLabel: 'Business',
+                registrationMethod: 'Local Government / TIN',
+                source: 'TRA',
+                sourceLabel: 'Local Government / TIN lookup',
+                title: 'Enter registered TIN number',
+                copy: 'Local government business registration will be verified through the registered TIN number and shown here for confirmation.',
+                inputSelector: 'input[name="tinNumber"]',
+                missingMessage: 'Enter the registered TIN number.'
+            };
+        }
+
+        return {
+            applicantLabel: 'Individual',
+            source: 'TRA',
+            sourceLabel: 'TRA lookup',
+            title: 'Enter TIN number',
+            copy: 'TRA details will be fetched for the individual and shown here for confirmation.',
+            inputSelector: 'input[name="tinNumber"]',
+            missingMessage: 'Enter the TIN number.'
+        };
     }
 
     saveEkycProfile(form, status) {
         const formData = new FormData(form);
-        const role = formData.get('accountRole') || 'buyer';
-        const products = formData.getAll('products');
+        const role = formData.get('role') || mockData.pendingAccount?.role || mockData.currentRole || mockData.eKycProfile?.role || null;
+        const entityType = formData.get('entityType') || 'individual';
+        const registryConfig = this.getEkycRegistryConfig(entityType, form);
+        const registryRecord = mockData.eKycRegistryRecord || mockData.eKycProfile?.registryRecord || {};
 
         mockData.eKycProfile = {
             status,
             role,
-            businessName: formData.get('businessName') || '',
-            registrationNumber: formData.get('registrationNumber') || '',
-            taxNumber: formData.get('taxNumber') || '',
-            licenseNumber: formData.get('licenseNumber') || '',
-            country: formData.get('country') || '',
-            region: formData.get('region') || '',
-            address: formData.get('address') || '',
-            representativeName: formData.get('representativeName') || '',
-            representativeTitle: formData.get('representativeTitle') || '',
-            representativeEmail: formData.get('representativeEmail') || '',
-            representativePhone: formData.get('representativePhone') || '',
-            businessLine: formData.get('businessLine') || '',
-            businessSize: formData.get('businessSize') || '',
-            annualCapacity: formData.get('annualCapacity') || '',
-            deliveryRegions: formData.get('deliveryRegions') || '',
-            products,
-            requirements: formData.get('requirements') || '',
-            bankDetails: formData.get('bankDetails') || '',
+            entityType,
+            businessRegistrationSource: entityType === 'business' ? (formData.get('businessRegistrationSource') || 'tin') : '',
+            businessRegistrationMethod: entityType === 'business' ? (registryConfig.registrationMethod || registryConfig.sourceLabel) : '',
+            tinNumber: formData.get('tinNumber') || '',
+            brelaNumber: formData.get('brelaNumber') || '',
+            businessNumber: formData.get('businessNumber') || '',
+            registrySource: registryConfig.source,
+            registryVerified: formData.get('registryVerified') === 'on',
+            registryRecord,
+            verifiedName: registryRecord.name || '',
+            verifiedStatus: registryRecord.status || '',
             signatureName: formData.get('signatureName') || '',
-            signatureTitle: formData.get('signatureTitle') || ''
+            signatureTitle: formData.get('signatureTitle') || '',
+            signatureConsent: formData.get('signatureConsent') === 'on',
+            signatureAnchor: 'pending_blockchain_anchor'
         };
+    }
+
+    validateEkycStep(form, step) {
+        this.clearFormErrors(form);
+
+        if (step === 1) {
+            const entityType = form.querySelector('input[name="entityType"]:checked');
+            if (!entityType) {
+                alert('Choose whether the applicant is an individual, company, or business.');
+                return false;
+            }
+            return true;
+        }
+
+        if (step === 2) {
+            const entityType = form.querySelector('input[name="entityType"]:checked')?.value || 'individual';
+            const registryConfig = this.getEkycRegistryConfig(entityType, form);
+            const registryInput = form.querySelector(registryConfig.inputSelector);
+            const registryValue = registryInput?.value.trim();
+            const registryVerified = form.querySelector('input[name="registryVerified"]')?.checked;
+
+            if (!registryValue) {
+                this.showFormError(registryInput, registryConfig.missingMessage);
+                registryInput?.focus();
+                return false;
+            }
+
+            if (form.dataset.registryFetched !== 'true') {
+                alert('Fetch the registry information before continuing.');
+                return false;
+            }
+
+            if (!registryVerified) {
+                alert('Confirm that the fetched registry information is correct.');
+                return false;
+            }
+
+            return true;
+        }
+
+        if (step === 3) {
+            const signatureName = form.querySelector('input[name="signatureName"]');
+            const signatureConsent = form.querySelector('input[name="signatureConsent"]')?.checked;
+
+            if (!signatureName?.value.trim()) {
+                this.showFormError(signatureName, 'Enter the signer full name.');
+                signatureName?.focus();
+                return false;
+            }
+
+            if (!signatureConsent) {
+                alert('Confirm the digital signature authorization.');
+                return false;
+            }
+
+            return true;
+        }
+
+        return true;
+    }
+
+    fetchMockRegistryRecord(form) {
+        const entityType = form.querySelector('input[name="entityType"]:checked')?.value || 'individual';
+        const registryConfig = this.getEkycRegistryConfig(entityType, form);
+        const input = form.querySelector(registryConfig.inputSelector);
+        const reference = input?.value.trim();
+
+        if (!reference) {
+            this.showFormError(input, registryConfig.missingMessage.replace('.', ' first.'));
+            input?.focus();
+            return;
+        }
+
+        const recordKey = entityType === 'business' && registryConfig.source === 'TRA' ? 'businessTin' : entityType;
+        const mockRecords = {
+            individual: {
+                source: 'TRA',
+                reference,
+                name: 'Asha M. Mwakalinga',
+                status: 'Active taxpayer',
+                registeredOn: '2019-03-22',
+                location: 'Arusha, Tanzania'
+            },
+            company: {
+                source: 'BRELA',
+                reference,
+                name: 'Kilimanjaro Supplies Limited',
+                status: 'Active company',
+                registeredOn: '2021-08-14',
+                location: 'Dar es Salaam, Tanzania'
+            },
+            business: {
+                source: 'BRELA',
+                reference,
+                name: 'Mwanza Office Traders',
+                status: 'Active business name',
+                registeredOn: '2022-11-03',
+                location: 'Mwanza, Tanzania'
+            },
+            businessTin: {
+                source: 'TRA',
+                reference,
+                name: 'Arusha Local Office Traders',
+                status: 'Active local-government registered business',
+                registeredOn: '2020-05-19',
+                location: 'Arusha, Tanzania'
+            }
+        };
+
+        const record = mockRecords[recordKey] || mockRecords.individual;
+
+        mockData.eKycRegistryRecord = record;
+        form.dataset.registryFetched = 'true';
+
+        const review = form.querySelector('[data-registry-review]');
+        const name = form.querySelector('[data-registry-name]');
+        const summary = form.querySelector('[data-registry-summary]');
+        if (name) name.textContent = record.name;
+        if (summary) {
+            summary.innerHTML = `
+                <div><span>Source</span><strong>${record.source}</strong></div>
+                <div><span>Reference</span><strong>${record.reference}</strong></div>
+                <div><span>Status</span><strong>${record.status}</strong></div>
+                <div><span>Registered</span><strong>${record.registeredOn}</strong></div>
+                <div><span>Location</span><strong>${record.location}</strong></div>
+            `;
+        }
+        review?.classList.remove('ekyc-hidden');
+    }
+
+    updateEkycCompleteSummary(form) {
+        const entityType = form.querySelector('input[name="entityType"]:checked')?.value || 'individual';
+        const registryConfig = this.getEkycRegistryConfig(entityType, form);
+        const signatureName = form.querySelector('input[name="signatureName"]')?.value.trim() || 'Prepared';
+        const registryRecord = mockData.eKycRegistryRecord;
+        const summary = form.querySelector('[data-ekyc-complete-summary]');
+        if (!summary) return;
+
+        summary.innerHTML = `
+            <div><span>Applicant type</span><strong>${registryConfig.applicantLabel}</strong></div>
+            ${registryConfig.registrationMethod ? `<div><span>Registration method</span><strong>${registryConfig.registrationMethod}</strong></div>` : ''}
+            <div><span>Registry source</span><strong>${registryConfig.source}</strong></div>
+            <div><span>Verified name</span><strong>${registryRecord?.name || 'Pending review'}</strong></div>
+            <div><span>Signature</span><strong>${signatureName}</strong></div>
+            <div><span>Blockchain anchor</span><strong>Pending implementation</strong></div>
+        `;
     }
 
     showRegistrationScreen(screenNumber) {
@@ -685,6 +1326,7 @@ class ProcureXApp {
             phone: account.phone || '',
             password: account.password,
             role: account.role || null,
+            accountType: account.accountType || (account.role === 'admin' ? 'admin' : account.ekycCompleted ? 'existing user' : 'new user'),
             isNewUser: account.isNewUser ?? !account.ekycCompleted,
             ekycCompleted: Boolean(account.ekycCompleted),
             email: account.email
@@ -803,6 +1445,9 @@ class ProcureXApp {
             'role-selection',
             'iam-verification',
             'verification-status',
+            'app-launcher',
+            'workspace-dashboard',
+            'procurement-dashboard',
             'admin-dashboard',
             'buyer-dashboard',
             'buyer-journey',
@@ -814,6 +1459,7 @@ class ProcureXApp {
             'create-tender',
             'tender-publication',
             'tender-details',
+            'records-history',
             'bidding-workspace',
             'bid-evaluation',
             'award-recommendation',
@@ -869,6 +1515,7 @@ class ProcureXApp {
     renderIamVerification() { return this.getLoadingSpinner('IAM verification'); }
     renderIAMVerification() { return this.getLoadingSpinner('IAM verification'); }
     renderVerificationStatus() { return this.getLoadingSpinner('verification status'); }
+    renderWorkspaceDashboard() { return this.getLoadingSpinner('dashboard'); }
     renderAdminDashboard() { return this.getLoadingSpinner('admin dashboard'); }
     renderBuyerDashboard() { return this.getLoadingSpinner('buyer dashboard'); }
     renderSupplierDashboard() { return this.getLoadingSpinner('supplier dashboard'); }
@@ -879,6 +1526,7 @@ class ProcureXApp {
     renderCreateTender() { return this.getLoadingSpinner('create tender'); }
     renderTenderPublication() { return this.getLoadingSpinner('tender publication'); }
     renderTenderDetails() { return this.getLoadingSpinner('tender details'); }
+    renderRecordsHistory() { return this.getLoadingSpinner('records history'); }
     renderBiddingWorkspace() { return this.getLoadingSpinner('bidding workspace'); }
     renderBidEvaluation() { return this.getLoadingSpinner('bid evaluation'); }
     renderAwardRecommendation() { return this.getLoadingSpinner('award recommendation'); }

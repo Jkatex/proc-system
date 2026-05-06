@@ -3,6 +3,10 @@
 function renderSignIn() {
     const savedEmail = mockData.pendingAccount?.email || mockData.registrationDraft?.email || '';
     const demoAccounts = mockData.mockAuth?.accounts || [];
+    const getAccountCondition = (account) => {
+        if (account.accountType === 'admin') return 'admin';
+        return account.isNewUser ? 'new user' : 'existing user';
+    };
 
     return `
         <div class="register-page-new auth-page">
@@ -62,7 +66,7 @@ function renderSignIn() {
                         </form>
 
                         <div class="auth-note">
-                            New accounts continue to eKYC before dashboard access.
+                            New users continue to eKYC. Existing users enter the platform. Admin opens the admin dashboard.
                         </div>
 
                         <div class="demo-credentials">
@@ -71,7 +75,7 @@ function renderSignIn() {
                                 <button type="button" class="demo-account" data-demo-email="${account.email}" data-demo-password="${account.password}">
                                     <span>
                                         <strong>${account.displayName}</strong>
-                                        <small>${account.role}${account.isNewUser ? ' - new user eKYC' : ' - returning user'}</small>
+                                        <small>${getAccountCondition(account)}</small>
                                     </span>
                                     <code>${account.email}</code>
                                 </button>

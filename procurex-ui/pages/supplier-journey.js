@@ -22,7 +22,7 @@ function renderSupplierJourney() {
                     <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Discovery to payment</div>
                 </div>
                 <ul class="sidebar-nav">
-                    <li><a href="#" data-navigate="supplier-dashboard">Dashboard</a></li>
+                    <li><a href="#" data-navigate="procurement-dashboard">Procurement Dashboard</a></li>
                     <li><a href="#" data-navigate="supplier-journey" class="active">Journey</a></li>
                     <li><a href="#" data-navigate="supplier-marketplace">Marketplace</a></li>
                     <li><a href="#" data-navigate="bidding-workspace">My Bids</a></li>

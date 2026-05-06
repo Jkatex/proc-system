@@ -1,8 +1,9 @@
 // Mock data for the ProcureX application
 
 const mockData = {
-    // User roles and authentication
+    // Workspace roles are assigned after onboarding, not during initial authentication.
     roles: ['buyer', 'supplier', 'admin'],
+    accountTypes: ['new user', 'existing user', 'admin'],
     currentRole: null,
     registrationDraft: {
         email: '',
@@ -18,45 +19,40 @@ const mockData = {
         status: 'not_started',
         role: null
     },
+    eKycRegistryRecord: null,
     mockAuth: {
         signupExample: {
-            email: 'newbuyer@procurex.test',
+            email: 'newuser@procurex.test',
             phone: '+255 712 345 678',
-            password: 'Procure1!'
+            password: 'Newuser1!'
         },
         accounts: [
             {
-                email: 'newbuyer@procurex.test',
+                email: 'newuser@procurex.test',
                 phone: '+255 712 345 678',
-                password: 'Procure1!',
-                role: 'buyer',
+                password: 'Newuser1!',
+                role: null,
+                accountType: 'new user',
                 isNewUser: true,
                 ekycCompleted: false,
-                displayName: 'New Buyer Demo'
+                displayName: 'New User Account'
             },
             {
-                email: 'buyer@procurex.test',
+                email: 'johndoe@procurex.test',
                 phone: '+255 713 111 222',
-                password: 'Buyer123!',
-                role: 'buyer',
+                password: 'Procure1!',
+                role: null,
+                accountType: 'existing user',
                 isNewUser: false,
                 ekycCompleted: true,
                 displayName: 'John Doe'
-            },
-            {
-                email: 'supplier@procurex.test',
-                phone: '+255 714 333 444',
-                password: 'Supplier1!',
-                role: 'supplier',
-                isNewUser: false,
-                ekycCompleted: true,
-                displayName: 'ABC Construction Ltd'
             },
             {
                 email: 'admin@procurex.test',
                 phone: '+255 715 555 666',
                 password: 'Admin123!',
                 role: 'admin',
+                accountType: 'admin',
                 isNewUser: false,
                 ekycCompleted: true,
                 displayName: 'Admin User'
@@ -149,13 +145,43 @@ const mockData = {
         }
     ],
 
+    // Procurement setup used by the create tender wizard.
+    procurementSetup: {
+        methods: ['Open / public tender', 'Restricted tender', 'Closed / invited tender'],
+        types: [
+            {
+                id: 'goods',
+                label: 'Goods',
+                description: 'Physical items, equipment, stock, and supplies.',
+                categories: ['Medical equipment', 'Office supplies', 'ICT hardware', 'Vehicles and fleet', 'Pharmaceutical supplies']
+            },
+            {
+                id: 'works',
+                label: 'Works',
+                description: 'Construction, rehabilitation, infrastructure, and civil works.',
+                categories: ['Healthcare infrastructure', 'Roads and bridges', 'Building renovation', 'Water and sanitation works', 'Electrical installations']
+            },
+            {
+                id: 'services',
+                label: 'Services',
+                description: 'Operational, technical, logistics, maintenance, and digital services.',
+                categories: ['ICT and digital services', 'Logistics and transport', 'Maintenance services', 'Facility management', 'Training services']
+            },
+            {
+                id: 'consultancy',
+                label: 'Consultancy',
+                description: 'Professional advisory, design, audit, research, and expert work.',
+                categories: ['Engineering consultancy', 'Legal advisory', 'Financial audit', 'Project management', 'Research and studies']
+            }
+        ],
+        defaultType: 'works'
+    },
+
     // Compliance documents
     complianceDocs: [
         { name: 'BRELA Registration', status: 'approved', uploaded: true },
         { name: 'TIN Certificate', status: 'approved', uploaded: true },
-        { name: 'Tax Clearance', status: 'reviewing', uploaded: true },
-        { name: 'Director\'s ID', status: 'rejected', uploaded: true, reason: 'Document unclear' }
-    ],
+        ],
 
     // Bid evaluation data
     bidEvaluation: {
@@ -328,6 +354,47 @@ const mockData = {
             labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
             data: [21000000, 22500000, 21800000, 23500000, 24200000, 25000000]
         }
+    },
+
+    // User dashboard operating data. The dashboard filters, sorts, and counts this per active account.
+    userWorkspace: {
+        urgentItems: [
+            { type: 'Pending approvals', count: 3, urgency: 92, due: 'Today', nav: 'award-recommendation', audience: ['buyer', 'all'] },
+            { type: 'New bids received', count: 7, urgency: 86, due: '2 hours', nav: 'bid-evaluation', audience: ['buyer', 'all'] },
+            { type: 'Contracts awaiting signature', count: 2, urgency: 95, due: 'Today', nav: 'contract-negotiation', audience: ['buyer', 'supplier', 'all'] },
+            { type: 'Payments overdue', count: 4, urgency: 89, due: 'Overdue', nav: 'post-award-tracking', audience: ['buyer', 'supplier', 'all'] },
+            { type: 'Messages requiring reply', count: 5, urgency: 84, due: '1 day', nav: 'contract-negotiation', audience: ['buyer', 'supplier', 'all'] }
+        ],
+        workflows: [
+            { title: 'Office IT Procurement', status: 'Draft', updatedHours: 2, urgency: 78, nav: 'create-tender', audience: ['buyer', 'all'] },
+            { title: 'Vehicle Tender', status: 'Evaluation stage', updatedHours: 5, urgency: 88, nav: 'bid-evaluation', audience: ['buyer', 'all'] },
+            { title: 'Contract - ABC Ltd', status: 'Execution', updatedHours: 1, urgency: 91, nav: 'post-award-tracking', audience: ['buyer', 'supplier', 'all'] },
+            { title: 'Medical Equipment Bid', status: 'Clarification response due', updatedHours: 3, urgency: 87, nav: 'bidding-workspace', audience: ['supplier', 'all'] }
+        ],
+        quickActions: [
+            { title: 'Review approvals', detail: 'Award and budget approvals waiting', nav: 'award-recommendation', audience: ['buyer', 'all'], signal: 'approvals' },
+            { title: 'Evaluate new bids', detail: 'Open technical and financial review', nav: 'bid-evaluation', audience: ['buyer', 'all'], signal: 'bids' },
+            { title: 'Sign contract', detail: 'Complete digital signature workflow', nav: 'contract-negotiation', audience: ['buyer', 'supplier', 'all'], signal: 'contracts' },
+            { title: 'Reply to messages', detail: 'Procurement and contract conversations', nav: 'contract-negotiation', audience: ['buyer', 'supplier', 'all'], signal: 'messages' },
+            { title: 'Find opportunities', detail: 'Open matching tenders and tenders near close', nav: 'supplier-marketplace', audience: ['supplier', 'all'], signal: 'opportunities' },
+            { title: 'Create tender', detail: 'Start a new buyer procurement', nav: 'create-tender', audience: ['buyer', 'all'], signal: 'drafts' }
+        ],
+        appShortcuts: [
+            { app: 'Procurement', detail: 'Tenders, bids, evaluation', usage: 96, nav: 'supplier-marketplace', audience: ['buyer', 'supplier', 'all'] },
+            { app: 'Records & History', detail: 'Past tenders, bids, awards, cancellations', usage: 90, nav: 'records-history', audience: ['buyer', 'supplier', 'all'] },
+            { app: 'IAM', detail: 'Registration and eKYC review', usage: 88, nav: 'verification-status', audience: ['buyer', 'supplier', 'all'] },
+            { app: 'Dashboard', detail: 'Your work, spend, and insights', usage: 84, nav: 'workspace-dashboard', audience: ['buyer', 'supplier', 'all'] },
+            { app: 'Contracts', detail: 'Signature and execution tracking', usage: 76, nav: 'contract-negotiation', audience: ['buyer', 'supplier', 'all'] },
+            { app: 'Performance', detail: 'Delivery, GRN, invoice checks', usage: 68, nav: 'post-award-tracking', audience: ['supplier', 'all'] }
+        ],
+        insights: [
+            { type: 'Suggested supplier', title: '3 suppliers match Office IT Procurement', detail: 'Two have low risk and recent delivery capacity.', urgency: 78, nav: 'supplier-marketplace', audience: ['buyer', 'all'] },
+            { type: 'Price insight', title: 'Network equipment prices up 4.2%', detail: 'Use the updated benchmark before publishing.', urgency: 72, nav: 'create-tender', audience: ['buyer', 'all'] },
+            { type: 'Risk alert', title: 'One evaluator conflict needs review', detail: 'Resolve before award recommendation is locked.', urgency: 90, nav: 'award-recommendation', audience: ['buyer', 'all'] },
+            { type: 'Matching tender', title: 'New ICT tender matches your profile', detail: 'Closes soon and accepts digital service providers.', urgency: 84, nav: 'supplier-marketplace', audience: ['supplier', 'all'] },
+            { type: 'Partnership', title: 'Logistics partner available in Dodoma', detail: 'Could improve bid feasibility for rural delivery.', urgency: 70, nav: 'supplier-marketplace', audience: ['supplier', 'all'] },
+            { type: 'Market trend', title: 'Healthcare works liquidity is improving', detail: 'Average eligible supplier count rose this month.', urgency: 64, nav: 'workspace-dashboard', audience: ['buyer', 'supplier', 'all'] }
+        ]
     }
 };
 

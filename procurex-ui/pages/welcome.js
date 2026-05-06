@@ -13,7 +13,7 @@ function renderWelcome() {
                     <nav class="landing-nav-links">
                         <a href="#" data-navigate="welcome">Home</a>
                         <a href="#" data-navigate="guest-marketplace">Marketplace</a>
-                        <a href="#" data-navigate="register">Join</a>
+                        
                         <a href="#" data-navigate="sign-in">Sign in</a>
                         <a href="#" class="nav-link-secondary" data-navigate="register">Get Started</a>
                     </nav>

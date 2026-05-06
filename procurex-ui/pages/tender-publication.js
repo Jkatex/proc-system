@@ -12,7 +12,7 @@ function renderTenderPublication() {
                 <ul class="sidebar-nav">
                     <li><a href="#" data-navigate="create-tender">Back to Create</a></li>
                     <li><a href="#" data-navigate="buyer-journey">Buyer Journey</a></li>
-                    <li><a href="#" data-navigate="buyer-dashboard">Dashboard</a></li>
+                    <li><a href="#" data-navigate="procurement-dashboard">Procurement Dashboard</a></li>
                     <li><a href="#" data-navigate="welcome">Logout</a></li>
                 </ul>
             </div>

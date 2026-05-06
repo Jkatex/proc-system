@@ -1,7 +1,25 @@
 // Tender Detail Page Component (Buyer View)
 
 function renderTenderDetails() {
-    const tender = mockData.tenders[0];
+    const tender = typeof getProcurexSelectedTender === 'function' ? getProcurexSelectedTender() : mockData.tenders[0];
+    const clarifications = tender.clarifications || [
+        { title: 'Solar backup scope', question: 'Does each health center include solar backup wiring?', status: 'Open' },
+        { title: 'Site visit schedule', question: 'Can suppliers attend one consolidated site visit?', status: 'Open' },
+        { title: 'BOQ unit mismatch', question: 'Item 3.1 shows centers but description says buildings.', status: 'Amendment candidate' }
+    ];
+    const amendments = tender.amendments || [
+        { title: 'Amendment 01', status: 'Draft available', detail: 'Update BOQ item 3.1 unit label, notify all watchers, and retain the previous version in the audit log.' }
+    ];
+    const interestedSuppliers = tender.interestedSuppliers || [
+        { name: 'ABC Construction Ltd', status: 'Downloaded documents', lastActivity: 'Today' },
+        { name: 'BuildRight Ltd', status: 'Watching tender', lastActivity: 'Today' },
+        { name: 'Prime Contractors', status: 'Asked clarification', lastActivity: '1 day ago' }
+    ];
+    const closingTime = Date.parse(`${tender.closingDate}T23:59:59`);
+    const daysToClose = Number.isFinite(closingTime)
+        ? Math.max(0, Math.ceil((closingTime - Date.now()) / 86400000))
+        : 0;
+    const isPast = typeof isProcurexTenderPast === 'function' ? isProcurexTenderPast(tender) : daysToClose === 0 && tender.status !== 'Open';
 
     return `
         <div class="main-layout">
@@ -12,11 +30,12 @@ function renderTenderDetails() {
                 </div>
 
                 <ul class="sidebar-nav">
-                    <li><a href="#" data-navigate="tender-publication">Draft Detail</a></li>
+                    <li><a href="#" data-navigate="supplier-marketplace">Marketplace</a></li>
                     <li><a href="#" data-navigate="buyer-journey">Buyer Journey</a></li>
                     <li><a href="#" data-navigate="bid-evaluation">Bid Opening</a></li>
                     <li><a href="#" data-navigate="award-recommendation">Award</a></li>
-                    <li><a href="#" data-navigate="buyer-dashboard">Dashboard</a></li>
+                    <li><a href="#" data-navigate="records-history">Records & History</a></li>
+                    <li><a href="#" data-navigate="procurement-dashboard">Procurement Dashboard</a></li>
                 </ul>
             </div>
 
@@ -24,20 +43,20 @@ function renderTenderDetails() {
                 <div class="journey-page">
                     <section class="journey-hero compact">
                         <div>
-                            <span class="badge badge-success">Active tender</span>
+                            <span class="badge ${isPast ? 'badge-info' : 'badge-success'}">${isPast ? 'Archived tender' : 'Active tender'}</span>
                             <h1>${tender.title}</h1>
-                            <p>${tender.id} / ${tender.organization}. Manage live tender interactions, amendments, supplier clarifications, and bid opening controls.</p>
+                            <p>${tender.id} / ${tender.organization}. Manage live tender interactions, amendments, supplier clarifications, and evaluation readiness.</p>
                         </div>
                         <div class="hero-action-stack">
                             <button class="btn btn-secondary">Create Amendment</button>
-                            <button class="btn btn-primary" data-navigate="bid-evaluation">Authorize Opening</button>
+                            <button class="btn btn-primary" data-navigate="bid-evaluation">Open Evaluation</button>
                         </div>
                     </section>
 
                     <section class="journey-grid three-col">
-                        <div class="kpi-card"><div class="kpi-value">247</div><div class="kpi-label">Marketplace views</div></div>
-                        <div class="kpi-card"><div class="kpi-value">89</div><div class="kpi-label">Document downloads</div></div>
-                        <div class="kpi-card"><div class="kpi-value">12d</div><div class="kpi-label">Time to close</div></div>
+                        <div class="kpi-card"><div class="kpi-value">${180 + interestedSuppliers.length * 22}</div><div class="kpi-label">Marketplace views</div></div>
+                        <div class="kpi-card"><div class="kpi-value">${45 + interestedSuppliers.length * 11}</div><div class="kpi-label">Document downloads</div></div>
+                        <div class="kpi-card"><div class="kpi-value">${isPast ? 'Closed' : `${daysToClose}d`}</div><div class="kpi-label">Time to close</div></div>
                     </section>
 
                     <section class="journey-grid two-col">
@@ -53,6 +72,7 @@ function renderTenderDetails() {
                                 <div><span>Description</span><strong>${tender.description}</strong></div>
                                 <div><span>Budget</span><strong>TZS ${tender.budget.toLocaleString()}</strong></div>
                                 <div><span>Eligibility</span><strong>${tender.eligibility}</strong></div>
+                                <div><span>Location</span><strong>${tender.location || 'Not specified'}</strong></div>
                                 <div><span>Closing date</span><strong>${tender.closingDate}</strong></div>
                             </div>
                         </div>
@@ -63,12 +83,12 @@ function renderTenderDetails() {
                                     <span class="section-kicker">Clarifications inbox</span>
                                     <h2>Questions & Answers</h2>
                                 </div>
-                                <span class="badge badge-warning">3 open</span>
+                                <span class="badge badge-warning">${clarifications.length} open</span>
                             </div>
                             <div class="inbox-list">
-                                <div class="inbox-item"><strong>Solar backup scope</strong><span>Does each health center include solar backup wiring?</span><button class="btn btn-secondary">Answer</button></div>
-                                <div class="inbox-item"><strong>Site visit schedule</strong><span>Can suppliers attend one consolidated site visit?</span><button class="btn btn-secondary">Answer</button></div>
-                                <div class="inbox-item"><strong>BOQ unit mismatch</strong><span>Item 3.1 shows centers but description says buildings.</span><button class="btn btn-secondary">Amend</button></div>
+                                ${clarifications.map(item => `
+                                    <div class="inbox-item"><strong>${item.title}</strong><span>${item.question}</span><button class="btn btn-secondary">${item.status === 'Amendment candidate' ? 'Amend' : 'Answer'}</button></div>
+                                `).join('')}
                             </div>
                         </div>
                     </section>
@@ -76,26 +96,48 @@ function renderTenderDetails() {
                     <section class="journey-grid three-col">
                         <div class="journey-panel control-panel">
                             <span class="section-kicker">Amendment control</span>
-                            <h2>Amendment 01</h2>
-                            <p>Update BOQ item 3.1 unit label, notify all watchers, and retain the previous version in the audit log.</p>
+                            <h2>${amendments[0]?.title || 'Create amendment'}</h2>
+                            <p>${amendments[0]?.detail || 'Create amendment, notify all watchers, and retain the previous version in the audit log.'}</p>
                             <button class="btn btn-secondary">Create Amendment</button>
                         </div>
 
                         <div class="journey-panel control-panel">
-                            <span class="section-kicker">Bid opening authorization</span>
-                            <h2>2 Users Required</h2>
-                            <div class="approval-pair">
-                                <span class="badge badge-success">Procurement officer signed</span>
-                                <span class="badge badge-warning">Observer pending</span>
+                            <span class="section-kicker">Evaluation workspace</span>
+                            <h2>Ready for Review</h2>
+                            <p>Move to scoring, supplier questions, and award preparation when the tender reaches evaluation.</p>
+                            <button class="btn btn-primary" data-navigate="bid-evaluation">Open Evaluation</button>
+                        </div>
+                    </section>
+
+                    <section class="journey-grid two-col">
+                        <div class="journey-panel">
+                            <div class="panel-heading">
+                                <div>
+                                    <span class="section-kicker">Supplier interest</span>
+                                    <h2>Suppliers wanting this tender</h2>
+                                </div>
+                                <span class="badge badge-info">${interestedSuppliers.length} suppliers</span>
                             </div>
-                            <button class="btn btn-primary" data-navigate="bid-evaluation">Open Authorization</button>
+                            <div class="inbox-list">
+                                ${interestedSuppliers.map(supplier => `
+                                    <div class="inbox-item"><strong>${supplier.name}</strong><span>${supplier.status} / ${supplier.lastActivity}</span><button class="btn btn-secondary">View</button></div>
+                                `).join('')}
+                            </div>
                         </div>
 
-                        <div class="journey-panel control-panel">
-                            <span class="section-kicker">Immutable report</span>
-                            <h2>Opening Report</h2>
-                            <p>Generated after bid opening, with envelope hashes, timestamp, and bidder register locked for evaluation.</p>
-                            <button class="btn btn-secondary" data-navigate="bid-evaluation">Preview Report</button>
+                        <div class="journey-panel">
+                            <div class="panel-heading">
+                                <div>
+                                    <span class="section-kicker">Records path</span>
+                                    <h2>Lifecycle archive</h2>
+                                </div>
+                                <span class="badge ${isPast ? 'badge-info' : 'badge-success'}">${isPast ? 'In records' : 'Active'}</span>
+                            </div>
+                            <div class="record-summary">
+                                <div><span>Amendments</span><strong>${amendments.length}</strong></div>
+                                <div><span>Clarifications</span><strong>${clarifications.length}</strong></div>
+                            </div>
+                            <button class="btn btn-secondary" data-navigate="records-history">Open Records & History</button>
                         </div>
                     </section>
                 </div>

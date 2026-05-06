@@ -9,7 +9,7 @@ function renderGuestMarketplace() {
             <div class="header" style="position: sticky; top: 0; z-index: 10;">
                 <div style="display: flex; align-items: center; gap: 16px;">
                     <h1>ProcureX Marketplace</h1>
-                    <button class="btn btn-primary" data-navigate="role-selection">Sign In to Bid</button>
+                    <button class="btn btn-primary" data-navigate="sign-in">Sign In to Bid</button>
                 </div>
             </div>
 
@@ -95,7 +95,7 @@ function renderGuestMarketplace() {
                                 </div>
                                 <p class="tender-description">${tender.description}</p>
                                 <div style="margin-top: 16px;">
-                                    <button class="btn btn-primary" style="width: 100%;" data-navigate="role-selection">Sign In to Bid</button>
+                                    <button class="btn btn-primary" style="width: 100%;" data-navigate="sign-in">Sign In to Bid</button>
                                 </div>
                             </div>
                         `).join('')}
