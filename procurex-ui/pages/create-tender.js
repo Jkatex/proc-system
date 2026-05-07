@@ -1729,9 +1729,7 @@ function initializeCreateTenderWizard() {
         const deliverableCount = wizard.querySelector('[data-scope-count="deliverables"]');
         const attachmentCount = wizard.querySelector('[data-scope-count="attachments"]');
 
-        if (totalBadge) totalBadge.textContent = (deliverables.length || licenses.length || attachments.length)
-            ? `${deliverables.length} deliverables, ${licenses.length} licenses`
-            : 'Scope empty';
+        if (totalBadge) totalBadge.textContent = deliverables.length ? `${deliverables.length} deliverables, ${licenses.length} licenses` : 'Scope empty';
         if (deliverableCount) deliverableCount.textContent = String(deliverables.length);
         if (attachmentCount) attachmentCount.textContent = String(attachments.length);
         refreshLicenseSummary();
