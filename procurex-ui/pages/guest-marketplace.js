@@ -50,8 +50,8 @@ function renderGuestMarketplace() {
                             <option>All Types</option>
                             <option>Goods</option>
                             <option>Works</option>
-                            <option>Services</option>
-                            <option>Consultancy</option>
+                            <option>Non-Consultancy Services</option>
+                            <option>Consultancy Services</option>
                         </select>
                     </div>
 

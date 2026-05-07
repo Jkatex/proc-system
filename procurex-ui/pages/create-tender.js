@@ -134,10 +134,14 @@ const createTenderTypeProfiles = {
         defaultItems: defaultCreateTenderBoqItems,
         defaultDeliverables: defaultCreateTenderDeliverables,
         defaultAttachments: defaultCreateTenderAttachments,
-        documentLabels: ['Drawings', 'BOQ', 'Technical specifications', 'Site conditions', 'Conditions of contract'],
-        keyRequirements: ['Drawings and BOQ', 'Project timelines', 'Site conditions', 'Contractor qualifications, equipment, and experience'],
-        evaluationStyle: 'Technical and financial evaluation, often weighted or pass/fail plus price, with strong delivery risk review.',
-        bidderPreparation: ['BOQ pricing', 'Work plan', 'Equipment and staff schedule', 'Contractor experience evidence'],
+        documentLabels: ['Engineering designs and drawings', 'Bills of quantities', 'Site reports', 'Material specifications', 'Conditions of contract'],
+        keyRequirements: ['Project location and completion period', 'Contractor registration class', 'Key personnel CVs and certificates', 'Equipment ownership or lease proof', 'Insurance, tax certificates, and OSHA compliance'],
+        planningDocuments: ['Engineering designs', 'Drawings', 'Environmental studies', 'Feasibility studies', 'Bills of quantities', 'Cost estimates'],
+        submissionDocuments: ['Bid security', 'Completed legal forms', 'Work methodology', 'Construction schedule', 'Key personnel CVs', 'Equipment proof', 'Priced BOQ'],
+        evaluationFlow: ['Administrative evaluation', 'Technical evaluation', 'Financial evaluation', 'Post qualification'],
+        contractRequirements: ['Construction agreement', 'Performance security', 'Advance payment guarantee', 'Retention money', 'Defects liability period', 'Interim payment certificates'],
+        evaluationStyle: 'Administrative, technical, financial, and post-qualification review with strong emphasis on methodology, personnel, equipment, experience, and BOQ pricing.',
+        bidderPreparation: ['BOQ pricing', 'Work methodology', 'Construction schedule', 'Key personnel CVs', 'Equipment availability', 'Similar project evidence'],
         evaluationCriteria: [
             ['Technical capacity', 30, 'Team, equipment, methodology'],
             ['Relevant experience', 25, 'Healthcare construction history'],
@@ -148,15 +152,15 @@ const createTenderTypeProfiles = {
     },
     goods: {
         id: 'goods',
-        commercialName: 'BOQ',
-        commercialTitle: 'Goods BOQ',
+        commercialName: 'Quantity Schedule',
+        commercialTitle: 'Quantity Schedule / BOQ',
         commercialDescription: 'Item schedule, quantities, unit prices, and totals',
         commercialItemName: 'goods item',
         commercialEmptyText: 'No goods BOQ items added yet.',
         importHint: 'Use item, description, quantity, unit, and unit price columns.',
         addLabel: 'Add Goods Item',
-        importLabel: 'Import Goods BOQ',
-        reviewLabel: 'Goods BOQ estimate',
+        importLabel: 'Import Quantity Schedule',
+        reviewLabel: 'Goods estimate',
         scopeTitle: 'Goods Specifications',
         scopeLabel: 'Goods requirements',
         deliverablesTitle: 'Required goods',
@@ -181,10 +185,14 @@ const createTenderTypeProfiles = {
             { id: 'attachment-goods-2', text: 'Goods BOQ template' },
             { id: 'attachment-goods-3', text: 'Warranty and after-sales service form' }
         ],
-        documentLabels: ['Technical specifications', 'Delivery terms', 'Warranty terms', 'Compliance certificates', 'Conditions of contract'],
-        keyRequirements: ['Clear measurable specifications', 'Quantity and delivery schedule', 'Warranty and after-sales service', 'Compliance certificates, standards, and origin'],
-        evaluationStyle: 'Mostly compliance plus price, usually lowest evaluated bidder once mandatory specifications are met.',
-        bidderPreparation: ['Technical compliance sheet', 'Price quotation', 'Delivery schedule', 'Warranty and after-sales documents'],
+        documentLabels: ['Technical specifications', 'Quantity schedule', 'Delivery requirements', 'Warranty terms', 'Compliance certificates'],
+        keyRequirements: ['Product description and standards', 'Quantity and unit of measure', 'Delivery location and timeline', 'Warranty, packaging, shelf-life, and installation requirements', 'Manufacturer authorization where required'],
+        planningDocuments: ['Procurement plan', 'Technical specifications document', 'Cost estimates', 'Budget approval', 'Market survey report'],
+        submissionDocuments: ['Business license', 'Certificate of incorporation', 'Tax clearance certificate', 'VAT registration', 'Manufacturer authorization', 'Past supply contracts', 'Audited financial statements'],
+        evaluationFlow: ['Preliminary examination', 'Technical evaluation', 'Financial evaluation', 'Award recommendation'],
+        contractRequirements: ['Purchase order', 'Supply agreement', 'Delivery schedule', 'Inspection procedures', 'Warranty terms', 'Penalty clauses', 'Payment schedule'],
+        evaluationStyle: 'Preliminary compliance, technical specification review, and financial comparison leading to the lowest evaluated responsive bidder.',
+        bidderPreparation: ['Technical compliance sheet', 'Quantity schedule pricing', 'Delivery schedule', 'Warranty documents', 'Manufacturer authorization', 'Past supply evidence'],
         evaluationCriteria: [
             ['Specification compliance', 35, 'Mandatory technical conformity'],
             ['Delivery capacity', 20, 'Lead time, logistics, warranty support'],
@@ -196,7 +204,7 @@ const createTenderTypeProfiles = {
     services: {
         id: 'services',
         commercialName: 'Service Schedule',
-        commercialTitle: 'Service Requirements',
+        commercialTitle: 'Non-Consultancy Service Requirements',
         commercialDescription: 'Tasks, service levels, durations, and fee estimates',
         commercialItemName: 'service line',
         commercialEmptyText: 'No service requirement lines added yet.',
@@ -204,7 +212,7 @@ const createTenderTypeProfiles = {
         addLabel: 'Add Service Line',
         importLabel: 'Import Service Schedule',
         reviewLabel: 'Service estimate',
-        scopeTitle: 'Service Requirements',
+        scopeTitle: 'Non-Consultancy Service Requirements',
         scopeLabel: 'Service scope',
         deliverablesTitle: 'Service outputs',
         deliverablesHint: 'List each operational output, SLA, report, or handover requirement.',
@@ -228,10 +236,14 @@ const createTenderTypeProfiles = {
             { id: 'attachment-service-2', text: 'Service level agreement schedule' },
             { id: 'attachment-service-3', text: 'Reporting template' }
         ],
-        documentLabels: ['Scope of work', 'SLA / KPI schedule', 'Staffing plan template', 'Reporting templates', 'Conditions of contract'],
-        keyRequirements: ['Scope of work', 'Service levels, SLAs, and KPIs', 'Staffing plan', 'Relevant service experience'],
-        evaluationStyle: 'Mixed technical and price evaluation, with emphasis on capacity, SLA fit, and value.',
-        bidderPreparation: ['Staffing plan', 'Methodology', 'SLA response', 'Price schedule'],
+        documentLabels: ['Scope of services', 'SLA / KPI schedule', 'Staffing requirements', 'Equipment requirements', 'Reporting templates'],
+        keyRequirements: ['Tasks, frequency, and service locations', 'Service levels and KPIs', 'Staffing levels and qualifications', 'Equipment and tools', 'Response times, penalties, and reporting frequency'],
+        planningDocuments: ['Scope of services', 'Service locations', 'Performance standards', 'Duration and renewal assumptions', 'Budget estimate'],
+        submissionDocuments: ['Service methodology', 'Staffing plan', 'Staff qualifications and certifications', 'Equipment list', 'Experience evidence', 'Monthly or service rate schedule'],
+        evaluationFlow: ['Technical evaluation', 'Financial evaluation', 'Award recommendation'],
+        contractRequirements: ['Service level agreement (SLA)', 'KPIs', 'Reporting obligations', 'Penalty clauses', 'Renewal options', 'Payment schedule'],
+        evaluationStyle: 'Technical and financial evaluation focused on methodology, staffing quality, equipment, experience, operational cost, and price competitiveness.',
+        bidderPreparation: ['Service methodology', 'Staffing plan', 'SLA response', 'Equipment list', 'Experience evidence', 'Monthly/service rates'],
         evaluationCriteria: [
             ['Service methodology', 30, 'Approach, continuity, and quality controls'],
             ['Team capability', 25, 'Skills, availability, and supervision'],
@@ -243,7 +255,7 @@ const createTenderTypeProfiles = {
     consultancy: {
         id: 'consultancy',
         commercialName: 'Financial Proposal',
-        commercialTitle: 'Consultancy Requirements',
+        commercialTitle: 'Consultancy Service Requirements',
         commercialDescription: 'TOR outputs, expert inputs, reimbursables, and fee estimate',
         commercialItemName: 'consultancy input',
         commercialEmptyText: 'No consultancy requirement lines added yet.',
@@ -276,9 +288,13 @@ const createTenderTypeProfiles = {
             { id: 'attachment-consult-3', text: 'Technical and financial proposal templates' }
         ],
         documentLabels: ['Terms of Reference', 'Methodology template', 'Key expert CV template', 'Evaluation criteria', 'Financial proposal template'],
-        keyRequirements: ['Terms of Reference', 'Methodology proposal', 'Team CVs', 'Relevant consulting experience'],
-        evaluationStyle: 'Quality-focused evaluation using QCBS or QBS, with technical score carrying the main decision weight.',
-        bidderPreparation: ['Technical proposal', 'Methodology', 'Team CVs', 'Relevant experience', 'Separate financial proposal when required'],
+        keyRequirements: ['Background, objectives, scope, and deliverables', 'Methodology and work plan', 'Team composition and CVs', 'Firm and expert experience', 'Professional fees, reimbursables, taxes, and daily rates'],
+        planningDocuments: ['Terms of Reference', 'Background and objectives', 'Scope and deliverables', 'Timeline', 'Reporting structure', 'Selection method'],
+        submissionDocuments: ['Technical proposal', 'Understanding of assignment', 'Methodology', 'Work plan', 'Team composition', 'CVs', 'Financial proposal'],
+        evaluationFlow: ['Technical evaluation', 'Financial evaluation', 'Combined ranking or method-specific selection', 'Award recommendation'],
+        contractRequirements: ['Terms of Reference', 'Deliverables', 'Milestones', 'Payment schedule', 'Intellectual property clauses', 'Confidentiality clauses'],
+        evaluationStyle: 'Quality-focused technical evaluation followed by financial evaluation using QCBS, QBS, Least Cost, or the configured consultancy selection method.',
+        bidderPreparation: ['Technical proposal', 'Understanding of TOR', 'Methodology', 'Work plan', 'Team CVs', 'Relevant experience', 'Separate financial proposal when required'],
         evaluationCriteria: [
             ['Understanding of TOR', 25, 'Problem framing and proposed approach'],
             ['Methodology and work plan', 30, 'Quality, feasibility, and stakeholder plan'],
@@ -332,8 +348,8 @@ function renderCreateTenderTrashIcon() {
 function getCreateTenderTypeId(value) {
     const raw = String(value || '').trim().toLowerCase();
     if (raw === 'goods' || raw === 'works' || raw === 'services' || raw === 'consultancy') return raw;
-    if (raw === 'service') return 'services';
-    if (raw === 'consulting' || raw === 'consultant') return 'consultancy';
+    if (raw === 'service' || raw === 'non consultancy' || raw === 'non-consultancy services' || raw === 'non consultancy services') return 'services';
+    if (raw === 'consulting' || raw === 'consultant' || raw === 'consultancy services') return 'consultancy';
     return 'works';
 }
 
@@ -895,19 +911,26 @@ function renderCreateTenderRegulatoryLicenseRows(items = []) {
     }).join('');
 }
 
+function renderCreateTenderProfileCard(title, items = []) {
+    if (!items.length) return '';
+    return `
+        <article class="review-card">
+            <span>${escapeCreateTenderHtml(title)}</span>
+            <strong>${escapeCreateTenderHtml(items[0])}</strong>
+            <small>${items.slice(1).map(escapeCreateTenderHtml).join(', ')}</small>
+        </article>
+    `;
+}
+
 function renderCreateTenderProfileCards(profile) {
     return `
         <div class="review-summary-grid" style="margin-bottom: 20px;">
-            <article class="review-card">
-                <span>Documents</span>
-                <strong>${escapeCreateTenderHtml(profile.documentLabels[0])}</strong>
-                <small>${profile.documentLabels.slice(1).map(escapeCreateTenderHtml).join(', ')}</small>
-            </article>
-            <article class="review-card">
-                <span>Key requirements</span>
-                <strong>${escapeCreateTenderHtml(profile.keyRequirements[0])}</strong>
-                <small>${profile.keyRequirements.slice(1).map(escapeCreateTenderHtml).join(', ')}</small>
-            </article>
+            ${renderCreateTenderProfileCard('Planning documents', profile.planningDocuments)}
+            ${renderCreateTenderProfileCard('Tender documents', profile.documentLabels)}
+            ${renderCreateTenderProfileCard('Key requirements', profile.keyRequirements)}
+            ${renderCreateTenderProfileCard('Submission documents', profile.submissionDocuments)}
+            ${renderCreateTenderProfileCard('Evaluation flow', profile.evaluationFlow)}
+            ${renderCreateTenderProfileCard('Contract structure', profile.contractRequirements)}
             <article class="review-card">
                 <span>Evaluation style</span>
                 <strong>${escapeCreateTenderHtml(profile.evaluationStyle.split(',')[0])}</strong>
@@ -1706,7 +1729,9 @@ function initializeCreateTenderWizard() {
         const deliverableCount = wizard.querySelector('[data-scope-count="deliverables"]');
         const attachmentCount = wizard.querySelector('[data-scope-count="attachments"]');
 
-        if (totalBadge) totalBadge.textContent = deliverables.length ? `${deliverables.length} deliverables, ${licenses.length} licenses` : 'Scope empty';
+        if (totalBadge) totalBadge.textContent = (deliverables.length || licenses.length || attachments.length)
+            ? `${deliverables.length} deliverables, ${licenses.length} licenses`
+            : 'Scope empty';
         if (deliverableCount) deliverableCount.textContent = String(deliverables.length);
         if (attachmentCount) attachmentCount.textContent = String(attachments.length);
         refreshLicenseSummary();
