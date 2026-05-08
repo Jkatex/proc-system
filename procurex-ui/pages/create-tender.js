@@ -23,7 +23,9 @@ function getCreateTenderSetup() {
 const createTenderOtherCategoryLabel = 'Other';
 
 function renderCreateTenderOptions(options, selectedValue = '') {
-    return options.map(option => `<option ${option === selectedValue ? 'selected' : ''}>${option}</option>`).join('');
+    return options
+        .map(option => `<option ${option === selectedValue ? 'selected' : ''}>${escapeCreateTenderHtml(option)}</option>`)
+        .join('');
 }
 
 function isCreateTenderOtherCategory(value) {
@@ -81,6 +83,8 @@ const createTenderCommercialTypeStorageKey = 'procurex.createTender.commercialTy
 const createTenderMilestoneStorageKey = 'procurex.createTender.milestones';
 const createTenderDeliverableStorageKey = 'procurex.createTender.deliverables';
 const createTenderDeliverableTypeStorageKey = 'procurex.createTender.deliverableType';
+const createTenderLicenseStorageKey = 'procurex.createTender.regulatoryLicenses';
+const createTenderLicenseTypeStorageKey = 'procurex.createTender.regulatoryLicenseType';
 const createTenderAttachmentStorageKey = 'procurex.createTender.requiredAttachments';
 const createTenderAttachmentTypeStorageKey = 'procurex.createTender.attachmentType';
 const createTenderContactStorageKey = 'procurex.createTender.contactDetails';
@@ -116,6 +120,48 @@ const defaultCreateTenderAttachments = [
     { id: 'attachment-3', text: 'Draft contract conditions' }
 ];
 
+const createTenderRegulatoryLicenseCatalog = [
+    { group: 'Food, Drugs & Cosmetics', license: 'Food Business Permit / Food Handling License', body: 'Tanzania Medicines and Medical Devices Authority (TMDA)' },
+    { group: 'Food, Drugs & Cosmetics', license: 'Pharmaceutical Business License', body: 'Tanzania Medicines and Medical Devices Authority (TMDA)' },
+    { group: 'Food, Drugs & Cosmetics', license: 'Medical Devices Registration Permit', body: 'Tanzania Medicines and Medical Devices Authority (TMDA)' },
+    { group: 'Food, Drugs & Cosmetics', license: 'Cosmetics Registration Certificate', body: 'Tanzania Medicines and Medical Devices Authority (TMDA)' },
+    { group: 'Energy & Water (EWURA)', license: 'Petroleum Retail Outlet License', body: 'Energy and Water Utilities Regulatory Authority (EWURA)' },
+    { group: 'Energy & Water (EWURA)', license: 'Petroleum Wholesale License', body: 'Energy and Water Utilities Regulatory Authority (EWURA)' },
+    { group: 'Energy & Water (EWURA)', license: 'Electricity Generation License', body: 'Energy and Water Utilities Regulatory Authority (EWURA)' },
+    { group: 'Energy & Water (EWURA)', license: 'Electricity Distribution and Supply License', body: 'Energy and Water Utilities Regulatory Authority (EWURA)' },
+    { group: 'Energy & Water (EWURA)', license: 'Water Supply and Sanitation Services License', body: 'Energy and Water Utilities Regulatory Authority (EWURA)' },
+    { group: 'Communications & Transport', license: 'Content Services License', body: 'Tanzania Communications Regulatory Authority (TCRA)' },
+    { group: 'Communications & Transport', license: 'Network Facilities License', body: 'Tanzania Communications Regulatory Authority (TCRA)' },
+    { group: 'Communications & Transport', license: 'Application Services License', body: 'Tanzania Communications Regulatory Authority (TCRA)' },
+    { group: 'Communications & Transport', license: 'Electronic Communications Service License', body: 'Tanzania Communications Regulatory Authority (TCRA)' },
+    { group: 'Communications & Transport', license: 'Shipping Agency License', body: 'Tanzania Shipping Agencies Corporation (TASAC)' },
+    { group: 'Communications & Transport', license: 'Port Services License', body: 'Tanzania Shipping Agencies Corporation (TASAC)' },
+    { group: 'Mining & Natural Resources', license: 'Reconnaissance License', body: 'Ministry of Minerals' },
+    { group: 'Mining & Natural Resources', license: 'Prospecting License', body: 'Ministry of Minerals' },
+    { group: 'Mining & Natural Resources', license: 'Primary Mining License', body: 'Ministry of Minerals' },
+    { group: 'Mining & Natural Resources', license: 'Mining License', body: 'Ministry of Minerals' },
+    { group: 'Mining & Natural Resources', license: 'Special Mining License', body: 'Ministry of Minerals' },
+    { group: 'Mining & Natural Resources', license: "Explosives Dealer's License", body: 'Ministry of Minerals' },
+    { group: 'Construction & Real Estate', license: 'Contractor Registration Certificate', body: 'Contractors Registration Board (CRB) and Local Government Authorities' },
+    { group: 'Construction & Real Estate', license: 'Building Permit', body: 'Contractors Registration Board (CRB) and Local Government Authorities' },
+    { group: 'Construction & Real Estate', license: 'Environmental Building Approval', body: 'Contractors Registration Board (CRB) and Local Government Authorities' },
+    { group: 'Environmental & Safety', license: 'Environmental Impact Assessment Certificate', body: 'National Environment Management Council (NEMC)' },
+    { group: 'Environmental & Safety', license: 'Environmental Compliance Certificate', body: 'National Environment Management Council (NEMC)' },
+    { group: 'Environmental & Safety', license: 'Occupational Safety and Health Compliance Certificate', body: 'Occupational Safety and Health Authority (OSHA)' },
+    { group: 'Finance & Banking', license: 'Banking Business License', body: 'Bank of Tanzania (BOT)' },
+    { group: 'Finance & Banking', license: 'Financial Institution License', body: 'Bank of Tanzania (BOT)' },
+    { group: 'Finance & Banking', license: 'Microfinance Business License', body: 'Bank of Tanzania (BOT)' },
+    { group: 'Finance & Banking', license: 'Foreign Exchange Bureau License', body: 'Bank of Tanzania (BOT)' },
+    { group: 'Finance & Banking', license: 'Capital Markets and Securities Dealer License', body: 'Capital Markets and Securities Authority (CMSA)' },
+    { group: 'Finance & Banking', license: 'Investment Adviser License', body: 'Capital Markets and Securities Authority (CMSA)' },
+    { group: 'Finance & Banking', license: 'Fund Manager License', body: 'Capital Markets and Securities Authority (CMSA)' },
+    { group: 'Specialized Services', license: 'Hazardous Chemicals Handling Certificate', body: 'Government Chemist Laboratory Authority (GCLA)' },
+    { group: 'Specialized Services', license: 'Weights and Measures Inspection Certificate', body: 'Weights and Measures Agency (WMA)' },
+    { group: 'Specialized Services', license: 'Calibration Certificate', body: 'Weights and Measures Agency (WMA)' }
+];
+
+const defaultCreateTenderRegulatoryLicenses = [];
+
 const createTenderTypeProfiles = {
     works: {
         id: 'works',
@@ -140,10 +186,14 @@ const createTenderTypeProfiles = {
         defaultItems: defaultCreateTenderBoqItems,
         defaultDeliverables: defaultCreateTenderDeliverables,
         defaultAttachments: defaultCreateTenderAttachments,
-        documentLabels: ['Drawings', 'BOQ', 'Technical specifications', 'Site conditions', 'Conditions of contract'],
-        keyRequirements: ['Drawings and BOQ', 'Project timelines', 'Site conditions', 'Contractor qualifications, equipment, and experience'],
-        evaluationStyle: 'Technical and financial evaluation, often weighted or pass/fail plus price, with strong delivery risk review.',
-        bidderPreparation: ['BOQ pricing', 'Work plan', 'Equipment and staff schedule', 'Contractor experience evidence'],
+        documentLabels: ['Engineering designs and drawings', 'Bills of quantities', 'Site reports', 'Material specifications', 'Conditions of contract'],
+        keyRequirements: ['Project location and completion period', 'Contractor registration class', 'Key personnel CVs and certificates', 'Equipment ownership or lease proof', 'Insurance, tax certificates, and OSHA compliance'],
+        planningDocuments: ['Engineering designs', 'Drawings', 'Environmental studies', 'Feasibility studies', 'Bills of quantities', 'Cost estimates'],
+        submissionDocuments: ['Bid security', 'Completed legal forms', 'Work methodology', 'Construction schedule', 'Key personnel CVs', 'Equipment proof', 'Priced BOQ'],
+        evaluationFlow: ['Administrative evaluation', 'Technical evaluation', 'Financial evaluation', 'Post qualification'],
+        contractRequirements: ['Construction agreement', 'Performance security', 'Advance payment guarantee', 'Retention money', 'Defects liability period', 'Interim payment certificates'],
+        evaluationStyle: 'Administrative, technical, financial, and post-qualification review with strong emphasis on methodology, personnel, equipment, experience, and BOQ pricing.',
+        bidderPreparation: ['BOQ pricing', 'Work methodology', 'Construction schedule', 'Key personnel CVs', 'Equipment availability', 'Similar project evidence'],
         evaluationCriteria: [
             ['Technical capacity', 30, 'Team, equipment, methodology'],
             ['Relevant experience', 25, 'Healthcare construction history'],
@@ -154,15 +204,15 @@ const createTenderTypeProfiles = {
     },
     goods: {
         id: 'goods',
-        commercialName: 'BOQ',
-        commercialTitle: 'Goods BOQ',
+        commercialName: 'Quantity Schedule',
+        commercialTitle: 'Quantity Schedule / BOQ',
         commercialDescription: 'Item schedule, quantities, unit prices, and totals',
         commercialItemName: 'goods item',
         commercialEmptyText: 'No goods BOQ items added yet.',
         importHint: 'Use item, description, quantity, unit, and unit price columns.',
         addLabel: 'Add Goods Item',
-        importLabel: 'Import Goods BOQ',
-        reviewLabel: 'Goods BOQ estimate',
+        importLabel: 'Import Quantity Schedule',
+        reviewLabel: 'Goods estimate',
         scopeTitle: 'Goods Specifications',
         scopeLabel: 'Goods requirements',
         deliverablesTitle: 'Required goods',
@@ -187,10 +237,14 @@ const createTenderTypeProfiles = {
             { id: 'attachment-goods-2', text: 'Goods BOQ template' },
             { id: 'attachment-goods-3', text: 'Warranty and after-sales service form' }
         ],
-        documentLabels: ['Technical specifications', 'Delivery terms', 'Warranty terms', 'Compliance certificates', 'Conditions of contract'],
-        keyRequirements: ['Clear measurable specifications', 'Quantity and delivery schedule', 'Warranty and after-sales service', 'Compliance certificates, standards, and origin'],
-        evaluationStyle: 'Mostly compliance plus price, usually lowest evaluated bidder once mandatory specifications are met.',
-        bidderPreparation: ['Technical compliance sheet', 'Price quotation', 'Delivery schedule', 'Warranty and after-sales documents'],
+        documentLabels: ['Technical specifications', 'Quantity schedule', 'Delivery requirements', 'Warranty terms', 'Compliance certificates'],
+        keyRequirements: ['Product description and standards', 'Quantity and unit of measure', 'Delivery location and timeline', 'Warranty, packaging, shelf-life, and installation requirements', 'Manufacturer authorization where required'],
+        planningDocuments: ['Procurement plan', 'Technical specifications document', 'Cost estimates', 'Budget approval', 'Market survey report'],
+        submissionDocuments: ['Business license', 'Certificate of incorporation', 'Tax clearance certificate', 'VAT registration', 'Manufacturer authorization', 'Past supply contracts', 'Audited financial statements'],
+        evaluationFlow: ['Preliminary examination', 'Technical evaluation', 'Financial evaluation', 'Award recommendation'],
+        contractRequirements: ['Purchase order', 'Supply agreement', 'Delivery schedule', 'Inspection procedures', 'Warranty terms', 'Penalty clauses', 'Payment schedule'],
+        evaluationStyle: 'Preliminary compliance, technical specification review, and financial comparison leading to the lowest evaluated responsive bidder.',
+        bidderPreparation: ['Technical compliance sheet', 'Quantity schedule pricing', 'Delivery schedule', 'Warranty documents', 'Manufacturer authorization', 'Past supply evidence'],
         evaluationCriteria: [
             ['Specification compliance', 35, 'Mandatory technical conformity'],
             ['Delivery capacity', 20, 'Lead time, logistics, warranty support'],
@@ -202,7 +256,7 @@ const createTenderTypeProfiles = {
     services: {
         id: 'services',
         commercialName: 'Service Schedule',
-        commercialTitle: 'Service Requirements',
+        commercialTitle: 'Non-Consultancy Service Requirements',
         commercialDescription: 'Tasks, service levels, durations, and fee estimates',
         commercialItemName: 'service line',
         commercialEmptyText: 'No service requirement lines added yet.',
@@ -210,7 +264,7 @@ const createTenderTypeProfiles = {
         addLabel: 'Add Service Line',
         importLabel: 'Import Service Schedule',
         reviewLabel: 'Service estimate',
-        scopeTitle: 'Service Requirements',
+        scopeTitle: 'Non-Consultancy Service Requirements',
         scopeLabel: 'Service scope',
         deliverablesTitle: 'Service outputs',
         deliverablesHint: 'List each operational output, SLA, report, or handover requirement.',
@@ -234,10 +288,14 @@ const createTenderTypeProfiles = {
             { id: 'attachment-service-2', text: 'Service level agreement schedule' },
             { id: 'attachment-service-3', text: 'Reporting template' }
         ],
-        documentLabels: ['Scope of work', 'SLA / KPI schedule', 'Staffing plan template', 'Reporting templates', 'Conditions of contract'],
-        keyRequirements: ['Scope of work', 'Service levels, SLAs, and KPIs', 'Staffing plan', 'Relevant service experience'],
-        evaluationStyle: 'Mixed technical and price evaluation, with emphasis on capacity, SLA fit, and value.',
-        bidderPreparation: ['Staffing plan', 'Methodology', 'SLA response', 'Price schedule'],
+        documentLabels: ['Scope of services', 'SLA / KPI schedule', 'Staffing requirements', 'Equipment requirements', 'Reporting templates'],
+        keyRequirements: ['Tasks, frequency, and service locations', 'Service levels and KPIs', 'Staffing levels and qualifications', 'Equipment and tools', 'Response times, penalties, and reporting frequency'],
+        planningDocuments: ['Scope of services', 'Service locations', 'Performance standards', 'Duration and renewal assumptions', 'Budget estimate'],
+        submissionDocuments: ['Service methodology', 'Staffing plan', 'Staff qualifications and certifications', 'Equipment list', 'Experience evidence', 'Monthly or service rate schedule'],
+        evaluationFlow: ['Technical evaluation', 'Financial evaluation', 'Award recommendation'],
+        contractRequirements: ['Service level agreement (SLA)', 'KPIs', 'Reporting obligations', 'Penalty clauses', 'Renewal options', 'Payment schedule'],
+        evaluationStyle: 'Technical and financial evaluation focused on methodology, staffing quality, equipment, experience, operational cost, and price competitiveness.',
+        bidderPreparation: ['Service methodology', 'Staffing plan', 'SLA response', 'Equipment list', 'Experience evidence', 'Monthly/service rates'],
         evaluationCriteria: [
             ['Service methodology', 30, 'Approach, continuity, and quality controls'],
             ['Team capability', 25, 'Skills, availability, and supervision'],
@@ -249,7 +307,7 @@ const createTenderTypeProfiles = {
     consultancy: {
         id: 'consultancy',
         commercialName: 'Financial Proposal',
-        commercialTitle: 'Consultancy Requirements',
+        commercialTitle: 'Consultancy Service Requirements',
         commercialDescription: 'TOR outputs, expert inputs, reimbursables, and fee estimate',
         commercialItemName: 'consultancy input',
         commercialEmptyText: 'No consultancy requirement lines added yet.',
@@ -282,9 +340,13 @@ const createTenderTypeProfiles = {
             { id: 'attachment-consult-3', text: 'Technical and financial proposal templates' }
         ],
         documentLabels: ['Terms of Reference', 'Methodology template', 'Key expert CV template', 'Evaluation criteria', 'Financial proposal template'],
-        keyRequirements: ['Terms of Reference', 'Methodology proposal', 'Team CVs', 'Relevant consulting experience'],
-        evaluationStyle: 'Quality-focused evaluation using QCBS or QBS, with technical score carrying the main decision weight.',
-        bidderPreparation: ['Technical proposal', 'Methodology', 'Team CVs', 'Relevant experience', 'Separate financial proposal when required'],
+        keyRequirements: ['Background, objectives, scope, and deliverables', 'Methodology and work plan', 'Team composition and CVs', 'Firm and expert experience', 'Professional fees, reimbursables, taxes, and daily rates'],
+        planningDocuments: ['Terms of Reference', 'Background and objectives', 'Scope and deliverables', 'Timeline', 'Reporting structure', 'Selection method'],
+        submissionDocuments: ['Technical proposal', 'Understanding of assignment', 'Methodology', 'Work plan', 'Team composition', 'CVs', 'Financial proposal'],
+        evaluationFlow: ['Technical evaluation', 'Financial evaluation', 'Combined ranking or method-specific selection', 'Award recommendation'],
+        contractRequirements: ['Terms of Reference', 'Deliverables', 'Milestones', 'Payment schedule', 'Intellectual property clauses', 'Confidentiality clauses'],
+        evaluationStyle: 'Quality-focused technical evaluation followed by financial evaluation using QCBS, QBS, Least Cost, or the configured consultancy selection method.',
+        bidderPreparation: ['Technical proposal', 'Understanding of TOR', 'Methodology', 'Work plan', 'Team CVs', 'Relevant experience', 'Separate financial proposal when required'],
         evaluationCriteria: [
             ['Understanding of TOR', 25, 'Problem framing and proposed approach'],
             ['Methodology and work plan', 30, 'Quality, feasibility, and stakeholder plan'],
@@ -338,8 +400,8 @@ function renderCreateTenderTrashIcon() {
 function getCreateTenderTypeId(value) {
     const raw = String(value || '').trim().toLowerCase();
     if (raw === 'goods' || raw === 'works' || raw === 'services' || raw === 'consultancy') return raw;
-    if (raw === 'service') return 'services';
-    if (raw === 'consulting' || raw === 'consultant') return 'consultancy';
+    if (raw === 'service' || raw === 'non consultancy' || raw === 'non-consultancy services' || raw === 'non consultancy services') return 'services';
+    if (raw === 'consulting' || raw === 'consultant' || raw === 'consultancy services') return 'consultancy';
     return 'works';
 }
 
@@ -352,6 +414,18 @@ function getCreateTenderTypeProfile(typeOrTender = 'works') {
 
 function getCreateTenderCurrentTypeProfile() {
     return getCreateTenderTypeProfile(getCreateTenderMainDraft().procurementTypeId || getCreateTenderSetup().defaultType.id);
+}
+
+function getCreateTenderCategoryFromWizard(wizard, selectedType) {
+    const categoryInput = wizard.querySelector('[data-procurement-category]');
+    const customCategoryInput = wizard.querySelector('[data-custom-category]');
+    const customCategory = customCategoryInput?.value.trim() || '';
+
+    if (categoryInput?.dataset.custom === 'true') {
+        return customCategory || 'Other';
+    }
+
+    return categoryInput?.value || selectedType.categories[0];
 }
 
 function parseCreateTenderNumber(value) {
@@ -385,6 +459,20 @@ function normalizeCreateTenderScopeItem(item, index = 0, prefix = 'item') {
     return {
         id: item.id || `${prefix}-${Date.now()}-${index}`,
         text: String(item.text || '')
+    };
+}
+
+function getCreateTenderRegulatoryLicenseByName(licenseName) {
+    return createTenderRegulatoryLicenseCatalog.find(item => item.license === licenseName)
+        || createTenderRegulatoryLicenseCatalog[0];
+}
+
+function normalizeCreateTenderRegulatoryLicense(item, index = 0) {
+    const catalogItem = getCreateTenderRegulatoryLicenseByName(item.license);
+    return {
+        id: item.id || `license-${Date.now()}-${index}`,
+        license: String(item.license || catalogItem.license),
+        body: String(item.body || catalogItem.body)
     };
 }
 
@@ -557,6 +645,27 @@ function saveCreateTenderRequiredAttachments(items, profile = getCreateTenderCur
     saveCreateTenderScopeItems('requiredAttachments', createTenderAttachmentStorageKey, items, 'attachment', 'attachmentType', createTenderAttachmentTypeStorageKey, profile);
 }
 
+function getCreateTenderRegulatoryLicenses(profile = getCreateTenderCurrentTypeProfile()) {
+    const draft = ensureCreateTenderDraft();
+    const profileId = profile.id;
+    if (Array.isArray(draft.regulatoryLicenses) && draft.regulatoryLicenseType === profileId) return draft.regulatoryLicenses;
+
+    const storedItems = getCreateTenderStoredItems(createTenderLicenseStorageKey);
+    const storedType = localStorage.getItem(createTenderLicenseTypeStorageKey);
+    draft.regulatoryLicenseType = profileId;
+    draft.regulatoryLicenses = (storedItems.length && storedType === profileId ? storedItems : defaultCreateTenderRegulatoryLicenses)
+        .map(normalizeCreateTenderRegulatoryLicense);
+    return draft.regulatoryLicenses;
+}
+
+function saveCreateTenderRegulatoryLicenses(items, profile = getCreateTenderCurrentTypeProfile()) {
+    const draft = ensureCreateTenderDraft();
+    draft.regulatoryLicenseType = profile.id;
+    draft.regulatoryLicenses = items.map(normalizeCreateTenderRegulatoryLicense);
+    localStorage.setItem(createTenderLicenseTypeStorageKey, profile.id);
+    localStorage.setItem(createTenderLicenseStorageKey, JSON.stringify(draft.regulatoryLicenses));
+}
+
 function getCreateTenderBoqTotal(items = getCreateTenderBoqItems()) {
     return items.reduce((total, item) => total + (parseCreateTenderNumber(item.qty) * parseCreateTenderNumber(item.rate)), 0);
 }
@@ -702,6 +811,7 @@ function publishCreateTenderToMarketplace(wizard) {
         description: scope,
         eligibility: `${method} / ${category}`,
         documents,
+        regulatoryLicenses: getCreateTenderRegulatoryLicenses(profile),
         category,
         method,
         visibility,
@@ -760,6 +870,7 @@ function saveCreateTenderDraftFromWizard(wizard) {
         savedAt: new Date().toISOString(),
         attachmentCount: getCreateTenderRequiredAttachments(profile).length,
         deliverableCount: getCreateTenderDeliverables(profile).length,
+        licenseCount: getCreateTenderRegulatoryLicenses(profile).length,
         budget: getCreateTenderBoqTotal(getCreateTenderBoqItems(profile)),
         commercialModel: profile.commercialName
     });
@@ -824,19 +935,54 @@ function renderCreateTenderScopeRows(items, type, emptyText) {
     `).join('');
 }
 
+function renderCreateTenderRegulatoryLicenseRows(items = []) {
+    if (!items.length) {
+        return '<div class="scope-empty">No regulatory license requirements added yet.</div>';
+    }
+
+    return items.map(item => {
+        const selectedLicense = getCreateTenderRegulatoryLicenseByName(item.license);
+        const body = item.body || selectedLicense.body;
+        return `
+            <div class="license-requirement-row" data-license-row="${escapeCreateTenderHtml(item.id)}">
+                <label>
+                    <span>License</span>
+                    <input type="hidden" value="${escapeCreateTenderHtml(item.license)}" data-license-field="license">
+                    <div class="license-picker" data-license-picker>
+                        <input class="form-input" type="search" value="${escapeCreateTenderHtml(item.license)}" data-license-search autocomplete="off" placeholder="Search license" aria-label="Search regulatory license">
+                        <div class="license-results" data-license-results role="listbox" aria-label="Matching licenses"></div>
+                    </div>
+                </label>
+                <label>
+                    <span>Issuing body</span>
+                    <input class="form-input" value="${escapeCreateTenderHtml(body)}" data-license-body aria-label="Issuing regulatory body" readonly>
+                </label>
+                <button class="boq-row-action icon-delete-btn" type="button" data-license-delete aria-label="Remove license requirement" title="Remove license requirement">${renderCreateTenderTrashIcon()}</button>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderCreateTenderProfileCard(title, items = []) {
+    if (!items.length) return '';
+    return `
+        <article class="review-card">
+            <span>${escapeCreateTenderHtml(title)}</span>
+            <strong>${escapeCreateTenderHtml(items[0])}</strong>
+            <small>${items.slice(1).map(escapeCreateTenderHtml).join(', ')}</small>
+        </article>
+    `;
+}
+
 function renderCreateTenderProfileCards(profile) {
     return `
         <div class="review-summary-grid" style="margin-bottom: 20px;">
-            <article class="review-card">
-                <span>Documents</span>
-                <strong>${escapeCreateTenderHtml(profile.documentLabels[0])}</strong>
-                <small>${profile.documentLabels.slice(1).map(escapeCreateTenderHtml).join(', ')}</small>
-            </article>
-            <article class="review-card">
-                <span>Key requirements</span>
-                <strong>${escapeCreateTenderHtml(profile.keyRequirements[0])}</strong>
-                <small>${profile.keyRequirements.slice(1).map(escapeCreateTenderHtml).join(', ')}</small>
-            </article>
+            ${renderCreateTenderProfileCard('Planning documents', profile.planningDocuments)}
+            ${renderCreateTenderProfileCard('Tender documents', profile.documentLabels)}
+            ${renderCreateTenderProfileCard('Key requirements', profile.keyRequirements)}
+            ${renderCreateTenderProfileCard('Submission documents', profile.submissionDocuments)}
+            ${renderCreateTenderProfileCard('Evaluation flow', profile.evaluationFlow)}
+            ${renderCreateTenderProfileCard('Contract structure', profile.contractRequirements)}
             <article class="review-card">
                 <span>Evaluation style</span>
                 <strong>${escapeCreateTenderHtml(profile.evaluationStyle.split(',')[0])}</strong>
@@ -852,6 +998,8 @@ function renderCreateTender() {
     const selectedType = procurementSetup.types.find(type => type.id === mainDraft.procurementTypeId) || procurementSetup.defaultType;
     const categorySelection = getCreateTenderCategorySelection(selectedType.categories, mainDraft.category);
     const selectedProfile = getCreateTenderTypeProfile(selectedType);
+    const selectedCategory = mainDraft.category || selectedType.categories[0];
+    const isCustomCategory = Boolean(mainDraft.category) && !selectedType.categories.includes(mainDraft.category);
     const contactDetails = getCreateTenderContactDetails();
     const contactSummary = getCreateTenderContactSummary(contactDetails);
     const boqItems = getCreateTenderBoqItems(selectedProfile);
@@ -860,6 +1008,7 @@ function renderCreateTender() {
     const milestoneSummary = getCreateTenderMilestoneSummary(milestones);
     const deliverables = getCreateTenderDeliverables(selectedProfile);
     const requiredAttachments = getCreateTenderRequiredAttachments(selectedProfile);
+    const regulatoryLicenses = getCreateTenderRegulatoryLicenses(selectedProfile);
     const steps = [
         ['01', 'Need Identification', 'Department request, budget, contact'],
         ['02', 'Tender Planning', 'Type, category, method, visibility'],
@@ -1041,6 +1190,19 @@ function renderCreateTender() {
                                     </div>
                                     <button class="btn btn-secondary scope-add" type="button" data-scope-add="deliverables">Add Deliverable</button>
                                 </div>
+                                <div class="scope-list-panel license-requirements-panel">
+                                    <div class="scope-list-heading">
+                                        <div>
+                                            <h3>Regulatory license requirements</h3>
+                                            <span class="form-hint">Search and select the licenses suppliers must hold for this tender. The issuing body is filled automatically.</span>
+                                        </div>
+                                        <span class="badge badge-info" data-license-count>${regulatoryLicenses.length}</span>
+                                    </div>
+                                    <div class="license-requirement-list" data-license-list>
+                                        ${renderCreateTenderRegulatoryLicenseRows(regulatoryLicenses)}
+                                    </div>
+                                    <button class="btn btn-secondary scope-add" type="button" data-license-add>Add License Requirement</button>
+                                </div>
                             </section>
 
                             <section class="journey-panel" id="wizard-step-4">
@@ -1217,8 +1379,8 @@ function renderCreateTender() {
                                     </article>
                                     <article class="review-card">
                                         <span>Scope package</span>
-                                        <strong data-review-scope-count>${deliverables.length + requiredAttachments.length} items</strong>
-                                        <small data-review-scope-breakdown>${deliverables.length} deliverables, ${requiredAttachments.length} attachments</small>
+                                        <strong data-review-scope-count>${deliverables.length + regulatoryLicenses.length + requiredAttachments.length} items</strong>
+                                        <small data-review-scope-breakdown>${deliverables.length} deliverables, ${regulatoryLicenses.length} licenses, ${requiredAttachments.length} attachments</small>
                                     </article>
                                     <article class="review-card">
                                         <span data-review-commercial-label>${selectedProfile.reviewLabel}</span>
@@ -1284,7 +1446,7 @@ function initializeCreateTenderWizard() {
 
     const renderOptions = (select, options, selectedValue = '') => {
         if (!select) return;
-        select.innerHTML = options.map(option => `<option ${option === selectedValue ? 'selected' : ''}>${option}</option>`).join('');
+        select.innerHTML = renderCreateTenderOptions(options, selectedValue);
     };
 
     const syncCustomCategoryField = () => {
@@ -1299,6 +1461,87 @@ function initializeCreateTenderWizard() {
     const getSelectedProfile = () => {
         const selectedTypeId = wizard.querySelector('input[name="procurementType"]:checked')?.value || setup.defaultType.id;
         return getCreateTenderTypeProfile(selectedTypeId);
+    };
+
+    const getSelectedProcurementType = () => {
+        const selectedTypeId = wizard.querySelector('input[name="procurementType"]:checked')?.value || setup.defaultType.id;
+        return setup.types.find(type => type.id === selectedTypeId) || setup.defaultType;
+    };
+
+    const setCategoryResultsOpen = (isOpen) => {
+        if (!categoryResults) return;
+        categoryResults.classList.toggle('open', Boolean(isOpen));
+    };
+
+    const setCategoryValue = (value, options = {}) => {
+        const selectedType = getSelectedProcurementType();
+        const isCustom = Boolean(options.custom) || (value && !selectedType.categories.includes(value));
+        const resolvedValue = isCustom ? String(value || '').trim() : (value || selectedType.categories[0]);
+
+        if (categoryInput) {
+            categoryInput.value = resolvedValue;
+            categoryInput.dataset.custom = isCustom ? 'true' : 'false';
+        }
+
+        if (categorySearchInput && !options.keepSearch) {
+            categorySearchInput.value = isCustom ? 'Other' : resolvedValue;
+        }
+
+        if (customCategoryWrap) {
+            customCategoryWrap.classList.toggle('visible', isCustom);
+        }
+
+        if (customCategoryInput) {
+            customCategoryInput.disabled = !isCustom;
+            if (isCustom && resolvedValue && !options.keepCustomValue) {
+                customCategoryInput.value = resolvedValue;
+            }
+            if (!isCustom) {
+                customCategoryInput.value = '';
+            }
+        }
+    };
+
+    const renderCategoryResults = (query = '') => {
+        if (!categoryResults) return;
+        const selectedType = getSelectedProcurementType();
+        const terms = String(query || '')
+            .trim()
+            .toLowerCase()
+            .split(/\s+/)
+            .filter(Boolean);
+        const matches = selectedType.categories
+            .filter(category => terms.every(term => category.toLowerCase().includes(term)))
+            .slice(0, 12);
+        const matchText = matches.length
+            ? matches.map(category => `
+                <button type="button" class="category-result-option" data-category-option="${escapeCreateTenderHtml(category)}" role="option">
+                    ${escapeCreateTenderHtml(category)}
+                </button>
+            `).join('')
+            : '<div class="category-result-empty">No matching listed category</div>';
+
+        categoryResults.innerHTML = `
+            ${matchText}
+            <button type="button" class="category-result-option other" data-category-other role="option">Other</button>
+        `;
+        setCategoryResultsOpen(true);
+    };
+
+    const selectCategoryOption = (value) => {
+        setCategoryValue(value);
+        setCategoryResultsOpen(false);
+        saveMainDetailsFromInputs();
+        refreshTenderReview();
+    };
+
+    const selectOtherCategory = () => {
+        setCategoryValue(customCategoryInput?.value.trim() || '', { custom: true, keepCustomValue: true });
+        if (categorySearchInput) categorySearchInput.value = 'Other';
+        setCategoryResultsOpen(false);
+        customCategoryInput?.focus();
+        saveMainDetailsFromInputs();
+        refreshTenderReview();
     };
 
     const refreshProfileText = () => {
@@ -1344,6 +1587,7 @@ function initializeCreateTenderWizard() {
         });
         renderBoqTable();
         renderScopeList('deliverables');
+        renderLicenseList();
         renderScopeList('attachments');
         refreshProfileText();
     };
@@ -1469,17 +1713,82 @@ function initializeCreateTenderWizard() {
         saveCreateTenderDeliverables(items, getSelectedProfile());
     };
 
+    const refreshLicenseSummary = () => {
+        const count = wizard.querySelector('[data-license-count]');
+        if (count) count.textContent = String(getCreateTenderRegulatoryLicenses(getSelectedProfile()).length);
+    };
+
+    const renderLicenseList = () => {
+        const list = wizard.querySelector('[data-license-list]');
+        if (!list) return;
+        list.innerHTML = renderCreateTenderRegulatoryLicenseRows(getCreateTenderRegulatoryLicenses(getSelectedProfile()));
+        refreshLicenseSummary();
+    };
+
+    const setLicenseResultsOpen = (row, isOpen) => {
+        row?.querySelector('[data-license-results]')?.classList.toggle('open', Boolean(isOpen));
+    };
+
+    const renderLicenseResults = (row, query = '') => {
+        const results = row?.querySelector('[data-license-results]');
+        if (!results) return;
+
+        const terms = String(query || '')
+            .trim()
+            .toLowerCase()
+            .split(/\s+/)
+            .filter(Boolean);
+        const matches = createTenderRegulatoryLicenseCatalog
+            .filter(item => {
+                const searchable = `${item.group} ${item.license} ${item.body}`.toLowerCase();
+                return terms.every(term => searchable.includes(term));
+            })
+            .slice(0, 12);
+
+        results.innerHTML = matches.length
+            ? matches.map(item => `
+                <button type="button" class="license-result-option" data-license-option="${escapeCreateTenderHtml(item.license)}" role="option">
+                    <strong>${escapeCreateTenderHtml(item.license)}</strong>
+                    <span>${escapeCreateTenderHtml(item.body)}</span>
+                </button>
+            `).join('')
+            : '<div class="license-result-empty">No matching license</div>';
+        setLicenseResultsOpen(row, true);
+    };
+
+    const selectLicenseRequirement = (row, licenseName) => {
+        if (!row) return;
+        const catalogItem = getCreateTenderRegulatoryLicenseByName(licenseName);
+        const profile = getSelectedProfile();
+        const items = getCreateTenderRegulatoryLicenses(profile);
+        const item = items.find(entry => entry.id === row.dataset.licenseRow);
+        if (!item) return;
+
+        item.license = catalogItem.license;
+        item.body = catalogItem.body;
+        row.querySelector('[data-license-field="license"]').value = catalogItem.license;
+        row.querySelector('[data-license-search]').value = catalogItem.license;
+        row.querySelector('[data-license-body]').value = catalogItem.body;
+
+        saveCreateTenderRegulatoryLicenses(items, profile);
+        setLicenseResultsOpen(row, false);
+        refreshLicenseSummary();
+        refreshTenderReview();
+    };
+
     const refreshScopeSummary = () => {
         const profile = getSelectedProfile();
         const deliverables = getCreateTenderDeliverables(profile);
         const attachments = getCreateTenderRequiredAttachments(profile);
+        const licenses = getCreateTenderRegulatoryLicenses(profile);
         const totalBadge = wizard.querySelector('[data-scope-total-badge]');
         const deliverableCount = wizard.querySelector('[data-scope-count="deliverables"]');
         const attachmentCount = wizard.querySelector('[data-scope-count="attachments"]');
 
-        if (totalBadge) totalBadge.textContent = deliverables.length ? `${deliverables.length} deliverables` : 'Scope empty';
+        if (totalBadge) totalBadge.textContent = deliverables.length ? `${deliverables.length} deliverables, ${licenses.length} licenses` : 'Scope empty';
         if (deliverableCount) deliverableCount.textContent = String(deliverables.length);
         if (attachmentCount) attachmentCount.textContent = String(attachments.length);
+        refreshLicenseSummary();
     };
 
     const renderScopeList = (type) => {
@@ -1513,6 +1822,7 @@ function initializeCreateTenderWizard() {
         const profile = getCreateTenderTypeProfile(selectedType);
         const deliverables = getCreateTenderDeliverables(profile);
         const attachments = getCreateTenderRequiredAttachments(profile);
+        const licenses = getCreateTenderRegulatoryLicenses(profile);
         const boqItems = getCreateTenderBoqItems(profile);
         const boqTotal = getCreateTenderBoqTotal(boqItems);
         const milestoneSummary = getCreateTenderMilestoneSummary(getCreateTenderMilestones());
@@ -1531,8 +1841,8 @@ function initializeCreateTenderWizard() {
         setReviewText('[data-tender-category-summary]', selectedCategory || 'Category not set');
         setReviewText('[data-review-visibility]', wizard.querySelector('[data-tender-visibility]')?.value || defaultCreateTenderMainDraft.visibility);
         setReviewText('[data-review-visibility-note]', wizard.querySelector('[data-tender-visibility-note]')?.value.trim() || defaultCreateTenderMainDraft.visibilityNote);
-        setReviewText('[data-review-scope-count]', `${deliverables.length + attachments.length} items`);
-        setReviewText('[data-review-scope-breakdown]', `${deliverables.length} deliverables, ${attachments.length} attachments`);
+        setReviewText('[data-review-scope-count]', `${deliverables.length + attachments.length + licenses.length} items`);
+        setReviewText('[data-review-scope-breakdown]', `${deliverables.length} deliverables, ${licenses.length} licenses, ${attachments.length} attachments`);
         setReviewText('[data-review-commercial-label]', profile.reviewLabel);
         setReviewText('[data-review-boq-total]', formatCreateTenderMoney(boqTotal));
         setReviewText('[data-review-boq-count]', `${boqItems.length} ${profile.commercialItemName}${boqItems.length === 1 ? '' : 's'}`);
@@ -1632,6 +1942,29 @@ function initializeCreateTenderWizard() {
         refreshScopeSummary();
     };
 
+    const updateLicenseRequirement = (input) => {
+        const row = input.closest('[data-license-row]');
+        const field = input.dataset.licenseField;
+        if (!row || !field) return;
+
+        const profile = getSelectedProfile();
+        const items = getCreateTenderRegulatoryLicenses(profile);
+        const item = items.find(entry => entry.id === row.dataset.licenseRow);
+        if (!item) return;
+
+        if (field === 'license') {
+            const catalogItem = getCreateTenderRegulatoryLicenseByName(input.value);
+            item.license = catalogItem.license;
+            item.body = catalogItem.body;
+            const bodyInput = row.querySelector('[data-license-body]');
+            if (bodyInput) bodyInput.value = catalogItem.body;
+        }
+
+        saveCreateTenderRegulatoryLicenses(items, profile);
+        refreshLicenseSummary();
+        refreshTenderReview();
+    };
+
     const parseBoqDelimitedText = (text) => {
         const splitLine = (line) => {
             if (line.includes('\t')) {
@@ -1711,6 +2044,28 @@ function initializeCreateTenderWizard() {
     });
 
     wizard.addEventListener('input', (event) => {
+        if (event.target?.matches('[data-procurement-category-search]')) {
+            const typedCategory = event.target.value.trim();
+            renderCategoryResults(typedCategory);
+
+            if (typedCategory.toLowerCase() === 'other') {
+                selectOtherCategory();
+                return;
+            }
+
+            const selectedType = getSelectedProcurementType();
+            const exactCategory = selectedType.categories.find(category => category.toLowerCase() === typedCategory.toLowerCase());
+            if (exactCategory) {
+                setCategoryValue(exactCategory, { keepSearch: true });
+                saveMainDetailsFromInputs();
+                refreshTenderReview();
+            }
+        }
+        if (event.target?.matches('[data-custom-category]')) {
+            setCategoryValue(event.target.value.trim(), { custom: true, keepSearch: true, keepCustomValue: true });
+            saveMainDetailsFromInputs();
+            refreshTenderReview();
+        }
         if (event.target?.matches('[data-contact-field]')) {
             updateContactField(event.target);
         }
@@ -1739,6 +2094,21 @@ function initializeCreateTenderWizard() {
 
         const target = event.target?.closest('button');
         if (!target) return;
+
+        if (target.matches('[data-category-option]')) {
+            selectCategoryOption(target.dataset.categoryOption);
+            return;
+        }
+
+        if (target.matches('[data-category-other]')) {
+            selectOtherCategory();
+            return;
+        }
+
+        if (target.matches('[data-license-option]')) {
+            selectLicenseRequirement(target.closest('[data-license-row]'), target.dataset.licenseOption);
+            return;
+        }
 
         if (target.matches('[data-wizard-prev]')) {
             setActiveStep(activeStepIndex - 1);
@@ -1823,6 +2193,34 @@ function initializeCreateTenderWizard() {
             saveScopeItemsByType(type, items);
             renderScopeList(type);
             refreshTenderReview();
+            return;
+        }
+
+        if (target.matches('[data-license-add]')) {
+            const profile = getSelectedProfile();
+            const catalogItem = createTenderRegulatoryLicenseCatalog[0];
+            const items = getCreateTenderRegulatoryLicenses(profile);
+            items.push(normalizeCreateTenderRegulatoryLicense({
+                id: `license-${Date.now()}`,
+                license: catalogItem.license,
+                body: catalogItem.body
+            }, items.length));
+            saveCreateTenderRegulatoryLicenses(items, profile);
+            renderLicenseList();
+            refreshScopeSummary();
+            refreshTenderReview();
+            wizard.querySelector('[data-license-list] [data-license-row]:last-child [data-license-search]')?.focus();
+            return;
+        }
+
+        if (target.matches('[data-license-delete]')) {
+            const row = target.closest('[data-license-row]');
+            const profile = getSelectedProfile();
+            const items = getCreateTenderRegulatoryLicenses(profile).filter(item => item.id !== row?.dataset.licenseRow);
+            saveCreateTenderRegulatoryLicenses(items, profile);
+            renderLicenseList();
+            refreshScopeSummary();
+            refreshTenderReview();
         }
     });
 
@@ -1847,6 +2245,41 @@ function initializeCreateTenderWizard() {
         reader.readAsText(file);
     });
 
+    categorySearchInput?.addEventListener('focus', () => {
+        renderCategoryResults(categorySearchInput.value);
+    });
+
+    categorySearchInput?.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            setCategoryResultsOpen(false);
+        }
+    });
+
+    categoryPicker?.addEventListener('focusout', (event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+            setCategoryResultsOpen(false);
+        }
+    });
+
+    wizard.addEventListener('focusin', (event) => {
+        if (event.target?.matches('[data-license-search]')) {
+            const row = event.target.closest('[data-license-row]');
+            renderLicenseResults(row, event.target.value);
+        }
+    });
+
+    wizard.addEventListener('focusout', (event) => {
+        const row = event.target?.closest?.('[data-license-row]');
+        if (row && !row.contains(event.relatedTarget)) {
+            setLicenseResultsOpen(row, false);
+        }
+    });
+
+    setCategoryValue(categoryInput?.value || getSelectedProcurementType().categories[0], {
+        custom: categoryInput?.dataset.custom === 'true',
+        keepSearch: true,
+        keepCustomValue: true
+    });
     refreshContactSummary();
     refreshBoqSummary();
     refreshMilestoneSummary();

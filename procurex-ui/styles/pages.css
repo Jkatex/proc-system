@@ -2208,6 +2208,75 @@
     font-weight: 700;
 }
 
+.tender-wizard-page .category-picker {
+    position: relative;
+}
+
+.tender-wizard-page .category-results {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    display: none;
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 6px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    background: var(--card-bg);
+    box-shadow: var(--shadow-lg);
+}
+
+.tender-wizard-page .category-results.open {
+    display: grid;
+    gap: 4px;
+}
+
+.tender-wizard-page .category-result-option {
+    width: 100%;
+    min-height: 40px;
+    padding: 9px 10px;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.35;
+    text-align: left;
+    cursor: pointer;
+}
+
+.tender-wizard-page .category-result-option:hover,
+.tender-wizard-page .category-result-option:focus {
+    background: var(--surface-soft);
+    outline: none;
+}
+
+.tender-wizard-page .category-result-option.other {
+    border-top: 1px solid var(--border-soft);
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+    color: var(--primary-blue);
+    font-weight: 800;
+}
+
+.tender-wizard-page .category-result-empty {
+    padding: 10px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.tender-wizard-page .custom-category-field {
+    display: none;
+    margin-top: 10px;
+}
+
+.tender-wizard-page .custom-category-field.visible {
+    display: block;
+}
+
 .tender-wizard-page .contact-detail-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2301,6 +2370,101 @@
 
 .tender-wizard-page .scope-delete {
     justify-self: end;
+}
+
+.tender-wizard-page .license-requirement-list {
+    display: grid;
+    gap: 12px;
+}
+
+.tender-wizard-page .license-requirement-row {
+    display: grid;
+    grid-template-columns: minmax(220px, 1.15fr) minmax(220px, 1fr) auto;
+    gap: 10px;
+    align-items: end;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    background: var(--card-bg);
+}
+
+.tender-wizard-page .license-requirement-row label {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+
+.tender-wizard-page .license-requirement-row label span {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.tender-wizard-page .license-picker {
+    position: relative;
+}
+
+.tender-wizard-page .license-results {
+    position: absolute;
+    z-index: 18;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    display: none;
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 6px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    background: var(--card-bg);
+    box-shadow: var(--shadow-lg);
+}
+
+.tender-wizard-page .license-results.open {
+    display: grid;
+    gap: 4px;
+}
+
+.tender-wizard-page .license-result-option {
+    display: grid;
+    gap: 3px;
+    width: 100%;
+    min-height: 46px;
+    padding: 9px 10px;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.tender-wizard-page .license-result-option:hover,
+.tender-wizard-page .license-result-option:focus {
+    background: var(--surface-soft);
+    outline: none;
+}
+
+.tender-wizard-page .license-result-option strong {
+    font-size: 13px;
+    line-height: 1.3;
+}
+
+.tender-wizard-page .license-result-option span,
+.tender-wizard-page .license-result-empty {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.35;
+    text-transform: none;
+}
+
+.tender-wizard-page [data-license-body][readonly] {
+    color: var(--text-secondary);
+    background: var(--surface-soft);
 }
 
 .tender-wizard-page .scope-empty {
@@ -2605,7 +2769,8 @@
         grid-template-columns: 1fr;
     }
 
-    .tender-wizard-page .scope-item-row {
+    .tender-wizard-page .scope-item-row,
+    .tender-wizard-page .license-requirement-row {
         grid-template-columns: 1fr;
     }
 
