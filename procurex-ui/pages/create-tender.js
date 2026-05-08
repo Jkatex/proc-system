@@ -13,15 +13,67 @@ function getCreateTenderSetup() {
     const types = Array.isArray(setup.types) && setup.types.length ? setup.types : fallbackTypes;
     const methods = Array.isArray(setup.methods) && setup.methods.length
         ? setup.methods
-        : ['Open / public tender', 'Restricted tender', 'Closed / invited tender'];
+        : ['Open or public tender', 'Closed / invited tender'];
     const normalizedMethods = methods.includes('Direct procurement') ? methods : [...methods, 'Direct procurement'];
     const defaultType = types.find(type => type.id === setup.defaultType) || types[0];
 
     return { types, methods: normalizedMethods, defaultType };
 }
 
+const createTenderOtherCategoryLabel = 'Other';
+
 function renderCreateTenderOptions(options, selectedValue = '') {
     return options.map(option => `<option ${option === selectedValue ? 'selected' : ''}>${option}</option>`).join('');
+}
+
+function isCreateTenderOtherCategory(value) {
+    return String(value || '').trim().toLowerCase() === createTenderOtherCategoryLabel.toLowerCase();
+}
+
+function getCreateTenderCategoryOptions(categories = []) {
+    const options = Array.isArray(categories) ? categories.filter(Boolean) : [];
+    return options.some(isCreateTenderOtherCategory) ? options : [...options, createTenderOtherCategoryLabel];
+}
+
+function getCreateTenderCategorySelection(categories = [], savedCategory = '') {
+    const definedCategories = Array.isArray(categories) ? categories.filter(Boolean) : [];
+    const options = getCreateTenderCategoryOptions(definedCategories);
+    const category = String(savedCategory || '').trim();
+    const fallbackCategory = definedCategories[0] || options[0] || createTenderOtherCategoryLabel;
+
+    if (!category) {
+        return {
+            selectedCategory: fallbackCategory,
+            customCategory: '',
+            effectiveCategory: fallbackCategory
+        };
+    }
+
+    if (definedCategories.includes(category)) {
+        return {
+            selectedCategory: category,
+            customCategory: '',
+            effectiveCategory: category
+        };
+    }
+
+    return {
+        selectedCategory: createTenderOtherCategoryLabel,
+        customCategory: isCreateTenderOtherCategory(category) ? '' : category,
+        effectiveCategory: category
+    };
+}
+
+function getCreateTenderWizardCategoryValue(wizard, fallbackCategory = '') {
+    const categorySelect = wizard?.querySelector('[data-procurement-category]');
+    const customCategoryInput = wizard?.querySelector('[data-custom-category]');
+    const selectedCategory = categorySelect?.value || fallbackCategory;
+
+    if (isCreateTenderOtherCategory(selectedCategory)) {
+        return customCategoryInput?.value.trim() || createTenderOtherCategoryLabel;
+    }
+
+    return selectedCategory || fallbackCategory;
 }
 
 const createTenderBoqStorageKey = 'procurex.createTender.boqItems';
@@ -626,7 +678,7 @@ function publishCreateTenderToMarketplace(wizard) {
     const title = wizard.querySelector('[data-tender-title]')?.value.trim() || 'Untitled tender';
     const scope = wizard.querySelector('[data-tender-scope]')?.value.trim() || 'Tender scope pending final description.';
     const method = wizard.querySelector('[data-procurement-method]')?.value || setup.methods[0];
-    const category = wizard.querySelector('[data-procurement-category]')?.value || selectedType.categories[0];
+    const category = getCreateTenderWizardCategoryValue(wizard, selectedType.categories[0]);
     const visibility = wizard.querySelector('[data-tender-visibility]')?.value || 'Public marketplace';
     const visibilityNote = wizard.querySelector('[data-tender-visibility-note]')?.value.trim() || '';
     const contact = getCreateTenderContactDetails();
@@ -701,7 +753,7 @@ function saveCreateTenderDraftFromWizard(wizard) {
         scope,
         procurementTypeId: selectedType.id,
         method: wizard.querySelector('[data-procurement-method]')?.value || setup.methods[0],
-        category: wizard.querySelector('[data-procurement-category]')?.value || selectedType.categories[0],
+        category: getCreateTenderWizardCategoryValue(wizard, selectedType.categories[0]),
         visibility: wizard.querySelector('[data-tender-visibility]')?.value || defaultCreateTenderMainDraft.visibility,
         visibilityNote: wizard.querySelector('[data-tender-visibility-note]')?.value.trim() || defaultCreateTenderMainDraft.visibilityNote,
         status: 'Saved as draft',
@@ -798,6 +850,7 @@ function renderCreateTender() {
     const procurementSetup = getCreateTenderSetup();
     const mainDraft = getCreateTenderMainDraft();
     const selectedType = procurementSetup.types.find(type => type.id === mainDraft.procurementTypeId) || procurementSetup.defaultType;
+    const categorySelection = getCreateTenderCategorySelection(selectedType.categories, mainDraft.category);
     const selectedProfile = getCreateTenderTypeProfile(selectedType);
     const contactDetails = getCreateTenderContactDetails();
     const contactSummary = getCreateTenderContactSummary(contactDetails);
@@ -940,8 +993,12 @@ function renderCreateTender() {
                                     <div class="form-group">
                                         <label class="form-label">Category</label>
                                         <select class="form-input" name="procurementCategory" data-procurement-category>
-                                            ${renderCreateTenderOptions(selectedType.categories, mainDraft.category || selectedType.categories[0])}
+                                            ${renderCreateTenderOptions(getCreateTenderCategoryOptions(selectedType.categories), categorySelection.selectedCategory)}
                                         </select>
+                                        <div class="custom-category-field" data-custom-category-group ${isCreateTenderOtherCategory(categorySelection.selectedCategory) ? '' : 'hidden'}>
+                                            <label class="form-label">Custom category</label>
+                                            <input class="form-input" value="${escapeCreateTenderHtml(categorySelection.customCategory)}" data-custom-category aria-label="Custom category" placeholder="Write custom category" ${isCreateTenderOtherCategory(categorySelection.selectedCategory) ? '' : 'disabled'}>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="form-grid two">
@@ -1009,7 +1066,7 @@ function renderCreateTender() {
                                     </div>
                                     <div class="form-group">
                                         <label class="form-label">Category</label>
-                                        <input class="form-input" value="${escapeCreateTenderHtml(mainDraft.category || selectedType.categories[0])}" readonly aria-label="Tender category">
+                                        <input class="form-input" value="${escapeCreateTenderHtml(categorySelection.effectiveCategory)}" readonly aria-label="Tender category" data-tender-category-summary>
                                     </div>
                                 </div>
                                 <div class="scope-list-panel attachment-manager">
@@ -1151,7 +1208,7 @@ function renderCreateTender() {
                                     <article class="review-card">
                                         <span>Procurement</span>
                                         <strong data-review-procurement>${selectedType.label}</strong>
-                                        <small data-review-category>${selectedType.categories[0]}</small>
+                                        <small data-review-category>${escapeCreateTenderHtml(categorySelection.effectiveCategory)}</small>
                                     </article>
                                     <article class="review-card">
                                         <span>Visibility</span>
@@ -1215,6 +1272,8 @@ function initializeCreateTenderWizard() {
     const setup = getCreateTenderSetup();
     const methodSelect = wizard.querySelector('[data-procurement-method]');
     const categorySelect = wizard.querySelector('[data-procurement-category]');
+    const customCategoryGroup = wizard.querySelector('[data-custom-category-group]');
+    const customCategoryInput = wizard.querySelector('[data-custom-category]');
     const panels = Array.from(wizard.querySelectorAll('.wizard-workspace > .journey-panel'));
     const railSteps = Array.from(wizard.querySelectorAll('[data-wizard-step-index]'));
     const previousButton = wizard.querySelector('[data-wizard-prev]');
@@ -1226,6 +1285,15 @@ function initializeCreateTenderWizard() {
     const renderOptions = (select, options, selectedValue = '') => {
         if (!select) return;
         select.innerHTML = options.map(option => `<option ${option === selectedValue ? 'selected' : ''}>${option}</option>`).join('');
+    };
+
+    const syncCustomCategoryField = () => {
+        if (!customCategoryGroup || !customCategoryInput) return;
+
+        const showCustomCategory = isCreateTenderOtherCategory(categorySelect?.value);
+        customCategoryGroup.hidden = !showCustomCategory;
+        customCategoryGroup.setAttribute('aria-hidden', showCustomCategory ? 'false' : 'true');
+        customCategoryInput.disabled = !showCustomCategory;
     };
 
     const getSelectedProfile = () => {
@@ -1267,10 +1335,12 @@ function initializeCreateTenderWizard() {
             card.classList.toggle('selected', input?.value === selectedType.id);
         });
         renderOptions(methodSelect, setup.methods);
-        renderOptions(categorySelect, selectedType.categories);
+        renderOptions(categorySelect, getCreateTenderCategoryOptions(selectedType.categories), selectedType.categories[0]);
+        if (customCategoryInput) customCategoryInput.value = '';
+        syncCustomCategoryField();
         saveCreateTenderMainDraft({
             procurementTypeId: selectedType.id,
-            category: categorySelect?.value || selectedType.categories[0]
+            category: getCreateTenderWizardCategoryValue(wizard, selectedType.categories[0])
         });
         renderBoqTable();
         renderScopeList('deliverables');
@@ -1286,7 +1356,7 @@ function initializeCreateTenderWizard() {
             scope: wizard.querySelector('[data-tender-scope]')?.value.trim() || defaultCreateTenderMainDraft.scope,
             procurementTypeId: selectedType.id,
             method: methodSelect?.value || setup.methods[0],
-            category: categorySelect?.value || selectedType.categories[0],
+            category: getCreateTenderWizardCategoryValue(wizard, selectedType.categories[0]),
             visibility: wizard.querySelector('[data-tender-visibility]')?.value || defaultCreateTenderMainDraft.visibility,
             visibilityNote: wizard.querySelector('[data-tender-visibility-note]')?.value.trim() || defaultCreateTenderMainDraft.visibilityNote
         });
@@ -1423,7 +1493,12 @@ function initializeCreateTenderWizard() {
 
     const setReviewText = (selector, value) => {
         const output = wizard.querySelector(selector);
-        if (output) output.textContent = value;
+        if (!output) return;
+        if ('value' in output) {
+            output.value = value;
+            return;
+        }
+        output.textContent = value;
     };
 
     const refreshTenderReview = () => {
@@ -1434,6 +1509,7 @@ function initializeCreateTenderWizard() {
         const contactSummary = getCreateTenderContactSummary(contact);
         const selectedTypeId = wizard.querySelector('input[name="procurementType"]:checked')?.value || setup.defaultType.id;
         const selectedType = setup.types.find(type => type.id === selectedTypeId) || setup.defaultType;
+        const selectedCategory = getCreateTenderWizardCategoryValue(wizard, selectedType.categories[0]);
         const profile = getCreateTenderTypeProfile(selectedType);
         const deliverables = getCreateTenderDeliverables(profile);
         const attachments = getCreateTenderRequiredAttachments(profile);
@@ -1451,7 +1527,8 @@ function initializeCreateTenderWizard() {
         setReviewText('[data-review-contact]', contact.tenderLocation || 'Location not set');
         setReviewText('[data-review-contact-status]', `${contact.contactName || 'Contact not set'} - ${contactSummary.verifiedCount} verified channel${contactSummary.verifiedCount === 1 ? '' : 's'}`);
         setReviewText('[data-review-procurement]', `${selectedType.label} - ${methodSelect?.value || 'Method not set'}`);
-        setReviewText('[data-review-category]', categorySelect?.value || 'Category not set');
+        setReviewText('[data-review-category]', selectedCategory || 'Category not set');
+        setReviewText('[data-tender-category-summary]', selectedCategory || 'Category not set');
         setReviewText('[data-review-visibility]', wizard.querySelector('[data-tender-visibility]')?.value || defaultCreateTenderMainDraft.visibility);
         setReviewText('[data-review-visibility-note]', wizard.querySelector('[data-tender-visibility-note]')?.value.trim() || defaultCreateTenderMainDraft.visibilityNote);
         setReviewText('[data-review-scope-count]', `${deliverables.length + attachments.length} items`);
@@ -1615,6 +1692,9 @@ function initializeCreateTenderWizard() {
             syncProcurementType(event.target.value);
             refreshTenderReview();
         }
+        if (event.target?.matches('[data-procurement-category]')) {
+            syncCustomCategoryField();
+        }
         if (event.target?.matches('[data-contact-field]')) {
             updateContactField(event.target);
         }
@@ -1624,7 +1704,7 @@ function initializeCreateTenderWizard() {
         if (event.target?.matches('[data-scope-item-input]')) {
             updateScopeItem(event.target);
         }
-        if (event.target?.matches('[data-tender-title], [data-tender-scope], [data-procurement-method], [data-procurement-category], [data-tender-visibility], [data-tender-visibility-note], .criterion-row input')) {
+        if (event.target?.matches('[data-tender-title], [data-tender-scope], [data-procurement-method], [data-procurement-category], [data-custom-category], [data-tender-visibility], [data-tender-visibility-note], .criterion-row input')) {
             saveMainDetailsFromInputs();
             refreshTenderReview();
         }
@@ -1643,7 +1723,7 @@ function initializeCreateTenderWizard() {
         if (event.target?.matches('[data-scope-item-input]')) {
             updateScopeItem(event.target);
         }
-        if (event.target?.matches('[data-tender-title], [data-tender-scope], [data-tender-visibility-note], .criterion-row input')) {
+        if (event.target?.matches('[data-tender-title], [data-tender-scope], [data-custom-category], [data-tender-visibility-note], .criterion-row input')) {
             saveMainDetailsFromInputs();
             refreshTenderReview();
         }
@@ -1772,6 +1852,7 @@ function initializeCreateTenderWizard() {
     refreshMilestoneSummary();
     refreshScopeSummary();
     refreshProfileText();
+    syncCustomCategoryField();
     refreshTenderReview();
     setActiveStep(0);
     wizard.dataset.ready = 'true';
