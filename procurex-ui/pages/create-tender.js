@@ -155,11 +155,11 @@ const defaultCreateTenderRegulatoryLicenses = [];
 const createTenderRequirementOptions = {
     currencies: ['TZS', 'USD', 'EUR', 'GBP'],
     procurementMethods: ['Open Tender', 'Invited Tender'],
+    worksDocumentTypes: ['Architectural drawings', 'Structural drawings', 'Electrical drawings', 'Mechanical drawings', 'Site reports', 'Material specifications', 'Geotechnical report', 'Environmental report', 'Bill of quantities template', 'Other'],
     units: ['Pcs', 'Unit', 'Set', 'Lot', 'Kg', 'Litre', 'Meter', 'Sqm', 'Day', 'Month'],
     materialQualities: ['Standard', 'Premium', 'Certified', 'Industrial grade', 'Food grade', 'Medical grade'],
     standards: ['ISO', 'TBS', 'CE', 'UL', 'Energy Star', 'Manufacturer certificate'],
     certifications: ['ISO 9001', 'ISO 14001', 'OSHA', 'Professional registration', 'Manufacturer certification'],
-    sampleEvaluationCriteria: ['Appearance', 'Build quality', 'Material compliance', 'Functionality', 'Packaging', 'Labeling', 'Durability', 'Safety'],
     frequency: ['Daily', 'Weekly', 'Monthly', 'Quarterly', 'On demand'],
     serviceLevels: ['Basic', 'Standard', 'Premium', 'Critical'],
     yesNo: ['Yes', 'No']
@@ -245,9 +245,7 @@ const createTenderRequirementTemplates = {
                             { id: 'deliveryLocation', label: 'Delivery Location', type: 'text' },
                             { id: 'deliveryDeadline', label: 'Delivery Deadline', type: 'date' },
                             { id: 'mandatory', label: 'Mandatory', type: 'toggle' },
-                            { id: 'returnableSample', label: 'Returnable Sample?', type: 'toggle' },
-                            { id: 'evaluationCriteria', label: 'Evaluation Criteria', type: 'multiselect', options: createTenderRequirementOptions.sampleEvaluationCriteria },
-                            { id: 'notes', label: 'Notes', type: 'textarea' }
+                            { id: 'returnableSample', label: 'Returnable Sample?', type: 'toggle' }
                         ]
                     }
                 ]
@@ -294,7 +292,7 @@ const createTenderRequirementTemplates = {
             {
                 id: 'technicalRequirements',
                 title: 'Technical Requirements',
-                hint: 'Document upload requirement table for drawings, reports, and specifications.',
+                hint: 'Upload required documents and add notes for each requirement.',
                 controls: [
                     {
                         id: 'requiredDocuments',
@@ -303,10 +301,10 @@ const createTenderRequirementTemplates = {
                         addLabel: 'Add Document',
                         emptyText: 'No document requirements added yet.',
                         columns: [
-                            { id: 'documentType', label: 'Document type', type: 'select', options: ['Architectural drawings', 'Structural drawings', 'Electrical drawings', 'Mechanical drawings', 'Site reports', 'Material specifications'] },
-                            { id: 'mandatory', label: 'Mandatory', type: 'toggle' },
-                            { id: 'uploadTemplate', label: 'Upload template', type: 'toggle' },
-                            { id: 'notes', label: 'Notes', type: 'text' }
+                            { id: 'documentType', label: 'Document type', type: 'select', options: createTenderRequirementOptions.worksDocumentTypes },
+                            { id: 'otherDocumentName', label: 'Other document name', type: 'text', showWhen: { field: 'documentType', value: 'Other' }, hideColumnUntilMatch: true, placeholder: 'Write document name' },
+                            { id: 'buyerDocumentUpload', label: 'Upload required document', type: 'file', accept: '.pdf,.doc,.docx,.xls,.xlsx,.dwg,.dxf,.jpg,.jpeg,.png' },
+                            { id: 'notes', label: 'Notes', type: 'textarea' }
                         ]
                     }
                 ]
@@ -1066,6 +1064,13 @@ function resolveCreateTenderRequirementColumns(control, profileId = '') {
     });
 }
 
+function getCreateTenderVisibleRequirementColumns(columns = [], rows = []) {
+    return columns.filter(column => {
+        if (!column.hideColumnUntilMatch || !column.showWhen) return true;
+        return rows.some(row => String(row?.[column.showWhen.field] || '') === String(column.showWhen.value));
+    });
+}
+
 function getCreateTenderRequirementCardTitle(control, card, cardIndex, fields = []) {
     const titleFieldId = control.cardTitleField;
     const titleField = fields.find(field => field.id === titleFieldId);
@@ -1154,10 +1159,18 @@ function renderCreateTenderRequirementField(field, value, attributes = '') {
     if (field.type === 'textarea' || field.type === 'richtext') {
         return `<textarea class="form-input requirement-rich-input" rows="3" ${attributes}>${escapeCreateTenderHtml(value || '')}</textarea>`;
     }
+    if (field.type === 'file') {
+        return `
+            <div class="requirement-file-field">
+                <input class="form-input" type="file" ${field.accept ? `accept="${escapeCreateTenderHtml(field.accept)}"` : ''} ${attributes}>
+                <span>${value ? escapeCreateTenderHtml(value) : 'No file selected'}</span>
+            </div>
+        `;
+    }
     if (field.type === 'currency') {
         return `<input class="form-input requirement-currency-input" type="number" min="0" step="0.01" value="${escapeCreateTenderHtml(value || '')}" ${attributes}>`;
     }
-    const inputMarkup = `<input class="form-input" type="${escapeCreateTenderHtml(field.type || 'text')}" value="${escapeCreateTenderHtml(value || '')}" ${attributes}>`;
+    const inputMarkup = `<input class="form-input" type="${escapeCreateTenderHtml(field.type || 'text')}" value="${escapeCreateTenderHtml(value || '')}" ${field.placeholder ? `placeholder="${escapeCreateTenderHtml(field.placeholder)}"` : ''} ${attributes}>`;
     if (field.suffix) {
         return `<div class="requirement-input-affix">${inputMarkup}<span>${escapeCreateTenderHtml(field.suffix)}</span></div>`;
     }
@@ -1204,10 +1217,11 @@ function renderCreateTenderRequirementControlListItems(control, value) {
 function renderCreateTenderRequirementTableRows(rows = [], control, profileId = '') {
     const columns = resolveCreateTenderRequirementColumns(control, profileId);
     const normalizedRows = normalizeCreateTenderRequirementTableRows(rows, columns, control.id);
+    const visibleColumns = getCreateTenderVisibleRequirementColumns(columns, normalizedRows);
     if (!normalizedRows.length) {
         return `
             <tr>
-                <td colspan="${columns.length + 1}">
+                <td colspan="${visibleColumns.length + 1}">
                     <div class="scope-empty">${escapeCreateTenderHtml(control.emptyText || 'No rows added yet.')}</div>
                 </td>
             </tr>
@@ -1216,7 +1230,7 @@ function renderCreateTenderRequirementTableRows(rows = [], control, profileId = 
 
     return normalizedRows.map((row, rowIndex) => `
         <tr data-requirement-table-row="${escapeCreateTenderHtml(row.id)}" data-requirement-control="${escapeCreateTenderHtml(control.id)}" data-requirement-table-row-index="${rowIndex}">
-            ${columns.map(column => {
+            ${visibleColumns.map(column => {
                 if (column.type === 'index') {
                     return `<td><span class="requirement-auto-value">${rowIndex + 1}</span></td>`;
                 }
@@ -1224,9 +1238,12 @@ function renderCreateTenderRequirementTableRows(rows = [], control, profileId = 
                     const calculatedValue = calculateCreateTenderRequirementFormula(column.formula, row);
                     return `<td><span class="requirement-auto-value" data-requirement-calculated-field="${escapeCreateTenderHtml(column.id)}">${formatCreateTenderRequirementCalculatedValue(calculatedValue)}</span></td>`;
                 }
+                const shouldShow = !column.showWhen || String(row[column.showWhen.field] || '') === String(column.showWhen.value);
                 return `
-                    <td>
-                        ${renderCreateTenderRequirementField(column, row[column.id], `data-requirement-table-field="${escapeCreateTenderHtml(column.id)}" aria-label="${escapeCreateTenderHtml(column.label)}"`)}
+                    <td ${shouldShow ? '' : 'class="requirement-conditional-cell muted"'}>
+                        ${shouldShow
+                            ? renderCreateTenderRequirementField(column, row[column.id], `data-requirement-table-field="${escapeCreateTenderHtml(column.id)}" aria-label="${escapeCreateTenderHtml(column.label)}"`)
+                            : `<span class="requirement-auto-value">-</span>`}
                     </td>
                 `;
             }).join('')}
@@ -1239,16 +1256,18 @@ function renderCreateTenderRequirementTableRows(rows = [], control, profileId = 
 
 function renderCreateTenderRequirementControlTable(control, value, profileId = '') {
     const columns = resolveCreateTenderRequirementColumns(control, profileId);
+    const normalizedRows = normalizeCreateTenderRequirementTableRows(value, columns, control.id);
+    const visibleColumns = getCreateTenderVisibleRequirementColumns(columns, normalizedRows);
     const sourceField = columns.find(column => column.sourceControlId);
     const sourceOptions = sourceField?.options || [];
     const shouldDisableAdd = Boolean(control.requiresSourceOptions && !sourceOptions.length);
 
     return `
-        <div class="requirement-table-wrap">
-            <table class="requirement-table">
+        <div class="requirement-table-wrap" data-requirement-table-wrap="${escapeCreateTenderHtml(control.id)}">
+            <table class="requirement-table" data-requirement-table="${escapeCreateTenderHtml(control.id)}">
                 <thead>
                     <tr>
-                        ${columns.map(column => `<th>${escapeCreateTenderHtml(column.label)}</th>`).join('')}
+                        ${visibleColumns.map(column => `<th>${escapeCreateTenderHtml(column.label)}</th>`).join('')}
                         <th aria-label="Actions"></th>
                     </tr>
                 </thead>
@@ -3303,6 +3322,8 @@ function initializeCreateTenderWizard() {
 
         if (column?.type === 'multiselect') {
             tableRow[field] = Array.from(row.querySelectorAll(`[data-requirement-table-field="${CSS.escape(field)}"]:checked`)).map(item => item.value);
+        } else if (column?.type === 'file') {
+            tableRow[field] = input.files?.[0]?.name || tableRow[field] || '';
         } else if (input.type === 'checkbox') {
             tableRow[field] = input.checked;
         } else {
@@ -3317,6 +3338,9 @@ function initializeCreateTenderWizard() {
                 const output = row.querySelector(`[data-requirement-calculated-field="${CSS.escape(column.id)}"]`);
                 if (output) output.textContent = formatCreateTenderRequirementCalculatedValue(calculateCreateTenderRequirementFormula(column.formula, tableRow));
             });
+        if (columns.some(column => column.showWhen?.field === field)) {
+            renderRequirementControl(controlId);
+        }
         if (controlId === 'quantityScheduleRows') {
             renderRequirementControl('specificationCards');
             renderRequirementControl('sampleRequirementRows');
