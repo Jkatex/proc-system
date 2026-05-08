@@ -159,6 +159,7 @@ const createTenderRequirementOptions = {
     materialQualities: ['Standard', 'Premium', 'Certified', 'Industrial grade', 'Food grade', 'Medical grade'],
     standards: ['ISO', 'TBS', 'CE', 'UL', 'Energy Star', 'Manufacturer certificate'],
     certifications: ['ISO 9001', 'ISO 14001', 'OSHA', 'Professional registration', 'Manufacturer certification'],
+    sampleEvaluationCriteria: ['Appearance', 'Build quality', 'Material compliance', 'Functionality', 'Packaging', 'Labeling', 'Durability', 'Safety'],
     frequency: ['Daily', 'Weekly', 'Monthly', 'Quarterly', 'On demand'],
     serviceLevels: ['Basic', 'Standard', 'Premium', 'Critical'],
     yesNo: ['Yes', 'No']
@@ -217,6 +218,36 @@ const createTenderRequirementTemplates = {
                             { id: 'packagingRequirements', label: 'Packaging', type: 'text' },
                             { id: 'shelfLifeRequirements', label: 'Shelf life', type: 'text' },
                             { id: 'installationRequirements', label: 'Installation requirement', type: 'textarea' }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'sampleRequirements',
+                title: 'Sample Requirements',
+                hint: 'Enable samples only when buyers need physical samples before evaluation or award.',
+                controls: [
+                    { id: 'requireSamples', label: 'Require Samples?', type: 'yesno' },
+                    {
+                        id: 'sampleRequirementRows',
+                        label: 'Sample requirement design',
+                        type: 'table',
+                        addLabel: 'Add Sample Requirement',
+                        emptyText: 'No sample requirements added yet.',
+                        requiresSourceOptions: true,
+                        sourceEmptyText: 'Add at least one quantity item before adding sample requirements.',
+                        showWhen: { field: 'requireSamples', value: 'Yes' },
+                        columns: [
+                            { id: 'relatedBoqItem', label: 'Related BOQ Item', type: 'source-select', sourceControlId: 'quantityScheduleRows', sourceLabelField: 'itemDescription' },
+                            { id: 'sampleRequired', label: 'Sample Required', type: 'toggle' },
+                            { id: 'numberOfSamples', label: 'Number of Samples', type: 'number' },
+                            { id: 'sampleDescription', label: 'Sample Description', type: 'textarea' },
+                            { id: 'deliveryLocation', label: 'Delivery Location', type: 'text' },
+                            { id: 'deliveryDeadline', label: 'Delivery Deadline', type: 'date' },
+                            { id: 'mandatory', label: 'Mandatory', type: 'toggle' },
+                            { id: 'returnableSample', label: 'Returnable Sample?', type: 'toggle' },
+                            { id: 'evaluationCriteria', label: 'Evaluation Criteria', type: 'multiselect', options: createTenderRequirementOptions.sampleEvaluationCriteria },
+                            { id: 'notes', label: 'Notes', type: 'textarea' }
                         ]
                     }
                 ]
@@ -937,6 +968,10 @@ function normalizeCreateTenderRequirementTableRows(rows = [], columns = [], cont
             id: String(row?.id || `requirement-${controlId}-${Date.now()}-${index}`)
         };
         columns.forEach(column => {
+            if (column.type === 'multiselect') {
+                normalizedRow[column.id] = Array.isArray(row?.[column.id]) ? row[column.id].map(String) : [];
+                return;
+            }
             if (column.type === 'toggle') {
                 normalizedRow[column.id] = Boolean(row?.[column.id]);
                 return;
@@ -1020,6 +1055,17 @@ function resolveCreateTenderRequirementFields(control, profileId = '') {
     });
 }
 
+function resolveCreateTenderRequirementColumns(control, profileId = '') {
+    return (control.columns || []).map(column => {
+        if (column.type !== 'source-select') return column;
+        return {
+            ...column,
+            type: 'select',
+            options: getCreateTenderRequirementSourceOptions(profileId, column)
+        };
+    });
+}
+
 function getCreateTenderRequirementCardTitle(control, card, cardIndex, fields = []) {
     const titleFieldId = control.cardTitleField;
     const titleField = fields.find(field => field.id === titleFieldId);
@@ -1078,6 +1124,21 @@ function formatCreateTenderRequirementCalculatedValue(value) {
 function renderCreateTenderRequirementField(field, value, attributes = '') {
     if (field.type === 'select') {
         return `<select class="form-input" ${attributes}>${renderCreateTenderRequirementSelectOptions(field.options || [], value)}</select>`;
+    }
+    if (field.type === 'yesno') {
+        const radioAttributes = attributes.replace(/\bid="[^"]*"\s*/g, '');
+        const selectedValue = String(value || 'No');
+        const name = `requirement-${field.id}`;
+        return `
+            <div class="requirement-choice-group" role="radiogroup" aria-label="${escapeCreateTenderHtml(field.label)}">
+                ${['Yes', 'No'].map(option => `
+                    <label class="requirement-choice-option">
+                        <input type="radio" name="${escapeCreateTenderHtml(name)}" value="${option}" ${selectedValue === option ? 'checked' : ''} ${radioAttributes}>
+                        <span>${option}</span>
+                    </label>
+                `).join('')}
+            </div>
+        `;
     }
     if (field.type === 'multiselect') {
         return renderCreateTenderRequirementMultiSelect(field.options || [], value, attributes);
@@ -1140,12 +1201,13 @@ function renderCreateTenderRequirementControlListItems(control, value) {
     `).join('');
 }
 
-function renderCreateTenderRequirementTableRows(rows = [], control) {
-    const normalizedRows = normalizeCreateTenderRequirementTableRows(rows, control.columns || [], control.id);
+function renderCreateTenderRequirementTableRows(rows = [], control, profileId = '') {
+    const columns = resolveCreateTenderRequirementColumns(control, profileId);
+    const normalizedRows = normalizeCreateTenderRequirementTableRows(rows, columns, control.id);
     if (!normalizedRows.length) {
         return `
             <tr>
-                <td colspan="${(control.columns || []).length + 1}">
+                <td colspan="${columns.length + 1}">
                     <div class="scope-empty">${escapeCreateTenderHtml(control.emptyText || 'No rows added yet.')}</div>
                 </td>
             </tr>
@@ -1154,7 +1216,7 @@ function renderCreateTenderRequirementTableRows(rows = [], control) {
 
     return normalizedRows.map((row, rowIndex) => `
         <tr data-requirement-table-row="${escapeCreateTenderHtml(row.id)}" data-requirement-control="${escapeCreateTenderHtml(control.id)}" data-requirement-table-row-index="${rowIndex}">
-            ${(control.columns || []).map(column => {
+            ${columns.map(column => {
                 if (column.type === 'index') {
                     return `<td><span class="requirement-auto-value">${rowIndex + 1}</span></td>`;
                 }
@@ -1175,22 +1237,28 @@ function renderCreateTenderRequirementTableRows(rows = [], control) {
     `).join('');
 }
 
-function renderCreateTenderRequirementControlTable(control, value) {
+function renderCreateTenderRequirementControlTable(control, value, profileId = '') {
+    const columns = resolveCreateTenderRequirementColumns(control, profileId);
+    const sourceField = columns.find(column => column.sourceControlId);
+    const sourceOptions = sourceField?.options || [];
+    const shouldDisableAdd = Boolean(control.requiresSourceOptions && !sourceOptions.length);
+
     return `
         <div class="requirement-table-wrap">
             <table class="requirement-table">
                 <thead>
                     <tr>
-                        ${(control.columns || []).map(column => `<th>${escapeCreateTenderHtml(column.label)}</th>`).join('')}
+                        ${columns.map(column => `<th>${escapeCreateTenderHtml(column.label)}</th>`).join('')}
                         <th aria-label="Actions"></th>
                     </tr>
                 </thead>
                 <tbody data-requirement-table-body="${escapeCreateTenderHtml(control.id)}">
-                    ${renderCreateTenderRequirementTableRows(value, control)}
+                    ${renderCreateTenderRequirementTableRows(value, control, profileId)}
                 </tbody>
             </table>
         </div>
-        <button class="btn btn-secondary scope-add" type="button" data-requirement-control-add="${escapeCreateTenderHtml(control.id)}">${escapeCreateTenderHtml(control.addLabel || `Add ${control.label}`)}</button>
+        ${shouldDisableAdd ? `<span class="form-hint">${escapeCreateTenderHtml(control.sourceEmptyText || 'Add a source item first.')}</span>` : ''}
+        <button class="btn btn-secondary scope-add" type="button" data-requirement-control-add="${escapeCreateTenderHtml(control.id)}" ${shouldDisableAdd ? 'disabled' : ''}>${escapeCreateTenderHtml(control.addLabel || `Add ${control.label}`)}</button>
     `;
 }
 
@@ -1247,7 +1315,7 @@ function renderCreateTenderRequirementControl(control, value, profileId = '') {
     }
 
     if (control.type === 'table') {
-        return renderCreateTenderRequirementControlTable(control, value);
+        return renderCreateTenderRequirementControlTable(control, value, profileId);
     }
 
     if (control.type === 'cards') {
@@ -1295,7 +1363,10 @@ function renderCreateTenderRequirementSections(profile, mainDraft = getCreateTen
                         <span class="form-hint">${escapeCreateTenderHtml(section.hint)}</span>
                     </div>
                     <div class="requirement-control-grid">
-                        ${(section.controls || []).map(control => `
+                        ${(section.controls || []).filter(control => {
+                            if (!control.showWhen) return true;
+                            return String(requirementDraft.fields?.[control.showWhen.field] || '') === String(control.showWhen.value);
+                        }).map(control => `
                             <div class="requirement-control ${['table', 'cards', 'accordion'].includes(control.type) ? 'requirement-control-wide' : ''}">
                                 <span class="form-label">${escapeCreateTenderHtml(control.label)}</span>
                                 ${renderCreateTenderRequirementControl(control, requirementDraft.fields?.[control.id], profile.id)}
@@ -3164,7 +3235,17 @@ function initializeCreateTenderWizard() {
 
         if (control.type === 'table') {
             const tableBody = wizard.querySelector(`[data-requirement-table-body="${CSS.escape(controlId)}"]`);
-            if (tableBody) tableBody.innerHTML = renderCreateTenderRequirementTableRows(getRequirementControlValue(controlId), control);
+            if (tableBody) {
+                const controlNode = tableBody.closest('.requirement-control');
+                if (controlNode) {
+                    controlNode.innerHTML = `
+                        <span class="form-label">${escapeCreateTenderHtml(control.label)}</span>
+                        ${renderCreateTenderRequirementControlTable(control, getRequirementControlValue(controlId), profile.id)}
+                    `;
+                } else {
+                    tableBody.innerHTML = renderCreateTenderRequirementTableRows(getRequirementControlValue(controlId), control, profile.id);
+                }
+            }
             return;
         }
 
@@ -3186,6 +3267,9 @@ function initializeCreateTenderWizard() {
         const controlId = input.dataset.requirementInput;
         if (!controlId) return;
         saveRequirementControlValue(controlId, input.type === 'checkbox' ? input.checked : input.value);
+        if (controlId === 'requireSamples') {
+            refreshProfileText();
+        }
     };
 
     const updateRequirementControlListItem = (input) => {
@@ -3211,16 +3295,23 @@ function initializeCreateTenderWizard() {
         const control = getCreateTenderRequirementControl(profile.id, controlId);
         if (!control) return;
 
-        const rows = normalizeCreateTenderRequirementTableRows(getRequirementControlValue(controlId), control.columns || [], controlId);
+        const columns = resolveCreateTenderRequirementColumns(control, profile.id);
+        const rows = normalizeCreateTenderRequirementTableRows(getRequirementControlValue(controlId), columns, controlId);
         const tableRow = rows.find(entry => entry.id === row.dataset.requirementTableRow);
+        const column = columns.find(item => item.id === field);
         if (!tableRow) return;
 
-        tableRow[field] = input.value;
-        if (input.type === 'checkbox') tableRow[field] = input.checked;
+        if (column?.type === 'multiselect') {
+            tableRow[field] = Array.from(row.querySelectorAll(`[data-requirement-table-field="${CSS.escape(field)}"]:checked`)).map(item => item.value);
+        } else if (input.type === 'checkbox') {
+            tableRow[field] = input.checked;
+        } else {
+            tableRow[field] = input.value;
+        }
         saveRequirementControlValue(controlId, rows);
 
         const rowIndex = Number(row.dataset.requirementTableRowIndex || 0);
-        (control.columns || [])
+        columns
             .filter(column => column.type === 'calculated')
             .forEach(column => {
                 const output = row.querySelector(`[data-requirement-calculated-field="${CSS.escape(column.id)}"]`);
@@ -3228,6 +3319,7 @@ function initializeCreateTenderWizard() {
             });
         if (controlId === 'quantityScheduleRows') {
             renderRequirementControl('specificationCards');
+            renderRequirementControl('sampleRequirementRows');
         }
     };
 
@@ -3631,16 +3723,36 @@ function initializeCreateTenderWizard() {
             }
 
             if (control.type === 'table') {
-                const rows = normalizeCreateTenderRequirementTableRows(getRequirementControlValue(controlId), control.columns || [], controlId);
+                const columns = resolveCreateTenderRequirementColumns(control, profile.id);
+                const sourceField = columns.find(column => column.sourceControlId);
+                const sourceOptions = sourceField?.options || [];
+                if (control.requiresSourceOptions && !sourceOptions.length) return;
+
+                const rows = normalizeCreateTenderRequirementTableRows(getRequirementControlValue(controlId), columns, controlId);
                 const nextRow = { id: `requirement-${controlId}-${Date.now()}` };
-                (control.columns || []).forEach(column => {
-                    if (column.type === 'toggle') nextRow[column.id] = false;
-                    if (column.type !== 'index' && column.type !== 'calculated' && column.type !== 'toggle') nextRow[column.id] = '';
+                columns.forEach(column => {
+                    if (column.type === 'index' || column.type === 'calculated') return;
+                    if (column.type === 'multiselect') {
+                        nextRow[column.id] = [];
+                        return;
+                    }
+                    if (column.type === 'toggle') {
+                        nextRow[column.id] = false;
+                        return;
+                    }
+                    if (column.sourceControlId) {
+                        nextRow[column.id] = column.options?.[0]?.value || '';
+                        return;
+                    }
+                    nextRow[column.id] = '';
                 });
                 rows.push(nextRow);
                 saveRequirementControlValue(controlId, rows);
                 renderRequirementControl(controlId);
-                if (controlId === 'quantityScheduleRows') renderRequirementControl('specificationCards');
+                if (controlId === 'quantityScheduleRows') {
+                    renderRequirementControl('specificationCards');
+                    renderRequirementControl('sampleRequirementRows');
+                }
                 wizard.querySelector(`[data-requirement-table-body="${CSS.escape(controlId)}"] [data-requirement-table-row]:last-child input`)?.focus();
                 return;
             }
@@ -3685,11 +3797,15 @@ function initializeCreateTenderWizard() {
 
             if (control.type === 'table') {
                 const row = target.closest('[data-requirement-table-row]');
-                const rows = normalizeCreateTenderRequirementTableRows(getRequirementControlValue(controlId), control.columns || [], controlId)
+                const columns = resolveCreateTenderRequirementColumns(control, profile.id);
+                const rows = normalizeCreateTenderRequirementTableRows(getRequirementControlValue(controlId), columns, controlId)
                     .filter(item => item.id !== row?.dataset.requirementTableRow);
                 saveRequirementControlValue(controlId, rows);
                 renderRequirementControl(controlId);
-                if (controlId === 'quantityScheduleRows') renderRequirementControl('specificationCards');
+                if (controlId === 'quantityScheduleRows') {
+                    renderRequirementControl('specificationCards');
+                    renderRequirementControl('sampleRequirementRows');
+                }
                 return;
             }
 

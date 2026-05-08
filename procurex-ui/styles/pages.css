@@ -2563,6 +2563,35 @@
     gap: 8px;
 }
 
+.tender-wizard-page .requirement-choice-group {
+    display: inline-grid;
+    grid-template-columns: repeat(2, minmax(84px, 1fr));
+    gap: 8px;
+    width: fit-content;
+    max-width: 100%;
+}
+
+.tender-wizard-page .requirement-choice-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 8px 12px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-md);
+    background: var(--card-bg);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.tender-wizard-page .requirement-choice-option:has(input:checked) {
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 10%, var(--card-bg));
+    color: var(--primary);
+}
+
 .tender-wizard-page .requirement-check-option {
     display: flex;
     align-items: center;
