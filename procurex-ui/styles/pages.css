@@ -2179,6 +2179,10 @@
     margin-bottom: 0;
 }
 
+.tender-wizard-page .custom-category-field {
+    margin-top: 12px;
+}
+
 .tender-wizard-page .form-input {
     min-height: 48px;
     background: var(--card-bg);
