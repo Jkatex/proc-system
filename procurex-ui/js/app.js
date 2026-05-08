@@ -131,17 +131,17 @@ class ProcureXApp {
                         <span class="app-menu-icon">${this.getAppMenuIcon('procurement')}</span>
                         <span><strong>Procurement</strong><em>Marketplace, create tender, bid</em></span>
                     </button>
+                    <button class="app-menu-card app-menu-evaluation" data-navigate="bid-evaluation">
+                        <span class="app-menu-icon">${this.getAppMenuIcon('evaluation')}</span>
+                        <span><strong>Evaluation</strong><em>Bid opening, scoring, review</em></span>
+                    </button>
+                    <button class="app-menu-card app-menu-awarding" data-navigate="award-recommendation">
+                        <span class="app-menu-icon">${this.getAppMenuIcon('awarding')}</span>
+                        <span><strong>Awarding and Contract</strong><em>Award, approvals, signature</em></span>
+                    </button>
                     <button class="app-menu-card app-menu-contracts" data-navigate="records-history">
                         <span class="app-menu-icon">${this.getAppMenuIcon('contracts')}</span>
                         <span><strong>Records & History</strong><em>Past tenders, bids, awards</em></span>
-                    </button>
-                    <button class="app-menu-card app-menu-contracts muted" type="button" disabled>
-                        <span class="app-menu-icon">${this.getAppMenuIcon('contracts')}</span>
-                        <span><strong>Contract Performance</strong><em>Coming later</em></span>
-                    </button>
-                    <button class="app-menu-card app-menu-insights muted" type="button" disabled>
-                        <span class="app-menu-icon">${this.getAppMenuIcon('insights')}</span>
-                        <span><strong>Market Intelligence</strong><em>Coming later</em></span>
                     </button>
                 </div>
 
@@ -157,6 +157,8 @@ class ProcureXApp {
         const icons = {
             iam: '<path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/><path d="M16 11l2 2 4-4"/>',
             procurement: '<path d="M3 9h18l-2-5H5z"/><path d="M5 9v11h14V9"/><path d="M9 13h6"/><path d="M9 17h4"/>',
+            evaluation: '<path d="M9 11l2 2 4-4"/><path d="M8 4h8"/><path d="M8 20h8"/><path d="M5 7h14v10H5z"/>',
+            awarding: '<circle cx="12" cy="8" r="4"/><path d="M8.5 11.5L7 21l5-3 5 3-1.5-9.5"/><path d="M10.5 8l1 1 2-2"/>',
             contracts: '<path d="M8 3h8l3 3v15H5V3z"/><path d="M15 3v4h4"/><path d="M8 12h8"/><path d="M8 16h6"/>',
             insights: '<path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16v-5"/><path d="M12 16V8"/><path d="M16 16v-9"/>'
         };
@@ -183,10 +185,10 @@ class ProcureXApp {
             'tender-details': 'Procurement',
             'records-history': 'Records & History',
             'bidding-workspace': 'Procurement',
-            'bid-evaluation': 'Procurement',
-            'award-recommendation': 'Procurement',
-            'contract-negotiation': 'Contract Performance',
-            'post-award-tracking': 'Contract Performance'
+            'bid-evaluation': 'Evaluation',
+            'award-recommendation': 'Awarding and Contract',
+            'contract-negotiation': 'Awarding and Contract',
+            'post-award-tracking': 'Awarding and Contract'
         };
 
         return pageAppNames[this.currentPage] || this.getPageTitle();
@@ -396,7 +398,7 @@ class ProcureXApp {
                     datasets: [{
                         label: `${period.label} user activity`,
                         data: period.activity,
-                        backgroundColor: '#2563eb',
+                        backgroundColor: '#008080',
                         borderRadius: 8
                     }]
                 },
@@ -410,8 +412,8 @@ class ProcureXApp {
                     datasets: [{
                         label: `${period.label} user value`,
                         data: period.value,
-                        borderColor: '#16a34a',
-                        backgroundColor: 'rgba(22, 163, 74, 0.12)',
+                        borderColor: '#008080',
+                        backgroundColor: 'rgba(0, 128, 128, 0.10)',
                         fill: true,
                         tension: 0.35
                     }]
@@ -1142,6 +1144,73 @@ class ProcureXApp {
         return true;
     }
 
+    renderEkycRegistrySummary(record = {}) {
+        const rows = Array.isArray(record.summaryRows) && record.summaryRows.length
+            ? record.summaryRows
+            : [
+                ['Source', record.source],
+                ['Reference', record.reference],
+                ['Status', record.status],
+                ['Registered', record.registeredOn],
+                ['Location', record.location]
+            ];
+
+        return rows
+            .filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== '')
+            .map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`)
+            .join('');
+    }
+
+    createTraRegistryRecord(reference, overrides = {}) {
+        const record = {
+            source: 'TRA',
+            reference,
+            tin: reference,
+            name: 'Mariam Saidi Nyoni',
+            email: 'mariam.nyoni@example.co.tz',
+            mobileNumber: '0718 462 390',
+            physicalAddress: 'Plot 24, Mbezi Beach, Dar es Salaam',
+            postalAddress: 'P.O. Box 20418',
+            firstName: 'Mariam',
+            middleName: 'Saidi',
+            lastName: 'Nyoni',
+            title: 'MS',
+            gender: 'Female',
+            dateOfBirth: '12/09/1991',
+            businessType: 'Sole Proprietor',
+            entityType: 'Individual',
+            status: 'CER',
+            taxRegion: 'DSM',
+            registeredOn: '18/05/2022 09:34:21',
+            numberOfEmployees: '1',
+            location: 'Dar es Salaam, Tanzania',
+            ...overrides
+        };
+
+        record.summaryRows = [
+            ['Name', record.name],
+            ["Taxpayer's Identification Number (TIN)", record.tin || record.reference],
+            ['Email', record.email],
+            ['Mobile Number', record.mobileNumber],
+            ['Physical Address', record.physicalAddress],
+            ['Postal Address', record.postalAddress],
+            ['First Name', record.firstName],
+            ['Middle Name', record.middleName],
+            ['Last Name', record.lastName],
+            ['Title', record.title],
+            ['Gender', record.gender],
+            ['Date of Birth', record.dateOfBirth],
+            ['Business Type', record.businessType],
+            ['Entity Type', record.entityType],
+            ['TIN Status', record.status],
+            ['Tax Region', record.taxRegion],
+            ['Registration Date', record.registeredOn],
+            ['Number of Employees', record.numberOfEmployees]
+        ];
+
+        return record;
+    }
+
     fetchMockRegistryRecord(form) {
         const entityType = form.querySelector('input[name="entityType"]:checked')?.value || 'individual';
         const registryConfig = this.getEkycRegistryConfig(entityType, form);
@@ -1156,14 +1225,7 @@ class ProcureXApp {
 
         const recordKey = entityType === 'business' && registryConfig.source === 'TRA' ? 'businessTin' : entityType;
         const mockRecords = {
-            individual: {
-                source: 'TRA',
-                reference,
-                name: 'Asha M. Mwakalinga',
-                status: 'Active taxpayer',
-                registeredOn: '2019-03-22',
-                location: 'Arusha, Tanzania'
-            },
+            individual: this.createTraRegistryRecord(reference),
             company: {
                 source: 'BRELA',
                 reference,
@@ -1180,14 +1242,25 @@ class ProcureXApp {
                 registeredOn: '2022-11-03',
                 location: 'Mwanza, Tanzania'
             },
-            businessTin: {
-                source: 'TRA',
-                reference,
-                name: 'Arusha Local Office Traders',
-                status: 'Active local-government registered business',
-                registeredOn: '2020-05-19',
+            businessTin: this.createTraRegistryRecord(reference, {
+                name: 'Zahra Omari Trading',
+                email: 'accounts@zahraomari.example.co.tz',
+                mobileNumber: '0764 210 558',
+                physicalAddress: 'Shop 8, Sokoine Road, Arusha',
+                postalAddress: 'P.O. Box 6112',
+                firstName: 'Zahra',
+                middleName: 'Omari',
+                lastName: 'Msuya',
+                title: 'MRS',
+                gender: 'Female',
+                dateOfBirth: '03/02/1988',
+                businessType: 'Sole Proprietor',
+                entityType: 'Business',
+                taxRegion: 'ARU',
+                registeredOn: '22/11/2020 14:16:08',
+                numberOfEmployees: '4',
                 location: 'Arusha, Tanzania'
-            }
+            })
         };
 
         const record = mockRecords[recordKey] || mockRecords.individual;
@@ -1196,18 +1269,12 @@ class ProcureXApp {
         form.dataset.registryFetched = 'true';
 
         const review = form.querySelector('[data-registry-review]');
+        const kicker = form.querySelector('[data-registry-kicker]');
         const name = form.querySelector('[data-registry-name]');
         const summary = form.querySelector('[data-registry-summary]');
+        if (kicker) kicker.textContent = record.source === 'TRA' ? 'TRA Information (Fetched)' : 'Fetched information';
         if (name) name.textContent = record.name;
-        if (summary) {
-            summary.innerHTML = `
-                <div><span>Source</span><strong>${record.source}</strong></div>
-                <div><span>Reference</span><strong>${record.reference}</strong></div>
-                <div><span>Status</span><strong>${record.status}</strong></div>
-                <div><span>Registered</span><strong>${record.registeredOn}</strong></div>
-                <div><span>Location</span><strong>${record.location}</strong></div>
-            `;
-        }
+        if (summary) summary.innerHTML = this.renderEkycRegistrySummary(record);
         review?.classList.remove('ekyc-hidden');
     }
 

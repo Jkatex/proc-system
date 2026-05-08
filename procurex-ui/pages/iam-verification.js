@@ -1,5 +1,22 @@
 // eKYC onboarding page shown after first sign-in for new accounts.
 
+function renderIamRegistrySummary(registryRecord = {}, profile = {}) {
+    const rows = Array.isArray(registryRecord.summaryRows) && registryRecord.summaryRows.length
+        ? registryRecord.summaryRows
+        : [
+            ['Source', registryRecord.source || profile.registrySource || 'TRA / BRELA'],
+            ['Reference', registryRecord.reference || profile.tinNumber || profile.brelaNumber || profile.businessNumber || 'Stored on account'],
+            ['Status', registryRecord.status || profile.verifiedStatus || 'Verified'],
+            ['Registered', registryRecord.registeredOn || 'Stored registry date'],
+            ['Location', registryRecord.location || 'Stored registry location']
+        ];
+
+    return rows
+        .filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== '')
+        .map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`)
+        .join('');
+}
+
 function renderIamVerification() {
     const accountEmail = mockData.session?.email || mockData.pendingAccount?.email || '';
     const profile = mockData.eKycProfile || {};
@@ -15,13 +32,8 @@ function renderIamVerification() {
     const completeSummaryCopy = isUpdateMode
         ? 'Review the updated IAM record before saving. Only changed registry or signature details need to be verified again.'
         : 'The onboarding record is ready. Completing this demo will mark the account as verified and open the ProcureX app launcher.';
-    const registrySummary = hasRegistryRecord ? `
-        <div><span>Source</span><strong>${registryRecord.source || profile.registrySource || 'TRA / BRELA'}</strong></div>
-        <div><span>Reference</span><strong>${registryRecord.reference || profile.tinNumber || profile.brelaNumber || profile.businessNumber || 'Stored on account'}</strong></div>
-        <div><span>Status</span><strong>${registryRecord.status || profile.verifiedStatus || 'Verified'}</strong></div>
-        <div><span>Registered</span><strong>${registryRecord.registeredOn || 'Stored registry date'}</strong></div>
-        <div><span>Location</span><strong>${registryRecord.location || 'Stored registry location'}</strong></div>
-    ` : '';
+    const registrySummary = hasRegistryRecord ? renderIamRegistrySummary(registryRecord, profile) : '';
+    const registryKicker = registryRecord.source === 'TRA' ? 'TRA Information (Fetched)' : 'Fetched information';
 
     return `
         <div class="ekyc-page">
@@ -186,7 +198,7 @@ function renderIamVerification() {
                             <div class="registry-review ${hasRegistryRecord ? '' : 'ekyc-hidden'}" data-registry-review>
                                 <div class="registry-review-header">
                                     <div>
-                                        <span class="section-kicker">Fetched information</span>
+                                        <span class="section-kicker" data-registry-kicker>${registryKicker}</span>
                                         <h3 data-registry-name>${registryRecord.name || profile.verifiedName || 'Waiting for lookup'}</h3>
                                     </div>
                                     <span class="badge badge-success">Matched</span>

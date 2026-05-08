@@ -134,7 +134,7 @@ const mockData = {
         {
             id: 'T003',
             title: 'IT Infrastructure Upgrade',
-            type: 'Non-Consultancy Services',
+            type: 'Service',
             status: 'Awarded',
             budget: 800000000,
             closingDate: '2026-04-18',
@@ -147,7 +147,7 @@ const mockData = {
 
     // Procurement setup used by the create tender wizard.
     procurementSetup: {
-        methods: ['Open / public tender', 'Restricted tender', 'Closed / invited tender'],
+        methods: ['Open Tender', 'Invited Tender'],
         types: [
             {
                 id: 'goods',
@@ -454,7 +454,7 @@ const mockData = {
             },
             {
                 id: 'services',
-                label: 'Non-Consultancy Services',
+                label: 'Service',
                 description: 'Operational services where advisory expertise is not the main component.',
                 categories: [
                     'Auction Services',
@@ -571,7 +571,7 @@ const mockData = {
             },
             {
                 id: 'consultancy',
-                label: 'Consultancy Services',
+                label: 'Consultancy',
                 description: 'Professional advisory, research, design, audit, and expert assignments.',
                 categories: [
                     'Information Technology Consultancy',
@@ -838,12 +838,12 @@ const mockData = {
             { title: 'Create tender', detail: 'Start a new buyer procurement', nav: 'create-tender', audience: ['buyer', 'all'], signal: 'drafts' }
         ],
         appShortcuts: [
-            { app: 'Procurement', detail: 'Tenders, bids, evaluation', usage: 96, nav: 'supplier-marketplace', audience: ['buyer', 'supplier', 'all'] },
+            { app: 'Procurement', detail: 'Marketplace, create tender, bid', usage: 96, nav: 'supplier-marketplace', audience: ['buyer', 'supplier', 'all'] },
+            { app: 'Evaluation', detail: 'Bid opening, scoring, review', usage: 94, nav: 'bid-evaluation', audience: ['buyer', 'all'] },
+            { app: 'Awarding and Contract', detail: 'Awards, approvals, signatures', usage: 92, nav: 'award-recommendation', audience: ['buyer', 'supplier', 'all'] },
             { app: 'Records & History', detail: 'Past tenders, bids, awards, cancellations', usage: 90, nav: 'records-history', audience: ['buyer', 'supplier', 'all'] },
             { app: 'IAM', detail: 'Registration and eKYC review', usage: 88, nav: 'verification-status', audience: ['buyer', 'supplier', 'all'] },
-            { app: 'Dashboard', detail: 'Your work, spend, and insights', usage: 84, nav: 'workspace-dashboard', audience: ['buyer', 'supplier', 'all'] },
-            { app: 'Contracts', detail: 'Signature and execution tracking', usage: 76, nav: 'contract-negotiation', audience: ['buyer', 'supplier', 'all'] },
-            { app: 'Performance', detail: 'Delivery, GRN, invoice checks', usage: 68, nav: 'post-award-tracking', audience: ['supplier', 'all'] }
+            { app: 'Dashboard', detail: 'Your work, spend, and insights', usage: 84, nav: 'workspace-dashboard', audience: ['buyer', 'supplier', 'all'] }
         ],
         insights: [
             { type: 'Suggested supplier', title: '3 suppliers match Office IT Procurement', detail: 'Two have low risk and recent delivery capacity.', urgency: 78, nav: 'supplier-marketplace', audience: ['buyer', 'all'] },

@@ -10,9 +10,9 @@ html {
 }
 
 body {
-    font-family: "Optimistic VF", "Montserrat", Helvetica, Arial, "Noto Sans", sans-serif;
-    font-size: 14px;
-    line-height: 1.5;
+    font-family: "SF Pro Text", system-ui, -apple-system, BlinkMacSystemFont, Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.47;
     color: var(--text-primary);
     background: var(--background);
     letter-spacing: 0;
@@ -33,37 +33,37 @@ svg {
 
 /* DESIGN.md token bridge */
 :root {
-    --primary-blue: #0064e0;
-    --primary-blue-deep: #0457cb;
-    --primary-blue-light: rgba(0, 145, 255, 0.12);
-    --primary-blue-soft: #0091ff;
-    --text-primary: #0a1317;
-    --text-secondary: #5d6c7b;
-    --text-muted: #8595a4;
-    --border: #ced0d4;
-    --border-soft: #dee3e9;
+    --primary-blue: #008080;
+    --primary-blue-deep: #009a9a;
+    --primary-blue-light: rgba(0, 128, 128, 0.10);
+    --primary-blue-soft: #40c9c9;
+    --text-primary: #1d1d1f;
+    --text-secondary: #333333;
+    --text-muted: #7a7a7a;
+    --border: #e0e0e0;
+    --border-soft: #f0f0f0;
     --background: #ffffff;
-    --surface-soft: #f1f4f7;
+    --surface-soft: #f5f5f7;
     --card-bg: #ffffff;
-    --ink-button: #000000;
-    --ink-button-pressed: #444950;
-    --success-green: #31a24c;
-    --success-bg: rgba(49, 162, 76, 0.12);
-    --warning-amber: #f2a918;
-    --warning-bg: rgba(247, 185, 40, 0.18);
-    --error-red: #e41e3f;
-    --error-bg: rgba(228, 30, 63, 0.12);
+    --ink-button: #008080;
+    --ink-button-pressed: #009a9a;
+    --success-green: #1d1d1f;
+    --success-bg: #f5f5f7;
+    --warning-amber: #7a7a7a;
+    --warning-bg: #f5f5f7;
+    --error-red: #b00020;
+    --error-bg: #fff1f1;
     --sidebar-width: 212px;
-    --header-height: 64px;
-    --radius-xs: 2px;
-    --radius-sm: 4px;
-    --radius-md: 6px;
-    --radius-lg: 8px;
-    --radius-xl: 16px;
-    --radius-xxl: 24px;
-    --radius-xxxl: 32px;
-    --radius-full: 100px;
-    --shadow-sticky: rgba(20, 22, 26, 0.3) 0 1px 4px 0;
+    --header-height: 44px;
+    --radius-xs: 5px;
+    --radius-sm: 8px;
+    --radius-md: 11px;
+    --radius-lg: 18px;
+    --radius-xl: 18px;
+    --radius-xxl: 18px;
+    --radius-xxxl: 18px;
+    --radius-full: 9999px;
+    --shadow-sticky: none;
 
     /* Compatibility aliases for auth CSS and page modules. */
     --primary: var(--ink-button);
@@ -76,7 +76,7 @@ svg {
     --warning: var(--warning-amber);
     --warning-light: var(--warning-bg);
     --text-dark: var(--text-primary);
-    --text-base: #1c1e21;
+    --text-base: #1d1d1f;
     --text-muted-auth: var(--text-muted);
     --border-light: var(--border-soft);
     --bg-light: var(--surface-soft);
@@ -135,7 +135,7 @@ a {
 .nav-title {
     font-size: 28px;
     line-height: 1.21;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--text-primary);
     font-feature-settings: "ss01", "ss02";
 }
@@ -254,7 +254,7 @@ a {
 }
 
 .font-medium {
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .font-semibold {

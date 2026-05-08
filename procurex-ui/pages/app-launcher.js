@@ -24,6 +24,8 @@ function appLauncherIcon(type) {
         dashboard: '<path d="M3 13h8V3H3z"/><path d="M13 21h8V11h-8z"/><path d="M13 3h8v6h-8z"/><path d="M3 21h8v-6H3z"/>',
         iam: '<path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/><path d="M16 11l2 2 4-4"/>',
         procurement: '<path d="M3 9h18l-2-5H5z"/><path d="M5 9v11h14V9"/><path d="M9 13h6"/>',
+        evaluation: '<path d="M9 11l2 2 4-4"/><path d="M8 4h8"/><path d="M8 20h8"/><path d="M5 7h14v10H5z"/>',
+        awarding: '<circle cx="12" cy="8" r="4"/><path d="M8.5 11.5L7 21l5-3 5 3-1.5-9.5"/><path d="M10.5 8l1 1 2-2"/>',
         contracts: '<path d="M8 3h8l3 3v15H5V3z"/><path d="M15 3v4h4"/><path d="M8 12h8M8 16h6"/>',
         insights: '<path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16v-5"/><path d="M12 16V8"/><path d="M16 16v-9"/>'
     };
@@ -59,6 +61,26 @@ function renderAppLauncher() {
             action: 'Open marketplace'
         },
         {
+            icon: 'evaluation',
+            tone: 'evaluation',
+            title: 'Evaluation',
+            subtitle: 'Bid opening, scoring, technical and financial review',
+            badge: 'Review',
+            badgeClass: 'badge-info',
+            nav: 'bid-evaluation',
+            action: 'Open evaluation'
+        },
+        {
+            icon: 'awarding',
+            tone: 'awarding',
+            title: 'Awarding and Contract',
+            subtitle: 'Award recommendation, approvals, and contract signature',
+            badge: 'Award',
+            badgeClass: 'badge-success',
+            nav: 'award-recommendation',
+            action: 'Open awarding'
+        },
+        {
             icon: 'contracts',
             tone: 'contracts',
             title: 'Records & History',
@@ -67,26 +89,6 @@ function renderAppLauncher() {
             badgeClass: 'badge-info',
             nav: 'records-history',
             action: 'Open records'
-        },
-        {
-            icon: 'contracts',
-            tone: 'contracts',
-            title: 'Contract Performance',
-            subtitle: 'Milestones, GRN, invoices',
-            badge: 'Coming later',
-            badgeClass: 'badge-info',
-            action: 'Unavailable',
-            disabled: true
-        },
-        {
-            icon: 'insights',
-            tone: 'insights',
-            title: 'Market Intelligence',
-            subtitle: 'Pricing, coverage, risk signals',
-            badge: 'Coming later',
-            badgeClass: 'badge-info',
-            action: 'Unavailable',
-            disabled: true
         }
     ];
 
@@ -97,7 +99,7 @@ function renderAppLauncher() {
                     <div>
                         <span class="section-kicker">Welcome to ProcureX</span>
                         <h1>Your account is ready. Choose where to start.</h1>
-                        <p>Use the app launcher to move between IAM, Procurement, dashboard analytics, and future modules. The 9-dot app drawer stays at the top right on every workspace screen.</p>
+                        <p>Use the app launcher to move between IAM, Procurement, Evaluation, Awarding and Contract, Records, and dashboard analytics. The 9-dot app drawer stays at the top right on every workspace screen.</p>
                     </div>
                     <div class="launcher-intro-card">
                         <span class="badge ${iam.badgeClass}">${iam.statusLabel}</span>

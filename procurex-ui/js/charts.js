@@ -9,8 +9,8 @@ const chartConfigs = {
             datasets: [{
                 label: 'Active Users',
                 data: mockData.charts.adminActivity.data,
-                backgroundColor: '#2563EB',
-                borderColor: '#2563EB',
+                backgroundColor: '#008080',
+                borderColor: '#008080',
                 borderWidth: 1
             }]
         },
@@ -46,8 +46,8 @@ const chartConfigs = {
             datasets: [{
                 label: 'Monthly Spend (TZS)',
                 data: mockData.charts.buyerSpend.data,
-                borderColor: '#2563EB',
-                backgroundColor: '#EFF6FF',
+                borderColor: '#008080',
+                backgroundColor: 'rgba(0, 128, 128, 0.10)',
                 tension: 0.4,
                 fill: true
             }]

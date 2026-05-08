@@ -11,19 +11,19 @@ function getCreateTenderSetup() {
     ];
     const setup = mockData.procurementSetup || {};
     const types = Array.isArray(setup.types) && setup.types.length ? setup.types : fallbackTypes;
-    const methods = Array.isArray(setup.methods) && setup.methods.length
-        ? setup.methods
-        : ['Open or public tender', 'Closed / invited tender'];
-    const normalizedMethods = methods.includes('Direct procurement') ? methods : [...methods, 'Direct procurement'];
+    const methods = ['Open Tender', 'Invited Tender'];
     const defaultType = types.find(type => type.id === setup.defaultType) || types[0];
 
-    return { types, methods: normalizedMethods, defaultType };
+    return { types, methods, defaultType };
 }
 
 const createTenderOtherCategoryLabel = 'Other';
+const createTenderOpenMethod = 'Open Tender';
+const createTenderClosedMethod = 'Invited Tender';
 
 function renderCreateTenderOptions(options, selectedValue = '') {
-    return options
+    const blankOption = selectedValue ? '' : '<option value="" selected></option>';
+    return blankOption + options
         .map(option => `<option ${option === selectedValue ? 'selected' : ''}>${escapeCreateTenderHtml(option)}</option>`)
         .join('');
 }
@@ -37,88 +37,78 @@ function getCreateTenderCategoryOptions(categories = []) {
     return options.some(isCreateTenderOtherCategory) ? options : [...options, createTenderOtherCategoryLabel];
 }
 
-function getCreateTenderCategorySelection(categories = [], savedCategory = '') {
-    const definedCategories = Array.isArray(categories) ? categories.filter(Boolean) : [];
-    const options = getCreateTenderCategoryOptions(definedCategories);
-    const category = String(savedCategory || '').trim();
-    const fallbackCategory = definedCategories[0] || options[0] || createTenderOtherCategoryLabel;
+function normalizeCreateTenderCategories(value = []) {
+    const rawItems = Array.isArray(value)
+        ? value
+        : String(value || '').split(',').map(item => item.trim());
+    const seen = new Set();
 
-    if (!category) {
-        return {
-            selectedCategory: fallbackCategory,
-            customCategory: '',
-            effectiveCategory: fallbackCategory
-        };
+    return rawItems
+        .map(item => String(item || '').trim())
+        .filter(item => item && !isCreateTenderOtherCategory(item))
+        .filter(item => {
+            const key = item.toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+}
+
+function getCreateTenderSelectedCategories(mainDraft = {}) {
+    const fromList = normalizeCreateTenderCategories(mainDraft.categories);
+    return fromList.length ? fromList : normalizeCreateTenderCategories(mainDraft.category);
+}
+
+function renderCreateTenderSelectedCategoryRows(categories = []) {
+    if (!categories.length) {
+        return '<div class="scope-empty">No categories added yet.</div>';
     }
 
-    if (definedCategories.includes(category)) {
-        return {
-            selectedCategory: category,
-            customCategory: '',
-            effectiveCategory: category
-        };
-    }
+    return categories.map(category => `
+        <div class="selected-category-row" data-selected-category="${escapeCreateTenderHtml(category)}">
+            <span>${escapeCreateTenderHtml(category)}</span>
+            <button class="boq-row-action icon-delete-btn" type="button" data-category-remove="${escapeCreateTenderHtml(category)}" aria-label="Remove ${escapeCreateTenderHtml(category)}" title="Remove category">${renderCreateTenderTrashIcon()}</button>
+        </div>
+    `).join('');
+}
 
-    return {
-        selectedCategory: createTenderOtherCategoryLabel,
-        customCategory: isCreateTenderOtherCategory(category) ? '' : category,
-        effectiveCategory: category
-    };
+function getCreateTenderWizardCategories(wizard) {
+    return normalizeCreateTenderCategories(Array.from(wizard?.querySelectorAll('[data-selected-category]') || [])
+        .map(item => item.dataset.selectedCategory));
 }
 
 function getCreateTenderWizardCategoryValue(wizard, fallbackCategory = '') {
-    const categorySelect = wizard?.querySelector('[data-procurement-category]');
-    const customCategoryInput = wizard?.querySelector('[data-custom-category]');
-    const selectedCategory = categorySelect?.value || fallbackCategory;
-
-    if (isCreateTenderOtherCategory(selectedCategory)) {
-        return customCategoryInput?.value.trim() || createTenderOtherCategoryLabel;
-    }
-
-    return selectedCategory || fallbackCategory;
+    return getCreateTenderWizardCategories(wizard).join(', ') || fallbackCategory;
 }
 
-const createTenderBoqStorageKey = 'procurex.createTender.boqItems';
-const createTenderCommercialTypeStorageKey = 'procurex.createTender.commercialType';
-const createTenderMilestoneStorageKey = 'procurex.createTender.milestones';
-const createTenderDeliverableStorageKey = 'procurex.createTender.deliverables';
-const createTenderDeliverableTypeStorageKey = 'procurex.createTender.deliverableType';
-const createTenderLicenseStorageKey = 'procurex.createTender.regulatoryLicenses';
-const createTenderLicenseTypeStorageKey = 'procurex.createTender.regulatoryLicenseType';
-const createTenderAttachmentStorageKey = 'procurex.createTender.requiredAttachments';
-const createTenderAttachmentTypeStorageKey = 'procurex.createTender.attachmentType';
-const createTenderContactStorageKey = 'procurex.createTender.contactDetails';
-const createTenderDraftStorageKey = 'procurex.createTender.savedDraft';
+const createTenderBoqStorageKey = 'procurex.createTender.v2.boqItems';
+const createTenderCommercialTypeStorageKey = 'procurex.createTender.v2.commercialType';
+const createTenderMilestoneStorageKey = 'procurex.createTender.v2.milestones';
+const createTenderDeliverableStorageKey = 'procurex.createTender.v2.deliverables';
+const createTenderDeliverableTypeStorageKey = 'procurex.createTender.v2.deliverableType';
+const createTenderLicenseStorageKey = 'procurex.createTender.v2.regulatoryLicenses';
+const createTenderLicenseTypeStorageKey = 'procurex.createTender.v2.regulatoryLicenseType';
+const createTenderAttachmentStorageKey = 'procurex.createTender.v2.requiredAttachments';
+const createTenderAttachmentTypeStorageKey = 'procurex.createTender.v2.attachmentType';
+const createTenderContactStorageKey = 'procurex.createTender.v2.contactDetails';
+const createTenderDraftStorageKey = 'procurex.createTender.v2.savedDraft';
 const createTenderPublishedStorageKey = 'procurex.marketplace.publishedTenders';
 const createTenderSelectedTenderStorageKey = 'procurex.marketplace.selectedTenderId';
 
-const defaultCreateTenderBoqItems = [
-    { id: 'boq-1', item: '1.1', description: 'Site clearing and preparation', qty: 5, unit: 'Sites', rate: 32000000 },
-    { id: 'boq-2', item: '2.1', description: 'Foundation and structural frame', qty: 5, unit: 'Centers', rate: 380000000 },
-    { id: 'boq-3', item: '3.1', description: 'MEP installations', qty: 5, unit: 'Centers', rate: 210000000 },
-    { id: 'boq-4', item: '4.1', description: 'Finishes, fixtures, handover', qty: 5, unit: 'Centers', rate: 338000000 }
-];
+const defaultCreateTenderBoqItems = [];
 
 const defaultCreateTenderMilestones = [
-    { id: 'milestone-publication', name: 'Publication', date: '2026-05-12' },
-    { id: 'milestone-clarification', name: 'Clarification deadline', date: '2026-05-28' },
-    { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-12' },
-    { id: 'milestone-opening', name: 'Bid opening', date: '2026-06-12' },
-    { id: 'milestone-evaluation', name: 'Evaluation complete', date: '2026-06-24' },
-    { id: 'milestone-award', name: 'Award target', date: '2026-06-30' }
+    { id: 'milestone-publication', name: 'Publication', date: '' },
+    { id: 'milestone-clarification', name: 'Clarification deadline', date: '' },
+    { id: 'milestone-closing', name: 'Bid closing', date: '' },
+    { id: 'milestone-opening', name: 'Bid opening', date: '' },
+    { id: 'milestone-evaluation', name: 'Evaluation complete', date: '' },
+    { id: 'milestone-award', name: 'Award target', date: '' }
 ];
 
-const defaultCreateTenderDeliverables = [
-    { id: 'deliverable-1', text: 'Site readiness and foundation certification' },
-    { id: 'deliverable-2', text: 'Structural, electrical, plumbing, and finishing works' },
-    { id: 'deliverable-3', text: 'Final inspection pack and as-built drawings' }
-];
+const defaultCreateTenderDeliverables = [];
 
-const defaultCreateTenderAttachments = [
-    { id: 'attachment-1', text: 'Technical specifications' },
-    { id: 'attachment-2', text: 'Drawings and BOQ template' },
-    { id: 'attachment-3', text: 'Draft contract conditions' }
-];
+const defaultCreateTenderAttachments = [];
 
 const createTenderRegulatoryLicenseCatalog = [
     { group: 'Food, Drugs & Cosmetics', license: 'Food Business Permit / Food Handling License', body: 'Tanzania Medicines and Medical Devices Authority (TMDA)' },
@@ -161,6 +151,478 @@ const createTenderRegulatoryLicenseCatalog = [
 ];
 
 const defaultCreateTenderRegulatoryLicenses = [];
+
+const createTenderRequirementOptions = {
+    currencies: ['TZS', 'USD', 'EUR', 'GBP'],
+    procurementMethods: ['Open Tender', 'Invited Tender'],
+    units: ['Pcs', 'Unit', 'Set', 'Lot', 'Kg', 'Litre', 'Meter', 'Sqm', 'Day', 'Month'],
+    materialQualities: ['Standard', 'Premium', 'Certified', 'Industrial grade', 'Food grade', 'Medical grade'],
+    standards: ['ISO', 'TBS', 'CE', 'UL', 'Energy Star', 'Manufacturer certificate'],
+    certifications: ['ISO 9001', 'ISO 14001', 'OSHA', 'Professional registration', 'Manufacturer certification'],
+    frequency: ['Daily', 'Weekly', 'Monthly', 'Quarterly', 'On demand'],
+    serviceLevels: ['Basic', 'Standard', 'Premium', 'Critical'],
+    yesNo: ['Yes', 'No']
+};
+
+const createTenderRequirementTemplates = {
+    goods: {
+        title: 'Goods Tender Requirements',
+        sections: [
+           {
+                id: 'quantitySchedule',
+                title: 'Quantity Schedule / BOQ',
+                hint: 'Editable table with row numbering and calculated totals.',
+                controls: [
+                    {
+                        id: 'quantityScheduleRows',
+                        label: 'Quantity lines',
+                        type: 'table',
+                        addLabel: 'Add Item',
+                        emptyText: 'No items added yet.',
+                        columns: [
+                            { id: 'itemNumber', label: 'Item', type: 'index' },
+                            { id: 'itemDescription', label: 'Description', type: 'text' },
+                            { id: 'unitOfMeasure', label: 'Unit', type: 'select', options: createTenderRequirementOptions.units },
+                            { id: 'quantity', label: 'Qty', type: 'number' },
+                            { id: 'unitPrice', label: 'Unit price', type: 'currency' },
+                            { id: 'totalPrice', label: 'Total', type: 'calculated', formula: 'quantity*unitPrice' }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'technicalSpecifications',
+                title: 'Technical Specifications',
+                hint: 'Use specification cards so each product specification is captured as a full object.',
+                controls: [
+                    {
+                        id: 'specificationCards',
+                        label: 'Product specifications',
+                        type: 'cards',
+                        addLabel: 'Add Specification',
+                        requiresSourceOptions: true,
+                        sourceEmptyText: 'Add at least one quantity item before adding specifications.',
+                        cardTitleField: 'itemRowId',
+                        cardTitlePrefix: 'Specification for',
+                        emptyText: 'No product specifications added yet.',
+                        fields: [
+                            { id: 'itemRowId', label: 'Item', type: 'source-select', sourceControlId: 'quantityScheduleRows', sourceLabelField: 'itemDescription' },
+                            { id: 'productDescription', label: 'Product description', type: 'textarea' },
+                            { id: 'brandRequirements', label: 'Brand requirement', type: 'text' },
+                            { id: 'standards', label: 'Standards', type: 'multiselect', options: createTenderRequirementOptions.standards },
+                            { id: 'performanceSpecifications', label: 'Performance specs', type: 'textarea' },
+                            { id: 'dimensions', label: 'Dimensions', type: 'text' },
+                            { id: 'materialQuality', label: 'Material quality', type: 'select', options: createTenderRequirementOptions.materialQualities },
+                            { id: 'warrantyRequirements', label: 'Warranty', type: 'text' },
+                            { id: 'packagingRequirements', label: 'Packaging', type: 'text' },
+                            { id: 'shelfLifeRequirements', label: 'Shelf life', type: 'text' },
+                            { id: 'installationRequirements', label: 'Installation requirement', type: 'textarea' }
+                        ]
+                    }
+                ]
+            },
+            
+            {
+                id: 'eligibilityRequirements',
+                title: 'Other Eligibility Requirements',
+                hint: 'Use add/remove requirement cards for supplier eligibility documents and notes.',
+                controls: [
+                    {
+                        id: 'otherEligibilityRequirements',
+                        label: 'Other requirements',
+                        type: 'cards',
+                        addLabel: 'Add Requirement',
+                        emptyText: 'No other eligibility requirements added yet.',
+                        fields: [
+                            { id: 'requirementName', label: 'Requirement name', type: 'text' },
+                            { id: 'mandatory', label: 'Mandatory', type: 'toggle' },
+                            { id: 'requiresUpload', label: 'Requires upload', type: 'toggle' },
+                            { id: 'notes', label: 'Notes', type: 'textarea' }
+                        ],
+                        presets: ['Certificate of incorporation', 'Tax clearance certificate', 'VAT registration', 'Manufacturer authorization', 'Past supply contracts', 'Audited financial statements']
+                    }
+                ]
+            }
+        ]
+    },
+    works: {
+        title: 'Works Tender Requirements',
+        sections: [
+            {
+                id: 'generalInformation',
+                title: 'General Tender Information',
+                hint: 'Capture the core project details.',
+                controls: [
+                    { id: 'projectName', label: 'Project name', type: 'text' },
+                    { id: 'location', label: 'Location', type: 'text' },
+                    { id: 'contractType', label: 'Contract type', type: 'text' },
+                    { id: 'completionPeriod', label: 'Completion period', type: 'text' },
+                    { id: 'fundingSource', label: 'Funding source', type: 'text' }
+                ]
+            },
+            {
+                id: 'technicalRequirements',
+                title: 'Technical Requirements',
+                hint: 'Document upload requirement table for drawings, reports, and specifications.',
+                controls: [
+                    {
+                        id: 'requiredDocuments',
+                        label: 'Required documents',
+                        type: 'table',
+                        addLabel: 'Add Document',
+                        emptyText: 'No document requirements added yet.',
+                        columns: [
+                            { id: 'documentType', label: 'Document type', type: 'select', options: ['Architectural drawings', 'Structural drawings', 'Electrical drawings', 'Mechanical drawings', 'Site reports', 'Material specifications'] },
+                            { id: 'mandatory', label: 'Mandatory', type: 'toggle' },
+                            { id: 'uploadTemplate', label: 'Upload template', type: 'toggle' },
+                            { id: 'notes', label: 'Notes', type: 'text' }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'boqRequirements',
+                title: 'Bills of Quantities (BOQ)',
+                hint: 'Advanced financial table with calculated line totals.',
+                controls: [
+                    {
+                        id: 'boqRows',
+                        label: 'BOQ lines',
+                        type: 'table',
+                        addLabel: 'Add BOQ Line',
+                        emptyText: 'No BOQ lines added yet.',
+                        columns: [
+                            { id: 'workItem', label: 'Work item', type: 'text' },
+                            { id: 'quantity', label: 'Qty', type: 'number' },
+                            { id: 'unit', label: 'Unit', type: 'select', options: createTenderRequirementOptions.units },
+                            { id: 'laborCost', label: 'Labor', type: 'currency' },
+                            { id: 'materialCost', label: 'Materials', type: 'currency' },
+                            { id: 'equipmentCost', label: 'Equipment', type: 'currency' },
+                            { id: 'totalCost', label: 'Total', type: 'calculated', formula: 'laborCost+materialCost+equipmentCost' }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'contractorQualifications',
+                title: 'Contractor Qualification Requirements',
+                hint: 'Expandable requirement cards for qualifications and thresholds.',
+                controls: [
+                    {
+                        id: 'contractorQualificationCards',
+                        label: 'Qualification requirements',
+                        type: 'cards',
+                        addLabel: 'Add Qualification',
+                        emptyText: 'No contractor qualifications added yet.',
+                        fields: [
+                            { id: 'requirementTitle', label: 'Requirement title', type: 'text' },
+                            { id: 'minimumThreshold', label: 'Minimum threshold', type: 'text' },
+                            { id: 'mandatory', label: 'Mandatory', type: 'toggle' },
+                            { id: 'uploadRequired', label: 'Upload required', type: 'toggle' },
+                            { id: 'notes', label: 'Notes', type: 'textarea' }
+                        ],
+                        presets: ['Construction license', 'Contractor registration class', 'Tax certificates', 'Insurance', 'OSHA compliance']
+                    }
+                ]
+            },
+            {
+                id: 'technicalCapacity',
+                title: 'Technical Capacity',
+                hint: 'Technical capacity evidence that can grow by requirement.',
+                controls: [
+                    { id: 'similarCompletedProjects', label: 'Similar completed projects', type: 'list', addLabel: 'Add Similar Project', emptyText: 'No similar projects added yet.' },
+                    { id: 'keyPersonnelCvs', label: 'Key personnel CVs', type: 'list', addLabel: 'Add CV Requirement', emptyText: 'No CV requirements added yet.' },
+                    { id: 'equipmentOwnership', label: 'Equipment ownership', type: 'list', addLabel: 'Add Equipment Ownership Requirement', emptyText: 'No equipment ownership requirements added yet.' },
+                    { id: 'bankStatements', label: 'Bank statements', type: 'text' },
+                    { id: 'annualTurnover', label: 'Annual turnover', type: 'number' }
+                ]
+            },
+            {
+                id: 'keyPersonnel',
+                title: 'Key Personnel Requirements',
+                hint: 'Personnel cards for role-specific experience, qualifications, and document toggles.',
+                controls: [
+                    {
+                        id: 'keyPersonnelCards',
+                        label: 'Key personnel',
+                        type: 'cards',
+                        addLabel: 'Add Personnel Role',
+                        emptyText: 'No key personnel roles added yet.',
+                        fields: [
+                            { id: 'position', label: 'Position', type: 'text' },
+                            { id: 'minimumExperience', label: 'Minimum experience', type: 'number', suffix: 'years' },
+                            { id: 'requiredQualification', label: 'Required qualification', type: 'textarea' },
+                            { id: 'certifications', label: 'Certifications', type: 'multiselect', options: createTenderRequirementOptions.certifications },
+                            { id: 'cvRequired', label: 'CV required', type: 'toggle' },
+                            { id: 'academicCertificateRequired', label: 'Academic cert required', type: 'toggle' }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'equipmentRequirements',
+                title: 'Equipment Requirements',
+                hint: 'Add each required equipment item and its proof.',
+                controls: [
+                    {
+                        id: 'equipmentRows',
+                        label: 'Required equipment',
+                        type: 'table',
+                        addLabel: 'Add Equipment',
+                        emptyText: 'No equipment requirements added yet.',
+                        columns: [
+                            { id: 'equipment', label: 'Equipment', type: 'text' },
+                            { id: 'quantity', label: 'Quantity', type: 'number' },
+                            { id: 'ownershipProof', label: 'Ownership proof', type: 'toggle' },
+                            { id: 'leaseAllowed', label: 'Lease allowed', type: 'toggle' }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    services: {
+        title: 'Service Tender Requirements',
+        sections: [
+            {
+                id: 'serviceDefinition',
+                title: 'Service Definition',
+                hint: 'Define the service at a high level.',
+                controls: [
+                    { id: 'scopeOfServices', label: 'Scope of services', type: 'textarea' },
+                    { id: 'serviceLocations', label: 'Service locations', type: 'list', addLabel: 'Add Service Location', emptyText: 'No service locations added yet.' },
+                    { id: 'performanceStandardsSummary', label: 'Performance standards', type: 'textarea' },
+                    { id: 'duration', label: 'Duration', type: 'text' }
+                ]
+            },
+            {
+                id: 'serviceScope',
+                title: 'Service Scope',
+                hint: 'Dynamic task cards for service tasks, frequency, KPI, and service level.',
+                controls: [
+                    {
+                        id: 'serviceTaskCards',
+                        label: 'Service tasks',
+                        type: 'cards',
+                        addLabel: 'Add Task',
+                        emptyText: 'No service tasks added yet.',
+                        fields: [
+                            { id: 'taskName', label: 'Task name', type: 'text' },
+                            { id: 'frequency', label: 'Frequency', type: 'select', options: createTenderRequirementOptions.frequency },
+                            { id: 'kpi', label: 'KPI', type: 'text' },
+                            { id: 'serviceLevel', label: 'Service level', type: 'select', options: createTenderRequirementOptions.serviceLevels }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'serviceRequirements',
+                title: 'Service Requirements',
+                hint: 'Conditional forms show the right fields for security, cleaning, or other service needs.',
+                controls: [
+                    {
+                        id: 'serviceRequirementCards',
+                        label: 'Service requirements',
+                        type: 'cards',
+                        addLabel: 'Add Service Requirement',
+                        emptyText: 'No service requirements added yet.',
+                        fields: [
+                            { id: 'serviceType', label: 'Service type', type: 'select', options: ['Security', 'Cleaning', 'Other'] },
+                            { id: 'numberOfGuards', label: 'Number of guards', type: 'number', showWhen: { field: 'serviceType', value: 'Security' } },
+                            { id: 'patrolFrequency', label: 'Patrol frequency', type: 'select', options: createTenderRequirementOptions.frequency, showWhen: { field: 'serviceType', value: 'Security' } },
+                            { id: 'shiftSchedule', label: 'Shift schedule', type: 'text', showWhen: { field: 'serviceType', value: 'Security' } },
+                            { id: 'cleaningAreas', label: 'Cleaning areas', type: 'textarea', showWhen: { field: 'serviceType', value: 'Cleaning' } },
+                            { id: 'cleaningFrequency', label: 'Cleaning frequency', type: 'select', options: createTenderRequirementOptions.frequency, showWhen: { field: 'serviceType', value: 'Cleaning' } },
+                            { id: 'cleaningMaterials', label: 'Cleaning materials', type: 'textarea', showWhen: { field: 'serviceType', value: 'Cleaning' } },
+                            { id: 'otherRequirement', label: 'Other requirement', type: 'textarea', showWhen: { field: 'serviceType', value: 'Other' } }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'staffingRequirements',
+                title: 'Staffing Requirements',
+                hint: 'Staff cards for role, qualifications, experience, certifications, and uniform rules.',
+                controls: [
+                    {
+                        id: 'staffCards',
+                        label: 'Staff requirements',
+                        type: 'cards',
+                        addLabel: 'Add Staff Requirement',
+                        emptyText: 'No staff requirements added yet.',
+                        fields: [
+                            { id: 'role', label: 'Role', type: 'text' },
+                            { id: 'qualification', label: 'Qualification', type: 'textarea' },
+                            { id: 'experience', label: 'Experience', type: 'number', suffix: 'years' },
+                            { id: 'certifications', label: 'Certification', type: 'multiselect', options: createTenderRequirementOptions.certifications },
+                            { id: 'uniformRequired', label: 'Uniform required', type: 'toggle' }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'equipmentRequirements',
+                title: 'Equipment Requirements',
+                hint: 'List required equipment, machines, systems, vehicles, or tools.',
+                controls: [
+                    { id: 'equipment', label: 'Equipment', type: 'list', addLabel: 'Add Equipment', emptyText: 'No equipment added yet.' }
+                ]
+            },
+            {
+                id: 'performanceStandards',
+                title: 'Performance Standards',
+                hint: 'KPI table for measurable standards, targets, penalties, and reporting.',
+                controls: [
+                    {
+                        id: 'performanceKpiRows',
+                        label: 'KPI table',
+                        type: 'table',
+                        addLabel: 'Add KPI',
+                        emptyText: 'No KPIs added yet.',
+                        columns: [
+                            { id: 'kpi', label: 'KPI', type: 'text' },
+                            { id: 'target', label: 'Target', type: 'text' },
+                            { id: 'penalty', label: 'Penalty', type: 'text' },
+                            { id: 'reportingFrequency', label: 'Reporting frequency', type: 'select', options: createTenderRequirementOptions.frequency }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'contractRequirements',
+                title: 'Service Contract Requirements',
+                hint: 'Clause builder for SLA, KPI, reporting, penalty, and renewal clauses.',
+                controls: [
+                    {
+                        id: 'contractClauseCards',
+                        label: 'Contract clauses',
+                        type: 'cards',
+                        addLabel: 'Add Clause',
+                        emptyText: 'No contract clauses added yet.',
+                        fields: [
+                            { id: 'clauseTitle', label: 'Clause title', type: 'text' },
+                            { id: 'description', label: 'Description', type: 'textarea' },
+                            { id: 'mandatory', label: 'Mandatory', type: 'toggle' }
+                        ],
+                        presets: ['Service level agreement (SLA)', 'KPIs', 'Reporting obligations', 'Penalty clauses', 'Renewal options']
+                    }
+                ]
+            }
+        ]
+    },
+    consultancy: {
+        title: 'Consultancy Tender Requirements',
+        sections: [
+            {
+                id: 'torPreparation',
+                title: 'Terms of Reference (TOR) Preparation',
+                hint: 'Accordion sections give a professional TOR editing experience.',
+                controls: [
+                    {
+                        id: 'torSections',
+                        label: 'TOR sections',
+                        type: 'accordion',
+                        panels: [
+                            { id: 'background', label: 'Background' },
+                            { id: 'objectives', label: 'Objectives' },
+                            { id: 'scope', label: 'Scope' },
+                            { id: 'deliverables', label: 'Deliverables' },
+                            { id: 'timeline', label: 'Timeline' },
+                            { id: 'reportingStructure', label: 'Reporting structure' }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'consultancyInformation',
+                title: 'Consultancy Information',
+                hint: 'Capture the core consultancy setup.',
+                controls: [
+                    { id: 'assignmentTitle', label: 'Assignment title', type: 'text' },
+                    { id: 'duration', label: 'Duration', type: 'text' },
+                    { id: 'typeOfConsultancy', label: 'Type of consultancy', type: 'text' },
+                    { id: 'selectionMethod', label: 'Selection method', type: 'text' }
+                ]
+            },
+            {
+                id: 'termsOfReference',
+                title: 'Terms of Reference',
+                hint: 'Define what consultants will do and submit.',
+                controls: [
+                    { id: 'tasks', label: 'Tasks', type: 'list', addLabel: 'Add Task', emptyText: 'No tasks added yet.' },
+                    { id: 'expectedOutputs', label: 'Expected outputs', type: 'list', addLabel: 'Add Expected Output', emptyText: 'No expected outputs added yet.' },
+                    { id: 'torDeliverables', label: 'Deliverables', type: 'list', addLabel: 'Add TOR Deliverable', emptyText: 'No TOR deliverables added yet.' },
+                    { id: 'torReportingObligations', label: 'Reporting obligations', type: 'list', addLabel: 'Add Reporting Obligation', emptyText: 'No reporting obligations added yet.' }
+                ]
+            },
+            {
+                id: 'qualificationRequirements',
+                title: 'Consultant Qualification Requirements',
+                hint: 'Expert cards for position, experience, qualifications, certifications, and CV requirements.',
+                controls: [
+                    { id: 'firmRegistration', label: 'Firm registration', type: 'text' },
+                    { id: 'firmExperience', label: 'Firm experience', type: 'textarea' },
+                    { id: 'financialCapacity', label: 'Financial capacity', type: 'text' },
+                    {
+                        id: 'expertCards',
+                        label: 'Expert requirements',
+                        type: 'cards',
+                        addLabel: 'Add Expert',
+                        emptyText: 'No expert requirements added yet.',
+                        fields: [
+                            { id: 'position', label: 'Position', type: 'text' },
+                            { id: 'yearsExperience', label: 'Years experience', type: 'number' },
+                            { id: 'qualifications', label: 'Qualifications', type: 'textarea' },
+                            { id: 'certifications', label: 'Certifications', type: 'multiselect', options: createTenderRequirementOptions.certifications },
+                            { id: 'cvRequired', label: 'CV required', type: 'toggle' }
+                        ],
+                        presets: ['Team leader', 'Subject expert', 'Specialist']
+                    }
+                ]
+            },
+            {
+                id: 'technicalProposalRequirements',
+                title: 'Technical Proposal Requirements',
+                hint: 'Checklist builder table for proposal submission requirements.',
+                controls: [
+                    {
+                        id: 'technicalProposalChecklist',
+                        label: 'Technical proposal checklist',
+                        type: 'table',
+                        addLabel: 'Add Requirement',
+                        emptyText: 'No technical proposal requirements added yet.',
+                        columns: [
+                            { id: 'requirement', label: 'Requirement', type: 'select', options: ['Methodology', 'Work plan', 'Team composition', 'CVs', 'Understanding of assignment'] },
+                            { id: 'mandatory', label: 'Mandatory', type: 'toggle' },
+                            { id: 'uploadRequired', label: 'Upload required', type: 'toggle' }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'financialProposalRequirements',
+                title: 'Financial Proposal Requirements',
+                hint: 'Financial table with calculated totals.',
+                controls: [
+                    {
+                        id: 'financialProposalRows',
+                        label: 'Financial proposal lines',
+                        type: 'table',
+                        addLabel: 'Add Financial Line',
+                        emptyText: 'No financial proposal lines added yet.',
+                        columns: [
+                            { id: 'costItem', label: 'Cost item', type: 'text' },
+                            { id: 'unit', label: 'Unit', type: 'select', options: ['Day', 'Month', 'Output', 'Trip', 'Lot'] },
+                            { id: 'rate', label: 'Rate', type: 'currency' },
+                            { id: 'quantity', label: 'Quantity', type: 'number' },
+                            { id: 'total', label: 'Total', type: 'calculated', formula: 'rate*quantity' }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+};
 
 const createTenderTypeProfiles = {
     works: {
@@ -222,24 +684,12 @@ const createTenderTypeProfiles = {
         responseFields: ['Technical compliance', 'Delivery and warranty plan'],
         assuranceTitle: 'Samples / Catalogs',
         assuranceBadge: 'If requested',
-        defaultItems: [
-            { id: 'goods-1', item: '1.1', description: 'Digital X-ray machine', qty: 3, unit: 'Units', rate: 145000000 },
-            { id: 'goods-2', item: '1.2', description: 'Patient monitor with accessories', qty: 20, unit: 'Units', rate: 18000000 },
-            { id: 'goods-3', item: '1.3', description: 'Installation, calibration, and training', qty: 1, unit: 'Lot', rate: 120000000 }
-        ],
-        defaultDeliverables: [
-            { id: 'deliverable-goods-1', text: 'Supply all listed goods with manufacturer warranty' },
-            { id: 'deliverable-goods-2', text: 'Install, calibrate, and test equipment on site' },
-            { id: 'deliverable-goods-3', text: 'Train users and hand over manuals and service contacts' }
-        ],
-        defaultAttachments: [
-            { id: 'attachment-goods-1', text: 'Technical specification sheet' },
-            { id: 'attachment-goods-2', text: 'Goods BOQ template' },
-            { id: 'attachment-goods-3', text: 'Warranty and after-sales service form' }
-        ],
+        defaultItems: [],
+        defaultDeliverables: [],
+        defaultAttachments: [],
         documentLabels: ['Technical specifications', 'Quantity schedule', 'Delivery requirements', 'Warranty terms', 'Compliance certificates'],
         keyRequirements: ['Product description and standards', 'Quantity and unit of measure', 'Delivery location and timeline', 'Warranty, packaging, shelf-life, and installation requirements', 'Manufacturer authorization where required'],
-        planningDocuments: ['Procurement plan', 'Technical specifications document', 'Cost estimates', 'Budget approval', 'Market survey report'],
+        planningDocuments: ['Procurement plan', 'Technical specifications document', 'Cost estimates', 'Market survey report'],
         submissionDocuments: ['Business license', 'Certificate of incorporation', 'Tax clearance certificate', 'VAT registration', 'Manufacturer authorization', 'Past supply contracts', 'Audited financial statements'],
         evaluationFlow: ['Preliminary examination', 'Technical evaluation', 'Financial evaluation', 'Award recommendation'],
         contractRequirements: ['Purchase order', 'Supply agreement', 'Delivery schedule', 'Inspection procedures', 'Warranty terms', 'Penalty clauses', 'Payment schedule'],
@@ -256,7 +706,7 @@ const createTenderTypeProfiles = {
     services: {
         id: 'services',
         commercialName: 'Service Schedule',
-        commercialTitle: 'Non-Consultancy Service Requirements',
+        commercialTitle: 'Service Requirements',
         commercialDescription: 'Tasks, service levels, durations, and fee estimates',
         commercialItemName: 'service line',
         commercialEmptyText: 'No service requirement lines added yet.',
@@ -264,7 +714,7 @@ const createTenderTypeProfiles = {
         addLabel: 'Add Service Line',
         importLabel: 'Import Service Schedule',
         reviewLabel: 'Service estimate',
-        scopeTitle: 'Non-Consultancy Service Requirements',
+        scopeTitle: 'Service Requirements',
         scopeLabel: 'Service scope',
         deliverablesTitle: 'Service outputs',
         deliverablesHint: 'List each operational output, SLA, report, or handover requirement.',
@@ -273,21 +723,9 @@ const createTenderTypeProfiles = {
         responseFields: ['Service approach', 'SLA and staffing plan'],
         assuranceTitle: 'SLA Evidence',
         assuranceBadge: 'Required',
-        defaultItems: [
-            { id: 'service-1', item: 'S1', description: 'Service mobilization and onboarding', qty: 1, unit: 'Lot', rate: 45000000 },
-            { id: 'service-2', item: 'S2', description: 'Monthly managed service delivery', qty: 12, unit: 'Months', rate: 32000000 },
-            { id: 'service-3', item: 'S3', description: 'Reporting, review, and knowledge transfer', qty: 4, unit: 'Quarters', rate: 12000000 }
-        ],
-        defaultDeliverables: [
-            { id: 'deliverable-service-1', text: 'Mobilization plan and assigned service team' },
-            { id: 'deliverable-service-2', text: 'Monthly service delivery against agreed SLA' },
-            { id: 'deliverable-service-3', text: 'Performance reports and handover pack' }
-        ],
-        defaultAttachments: [
-            { id: 'attachment-service-1', text: 'Terms of reference' },
-            { id: 'attachment-service-2', text: 'Service level agreement schedule' },
-            { id: 'attachment-service-3', text: 'Reporting template' }
-        ],
+        defaultItems: [],
+        defaultDeliverables: [],
+        defaultAttachments: [],
         documentLabels: ['Scope of services', 'SLA / KPI schedule', 'Staffing requirements', 'Equipment requirements', 'Reporting templates'],
         keyRequirements: ['Tasks, frequency, and service locations', 'Service levels and KPIs', 'Staffing levels and qualifications', 'Equipment and tools', 'Response times, penalties, and reporting frequency'],
         planningDocuments: ['Scope of services', 'Service locations', 'Performance standards', 'Duration and renewal assumptions', 'Budget estimate'],
@@ -307,7 +745,7 @@ const createTenderTypeProfiles = {
     consultancy: {
         id: 'consultancy',
         commercialName: 'Financial Proposal',
-        commercialTitle: 'Consultancy Service Requirements',
+        commercialTitle: 'Consultancy Requirements',
         commercialDescription: 'TOR outputs, expert inputs, reimbursables, and fee estimate',
         commercialItemName: 'consultancy input',
         commercialEmptyText: 'No consultancy requirement lines added yet.',
@@ -324,21 +762,9 @@ const createTenderTypeProfiles = {
         responseFields: ['Technical methodology', 'Key expert plan'],
         assuranceTitle: 'Experts & CVs',
         assuranceBadge: 'Required',
-        defaultItems: [
-            { id: 'consult-1', item: 'C1', description: 'Lead consultant professional fees', qty: 45, unit: 'Days', rate: 1200000 },
-            { id: 'consult-2', item: 'C2', description: 'Subject matter expert inputs', qty: 30, unit: 'Days', rate: 900000 },
-            { id: 'consult-3', item: 'C3', description: 'Workshops, travel, and reimbursables', qty: 1, unit: 'Lot', rate: 18000000 }
-        ],
-        defaultDeliverables: [
-            { id: 'deliverable-consult-1', text: 'Inception report and approved work plan' },
-            { id: 'deliverable-consult-2', text: 'Draft technical report and stakeholder validation' },
-            { id: 'deliverable-consult-3', text: 'Final report, training materials, and knowledge transfer' }
-        ],
-        defaultAttachments: [
-            { id: 'attachment-consult-1', text: 'Terms of reference' },
-            { id: 'attachment-consult-2', text: 'Key expert CV template' },
-            { id: 'attachment-consult-3', text: 'Technical and financial proposal templates' }
-        ],
+        defaultItems: [],
+        defaultDeliverables: [],
+        defaultAttachments: [],
         documentLabels: ['Terms of Reference', 'Methodology template', 'Key expert CV template', 'Evaluation criteria', 'Financial proposal template'],
         keyRequirements: ['Background, objectives, scope, and deliverables', 'Methodology and work plan', 'Team composition and CVs', 'Firm and expert experience', 'Professional fees, reimbursables, taxes, and daily rates'],
         planningDocuments: ['Terms of Reference', 'Background and objectives', 'Scope and deliverables', 'Timeline', 'Reporting structure', 'Selection method'],
@@ -358,22 +784,25 @@ const createTenderTypeProfiles = {
 };
 
 const defaultCreateTenderContact = {
-    tenderLocation: 'Dodoma region, Tanzania',
-    contactName: 'Procurement Management Unit',
-    phone: '+255 26 232 0000',
-    email: 'procurement@moh.go.tz',
+    tenderLocation: '',
+    contactName: '',
+    phone: '',
+    email: '',
     phoneVerified: false,
     emailVerified: false
 };
 
 const defaultCreateTenderMainDraft = {
-    title: 'Construction of Rural Health Centers',
-    scope: 'Construction of five rural health centers in Dodoma region, including civil works, MEP installation, site preparation, finishing, equipment rooms, and handover documentation.',
+    title: '',
+    scope: '',
     procurementTypeId: '',
-    method: '',
+    method: createTenderOpenMethod,
     category: '',
+    categories: [],
     visibility: 'Public marketplace',
-    visibilityNote: 'Visible to all verified suppliers after publication.'
+    visibilityNote: 'Visible to everyone in the public marketplace.',
+    invitedUsers: [],
+    requirements: {}
 };
 
 function escapeCreateTenderHtml(value = '') {
@@ -383,6 +812,525 @@ function escapeCreateTenderHtml(value = '') {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+}
+
+function isCreateTenderClosedMethod(method = '') {
+    return String(method || '').trim().toLowerCase() === createTenderClosedMethod.toLowerCase();
+}
+
+function normalizeCreateTenderMethod(method = '') {
+    return isCreateTenderClosedMethod(method) ? createTenderClosedMethod : createTenderOpenMethod;
+}
+
+function getCreateTenderVisibilityForMethod(method = '') {
+    return isCreateTenderClosedMethod(normalizeCreateTenderMethod(method)) ? 'Invited suppliers only' : 'Public marketplace';
+}
+
+function getCreateTenderVisibilityNoteForMethod(method = '', invitedCount = 0) {
+    if (isCreateTenderClosedMethod(normalizeCreateTenderMethod(method))) {
+        return invitedCount
+            ? `Invitation will be sent to ${invitedCount} selected supplier${invitedCount === 1 ? '' : 's'}.`
+            : 'Select suppliers to receive the tender invitation.';
+    }
+    return 'Visible to everyone in the public marketplace.';
+}
+
+function normalizeCreateTenderInvitedUser(user = {}, index = 0) {
+    const name = String(user.name || user.supplier || user.organization || '').trim();
+    const organization = String(user.organization || name).trim();
+    return {
+        id: String(user.id || name || `supplier-${index}`).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+        name,
+        organization,
+        email: String(user.email || '').trim(),
+        trustTier: String(user.trustTier || '').trim(),
+        risk: String(user.risk || '').trim()
+    };
+}
+
+function getCreateTenderInvitableUsers() {
+    const sources = [
+        mockData.users?.supplier,
+        ...(mockData.bidEvaluation?.riskSignals || []),
+        ...(mockData.bidEvaluation?.bids || [])
+    ];
+    const seen = new Set();
+    return sources
+        .map(normalizeCreateTenderInvitedUser)
+        .filter(user => {
+            const key = user.name.toLowerCase();
+            if (!key || seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+}
+
+function renderCreateTenderInvitedUserRows(users = []) {
+    if (!users.length) {
+        return '<div class="scope-empty">No invited suppliers selected yet.</div>';
+    }
+
+    return users.map(user => `
+        <div class="invited-user-row" data-invited-user="${escapeCreateTenderHtml(user.id)}">
+            <div>
+                <strong>${escapeCreateTenderHtml(user.name)}</strong>
+                <span>${escapeCreateTenderHtml(user.organization || 'Supplier')}</span>
+            </div>
+            <button class="boq-row-action icon-delete-btn" type="button" data-invited-user-remove="${escapeCreateTenderHtml(user.id)}" aria-label="Remove ${escapeCreateTenderHtml(user.name)}" title="Remove supplier">${renderCreateTenderTrashIcon()}</button>
+        </div>
+    `).join('');
+}
+
+function getCreateTenderRequirementTemplate(profileId = 'works') {
+    return createTenderRequirementTemplates[profileId] || createTenderRequirementTemplates.works;
+}
+
+function getCreateTenderRequirementDraft(profileId = 'works') {
+    const mainDraft = getCreateTenderMainDraft();
+    const requirements = mainDraft.requirements && typeof mainDraft.requirements === 'object' ? mainDraft.requirements : {};
+    return {
+        fields: { ...(requirements[profileId]?.fields || {}) },
+        lists: { ...(requirements[profileId]?.lists || {}) }
+    };
+}
+
+function saveCreateTenderRequirementDraft(profileId, requirementDraft) {
+    const mainDraft = getCreateTenderMainDraft();
+    saveCreateTenderMainDraft({
+        requirements: {
+            ...(mainDraft.requirements || {}),
+            [profileId]: {
+                fields: { ...(requirementDraft.fields || {}) },
+                lists: { ...(requirementDraft.lists || {}) }
+            }
+        }
+    });
+}
+
+function normalizeCreateTenderRequirementItem(item = {}, index = 0) {
+    return {
+        id: String(item.id || `requirement-${Date.now()}-${index}`),
+        text: String(item.text || '').trim()
+    };
+}
+
+function normalizeCreateTenderRequirementTextItems(items = [], controlId = 'item') {
+    if (!Array.isArray(items)) return [];
+    return items.map((item, index) => {
+        if (typeof item === 'string') {
+            return {
+                id: `requirement-${controlId}-${Date.now()}-${index}`,
+                text: item
+            };
+        }
+        return {
+            id: String(item.id || `requirement-${controlId}-${Date.now()}-${index}`),
+            text: String(item.text || '')
+        };
+    });
+}
+
+function normalizeCreateTenderRequirementTableRows(rows = [], columns = [], controlId = 'table') {
+    if (!Array.isArray(rows)) return [];
+    return rows.map((row, index) => {
+        const normalizedRow = {
+            id: String(row?.id || `requirement-${controlId}-${Date.now()}-${index}`)
+        };
+        columns.forEach(column => {
+            if (column.type === 'toggle') {
+                normalizedRow[column.id] = Boolean(row?.[column.id]);
+                return;
+            }
+            if (column.type !== 'index' && column.type !== 'calculated') {
+                normalizedRow[column.id] = String(row?.[column.id] || '');
+            }
+        });
+        return normalizedRow;
+    });
+}
+
+function normalizeCreateTenderRequirementObjectRows(rows = [], fields = [], controlId = 'card') {
+    if (!Array.isArray(rows)) return [];
+    return rows.map((row, index) => {
+        const normalizedRow = {
+            id: String(row?.id || `requirement-${controlId}-${Date.now()}-${index}`)
+        };
+        fields.forEach(field => {
+            if (field.type === 'multiselect') {
+                normalizedRow[field.id] = Array.isArray(row?.[field.id]) ? row[field.id].map(String) : [];
+                return;
+            }
+            if (field.type === 'toggle') {
+                normalizedRow[field.id] = Boolean(row?.[field.id]);
+                return;
+            }
+            normalizedRow[field.id] = String(row?.[field.id] || '');
+        });
+        return normalizedRow;
+    });
+}
+
+function getCreateTenderRequirementControl(profileId = 'works', controlId = '') {
+    const template = getCreateTenderRequirementTemplate(profileId);
+    return template.sections
+        .flatMap(section => section.controls || [])
+        .find(control => control.id === controlId);
+}
+
+function renderCreateTenderRequirementSelectOptions(options = [], selectedValue = '') {
+    return '<option value=""></option>' + options.map(option => {
+        const optionValue = typeof option === 'object' && option !== null ? String(option.value || '') : String(option);
+        const optionLabel = typeof option === 'object' && option !== null ? String(option.label || option.value || '') : String(option);
+        return `<option value="${escapeCreateTenderHtml(optionValue)}" ${optionValue === String(selectedValue || '') ? 'selected' : ''}>${escapeCreateTenderHtml(optionLabel)}</option>`;
+    }).join('');
+}
+
+function getCreateTenderRequirementSourceOptions(profileId = '', field = {}) {
+    const sourceControlId = field.sourceControlId;
+    if (!sourceControlId) return [];
+
+    const sourceControl = getCreateTenderRequirementControl(profileId, sourceControlId);
+    if (!sourceControl || sourceControl.type !== 'table') return [];
+
+    const requirementDraft = getCreateTenderRequirementDraft(profileId);
+    const rows = normalizeCreateTenderRequirementTableRows(
+        requirementDraft.fields?.[sourceControlId],
+        sourceControl.columns || [],
+        sourceControlId
+    );
+    const labelField = field.sourceLabelField || 'label';
+
+    return rows.map((row, index) => {
+        const label = row[labelField] || `Item ${index + 1}`;
+        return {
+            value: row.id,
+            label: `${index + 1}. ${label}`
+        };
+    });
+}
+
+function resolveCreateTenderRequirementFields(control, profileId = '') {
+    return (control.fields || []).map(field => {
+        if (field.type !== 'source-select') return field;
+        return {
+            ...field,
+            type: 'select',
+            options: getCreateTenderRequirementSourceOptions(profileId, field)
+        };
+    });
+}
+
+function getCreateTenderRequirementCardTitle(control, card, cardIndex, fields = []) {
+    const titleFieldId = control.cardTitleField;
+    const titleField = fields.find(field => field.id === titleFieldId);
+    const selectedValue = titleFieldId ? String(card[titleFieldId] || '') : '';
+    const selectedOption = (titleField?.options || []).find(option => {
+        const optionValue = typeof option === 'object' && option !== null ? String(option.value || '') : String(option);
+        return optionValue === selectedValue;
+    });
+    const selectedLabel = selectedOption
+        ? (typeof selectedOption === 'object' && selectedOption !== null ? String(selectedOption.label || selectedOption.value || '') : String(selectedOption))
+        : '';
+
+    if (selectedLabel && control.cardTitlePrefix) {
+        return `${control.cardTitlePrefix} ${selectedLabel}`;
+    }
+
+    return control.cardTitle || `${control.label} ${cardIndex + 1}`;
+}
+
+function renderCreateTenderRequirementMultiSelect(options = [], selectedValues = [], attributes = '') {
+    const selectedSet = new Set(Array.isArray(selectedValues) ? selectedValues.map(String) : []);
+    return `
+        <div class="requirement-multi-select">
+            ${options.map(option => {
+                const optionValue = String(option);
+                return `
+                    <label class="requirement-check-option">
+                        <input type="checkbox" value="${escapeCreateTenderHtml(optionValue)}" ${selectedSet.has(optionValue) ? 'checked' : ''} ${attributes}>
+                        <span>${escapeCreateTenderHtml(optionValue)}</span>
+                    </label>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
+function parseCreateTenderRequirementAmount(value) {
+    const parsed = Number(String(value ?? '').replace(/[^0-9.-]/g, ''));
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function calculateCreateTenderRequirementFormula(formula = '', row = {}) {
+    if (formula.includes('*')) {
+        return formula.split('*').map(part => parseCreateTenderRequirementAmount(row[part.trim()])).reduce((total, value) => total * value, 1);
+    }
+    if (formula.includes('+')) {
+        return formula.split('+').map(part => parseCreateTenderRequirementAmount(row[part.trim()])).reduce((total, value) => total + value, 0);
+    }
+    return parseCreateTenderRequirementAmount(row[formula.trim()]);
+}
+
+function formatCreateTenderRequirementCalculatedValue(value) {
+    return Number(value || 0).toLocaleString('en-US', { maximumFractionDigits: 2 });
+}
+
+function renderCreateTenderRequirementField(field, value, attributes = '') {
+    if (field.type === 'select') {
+        return `<select class="form-input" ${attributes}>${renderCreateTenderRequirementSelectOptions(field.options || [], value)}</select>`;
+    }
+    if (field.type === 'multiselect') {
+        return renderCreateTenderRequirementMultiSelect(field.options || [], value, attributes);
+    }
+    if (field.type === 'toggle') {
+        return `
+            <label class="requirement-toggle">
+                <input type="checkbox" ${value ? 'checked' : ''} ${attributes}>
+                <span></span>
+            </label>
+        `;
+    }
+    if (field.type === 'textarea' || field.type === 'richtext') {
+        return `<textarea class="form-input requirement-rich-input" rows="3" ${attributes}>${escapeCreateTenderHtml(value || '')}</textarea>`;
+    }
+    if (field.type === 'currency') {
+        return `<input class="form-input requirement-currency-input" type="number" min="0" step="0.01" value="${escapeCreateTenderHtml(value || '')}" ${attributes}>`;
+    }
+    const inputMarkup = `<input class="form-input" type="${escapeCreateTenderHtml(field.type || 'text')}" value="${escapeCreateTenderHtml(value || '')}" ${attributes}>`;
+    if (field.suffix) {
+        return `<div class="requirement-input-affix">${inputMarkup}<span>${escapeCreateTenderHtml(field.suffix)}</span></div>`;
+    }
+    return inputMarkup;
+}
+
+function renderCreateTenderRequirementListRows(items = [], listId = '') {
+    const normalizedItems = normalizeCreateTenderRequirementTextItems(items, listId);
+    if (!normalizedItems.length) {
+        return '<div class="scope-empty">No requirements added yet.</div>';
+    }
+
+    return normalizedItems.map(item => `
+        <div class="requirement-list-row" data-requirement-row="${escapeCreateTenderHtml(item.id)}" data-requirement-list="${escapeCreateTenderHtml(listId)}">
+            <input class="form-input requirement-list-input" value="${escapeCreateTenderHtml(item.text)}" data-requirement-list-input aria-label="Requirement item">
+            <button class="boq-row-action icon-delete-btn" type="button" data-requirement-delete aria-label="Remove requirement" title="Remove requirement">${renderCreateTenderTrashIcon()}</button>
+        </div>
+    `).join('');
+}
+
+function renderCreateTenderRequirementControlList(control, value) {
+    return `
+        <div class="requirement-control-list" data-requirement-list-items="${escapeCreateTenderHtml(control.id)}">
+            ${renderCreateTenderRequirementControlListItems(control, value)}
+        </div>
+        <button class="btn btn-secondary scope-add" type="button" data-requirement-control-add="${escapeCreateTenderHtml(control.id)}">${escapeCreateTenderHtml(control.addLabel || `Add ${control.label}`)}</button>
+    `;
+}
+
+function renderCreateTenderRequirementControlListItems(control, value) {
+    const items = normalizeCreateTenderRequirementTextItems(value, control.id);
+    if (!items.length) {
+        return `<div class="scope-empty">${escapeCreateTenderHtml(control.emptyText || 'No items added yet.')}</div>`;
+    }
+
+    return items.map(item => `
+        <div class="requirement-control-row" data-requirement-control-row="${escapeCreateTenderHtml(item.id)}" data-requirement-control="${escapeCreateTenderHtml(control.id)}">
+            <input class="form-input requirement-list-input" value="${escapeCreateTenderHtml(item.text)}" data-requirement-list-item aria-label="${escapeCreateTenderHtml(control.label)} item">
+            <button class="boq-row-action icon-delete-btn" type="button" data-requirement-control-delete="${escapeCreateTenderHtml(control.id)}" aria-label="Remove ${escapeCreateTenderHtml(control.label)}" title="Remove item">${renderCreateTenderTrashIcon()}</button>
+        </div>
+    `).join('');
+}
+
+function renderCreateTenderRequirementTableRows(rows = [], control) {
+    const normalizedRows = normalizeCreateTenderRequirementTableRows(rows, control.columns || [], control.id);
+    if (!normalizedRows.length) {
+        return `
+            <tr>
+                <td colspan="${(control.columns || []).length + 1}">
+                    <div class="scope-empty">${escapeCreateTenderHtml(control.emptyText || 'No rows added yet.')}</div>
+                </td>
+            </tr>
+        `;
+    }
+
+    return normalizedRows.map((row, rowIndex) => `
+        <tr data-requirement-table-row="${escapeCreateTenderHtml(row.id)}" data-requirement-control="${escapeCreateTenderHtml(control.id)}" data-requirement-table-row-index="${rowIndex}">
+            ${(control.columns || []).map(column => {
+                if (column.type === 'index') {
+                    return `<td><span class="requirement-auto-value">${rowIndex + 1}</span></td>`;
+                }
+                if (column.type === 'calculated') {
+                    const calculatedValue = calculateCreateTenderRequirementFormula(column.formula, row);
+                    return `<td><span class="requirement-auto-value" data-requirement-calculated-field="${escapeCreateTenderHtml(column.id)}">${formatCreateTenderRequirementCalculatedValue(calculatedValue)}</span></td>`;
+                }
+                return `
+                    <td>
+                        ${renderCreateTenderRequirementField(column, row[column.id], `data-requirement-table-field="${escapeCreateTenderHtml(column.id)}" aria-label="${escapeCreateTenderHtml(column.label)}"`)}
+                    </td>
+                `;
+            }).join('')}
+            <td class="requirement-table-action-cell">
+                <button class="boq-row-action icon-delete-btn" type="button" data-requirement-control-delete="${escapeCreateTenderHtml(control.id)}" aria-label="Remove row" title="Remove row">${renderCreateTenderTrashIcon()}</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function renderCreateTenderRequirementControlTable(control, value) {
+    return `
+        <div class="requirement-table-wrap">
+            <table class="requirement-table">
+                <thead>
+                    <tr>
+                        ${(control.columns || []).map(column => `<th>${escapeCreateTenderHtml(column.label)}</th>`).join('')}
+                        <th aria-label="Actions"></th>
+                    </tr>
+                </thead>
+                <tbody data-requirement-table-body="${escapeCreateTenderHtml(control.id)}">
+                    ${renderCreateTenderRequirementTableRows(value, control)}
+                </tbody>
+            </table>
+        </div>
+        <button class="btn btn-secondary scope-add" type="button" data-requirement-control-add="${escapeCreateTenderHtml(control.id)}">${escapeCreateTenderHtml(control.addLabel || `Add ${control.label}`)}</button>
+    `;
+}
+
+function renderCreateTenderRequirementCards(control, value, profileId = '') {
+    const fields = resolveCreateTenderRequirementFields(control, profileId);
+    const cards = normalizeCreateTenderRequirementObjectRows(value, fields, control.id);
+    const sourceField = fields.find(field => field.sourceControlId);
+    const sourceOptions = sourceField?.options || [];
+    const shouldDisableAdd = Boolean(control.requiresSourceOptions && !sourceOptions.length);
+    return `
+        <div class="requirement-card-list" data-requirement-card-list="${escapeCreateTenderHtml(control.id)}">
+            ${cards.length ? cards.map((card, cardIndex) => `
+                <article class="requirement-repeater-card" data-requirement-card-row="${escapeCreateTenderHtml(card.id)}" data-requirement-control="${escapeCreateTenderHtml(control.id)}">
+                    <div class="requirement-card-heading">
+                        <strong>${escapeCreateTenderHtml(getCreateTenderRequirementCardTitle(control, card, cardIndex, fields))}</strong>
+                        <button class="boq-row-action icon-delete-btn" type="button" data-requirement-control-delete="${escapeCreateTenderHtml(control.id)}" aria-label="Remove ${escapeCreateTenderHtml(control.label)}" title="Remove">${renderCreateTenderTrashIcon()}</button>
+                    </div>
+                    <div class="requirement-card-grid">
+                        ${fields.map(field => {
+                            const shouldShow = !field.showWhen || String(card[field.showWhen.field] || '') === String(field.showWhen.value);
+                            return `
+                                <label class="requirement-card-field ${field.type === 'textarea' || field.type === 'richtext' ? 'requirement-control-wide' : ''}" ${shouldShow ? '' : 'hidden'}>
+                                    <span class="form-label">${escapeCreateTenderHtml(field.label)}</span>
+                                    ${renderCreateTenderRequirementField(field, card[field.id], `data-requirement-card-field="${escapeCreateTenderHtml(field.id)}" aria-label="${escapeCreateTenderHtml(field.label)}"`)}
+                                </label>
+                            `;
+                        }).join('')}
+                    </div>
+                </article>
+            `).join('') : `<div class="scope-empty">${escapeCreateTenderHtml(control.emptyText || 'No items added yet.')}</div>`}
+        </div>
+        ${shouldDisableAdd ? `<span class="form-hint">${escapeCreateTenderHtml(control.sourceEmptyText || 'Add a source item first.')}</span>` : ''}
+        <button class="btn btn-secondary scope-add" type="button" data-requirement-control-add="${escapeCreateTenderHtml(control.id)}" ${shouldDisableAdd ? 'disabled' : ''}>${escapeCreateTenderHtml(control.addLabel || `Add ${control.label}`)}</button>
+    `;
+}
+
+function renderCreateTenderRequirementAccordion(control, value = {}) {
+    const values = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    return `
+        <div class="requirement-accordion" data-requirement-accordion="${escapeCreateTenderHtml(control.id)}">
+            ${(control.panels || []).map((panel, index) => `
+                <details class="requirement-accordion-item" ${index === 0 ? 'open' : ''}>
+                    <summary>${escapeCreateTenderHtml(panel.label)}</summary>
+                    <textarea class="form-input requirement-rich-input" rows="5" data-requirement-accordion-field="${escapeCreateTenderHtml(panel.id)}" aria-label="${escapeCreateTenderHtml(panel.label)}">${escapeCreateTenderHtml(values[panel.id] || '')}</textarea>
+                </details>
+            `).join('')}
+        </div>
+    `;
+}
+
+function renderCreateTenderRequirementControl(control, value, profileId = '') {
+    if (control.type === 'list') {
+        return renderCreateTenderRequirementControlList(control, value);
+    }
+
+    if (control.type === 'table') {
+        return renderCreateTenderRequirementControlTable(control, value);
+    }
+
+    if (control.type === 'cards') {
+        return renderCreateTenderRequirementCards(control, value, profileId);
+    }
+
+    if (control.type === 'accordion') {
+        return renderCreateTenderRequirementAccordion(control, value);
+    }
+
+    return renderCreateTenderRequirementField(control, value, `id="requirement-${escapeCreateTenderHtml(control.id)}" data-requirement-input="${escapeCreateTenderHtml(control.id)}"`);
+}
+
+function getCreateTenderPostLicenseRequirementSectionIds(profile = {}) {
+    return profile.id === 'goods' ? ['eligibilityRequirements'] : [];
+}
+
+function renderCreateTenderRequirementSections(profile, mainDraft = getCreateTenderMainDraft(), options = {}) {
+    const template = getCreateTenderRequirementTemplate(profile.id);
+    const requirementDraft = getCreateTenderRequirementDraft(profile.id);
+    const includeSectionIds = Array.isArray(options.includeSectionIds) ? new Set(options.includeSectionIds) : null;
+    const excludeSectionIds = new Set(Array.isArray(options.excludeSectionIds) ? options.excludeSectionIds : []);
+    const sections = template.sections.filter(section => {
+        if (includeSectionIds && !includeSectionIds.has(section.id)) return false;
+        return !excludeSectionIds.has(section.id);
+    });
+
+    if (!sections.length) return '';
+
+    return `
+        ${options.showHeader === false ? '' : `
+            <div class="requirement-type-header">
+                <div>
+                    <span class="section-kicker">Tender requirements</span>
+                    <h3>${escapeCreateTenderHtml(template.title)}</h3>
+                </div>
+                <span class="badge badge-info">${escapeCreateTenderHtml(profile.commercialName)}</span>
+            </div>
+        `}
+        <div class="requirement-section-grid">
+            ${sections.map(section => `
+                <article class="requirement-block">
+                    <div>
+                        <h4>${escapeCreateTenderHtml(section.title)}</h4>
+                        <span class="form-hint">${escapeCreateTenderHtml(section.hint)}</span>
+                    </div>
+                    <div class="requirement-control-grid">
+                        ${(section.controls || []).map(control => `
+                            <div class="requirement-control ${['table', 'cards', 'accordion'].includes(control.type) ? 'requirement-control-wide' : ''}">
+                                <span class="form-label">${escapeCreateTenderHtml(control.label)}</span>
+                                ${renderCreateTenderRequirementControl(control, requirementDraft.fields?.[control.id], profile.id)}
+                            </div>
+                        `).join('')}
+                    </div>
+                </article>
+            `).join('')}
+        </div>
+    `;
+}
+
+function isCreateTenderRequirementValueFilled(value) {
+    if (Array.isArray(value)) {
+        return value.some(item => {
+            if (typeof item === 'string') return item.trim();
+            if (!item || typeof item !== 'object') return false;
+            return Object.entries(item).some(([key, entryValue]) => key !== 'id' && String(entryValue || '').trim());
+        });
+    }
+
+    return String(value || '').trim().length > 0;
+}
+
+function getCreateTenderRequirementSummary(profile, mainDraft = getCreateTenderMainDraft()) {
+    const template = getCreateTenderRequirementTemplate(profile.id);
+    const fields = mainDraft.requirements?.[profile.id]?.fields || {};
+    const controls = template.sections.flatMap(section => section.controls || []);
+    const filledControls = controls.filter(control => isCreateTenderRequirementValueFilled(fields[control.id])).length;
+
+    return {
+        title: template.title,
+        totalControls: controls.length,
+        filledControls
+    };
 }
 
 function renderCreateTenderTrashIcon() {
@@ -417,15 +1365,7 @@ function getCreateTenderCurrentTypeProfile() {
 }
 
 function getCreateTenderCategoryFromWizard(wizard, selectedType) {
-    const categoryInput = wizard.querySelector('[data-procurement-category]');
-    const customCategoryInput = wizard.querySelector('[data-custom-category]');
-    const customCategory = customCategoryInput?.value.trim() || '';
-
-    if (categoryInput?.dataset.custom === 'true') {
-        return customCategory || 'Other';
-    }
-
-    return categoryInput?.value || selectedType.categories[0];
+    return getCreateTenderWizardCategoryValue(wizard, '');
 }
 
 function parseCreateTenderNumber(value) {
@@ -472,7 +1412,9 @@ function normalizeCreateTenderRegulatoryLicense(item, index = 0) {
     return {
         id: item.id || `license-${Date.now()}-${index}`,
         license: String(item.license || catalogItem.license),
-        body: String(item.body || catalogItem.body)
+        body: String(item.body || catalogItem.body),
+        mandatory: item.mandatory !== undefined ? Boolean(item.mandatory) : true,
+        expiryRequired: item.expiryRequired !== undefined ? Boolean(item.expiryRequired) : true
     };
 }
 
@@ -536,6 +1478,9 @@ function getCreateTenderMainDraft() {
         ...defaultCreateTenderMainDraft,
         ...getCreateTenderStoredObject(createTenderDraftStorageKey, {})
     };
+    draft.mainDetails.method = normalizeCreateTenderMethod(draft.mainDetails.method);
+    draft.mainDetails.categories = getCreateTenderSelectedCategories(draft.mainDetails);
+    draft.mainDetails.category = draft.mainDetails.categories.join(', ');
     return draft.mainDetails;
 }
 
@@ -546,8 +1491,28 @@ function saveCreateTenderMainDraft(details = {}) {
         ...draft.mainDetails,
         ...details
     };
+    draft.mainDetails.method = normalizeCreateTenderMethod(draft.mainDetails.method);
+    draft.mainDetails.categories = getCreateTenderSelectedCategories(draft.mainDetails);
+    draft.mainDetails.category = draft.mainDetails.categories.join(', ');
     localStorage.setItem(createTenderDraftStorageKey, JSON.stringify(draft.mainDetails));
     return draft.mainDetails;
+}
+
+function getCreateTenderInvitedUsers() {
+    const draft = ensureCreateTenderDraft();
+    const mainDetails = getCreateTenderMainDraft();
+    if (Array.isArray(draft.invitedUsers)) return draft.invitedUsers;
+    draft.invitedUsers = Array.isArray(mainDetails.invitedUsers)
+        ? mainDetails.invitedUsers.map(normalizeCreateTenderInvitedUser).filter(user => user.name)
+        : [];
+    return draft.invitedUsers;
+}
+
+function saveCreateTenderInvitedUsers(users = []) {
+    const draft = ensureCreateTenderDraft();
+    draft.invitedUsers = users.map(normalizeCreateTenderInvitedUser).filter(user => user.name);
+    saveCreateTenderMainDraft({ invitedUsers: draft.invitedUsers });
+    return draft.invitedUsers;
 }
 
 function getCreateTenderSavedDraft() {
@@ -750,8 +1715,24 @@ function isProcurexTenderPast(tender) {
     return Number.isFinite(closingTime) && closingTime < Date.now();
 }
 
+function isProcurexTenderVisibleToCurrentUser(tender) {
+    if (tender.visibility !== 'Invited suppliers only') return true;
+    if (tender.createdByCurrentUser) return true;
+
+    const supplier = mockData.users?.supplier || {};
+    const currentSupplierNames = new Set([supplier.name, supplier.organization].filter(Boolean).map(value => value.toLowerCase()));
+    return (tender.invitedUsers || []).some(user => (
+        currentSupplierNames.has(String(user.name || '').toLowerCase())
+        || currentSupplierNames.has(String(user.organization || '').toLowerCase())
+    ));
+}
+
 function getProcurexMarketplaceTenders() {
-    return mergeProcurexTenders().filter(tender => tender.status === 'Open' && !isProcurexTenderPast(tender));
+    return mergeProcurexTenders().filter(tender => (
+        tender.status === 'Open'
+        && !isProcurexTenderPast(tender)
+        && isProcurexTenderVisibleToCurrentUser(tender)
+    ));
 }
 
 function getProcurexAllTenders() {
@@ -784,16 +1765,18 @@ function publishCreateTenderToMarketplace(wizard) {
     const setup = getCreateTenderSetup();
     const selectedTypeId = wizard.querySelector('input[name="procurementType"]:checked')?.value || setup.defaultType.id;
     const selectedType = setup.types.find(type => type.id === selectedTypeId) || setup.defaultType;
-    const title = wizard.querySelector('[data-tender-title]')?.value.trim() || 'Untitled tender';
-    const scope = wizard.querySelector('[data-tender-scope]')?.value.trim() || 'Tender scope pending final description.';
-    const method = wizard.querySelector('[data-procurement-method]')?.value || setup.methods[0];
-    const category = getCreateTenderWizardCategoryValue(wizard, selectedType.categories[0]);
-    const visibility = wizard.querySelector('[data-tender-visibility]')?.value || 'Public marketplace';
-    const visibilityNote = wizard.querySelector('[data-tender-visibility-note]')?.value.trim() || '';
+    const title = wizard.querySelector('[data-tender-title]')?.value.trim() || '';
+    const method = normalizeCreateTenderMethod(wizard.querySelector('[data-procurement-method]')?.value);
+    const categories = getCreateTenderWizardCategories(wizard);
+    const category = categories.join(', ');
+    const invitedUsers = getCreateTenderInvitedUsers();
+    const visibility = getCreateTenderVisibilityForMethod(method);
+    const visibilityNote = getCreateTenderVisibilityNoteForMethod(method, invitedUsers.length);
     const contact = getCreateTenderContactDetails();
     const milestones = getCreateTenderMilestones();
     const closingDate = milestones.find(item => item.id === 'milestone-closing')?.date || milestones[milestones.length - 1]?.date || '';
     const profile = getCreateTenderTypeProfile(selectedType);
+    const requirementSummary = getCreateTenderRequirementSummary(profile, getCreateTenderMainDraft());
     const boqItems = getCreateTenderBoqItems(profile);
     const budget = getCreateTenderBoqTotal(boqItems);
     const documents = getCreateTenderRequiredAttachments(profile).map(item => item.text).filter(Boolean);
@@ -808,14 +1791,19 @@ function publishCreateTenderToMarketplace(wizard) {
         budget,
         closingDate,
         organization: mockData.users?.buyer?.organization || 'Buyer organization',
-        description: scope,
+        description: requirementSummary.filledControls
+            ? `${requirementSummary.filledControls} structured requirement fields configured.`
+            : 'Structured tender requirements pending.',
         eligibility: `${method} / ${category}`,
         documents,
+        requirements: getCreateTenderRequirementDraft(profile.id),
         regulatoryLicenses: getCreateTenderRegulatoryLicenses(profile),
         category,
+        categories,
         method,
         visibility,
         visibilityNote,
+        invitedUsers,
         location: contact.tenderLocation,
         contactName: contact.contactName,
         contactPhone: contact.phone,
@@ -829,18 +1817,10 @@ function publishCreateTenderToMarketplace(wizard) {
         deliverables: getCreateTenderDeliverables(profile).map(item => item.text).filter(Boolean),
         milestones,
         amendments: [
-            { title: 'No amendments published', status: 'Ready', detail: `Create an amendment if scope, ${profile.commercialName}, timeline, or attachments change.` }
+            { title: 'No amendments published', status: 'Ready', detail: `Create an amendment if scope, ${profile.commercialName}, or timeline changes.` }
         ],
-        clarifications: [
-            { title: 'Solar backup scope', question: 'Does each health center include solar backup wiring?', status: 'Open' },
-            { title: 'Site visit schedule', question: 'Can suppliers attend one consolidated site visit?', status: 'Open' },
-            { title: `${profile.commercialName} clarification`, question: 'A pricing or requirement line needs buyer confirmation.', status: 'Amendment candidate' }
-        ],
-        interestedSuppliers: [
-            { name: 'ABC Construction Ltd', status: 'Downloaded documents', lastActivity: 'Today' },
-            { name: 'BuildRight Ltd', status: 'Watching tender', lastActivity: 'Today' },
-            { name: 'Prime Contractors', status: 'Asked clarification', lastActivity: '1 day ago' }
-        ]
+        clarifications: [],
+        interestedSuppliers: []
     };
     const stored = getProcurexStoredPublishedTenders().filter(tender => tender.id !== publishedTender.id);
     saveProcurexPublishedTenders([publishedTender, ...stored]);
@@ -856,16 +1836,18 @@ function saveCreateTenderDraftFromWizard(wizard) {
     const selectedTypeId = wizard.querySelector('input[name="procurementType"]:checked')?.value || setup.defaultType.id;
     const selectedType = setup.types.find(type => type.id === selectedTypeId) || setup.defaultType;
     const profile = getCreateTenderTypeProfile(selectedType);
-    const title = wizard.querySelector('[data-tender-title]')?.value.trim() || 'Untitled tender';
-    const scope = wizard.querySelector('[data-tender-scope]')?.value.trim() || '';
+    const title = wizard.querySelector('[data-tender-title]')?.value.trim() || '';
+    const currentDraft = getCreateTenderMainDraft();
     const details = saveCreateTenderMainDraft({
         title,
-        scope,
+        scope: currentDraft.scope || defaultCreateTenderMainDraft.scope,
         procurementTypeId: selectedType.id,
-        method: wizard.querySelector('[data-procurement-method]')?.value || setup.methods[0],
-        category: getCreateTenderWizardCategoryValue(wizard, selectedType.categories[0]),
-        visibility: wizard.querySelector('[data-tender-visibility]')?.value || defaultCreateTenderMainDraft.visibility,
-        visibilityNote: wizard.querySelector('[data-tender-visibility-note]')?.value.trim() || defaultCreateTenderMainDraft.visibilityNote,
+        method: normalizeCreateTenderMethod(wizard.querySelector('[data-procurement-method]')?.value),
+        category: getCreateTenderWizardCategoryValue(wizard, ''),
+        categories: getCreateTenderWizardCategories(wizard),
+        visibility: getCreateTenderVisibilityForMethod(wizard.querySelector('[data-procurement-method]')?.value),
+        visibilityNote: getCreateTenderVisibilityNoteForMethod(wizard.querySelector('[data-procurement-method]')?.value, getCreateTenderInvitedUsers().length),
+        invitedUsers: getCreateTenderInvitedUsers(),
         status: 'Saved as draft',
         savedAt: new Date().toISOString(),
         attachmentCount: getCreateTenderRequiredAttachments(profile).length,
@@ -945,19 +1927,33 @@ function renderCreateTenderRegulatoryLicenseRows(items = []) {
         const body = item.body || selectedLicense.body;
         return `
             <div class="license-requirement-row" data-license-row="${escapeCreateTenderHtml(item.id)}">
-                <label>
+                <div class="license-summary">
                     <span>License</span>
-                    <input type="hidden" value="${escapeCreateTenderHtml(item.license)}" data-license-field="license">
-                    <div class="license-picker" data-license-picker>
-                        <input class="form-input" type="search" value="${escapeCreateTenderHtml(item.license)}" data-license-search autocomplete="off" placeholder="Search license" aria-label="Search regulatory license">
+                    <strong>${escapeCreateTenderHtml(selectedLicense.license)}</strong>
+                    <small>${escapeCreateTenderHtml(body)}</small>
+                    <div class="license-picker" data-license-picker hidden>
+                        <input class="form-input" type="search" data-license-search autocomplete="off" placeholder="Search license" aria-label="Search regulatory license">
                         <div class="license-results" data-license-results role="listbox" aria-label="Matching licenses"></div>
                     </div>
-                </label>
-                <label>
-                    <span>Issuing body</span>
-                    <input class="form-input" value="${escapeCreateTenderHtml(body)}" data-license-body aria-label="Issuing regulatory body" readonly>
-                </label>
-                <button class="boq-row-action icon-delete-btn" type="button" data-license-delete aria-label="Remove license requirement" title="Remove license requirement">${renderCreateTenderTrashIcon()}</button>
+                </div>
+                <div class="license-toggle-cell">
+                    <span>Mandatory</span>
+                    <label class="requirement-toggle">
+                        <input type="checkbox" data-license-field="mandatory" ${item.mandatory ? 'checked' : ''}>
+                        <span></span>
+                    </label>
+                </div>
+                <div class="license-toggle-cell">
+                    <span>Expiry required</span>
+                    <label class="requirement-toggle">
+                        <input type="checkbox" data-license-field="expiryRequired" ${item.expiryRequired ? 'checked' : ''}>
+                        <span></span>
+                    </label>
+                </div>
+                <div class="license-row-actions">
+                    <button class="btn btn-secondary" type="button" data-license-change>Change</button>
+                    <button class="boq-row-action icon-delete-btn" type="button" data-license-delete aria-label="Remove license requirement" title="Remove license requirement">${renderCreateTenderTrashIcon()}</button>
+                </div>
             </div>
         `;
     }).join('');
@@ -996,10 +1992,9 @@ function renderCreateTender() {
     const procurementSetup = getCreateTenderSetup();
     const mainDraft = getCreateTenderMainDraft();
     const selectedType = procurementSetup.types.find(type => type.id === mainDraft.procurementTypeId) || procurementSetup.defaultType;
-    const categorySelection = getCreateTenderCategorySelection(selectedType.categories, mainDraft.category);
+    const selectedCategories = getCreateTenderSelectedCategories(mainDraft);
+    const categorySummary = selectedCategories.join(', ');
     const selectedProfile = getCreateTenderTypeProfile(selectedType);
-    const selectedCategory = mainDraft.category || selectedType.categories[0];
-    const isCustomCategory = Boolean(mainDraft.category) && !selectedType.categories.includes(mainDraft.category);
     const contactDetails = getCreateTenderContactDetails();
     const contactSummary = getCreateTenderContactSummary(contactDetails);
     const boqItems = getCreateTenderBoqItems(selectedProfile);
@@ -1009,15 +2004,17 @@ function renderCreateTender() {
     const deliverables = getCreateTenderDeliverables(selectedProfile);
     const requiredAttachments = getCreateTenderRequiredAttachments(selectedProfile);
     const regulatoryLicenses = getCreateTenderRegulatoryLicenses(selectedProfile);
+    const requirementSummary = getCreateTenderRequirementSummary(selectedProfile, mainDraft);
+    const tenderMethod = normalizeCreateTenderMethod(mainDraft.method);
+    const invitedUsers = getCreateTenderInvitedUsers();
+    const isClosedTender = isCreateTenderClosedMethod(tenderMethod);
     const steps = [
-        ['01', 'Need Identification', 'Department request, budget, contact'],
-        ['02', 'Tender Planning', 'Type, category, method, visibility'],
-        ['03', 'Prepare Documents', `${selectedProfile.scopeTitle}, requirements, attachments`],
-        ['04', 'Tender Creation', 'Title, description, deadline, opening date'],
-        ['05', selectedProfile.commercialName, selectedProfile.commercialDescription],
-        ['06', 'Evaluation', 'Criteria, weights, pass marks'],
-        ['07', 'Publish Tender', 'Portal, invitations, vendor notifications'],
-        ['08', 'Pre-Bid & Review', 'Clarifications, addenda, final review']
+        ['01', 'Basic Information', 'Tender location and contact'],
+        ['02', 'Tender Planning', 'Type, category, method, invitations'],
+        ['03', 'Tender Requirements', `${requirementSummary.title}, licenses`],
+        ['04', 'Evaluation Criteria & Weights', 'Criteria, weights, pass marks'],
+        ['05', 'Publish Tender', 'Portal, invitations, vendor notifications'],
+        ['06', 'Pre-Bid & Review', 'Clarifications, addenda, final review']
     ];
 
     return `
@@ -1065,7 +2062,7 @@ function renderCreateTender() {
                                 <div class="panel-heading">
                                     <div>
                                         <span class="section-kicker">Step 1</span>
-                                        <h2>Need Identification</h2>
+                                        <h2>Basic Information</h2>
                                     </div>
                                     <span class="badge ${contactSummary.complete ? 'badge-success' : 'badge-warning'}" data-contact-status-badge>${contactSummary.complete ? 'Contact verified' : 'Verify contact'}</span>
                                 </div>
@@ -1095,22 +2092,28 @@ function renderCreateTender() {
                                         <span class="form-hint" data-contact-status="email">${contactDetails.emailVerified && contactSummary.emailValid ? 'Email verified' : contactSummary.emailValid ? 'Email ready to verify' : 'Enter a valid email address'}</span>
                                     </div>
                                 </div>
-                                <div class="contact-verification-summary">
-                                    <div><span>Verified channels</span><strong data-contact-verified-count>${contactSummary.verifiedCount}</strong></div>
-                                    <div><span>Requirement</span><strong>Phone and/or email</strong></div>
-                                </div>
-                                <div class="form-grid two">
-                                    <div class="form-group">
-                                        <label class="form-label">Requesting department</label>
-                                        <input class="form-input" value="Health Infrastructure Department" aria-label="Requesting department">
+                                           <div class="planning-section">
+                                    <div class="scope-list-heading">
+                                        <div>
+                                            <h3>Tender details</h3>
+                                            <span class="form-hint">Enter the tender title and key dates before preparing documents.</span>
+                                        </div>
                                     </div>
                                     <div class="form-group">
-                                        <label class="form-label">Budget approval status</label>
-                                        <select class="form-input" aria-label="Budget approval status">
-                                            <option>Approved</option>
-                                            <option>Pending approval</option>
-                                            <option>Not required yet</option>
-                                        </select>
+                                        <div class="form-group">
+                                            <label class="form-label">Tender title</label>
+                                            <input class="form-input" value="${escapeCreateTenderHtml(mainDraft.title)}" aria-label="Tender title" data-tender-title>
+                                        </div>
+                                        <div class="form-grid two">
+                                        <div class="form-group">
+                                            <label class="form-label">Submission deadline</label>
+                                            <input class="form-input" type="date" value="${escapeCreateTenderHtml(milestones.find(item => item.id === 'milestone-closing')?.date || '')}" data-milestone-field="date" data-milestone-row-proxy="milestone-closing" aria-label="Submission deadline">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Opening date</label>
+                                            <input class="form-input" type="date" value="${escapeCreateTenderHtml(milestones.find(item => item.id === 'milestone-opening')?.date || '')}" data-milestone-field="date" data-milestone-row-proxy="milestone-opening" aria-label="Opening date">
+                                        </div>
+                                        </div>
                                     </div>
                                 </div>
                             </section>
@@ -1123,43 +2126,71 @@ function renderCreateTender() {
                                     </div>
                                     <span class="badge badge-success">Method valid</span>
                                 </div>
-                                <div class="option-grid four" data-procurement-type-grid>
-                                    ${procurementSetup.types.map(type => `
-                                        <label class="option-card ${type.id === selectedType.id ? 'selected' : ''}" data-procurement-type-card>
-                                            <input type="radio" name="procurementType" value="${type.id}" ${type.id === selectedType.id ? 'checked' : ''}>
-                                            <strong>${type.label}</strong>
-                                            <span>${type.description}</span>
-                                        </label>
-                                    `).join('')}
-                                </div>
-                                <div class="form-grid two">
-                                    <div class="form-group">
-                                        <label class="form-label">Procurement method</label>
-                                        <select class="form-input" name="procurementMethod" data-procurement-method>
-                                            ${renderCreateTenderOptions(procurementSetup.methods, mainDraft.method || procurementSetup.methods[0])}
-                                        </select>
+                                <div class="planning-section">
+                                    <div class="scope-list-heading">
+                                        <div>
+                                            <h3>Procurement classification</h3>
+                                            <span class="form-hint">Choose the procurement type, then search and select the matching category.</span>
+                                        </div>
                                     </div>
-                                    <div class="form-group">
+                                    <div class="option-grid four" data-procurement-type-grid>
+                                        ${procurementSetup.types.map(type => `
+                                            <label class="option-card ${type.id === selectedType.id ? 'selected' : ''}" data-procurement-type-card>
+                                                <input type="radio" name="procurementType" value="${type.id}" ${type.id === selectedType.id ? 'checked' : ''}>
+                                                <strong>${type.label}</strong>
+                                                <span>${type.description}</span>
+                                            </label>
+                                        `).join('')}
+                                    </div>
+                                    <div class="form-group category-selector-panel">
                                         <label class="form-label">Category</label>
-                                        <select class="form-input" name="procurementCategory" data-procurement-category>
-                                            ${renderCreateTenderOptions(getCreateTenderCategoryOptions(selectedType.categories), categorySelection.selectedCategory)}
-                                        </select>
-                                        <div class="custom-category-field" data-custom-category-group ${isCreateTenderOtherCategory(categorySelection.selectedCategory) ? '' : 'hidden'}>
+                                        <div class="category-picker" data-category-picker>
+                                            <input class="form-input" data-procurement-category-search aria-label="Search procurement categories" placeholder="Search categories">
+                                            <div class="category-results" data-category-results role="listbox"></div>
+                                        </div>
+                                        <div class="custom-category-field" data-custom-category-group hidden>
                                             <label class="form-label">Custom category</label>
-                                            <input class="form-input" value="${escapeCreateTenderHtml(categorySelection.customCategory)}" data-custom-category aria-label="Custom category" placeholder="Write custom category" ${isCreateTenderOtherCategory(categorySelection.selectedCategory) ? '' : 'disabled'}>
+                                            <div class="custom-category-add-row">
+                                                <input class="form-input" data-custom-category aria-label="Custom category" placeholder="Write custom category" disabled>
+                                                <button class="btn btn-secondary" type="button" data-custom-category-add>Add</button>
+                                            </div>
+                                        </div>
+                                        <div class="selected-category-list single-category-mode" data-selected-category-list>
+                                            ${renderCreateTenderSelectedCategoryRows(selectedCategories)}
                                         </div>
                                     </div>
                                 </div>
-                                <div class="form-grid two">
-                                    <div class="form-group">
-                                        <label class="form-label">Tender visibility</label>
-                                        <select class="form-input" data-tender-visibility>
-                                            ${renderCreateTenderOptions(['Public marketplace', 'Restricted invited suppliers', 'Internal draft only'], mainDraft.visibility)}
-                                        </select>
+                                <div class="planning-section tender-method-section">
+                                    <div class="scope-list-heading">
+                                        <div>
+                                            <h3>Procurement method</h3>
+                                            <span class="form-hint">Open tenders go to the public marketplace. Invited tenders are sent only to selected suppliers.</span>
+                                        </div>
                                     </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Visibility note</label>
-                                        <input class="form-input" value="${escapeCreateTenderHtml(mainDraft.visibilityNote)}" data-tender-visibility-note aria-label="Visibility note">
+                                    <div class="method-inner-panel">
+                                        <div class="form-group">
+                                            <label class="form-label">Method</label>
+                                            <select class="form-input" name="procurementMethod" data-procurement-method>
+                                                ${renderCreateTenderOptions(procurementSetup.methods, tenderMethod)}
+                                            </select>
+                                            <span class="form-hint" data-method-visibility-note>${escapeCreateTenderHtml(getCreateTenderVisibilityNoteForMethod(tenderMethod, invitedUsers.length))}</span>
+                                        </div>
+                                        <div class="closed-tender-invitations" data-closed-tender-panel ${isClosedTender ? '' : 'hidden'}>
+                                            <div class="scope-list-heading">
+                                                <div>
+                                                    <h3>Invited suppliers</h3>
+                                                    <span class="form-hint">Search users, add preferred suppliers to the invite list, and remove them anytime.</span>
+                                                </div>
+                                                <span class="badge badge-info" data-invited-user-count>${invitedUsers.length}</span>
+                                            </div>
+                                            <div class="invite-picker">
+                                                <input class="form-input" data-invite-search aria-label="Search suppliers to invite" placeholder="Search supplier users">
+                                                <div class="invite-results" data-invite-results role="listbox"></div>
+                                            </div>
+                                            <div class="invited-user-list" data-invited-user-list>
+                                                ${renderCreateTenderInvitedUserRows(invitedUsers)}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </section>
@@ -1168,27 +2199,14 @@ function renderCreateTender() {
                                 <div class="panel-heading">
                                     <div>
                                         <span class="section-kicker">Step 3</span>
-                                        <h2 data-profile-scope-title>Prepare Documents</h2>
+                                        <h2 data-profile-requirement-title>Tender Requirements</h2>
                                     </div>
-                                    <span class="badge badge-warning" data-scope-total-badge>${deliverables.length} deliverables</span>
+                                    <span class="badge badge-warning" data-requirement-type-badge>${escapeCreateTenderHtml(requirementSummary.title)}</span>
                                 </div>
-                                ${renderCreateTenderProfileCards(selectedProfile)}
-                                <div class="form-group">
-                                    <label class="form-label" data-profile-scope-label>${selectedProfile.scopeLabel}</label>
-                                    <textarea class="form-input" rows="5" data-tender-scope>${escapeCreateTenderHtml(mainDraft.scope)}</textarea>
-                                </div>
-                                <div class="scope-list-panel">
-                                    <div class="scope-list-heading">
-                                        <div>
-                                            <h3 data-profile-deliverables-title>${selectedProfile.deliverablesTitle}</h3>
-                                            <span class="form-hint" data-profile-deliverables-hint>${selectedProfile.deliverablesHint}</span>
-                                        </div>
-                                        <span class="badge badge-info" data-scope-count="deliverables">${deliverables.length}</span>
-                                    </div>
-                                    <div class="scope-item-list" data-scope-list="deliverables">
-                                        ${renderCreateTenderScopeRows(deliverables, 'deliverables', 'No deliverables added yet.')}
-                                    </div>
-                                    <button class="btn btn-secondary scope-add" type="button" data-scope-add="deliverables">Add Deliverable</button>
+                                <div data-requirement-sections>
+                                    ${renderCreateTenderRequirementSections(selectedProfile, mainDraft, {
+                                        excludeSectionIds: getCreateTenderPostLicenseRequirementSectionIds(selectedProfile)
+                                    })}
                                 </div>
                                 <div class="scope-list-panel license-requirements-panel">
                                     <div class="scope-list-heading">
@@ -1202,6 +2220,16 @@ function renderCreateTender() {
                                         ${renderCreateTenderRegulatoryLicenseRows(regulatoryLicenses)}
                                     </div>
                                     <button class="btn btn-secondary scope-add" type="button" data-license-add>Add License Requirement</button>
+                                    <div class="license-add-picker" data-license-add-picker hidden>
+                                        <input class="form-input" type="search" data-license-add-search autocomplete="off" placeholder="Search all licenses" aria-label="Search all regulatory licenses">
+                                        <div class="license-results" data-license-add-results role="listbox" aria-label="Available regulatory licenses"></div>
+                                    </div>
+                                </div>
+                                <div data-post-license-requirement-sections>
+                                    ${renderCreateTenderRequirementSections(selectedProfile, mainDraft, {
+                                        includeSectionIds: getCreateTenderPostLicenseRequirementSectionIds(selectedProfile),
+                                        showHeader: false
+                                    })}
                                 </div>
                             </section>
 
@@ -1209,77 +2237,6 @@ function renderCreateTender() {
                                 <div class="panel-heading">
                                     <div>
                                         <span class="section-kicker">Step 4</span>
-                                        <h2>Tender Creation in System</h2>
-                                    </div>
-                                    <span class="badge badge-info" data-scope-count="attachments">${requiredAttachments.length}</span>
-                                </div>
-                                <div class="form-grid two">
-                                    <div class="form-group">
-                                        <label class="form-label">Tender title</label>
-                                        <input class="form-input" value="${escapeCreateTenderHtml(mainDraft.title)}" aria-label="Tender title" data-tender-title>
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Submission deadline</label>
-                                        <input class="form-input" type="date" value="${escapeCreateTenderHtml(milestones.find(item => item.id === 'milestone-closing')?.date || '')}" data-milestone-field="date" data-milestone-row-proxy="milestone-closing" aria-label="Submission deadline">
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Opening date</label>
-                                        <input class="form-input" type="date" value="${escapeCreateTenderHtml(milestones.find(item => item.id === 'milestone-opening')?.date || '')}" data-milestone-field="date" data-milestone-row-proxy="milestone-opening" aria-label="Opening date">
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Category</label>
-                                        <input class="form-input" value="${escapeCreateTenderHtml(categorySelection.effectiveCategory)}" readonly aria-label="Tender category" data-tender-category-summary>
-                                    </div>
-                                </div>
-                                <div class="scope-list-panel attachment-manager">
-                                    <div class="scope-list-heading">
-                                        <div>
-                                            <h3>Required attachments</h3>
-                                            <span class="form-hint" data-profile-attachment-hint>${selectedProfile.attachmentHint}</span>
-                                        </div>
-                                        <button class="btn btn-secondary scope-add" type="button" data-scope-add="attachments">Add Attachment</button>
-                                    </div>
-                                    <div class="scope-item-list" data-scope-list="attachments">
-                                        ${renderCreateTenderScopeRows(requiredAttachments, 'attachments', 'No required attachments added yet.')}
-                                    </div>
-                                </div>
-                            </section>
-
-                            <section class="journey-panel" id="wizard-step-5">
-                                <div class="panel-heading">
-                                    <div>
-                                        <span class="section-kicker">Step 5</span>
-                                        <h2 data-commercial-title>${selectedProfile.commercialTitle}</h2>
-                                    </div>
-                                    <span class="badge badge-info" data-boq-estimate-badge>${formatCreateTenderCompactMoney(boqTotal)}</span>
-                                </div>
-                                <div class="boq-summary-strip" data-boq-summary>
-                                    <div><span data-commercial-count-label>${selectedProfile.commercialItemName}s</span><strong data-boq-item-count>${boqItems.length}</strong></div>
-                                    <div><span>Total estimate</span><strong data-boq-total>${formatCreateTenderMoney(boqTotal)}</strong></div>
-                                    <div><span>Average line</span><strong data-boq-average>${formatCreateTenderMoney(boqItems.length ? boqTotal / boqItems.length : 0)}</strong></div>
-                                </div>
-                                <div class="data-table boq-editor" data-boq-editor>
-                                    <table>
-                                        <thead>
-                                            ${renderCreateTenderCommercialTableHead(selectedProfile)}
-                                        </thead>
-                                        <tbody data-boq-table-body>
-                                            ${renderCreateTenderBoqRows(boqItems, selectedProfile)}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div class="inline-actions">
-                                    <input class="boq-file-input" type="file" accept=".csv,.txt" data-boq-file aria-label="${selectedProfile.importLabel}">
-                                    <button class="btn btn-secondary" type="button" data-boq-import>${selectedProfile.importLabel}</button>
-                                    <button class="btn btn-secondary" type="button" data-boq-add>${selectedProfile.addLabel}</button>
-                                    <button class="btn btn-secondary" type="button" data-boq-recalculate>Recalculate</button>
-                                </div>
-                            </section>
-
-                            <section class="journey-panel" id="wizard-step-6">
-                                <div class="panel-heading">
-                                    <div>
-                                        <span class="section-kicker">Step 6</span>
                                         <h2>Evaluation Criteria & Weights</h2>
                                     </div>
                                     <span class="badge badge-success">100% balanced</span>
@@ -1295,10 +2252,10 @@ function renderCreateTender() {
                                 </div>
                             </section>
 
-                            <section class="journey-panel" id="wizard-step-7">
+                            <section class="journey-panel" id="wizard-step-5">
                                 <div class="panel-heading">
                                     <div>
-                                        <span class="section-kicker">Step 7</span>
+                                        <span class="section-kicker">Step 5</span>
                                         <h2>Publish Tender</h2>
                                     </div>
                                     <span class="badge badge-success" data-milestone-badge>${milestoneSummary.count} milestones</span>
@@ -1306,8 +2263,8 @@ function renderCreateTender() {
                                 <div class="review-summary-grid" style="margin-bottom: 20px;">
                                     <article class="review-card">
                                         <span>Publish channel</span>
-                                        <strong>${escapeCreateTenderHtml(mainDraft.visibility)}</strong>
-                                        <small>${escapeCreateTenderHtml(mainDraft.visibilityNote)}</small>
+                                        <strong data-publish-visibility>${escapeCreateTenderHtml(getCreateTenderVisibilityForMethod(tenderMethod))}</strong>
+                                        <small data-publish-visibility-note>${escapeCreateTenderHtml(getCreateTenderVisibilityNoteForMethod(tenderMethod, invitedUsers.length))}</small>
                                     </article>
                                     <article class="review-card">
                                         <span>Vendor notification</span>
@@ -1331,10 +2288,10 @@ function renderCreateTender() {
                                 </div>
                             </section>
 
-                            <section class="journey-panel review-panel" id="wizard-step-8">
+                            <section class="journey-panel review-panel" id="wizard-step-6">
                                 <div class="panel-heading">
                                     <div>
-                                        <span class="section-kicker">Step 8</span>
+                                        <span class="section-kicker">Step 6</span>
                                         <h2>Pre-Bid Phase & Buyer Review</h2>
                                     </div>
                                     <span class="badge badge-info" data-review-readiness>Review required</span>
@@ -1359,8 +2316,8 @@ function renderCreateTender() {
                                 <div class="review-summary-grid">
                                     <article class="review-card">
                                         <span>Tender</span>
-                                        <strong data-review-title>Construction of Rural Health Centers</strong>
-                                        <small data-review-scope>Scope summary ready</small>
+                                        <strong data-review-title>Tender not set</strong>
+                                        <small data-review-scope>${requirementSummary.filledControls ? `${requirementSummary.filledControls} of ${requirementSummary.totalControls} requirement fields started` : 'Requirements not started'}</small>
                                     </article>
                                     <article class="review-card">
                                         <span>Location & contact</span>
@@ -1370,17 +2327,17 @@ function renderCreateTender() {
                                     <article class="review-card">
                                         <span>Procurement</span>
                                         <strong data-review-procurement>${selectedType.label}</strong>
-                                        <small data-review-category>${escapeCreateTenderHtml(categorySelection.effectiveCategory)}</small>
+                                        <small data-review-category>${escapeCreateTenderHtml(categorySummary)}</small>
                                     </article>
                                     <article class="review-card">
                                         <span>Visibility</span>
-                                        <strong data-review-visibility>${escapeCreateTenderHtml(mainDraft.visibility)}</strong>
-                                        <small data-review-visibility-note>${escapeCreateTenderHtml(mainDraft.visibilityNote)}</small>
+                                        <strong data-review-visibility>${escapeCreateTenderHtml(getCreateTenderVisibilityForMethod(tenderMethod))}</strong>
+                                        <small data-review-visibility-note>${escapeCreateTenderHtml(getCreateTenderVisibilityNoteForMethod(tenderMethod, invitedUsers.length))}</small>
                                     </article>
                                     <article class="review-card">
-                                        <span>Scope package</span>
-                                        <strong data-review-scope-count>${deliverables.length + regulatoryLicenses.length + requiredAttachments.length} items</strong>
-                                        <small data-review-scope-breakdown>${deliverables.length} deliverables, ${regulatoryLicenses.length} licenses, ${requiredAttachments.length} attachments</small>
+                                        <span>Requirements</span>
+                                        <strong data-review-scope-count>${requirementSummary.filledControls + regulatoryLicenses.length} items</strong>
+                                        <small data-review-scope-breakdown>${requirementSummary.filledControls} requirement fields, ${regulatoryLicenses.length} licenses</small>
                                     </article>
                                     <article class="review-card">
                                         <span data-review-commercial-label>${selectedProfile.reviewLabel}</span>
@@ -1399,7 +2356,7 @@ function renderCreateTender() {
                                     </article>
                                 </div>
                                 <div class="review-checklist">
-                                    <div><strong>Buyer confirmation</strong><span data-review-confirmation>Review scope, attachments, ${selectedProfile.commercialName}, timeline, evaluation, and visibility before publishing.</span></div>
+                                    <div><strong>Buyer confirmation</strong><span data-review-confirmation>Review scope, licenses, ${selectedProfile.commercialName}, timeline, evaluation, and visibility before publishing.</span></div>
                                     <div><strong>Publication result</strong><span>Submission publishes the tender to the marketplace and opens buyer management controls.</span></div>
                                 </div>
                                 <div class="submit-strip buyer-review-submit">
@@ -1433,9 +2390,20 @@ function initializeCreateTenderWizard() {
 
     const setup = getCreateTenderSetup();
     const methodSelect = wizard.querySelector('[data-procurement-method]');
-    const categorySelect = wizard.querySelector('[data-procurement-category]');
     const customCategoryGroup = wizard.querySelector('[data-custom-category-group]');
     const customCategoryInput = wizard.querySelector('[data-custom-category]');
+    const customCategoryAddButton = wizard.querySelector('[data-custom-category-add]');
+    const categorySearchInput = wizard.querySelector('[data-procurement-category-search]');
+    const categoryResults = wizard.querySelector('[data-category-results]');
+    const categoryPicker = wizard.querySelector('[data-category-picker]');
+    const customCategoryWrap = customCategoryGroup;
+    const selectedCategoryList = wizard.querySelector('[data-selected-category-list]');
+    const closedTenderPanel = wizard.querySelector('[data-closed-tender-panel]');
+    const inviteSearchInput = wizard.querySelector('[data-invite-search]');
+    const inviteResults = wizard.querySelector('[data-invite-results]');
+    const invitedUserList = wizard.querySelector('[data-invited-user-list]');
+    const invitedUserCount = wizard.querySelector('[data-invited-user-count]');
+    const methodVisibilityNote = wizard.querySelector('[data-method-visibility-note]');
     const panels = Array.from(wizard.querySelectorAll('.wizard-workspace > .journey-panel'));
     const railSteps = Array.from(wizard.querySelectorAll('[data-wizard-step-index]'));
     const previousButton = wizard.querySelector('[data-wizard-prev]');
@@ -1452,9 +2420,10 @@ function initializeCreateTenderWizard() {
     const syncCustomCategoryField = () => {
         if (!customCategoryGroup || !customCategoryInput) return;
 
-        const showCustomCategory = isCreateTenderOtherCategory(categorySelect?.value);
+        const showCustomCategory = customCategoryGroup?.dataset.visible === 'true';
         customCategoryGroup.hidden = !showCustomCategory;
         customCategoryGroup.setAttribute('aria-hidden', showCustomCategory ? 'false' : 'true');
+        customCategoryGroup.classList.toggle('visible', showCustomCategory);
         customCategoryInput.disabled = !showCustomCategory;
     };
 
@@ -1473,44 +2442,70 @@ function initializeCreateTenderWizard() {
         categoryResults.classList.toggle('open', Boolean(isOpen));
     };
 
-    const setCategoryValue = (value, options = {}) => {
-        const selectedType = getSelectedProcurementType();
-        const isCustom = Boolean(options.custom) || (value && !selectedType.categories.includes(value));
-        const resolvedValue = isCustom ? String(value || '').trim() : (value || selectedType.categories[0]);
+    const getSelectedCategories = () => getCreateTenderWizardCategories(wizard);
 
-        if (categoryInput) {
-            categoryInput.value = resolvedValue;
-            categoryInput.dataset.custom = isCustom ? 'true' : 'false';
-        }
+    const saveSelectedCategories = (categories = getSelectedCategories()) => {
+        const normalizedCategories = normalizeCreateTenderCategories(categories);
+        saveCreateTenderMainDraft({
+            categories: normalizedCategories,
+            category: normalizedCategories.join(', ')
+        });
+        return normalizedCategories;
+    };
 
-        if (categorySearchInput && !options.keepSearch) {
-            categorySearchInput.value = isCustom ? 'Other' : resolvedValue;
+    const renderSelectedCategories = (categories = getSelectedCategories()) => {
+        const normalizedCategories = normalizeCreateTenderCategories(categories);
+        if (selectedCategoryList) {
+            selectedCategoryList.innerHTML = renderCreateTenderSelectedCategoryRows(normalizedCategories);
         }
+        const summary = normalizedCategories.join(', ');
+        const summaryInput = wizard.querySelector('[data-tender-category-summary]');
+        if (summaryInput) summaryInput.value = summary;
+        return normalizedCategories;
+    };
 
-        if (customCategoryWrap) {
-            customCategoryWrap.classList.toggle('visible', isCustom);
+    const setCustomCategoryVisible = (isVisible) => {
+        if (!customCategoryGroup || !customCategoryInput) return;
+        customCategoryGroup.dataset.visible = isVisible ? 'true' : 'false';
+        syncCustomCategoryField();
+        if (isVisible) {
+            if (customCategoryAddButton) customCategoryAddButton.disabled = !customCategoryInput.value.trim();
+            customCategoryInput.focus();
+        } else {
+            customCategoryInput.value = '';
+            if (customCategoryAddButton) customCategoryAddButton.disabled = true;
         }
+    };
 
-        if (customCategoryInput) {
-            customCategoryInput.disabled = !isCustom;
-            if (isCustom && resolvedValue && !options.keepCustomValue) {
-                customCategoryInput.value = resolvedValue;
-            }
-            if (!isCustom) {
-                customCategoryInput.value = '';
-            }
-        }
+    const addSelectedCategory = (category) => {
+        const normalizedCategory = String(category || '').trim();
+        if (!normalizedCategory || isCreateTenderOtherCategory(normalizedCategory)) return;
+        const categories = saveSelectedCategories([normalizedCategory]);
+        renderSelectedCategories(categories);
+        if (categorySearchInput) categorySearchInput.value = '';
+        setCategoryResultsOpen(false);
+        setCustomCategoryVisible(false);
+        refreshTenderReview();
+    };
+
+    const removeSelectedCategory = (category) => {
+        const categories = saveSelectedCategories(getSelectedCategories().filter(item => item !== category));
+        renderSelectedCategories(categories);
+        renderCategoryResults(categorySearchInput?.value || '');
+        refreshTenderReview();
     };
 
     const renderCategoryResults = (query = '') => {
         if (!categoryResults) return;
         const selectedType = getSelectedProcurementType();
+        const selectedCategoryKeys = new Set(getSelectedCategories().map(category => category.toLowerCase()));
         const terms = String(query || '')
             .trim()
             .toLowerCase()
             .split(/\s+/)
             .filter(Boolean);
         const matches = selectedType.categories
+            .filter(category => !selectedCategoryKeys.has(category.toLowerCase()))
             .filter(category => terms.every(term => category.toLowerCase().includes(term)))
             .slice(0, 12);
         const matchText = matches.length
@@ -1529,39 +2524,128 @@ function initializeCreateTenderWizard() {
     };
 
     const selectCategoryOption = (value) => {
-        setCategoryValue(value);
+        if (isCreateTenderOtherCategory(value)) {
+            setCustomCategoryVisible(true);
+            setCategoryResultsOpen(false);
+            return;
+        }
+        addSelectedCategory(value);
+    };
+
+    const selectOtherCategory = () => {
+        setCustomCategoryVisible(true);
         setCategoryResultsOpen(false);
+    };
+
+    const getCurrentMethod = () => normalizeCreateTenderMethod(methodSelect?.value);
+
+    const renderInvitedUsers = () => {
+        const invitedUsers = getCreateTenderInvitedUsers();
+        if (invitedUserList) invitedUserList.innerHTML = renderCreateTenderInvitedUserRows(invitedUsers);
+        if (invitedUserCount) invitedUserCount.textContent = String(invitedUsers.length);
+        if (methodVisibilityNote) {
+            methodVisibilityNote.textContent = getCreateTenderVisibilityNoteForMethod(getCurrentMethod(), invitedUsers.length);
+        }
+    };
+
+    const renderInviteResults = (query = '') => {
+        if (!inviteResults) return;
+        const terms = String(query || '')
+            .trim()
+            .toLowerCase()
+            .split(/\s+/)
+            .filter(Boolean);
+        const invitedIds = new Set(getCreateTenderInvitedUsers().map(user => user.id));
+        const matches = getCreateTenderInvitableUsers()
+            .filter(user => !invitedIds.has(user.id))
+            .filter(user => {
+                const searchable = `${user.name} ${user.organization} ${user.email} ${user.trustTier} ${user.risk}`.toLowerCase();
+                return terms.every(term => searchable.includes(term));
+            })
+            .slice(0, 8);
+
+        inviteResults.innerHTML = matches.length
+            ? matches.map(user => `
+                <button type="button" class="invite-result-option" data-invite-user="${escapeCreateTenderHtml(user.id)}" role="option">
+                    <strong>${escapeCreateTenderHtml(user.name)}</strong>
+                    <span>${escapeCreateTenderHtml(user.organization || 'Supplier')}</span>
+                </button>
+            `).join('')
+            : '<div class="invite-result-empty">No matching supplier users</div>';
+        inviteResults.classList.toggle('open', true);
+    };
+
+    const setInviteResultsOpen = (isOpen) => {
+        inviteResults?.classList.toggle('open', Boolean(isOpen));
+    };
+
+    const addInvitedUser = (userId) => {
+        const user = getCreateTenderInvitableUsers().find(item => item.id === userId);
+        if (!user) return;
+        const invitedUsers = getCreateTenderInvitedUsers();
+        if (!invitedUsers.some(item => item.id === user.id)) {
+            saveCreateTenderInvitedUsers([...invitedUsers, user]);
+        }
+        if (inviteSearchInput) inviteSearchInput.value = '';
+        renderInvitedUsers();
+        renderInviteResults('');
         saveMainDetailsFromInputs();
         refreshTenderReview();
     };
 
-    const selectOtherCategory = () => {
-        setCategoryValue(customCategoryInput?.value.trim() || '', { custom: true, keepCustomValue: true });
-        if (categorySearchInput) categorySearchInput.value = 'Other';
-        setCategoryResultsOpen(false);
-        customCategoryInput?.focus();
+    const removeInvitedUser = (userId) => {
+        saveCreateTenderInvitedUsers(getCreateTenderInvitedUsers().filter(user => user.id !== userId));
+        renderInvitedUsers();
+        renderInviteResults(inviteSearchInput?.value || '');
         saveMainDetailsFromInputs();
         refreshTenderReview();
+    };
+
+    const syncTenderMethod = () => {
+        const method = getCurrentMethod();
+        const invitedCount = getCreateTenderInvitedUsers().length;
+        const closed = isCreateTenderClosedMethod(method);
+        if (closedTenderPanel) {
+            closedTenderPanel.hidden = !closed;
+            closedTenderPanel.setAttribute('aria-hidden', closed ? 'false' : 'true');
+        }
+        if (methodVisibilityNote) {
+            methodVisibilityNote.textContent = getCreateTenderVisibilityNoteForMethod(method, invitedCount);
+        }
+        renderInvitedUsers();
     };
 
     const refreshProfileText = () => {
         const profile = getSelectedProfile();
+        const requirementSummary = getCreateTenderRequirementSummary(profile, getCreateTenderMainDraft());
         const updateText = (selector, value) => {
             const node = wizard.querySelector(selector);
             if (node) node.textContent = value;
         };
-        updateText('[data-profile-scope-title]', 'Prepare Documents');
-        updateText('[data-profile-scope-label]', profile.scopeLabel);
-        updateText('[data-profile-deliverables-title]', profile.deliverablesTitle);
-        updateText('[data-profile-deliverables-hint]', profile.deliverablesHint);
+        updateText('[data-profile-requirement-title]', 'Tender Requirements');
+        updateText('[data-requirement-type-badge]', requirementSummary.title);
         updateText('[data-profile-attachment-hint]', profile.attachmentHint);
         updateText('[data-commercial-title]', profile.commercialTitle);
         updateText('[data-commercial-count-label]', `${profile.commercialItemName}s`);
         updateText('[data-review-commercial-label]', profile.reviewLabel);
-        updateText('[data-review-confirmation]', `Review scope, attachments, ${profile.commercialName}, timeline, evaluation, and visibility before publishing.`);
+        updateText('[data-review-confirmation]', `Review requirements, licenses, ${profile.commercialName}, timeline, evaluation, and visibility before publishing.`);
+        const requirementSections = wizard.querySelector('[data-requirement-sections]');
+        const postLicenseSectionIds = getCreateTenderPostLicenseRequirementSectionIds(profile);
+        if (requirementSections) {
+            requirementSections.innerHTML = renderCreateTenderRequirementSections(profile, getCreateTenderMainDraft(), {
+                excludeSectionIds: postLicenseSectionIds
+            });
+        }
+        const postLicenseRequirementSections = wizard.querySelector('[data-post-license-requirement-sections]');
+        if (postLicenseRequirementSections) {
+            postLicenseRequirementSections.innerHTML = renderCreateTenderRequirementSections(profile, getCreateTenderMainDraft(), {
+                includeSectionIds: postLicenseSectionIds,
+                showHeader: false
+            });
+        }
 
-        const commercialRail = railSteps[4]?.querySelector('span');
-        if (commercialRail) commercialRail.textContent = profile.commercialName;
+        const evaluationRail = railSteps[3]?.querySelector('span');
+        if (evaluationRail) evaluationRail.textContent = 'Evaluation Criteria & Weights';
         const commercialHead = wizard.querySelector('[data-boq-editor] thead');
         if (commercialHead) commercialHead.innerHTML = renderCreateTenderCommercialTableHead(profile);
         const importButton = wizard.querySelector('[data-boq-import]');
@@ -1577,13 +2661,15 @@ function initializeCreateTenderWizard() {
             const input = card.querySelector('input[name="procurementType"]');
             card.classList.toggle('selected', input?.value === selectedType.id);
         });
-        renderOptions(methodSelect, setup.methods);
-        renderOptions(categorySelect, getCreateTenderCategoryOptions(selectedType.categories), selectedType.categories[0]);
+        renderOptions(methodSelect, setup.methods, getCurrentMethod());
+        renderSelectedCategories([]);
         if (customCategoryInput) customCategoryInput.value = '';
+        setCustomCategoryVisible(false);
         syncCustomCategoryField();
         saveCreateTenderMainDraft({
             procurementTypeId: selectedType.id,
-            category: getCreateTenderWizardCategoryValue(wizard, selectedType.categories[0])
+            category: '',
+            categories: []
         });
         renderBoqTable();
         renderScopeList('deliverables');
@@ -1595,14 +2681,17 @@ function initializeCreateTenderWizard() {
     const saveMainDetailsFromInputs = () => {
         const selectedTypeId = wizard.querySelector('input[name="procurementType"]:checked')?.value || setup.defaultType.id;
         const selectedType = setup.types.find(type => type.id === selectedTypeId) || setup.defaultType;
+        const currentDraft = getCreateTenderMainDraft();
         saveCreateTenderMainDraft({
             title: wizard.querySelector('[data-tender-title]')?.value.trim() || defaultCreateTenderMainDraft.title,
-            scope: wizard.querySelector('[data-tender-scope]')?.value.trim() || defaultCreateTenderMainDraft.scope,
+            scope: currentDraft.scope || defaultCreateTenderMainDraft.scope,
             procurementTypeId: selectedType.id,
-            method: methodSelect?.value || setup.methods[0],
-            category: getCreateTenderWizardCategoryValue(wizard, selectedType.categories[0]),
-            visibility: wizard.querySelector('[data-tender-visibility]')?.value || defaultCreateTenderMainDraft.visibility,
-            visibilityNote: wizard.querySelector('[data-tender-visibility-note]')?.value.trim() || defaultCreateTenderMainDraft.visibilityNote
+            method: normalizeCreateTenderMethod(methodSelect?.value),
+            category: getCreateTenderWizardCategoryValue(wizard, ''),
+            categories: getSelectedCategories(),
+            visibility: getCreateTenderVisibilityForMethod(methodSelect?.value),
+            visibilityNote: getCreateTenderVisibilityNoteForMethod(methodSelect?.value, getCreateTenderInvitedUsers().length),
+            invitedUsers: getCreateTenderInvitedUsers()
         });
     };
 
@@ -1729,8 +2818,23 @@ function initializeCreateTenderWizard() {
         row?.querySelector('[data-license-results]')?.classList.toggle('open', Boolean(isOpen));
     };
 
-    const renderLicenseResults = (row, query = '') => {
-        const results = row?.querySelector('[data-license-results]');
+    const setLicensePickerOpen = (row, isOpen) => {
+        const picker = row?.querySelector('[data-license-picker]');
+        if (!picker) return;
+        picker.hidden = !isOpen;
+        picker.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+        setLicenseResultsOpen(row, isOpen);
+    };
+
+    const setLicenseAddPickerOpen = (isOpen) => {
+        const picker = wizard.querySelector('[data-license-add-picker]');
+        if (!picker) return;
+        picker.hidden = !isOpen;
+        picker.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+        picker.querySelector('[data-license-add-results]')?.classList.toggle('open', Boolean(isOpen));
+    };
+
+    const renderLicenseResultsInto = (results, query = '', optionAttribute = 'data-license-option') => {
         if (!results) return;
 
         const terms = String(query || '')
@@ -1742,18 +2846,27 @@ function initializeCreateTenderWizard() {
             .filter(item => {
                 const searchable = `${item.group} ${item.license} ${item.body}`.toLowerCase();
                 return terms.every(term => searchable.includes(term));
-            })
-            .slice(0, 12);
+            });
 
         results.innerHTML = matches.length
             ? matches.map(item => `
-                <button type="button" class="license-result-option" data-license-option="${escapeCreateTenderHtml(item.license)}" role="option">
+                <button type="button" class="license-result-option" ${optionAttribute}="${escapeCreateTenderHtml(item.license)}" role="option">
                     <strong>${escapeCreateTenderHtml(item.license)}</strong>
                     <span>${escapeCreateTenderHtml(item.body)}</span>
                 </button>
             `).join('')
             : '<div class="license-result-empty">No matching license</div>';
+        results.classList.toggle('open', true);
+    };
+
+    const renderLicenseResults = (row, query = '') => {
+        const results = row?.querySelector('[data-license-results]');
+        renderLicenseResultsInto(results, query);
         setLicenseResultsOpen(row, true);
+    };
+
+    const renderLicenseAddResults = (query = '') => {
+        renderLicenseResultsInto(wizard.querySelector('[data-license-add-results]'), query, 'data-license-add-option');
     };
 
     const selectLicenseRequirement = (row, licenseName) => {
@@ -1766,28 +2879,43 @@ function initializeCreateTenderWizard() {
 
         item.license = catalogItem.license;
         item.body = catalogItem.body;
-        row.querySelector('[data-license-field="license"]').value = catalogItem.license;
-        row.querySelector('[data-license-search]').value = catalogItem.license;
-        row.querySelector('[data-license-body]').value = catalogItem.body;
 
         saveCreateTenderRegulatoryLicenses(items, profile);
-        setLicenseResultsOpen(row, false);
+        renderLicenseList();
+        setLicensePickerOpen(row, false);
         refreshLicenseSummary();
         refreshTenderReview();
     };
 
-    const refreshScopeSummary = () => {
+    const addLicenseRequirement = (licenseName) => {
+        const catalogItem = getCreateTenderRegulatoryLicenseByName(licenseName);
         const profile = getSelectedProfile();
-        const deliverables = getCreateTenderDeliverables(profile);
-        const attachments = getCreateTenderRequiredAttachments(profile);
-        const licenses = getCreateTenderRegulatoryLicenses(profile);
-        const totalBadge = wizard.querySelector('[data-scope-total-badge]');
+        const items = getCreateTenderRegulatoryLicenses(profile);
+        if (items.some(item => item.license === catalogItem.license)) {
+            setLicenseAddPickerOpen(false);
+            return;
+        }
+
+        items.push(normalizeCreateTenderRegulatoryLicense({
+            id: `license-${Date.now()}`,
+            license: catalogItem.license,
+            body: catalogItem.body,
+            mandatory: true,
+            expiryRequired: true
+        }, items.length));
+        saveCreateTenderRegulatoryLicenses(items, profile);
+        renderLicenseList();
+        refreshScopeSummary();
+        refreshTenderReview();
+        setLicenseAddPickerOpen(false);
+    };
+
+    const refreshScopeSummary = () => {
         const deliverableCount = wizard.querySelector('[data-scope-count="deliverables"]');
         const attachmentCount = wizard.querySelector('[data-scope-count="attachments"]');
 
-        if (totalBadge) totalBadge.textContent = deliverables.length ? `${deliverables.length} deliverables, ${licenses.length} licenses` : 'Scope empty';
-        if (deliverableCount) deliverableCount.textContent = String(deliverables.length);
-        if (attachmentCount) attachmentCount.textContent = String(attachments.length);
+        if (deliverableCount) deliverableCount.textContent = String(getCreateTenderDeliverables(getSelectedProfile()).length);
+        if (attachmentCount) attachmentCount.textContent = String(getCreateTenderRequiredAttachments(getSelectedProfile()).length);
         refreshLicenseSummary();
     };
 
@@ -1812,37 +2940,45 @@ function initializeCreateTenderWizard() {
 
     const refreshTenderReview = () => {
         const title = wizard.querySelector('[data-tender-title]')?.value.trim() || 'Untitled tender';
-        const scope = wizard.querySelector('[data-tender-scope]')?.value.trim() || '';
-        const scopePreview = scope.length > 112 ? `${scope.slice(0, 109)}...` : scope || 'Scope not written';
         const contact = getCreateTenderContactDetails();
         const contactSummary = getCreateTenderContactSummary(contact);
         const selectedTypeId = wizard.querySelector('input[name="procurementType"]:checked')?.value || setup.defaultType.id;
         const selectedType = setup.types.find(type => type.id === selectedTypeId) || setup.defaultType;
-        const selectedCategory = getCreateTenderWizardCategoryValue(wizard, selectedType.categories[0]);
+        const selectedCategory = getCreateTenderWizardCategoryValue(wizard, '');
         const profile = getCreateTenderTypeProfile(selectedType);
-        const deliverables = getCreateTenderDeliverables(profile);
-        const attachments = getCreateTenderRequiredAttachments(profile);
         const licenses = getCreateTenderRegulatoryLicenses(profile);
+        const requirementSummary = getCreateTenderRequirementSummary(profile, getCreateTenderMainDraft());
+        const requirementPreview = requirementSummary.filledControls
+            ? `${requirementSummary.filledControls} of ${requirementSummary.totalControls} requirement fields started`
+            : 'Requirements not started';
         const boqItems = getCreateTenderBoqItems(profile);
         const boqTotal = getCreateTenderBoqTotal(boqItems);
+        const method = normalizeCreateTenderMethod(methodSelect?.value);
+        const invitedUsers = getCreateTenderInvitedUsers();
         const milestoneSummary = getCreateTenderMilestoneSummary(getCreateTenderMilestones());
         const evaluationWeights = Array.from(wizard.querySelectorAll('.criterion-row input'))
             .map(input => parseCreateTenderNumber(input.value));
         const evaluationTotal = evaluationWeights.reduce((total, weight) => total + weight, 0);
-        const readiness = title !== 'Untitled tender' && contactSummary.complete && boqItems.length && milestoneSummary.datedCount === milestoneSummary.count;
+        const readiness = title !== 'Untitled tender'
+            && contactSummary.complete
+            && boqItems.length
+            && milestoneSummary.datedCount === milestoneSummary.count
+            && (!isCreateTenderClosedMethod(method) || invitedUsers.length);
         const reviewBadge = wizard.querySelector('[data-review-readiness]');
 
         setReviewText('[data-review-title]', title);
-        setReviewText('[data-review-scope]', scopePreview);
+        setReviewText('[data-review-scope]', requirementPreview);
         setReviewText('[data-review-contact]', contact.tenderLocation || 'Location not set');
-        setReviewText('[data-review-contact-status]', `${contact.contactName || 'Contact not set'} - ${contactSummary.verifiedCount} verified channel${contactSummary.verifiedCount === 1 ? '' : 's'}`);
-        setReviewText('[data-review-procurement]', `${selectedType.label} - ${methodSelect?.value || 'Method not set'}`);
+        setReviewText('[data-review-contact-status]', contact.contactName || 'Contact not set');
+        setReviewText('[data-review-procurement]', `${selectedType.label} - ${method || 'Method not set'}`);
         setReviewText('[data-review-category]', selectedCategory || 'Category not set');
         setReviewText('[data-tender-category-summary]', selectedCategory || 'Category not set');
-        setReviewText('[data-review-visibility]', wizard.querySelector('[data-tender-visibility]')?.value || defaultCreateTenderMainDraft.visibility);
-        setReviewText('[data-review-visibility-note]', wizard.querySelector('[data-tender-visibility-note]')?.value.trim() || defaultCreateTenderMainDraft.visibilityNote);
-        setReviewText('[data-review-scope-count]', `${deliverables.length + attachments.length + licenses.length} items`);
-        setReviewText('[data-review-scope-breakdown]', `${deliverables.length} deliverables, ${licenses.length} licenses, ${attachments.length} attachments`);
+        setReviewText('[data-review-visibility]', getCreateTenderVisibilityForMethod(method));
+        setReviewText('[data-review-visibility-note]', getCreateTenderVisibilityNoteForMethod(method, invitedUsers.length));
+        setReviewText('[data-publish-visibility]', getCreateTenderVisibilityForMethod(method));
+        setReviewText('[data-publish-visibility-note]', getCreateTenderVisibilityNoteForMethod(method, invitedUsers.length));
+        setReviewText('[data-review-scope-count]', `${requirementSummary.filledControls + licenses.length} items`);
+        setReviewText('[data-review-scope-breakdown]', `${requirementSummary.filledControls} requirement fields, ${licenses.length} licenses`);
         setReviewText('[data-review-commercial-label]', profile.reviewLabel);
         setReviewText('[data-review-boq-total]', formatCreateTenderMoney(boqTotal));
         setReviewText('[data-review-boq-count]', `${boqItems.length} ${profile.commercialItemName}${boqItems.length === 1 ? '' : 's'}`);
@@ -1942,6 +3078,202 @@ function initializeCreateTenderWizard() {
         refreshScopeSummary();
     };
 
+    const getRequirementListItems = (listId) => {
+        const profile = getSelectedProfile();
+        const requirementDraft = getCreateTenderRequirementDraft(profile.id);
+        return Array.isArray(requirementDraft.lists?.[listId])
+            ? requirementDraft.lists[listId].map(normalizeCreateTenderRequirementItem)
+            : [];
+    };
+
+    const saveRequirementListItems = (listId, items) => {
+        const profile = getSelectedProfile();
+        const requirementDraft = getCreateTenderRequirementDraft(profile.id);
+        requirementDraft.lists = {
+            ...(requirementDraft.lists || {}),
+            [listId]: items.map(normalizeCreateTenderRequirementItem)
+        };
+        saveCreateTenderRequirementDraft(profile.id, requirementDraft);
+        return requirementDraft.lists[listId];
+    };
+
+    const renderRequirementList = (listId) => {
+        const profile = getSelectedProfile();
+        const template = getCreateTenderRequirementTemplate(profile.id);
+        const listTemplate = (template.lists || []).find(item => item.id === listId);
+        const items = getRequirementListItems(listId);
+        const listNode = wizard.querySelector(`[data-requirement-list-items="${CSS.escape(listId)}"]`);
+        const countNode = wizard.querySelector(`[data-requirement-list-count="${CSS.escape(listId)}"]`);
+        if (listNode) {
+            listNode.innerHTML = renderCreateTenderRequirementListRows(items, listId)
+                .replace('No requirements added yet.', escapeCreateTenderHtml(listTemplate?.emptyText || 'No requirements added yet.'));
+        }
+        if (countNode) countNode.textContent = String(items.length);
+    };
+
+    const updateRequirementField = (input) => {
+        const field = input.dataset.requirementField;
+        if (!field) return;
+        const profile = getSelectedProfile();
+        const requirementDraft = getCreateTenderRequirementDraft(profile.id);
+        requirementDraft.fields = {
+            ...(requirementDraft.fields || {}),
+            [field]: input.value
+        };
+        saveCreateTenderRequirementDraft(profile.id, requirementDraft);
+    };
+
+    const updateRequirementListItem = (input) => {
+        const row = input.closest('[data-requirement-row]');
+        const listId = row?.dataset.requirementList;
+        if (!row || !listId) return;
+        const items = getRequirementListItems(listId);
+        const item = items.find(entry => entry.id === row.dataset.requirementRow);
+        if (!item) return;
+        item.text = input.value;
+        saveRequirementListItems(listId, items);
+        renderRequirementList(listId);
+    };
+
+    const getRequirementControlValue = (controlId) => {
+        const profile = getSelectedProfile();
+        const requirementDraft = getCreateTenderRequirementDraft(profile.id);
+        return requirementDraft.fields?.[controlId];
+    };
+
+    const saveRequirementControlValue = (controlId, value) => {
+        const profile = getSelectedProfile();
+        const requirementDraft = getCreateTenderRequirementDraft(profile.id);
+        requirementDraft.fields = {
+            ...(requirementDraft.fields || {}),
+            [controlId]: value
+        };
+        saveCreateTenderRequirementDraft(profile.id, requirementDraft);
+    };
+
+    const renderRequirementControl = (controlId) => {
+        const profile = getSelectedProfile();
+        const control = getCreateTenderRequirementControl(profile.id, controlId);
+        if (!control) return;
+
+        if (control.type === 'list') {
+            const listNode = wizard.querySelector(`[data-requirement-list-items="${CSS.escape(controlId)}"]`);
+            if (listNode) listNode.innerHTML = renderCreateTenderRequirementControlListItems(control, getRequirementControlValue(controlId));
+            return;
+        }
+
+        if (control.type === 'table') {
+            const tableBody = wizard.querySelector(`[data-requirement-table-body="${CSS.escape(controlId)}"]`);
+            if (tableBody) tableBody.innerHTML = renderCreateTenderRequirementTableRows(getRequirementControlValue(controlId), control);
+            return;
+        }
+
+        if (control.type === 'cards') {
+            const cardList = wizard.querySelector(`[data-requirement-card-list="${CSS.escape(controlId)}"]`);
+            if (cardList) {
+                const controlNode = cardList.closest('.requirement-control');
+                if (controlNode) {
+                    controlNode.innerHTML = `
+                        <span class="form-label">${escapeCreateTenderHtml(control.label)}</span>
+                        ${renderCreateTenderRequirementCards(control, getRequirementControlValue(controlId), profile.id)}
+                    `;
+                }
+            }
+        }
+    };
+
+    const updateRequirementInput = (input) => {
+        const controlId = input.dataset.requirementInput;
+        if (!controlId) return;
+        saveRequirementControlValue(controlId, input.type === 'checkbox' ? input.checked : input.value);
+    };
+
+    const updateRequirementControlListItem = (input) => {
+        const row = input.closest('[data-requirement-control-row]');
+        const controlId = row?.dataset.requirementControl;
+        if (!row || !controlId) return;
+
+        const items = normalizeCreateTenderRequirementTextItems(getRequirementControlValue(controlId), controlId);
+        const item = items.find(entry => entry.id === row.dataset.requirementControlRow);
+        if (!item) return;
+
+        item.text = input.value;
+        saveRequirementControlValue(controlId, items);
+    };
+
+    const updateRequirementTableField = (input) => {
+        const row = input.closest('[data-requirement-table-row]');
+        const controlId = row?.dataset.requirementControl;
+        const field = input.dataset.requirementTableField;
+        if (!row || !controlId || !field) return;
+
+        const profile = getSelectedProfile();
+        const control = getCreateTenderRequirementControl(profile.id, controlId);
+        if (!control) return;
+
+        const rows = normalizeCreateTenderRequirementTableRows(getRequirementControlValue(controlId), control.columns || [], controlId);
+        const tableRow = rows.find(entry => entry.id === row.dataset.requirementTableRow);
+        if (!tableRow) return;
+
+        tableRow[field] = input.value;
+        if (input.type === 'checkbox') tableRow[field] = input.checked;
+        saveRequirementControlValue(controlId, rows);
+
+        const rowIndex = Number(row.dataset.requirementTableRowIndex || 0);
+        (control.columns || [])
+            .filter(column => column.type === 'calculated')
+            .forEach(column => {
+                const output = row.querySelector(`[data-requirement-calculated-field="${CSS.escape(column.id)}"]`);
+                if (output) output.textContent = formatCreateTenderRequirementCalculatedValue(calculateCreateTenderRequirementFormula(column.formula, tableRow));
+            });
+        if (controlId === 'quantityScheduleRows') {
+            renderRequirementControl('specificationCards');
+        }
+    };
+
+    const updateRequirementCardField = (input) => {
+        const row = input.closest('[data-requirement-card-row]');
+        const controlId = row?.dataset.requirementControl;
+        const fieldId = input.dataset.requirementCardField;
+        if (!row || !controlId || !fieldId) return;
+
+        const profile = getSelectedProfile();
+        const control = getCreateTenderRequirementControl(profile.id, controlId);
+        if (!control) return;
+
+        const fields = resolveCreateTenderRequirementFields(control, profile.id);
+        const cards = normalizeCreateTenderRequirementObjectRows(getRequirementControlValue(controlId), fields, controlId);
+        const card = cards.find(entry => entry.id === row.dataset.requirementCardRow);
+        const field = fields.find(item => item.id === fieldId);
+        if (!card || !field) return;
+
+        if (field.type === 'multiselect') {
+            card[fieldId] = Array.from(row.querySelectorAll(`[data-requirement-card-field="${CSS.escape(fieldId)}"]:checked`)).map(item => item.value);
+        } else if (input.type === 'checkbox') {
+            card[fieldId] = input.checked;
+        } else {
+            card[fieldId] = input.value;
+        }
+
+        saveRequirementControlValue(controlId, cards);
+        if (fields.some(item => item.showWhen?.field === fieldId) || field.sourceControlId) {
+            renderRequirementControl(controlId);
+        }
+    };
+
+    const updateRequirementAccordionField = (input) => {
+        const wrapper = input.closest('[data-requirement-accordion]');
+        const controlId = wrapper?.dataset.requirementAccordion;
+        const fieldId = input.dataset.requirementAccordionField;
+        if (!controlId || !fieldId) return;
+
+        const value = getRequirementControlValue(controlId);
+        saveRequirementControlValue(controlId, {
+            ...(value && typeof value === 'object' && !Array.isArray(value) ? value : {}),
+            [fieldId]: input.value
+        });
+    };
+
     const updateLicenseRequirement = (input) => {
         const row = input.closest('[data-license-row]');
         const field = input.dataset.licenseField;
@@ -1958,6 +3290,9 @@ function initializeCreateTenderWizard() {
             item.body = catalogItem.body;
             const bodyInput = row.querySelector('[data-license-body]');
             if (bodyInput) bodyInput.value = catalogItem.body;
+        }
+        if (field === 'mandatory' || field === 'expiryRequired') {
+            item[field] = input.checked;
         }
 
         saveCreateTenderRegulatoryLicenses(items, profile);
@@ -2025,9 +3360,6 @@ function initializeCreateTenderWizard() {
             syncProcurementType(event.target.value);
             refreshTenderReview();
         }
-        if (event.target?.matches('[data-procurement-category]')) {
-            syncCustomCategoryField();
-        }
         if (event.target?.matches('[data-contact-field]')) {
             updateContactField(event.target);
         }
@@ -2037,7 +3369,34 @@ function initializeCreateTenderWizard() {
         if (event.target?.matches('[data-scope-item-input]')) {
             updateScopeItem(event.target);
         }
-        if (event.target?.matches('[data-tender-title], [data-tender-scope], [data-procurement-method], [data-procurement-category], [data-custom-category], [data-tender-visibility], [data-tender-visibility-note], .criterion-row input')) {
+        if (event.target?.matches('[data-requirement-field]')) {
+            updateRequirementField(event.target);
+        }
+        if (event.target?.matches('[data-requirement-input]')) {
+            updateRequirementInput(event.target);
+        }
+        if (event.target?.matches('[data-requirement-list-input]')) {
+            updateRequirementListItem(event.target);
+        }
+        if (event.target?.matches('[data-requirement-list-item]')) {
+            updateRequirementControlListItem(event.target);
+        }
+        if (event.target?.matches('[data-requirement-table-field]')) {
+            updateRequirementTableField(event.target);
+        }
+        if (event.target?.matches('[data-requirement-card-field]')) {
+            updateRequirementCardField(event.target);
+        }
+        if (event.target?.matches('[data-requirement-accordion-field]')) {
+            updateRequirementAccordionField(event.target);
+        }
+        if (event.target?.matches('[data-license-field]')) {
+            updateLicenseRequirement(event.target);
+        }
+        if (event.target?.matches('[data-procurement-method]')) {
+            syncTenderMethod();
+        }
+        if (event.target?.matches('[data-tender-title], [data-procurement-method], .criterion-row input')) {
             saveMainDetailsFromInputs();
             refreshTenderReview();
         }
@@ -2050,21 +3409,20 @@ function initializeCreateTenderWizard() {
 
             if (typedCategory.toLowerCase() === 'other') {
                 selectOtherCategory();
-                return;
-            }
-
-            const selectedType = getSelectedProcurementType();
-            const exactCategory = selectedType.categories.find(category => category.toLowerCase() === typedCategory.toLowerCase());
-            if (exactCategory) {
-                setCategoryValue(exactCategory, { keepSearch: true });
-                saveMainDetailsFromInputs();
-                refreshTenderReview();
             }
         }
         if (event.target?.matches('[data-custom-category]')) {
-            setCategoryValue(event.target.value.trim(), { custom: true, keepSearch: true, keepCustomValue: true });
-            saveMainDetailsFromInputs();
-            refreshTenderReview();
+            if (customCategoryAddButton) customCategoryAddButton.disabled = !event.target.value.trim();
+        }
+        if (event.target?.matches('[data-invite-search]')) {
+            renderInviteResults(event.target.value);
+        }
+        if (event.target?.matches('[data-license-add-search]')) {
+            renderLicenseAddResults(event.target.value);
+        }
+        if (event.target?.matches('[data-license-search]')) {
+            const row = event.target.closest('[data-license-row]');
+            renderLicenseResults(row, event.target.value);
         }
         if (event.target?.matches('[data-contact-field]')) {
             updateContactField(event.target);
@@ -2078,7 +3436,31 @@ function initializeCreateTenderWizard() {
         if (event.target?.matches('[data-scope-item-input]')) {
             updateScopeItem(event.target);
         }
-        if (event.target?.matches('[data-tender-title], [data-tender-scope], [data-custom-category], [data-tender-visibility-note], .criterion-row input')) {
+        if (event.target?.matches('[data-requirement-field]')) {
+            updateRequirementField(event.target);
+        }
+        if (event.target?.matches('[data-requirement-input]')) {
+            updateRequirementInput(event.target);
+        }
+        if (event.target?.matches('[data-requirement-list-input]')) {
+            updateRequirementListItem(event.target);
+        }
+        if (event.target?.matches('[data-requirement-list-item]')) {
+            updateRequirementControlListItem(event.target);
+        }
+        if (event.target?.matches('[data-requirement-table-field]')) {
+            updateRequirementTableField(event.target);
+        }
+        if (event.target?.matches('[data-requirement-card-field]')) {
+            updateRequirementCardField(event.target);
+        }
+        if (event.target?.matches('[data-requirement-accordion-field]')) {
+            updateRequirementAccordionField(event.target);
+        }
+        if (event.target?.matches('[data-license-field]')) {
+            updateLicenseRequirement(event.target);
+        }
+        if (event.target?.matches('[data-tender-title], .criterion-row input')) {
             saveMainDetailsFromInputs();
             refreshTenderReview();
         }
@@ -2105,8 +3487,45 @@ function initializeCreateTenderWizard() {
             return;
         }
 
+        if (target.matches('[data-custom-category-add]')) {
+            addSelectedCategory(customCategoryInput?.value);
+            return;
+        }
+
+        if (target.matches('[data-category-remove]')) {
+            removeSelectedCategory(target.dataset.categoryRemove);
+            return;
+        }
+
         if (target.matches('[data-license-option]')) {
             selectLicenseRequirement(target.closest('[data-license-row]'), target.dataset.licenseOption);
+            return;
+        }
+
+        if (target.matches('[data-license-add-option]')) {
+            addLicenseRequirement(target.dataset.licenseAddOption);
+            return;
+        }
+
+        if (target.matches('[data-license-change]')) {
+            const row = target.closest('[data-license-row]');
+            const searchInput = row?.querySelector('[data-license-search]');
+            setLicensePickerOpen(row, true);
+            if (searchInput) {
+                searchInput.value = '';
+                renderLicenseResults(row, '');
+                searchInput.focus();
+            }
+            return;
+        }
+
+        if (target.matches('[data-invite-user]')) {
+            addInvitedUser(target.dataset.inviteUser);
+            return;
+        }
+
+        if (target.matches('[data-invited-user-remove]')) {
+            removeInvitedUser(target.dataset.invitedUserRemove);
             return;
         }
 
@@ -2196,20 +3615,129 @@ function initializeCreateTenderWizard() {
             return;
         }
 
-        if (target.matches('[data-license-add]')) {
+        if (target.matches('[data-requirement-control-add]')) {
+            const controlId = target.dataset.requirementControlAdd;
             const profile = getSelectedProfile();
-            const catalogItem = createTenderRegulatoryLicenseCatalog[0];
-            const items = getCreateTenderRegulatoryLicenses(profile);
-            items.push(normalizeCreateTenderRegulatoryLicense({
-                id: `license-${Date.now()}`,
-                license: catalogItem.license,
-                body: catalogItem.body
-            }, items.length));
-            saveCreateTenderRegulatoryLicenses(items, profile);
-            renderLicenseList();
-            refreshScopeSummary();
-            refreshTenderReview();
-            wizard.querySelector('[data-license-list] [data-license-row]:last-child [data-license-search]')?.focus();
+            const control = getCreateTenderRequirementControl(profile.id, controlId);
+            if (!control) return;
+
+            if (control.type === 'list') {
+                const items = normalizeCreateTenderRequirementTextItems(getRequirementControlValue(controlId), controlId);
+                items.push({ id: `requirement-${controlId}-${Date.now()}`, text: '' });
+                saveRequirementControlValue(controlId, items);
+                renderRequirementControl(controlId);
+                wizard.querySelector(`[data-requirement-list-items="${CSS.escape(controlId)}"] [data-requirement-control-row]:last-child [data-requirement-list-item]`)?.focus();
+                return;
+            }
+
+            if (control.type === 'table') {
+                const rows = normalizeCreateTenderRequirementTableRows(getRequirementControlValue(controlId), control.columns || [], controlId);
+                const nextRow = { id: `requirement-${controlId}-${Date.now()}` };
+                (control.columns || []).forEach(column => {
+                    if (column.type === 'toggle') nextRow[column.id] = false;
+                    if (column.type !== 'index' && column.type !== 'calculated' && column.type !== 'toggle') nextRow[column.id] = '';
+                });
+                rows.push(nextRow);
+                saveRequirementControlValue(controlId, rows);
+                renderRequirementControl(controlId);
+                if (controlId === 'quantityScheduleRows') renderRequirementControl('specificationCards');
+                wizard.querySelector(`[data-requirement-table-body="${CSS.escape(controlId)}"] [data-requirement-table-row]:last-child input`)?.focus();
+                return;
+            }
+
+            if (control.type === 'cards') {
+                const fields = resolveCreateTenderRequirementFields(control, profile.id);
+                const sourceField = fields.find(field => field.sourceControlId);
+                const sourceOptions = sourceField?.options || [];
+                if (control.requiresSourceOptions && !sourceOptions.length) return;
+
+                const cards = normalizeCreateTenderRequirementObjectRows(getRequirementControlValue(controlId), fields, controlId);
+                const nextCard = { id: `requirement-${controlId}-${Date.now()}` };
+                fields.forEach(field => {
+                    if (field.type === 'multiselect') nextCard[field.id] = [];
+                    else if (field.type === 'toggle') nextCard[field.id] = false;
+                    else if (field.sourceControlId) nextCard[field.id] = sourceOptions[0]?.value || '';
+                    else nextCard[field.id] = '';
+                });
+                if (control.presets?.length && !cards.length) nextCard[(fields || [])[0]?.id] = control.presets[0] || '';
+                cards.push(nextCard);
+                saveRequirementControlValue(controlId, cards);
+                renderRequirementControl(controlId);
+                wizard.querySelector(`[data-requirement-card-list="${CSS.escape(controlId)}"] [data-requirement-card-row]:last-child input, [data-requirement-card-list="${CSS.escape(controlId)}"] [data-requirement-card-row]:last-child textarea, [data-requirement-card-list="${CSS.escape(controlId)}"] [data-requirement-card-row]:last-child select`)?.focus();
+            }
+            return;
+        }
+
+        if (target.matches('[data-requirement-control-delete]')) {
+            const controlId = target.dataset.requirementControlDelete;
+            const profile = getSelectedProfile();
+            const control = getCreateTenderRequirementControl(profile.id, controlId);
+            if (!control) return;
+
+            if (control.type === 'list') {
+                const row = target.closest('[data-requirement-control-row]');
+                const items = normalizeCreateTenderRequirementTextItems(getRequirementControlValue(controlId), controlId)
+                    .filter(item => item.id !== row?.dataset.requirementControlRow);
+                saveRequirementControlValue(controlId, items);
+                renderRequirementControl(controlId);
+                return;
+            }
+
+            if (control.type === 'table') {
+                const row = target.closest('[data-requirement-table-row]');
+                const rows = normalizeCreateTenderRequirementTableRows(getRequirementControlValue(controlId), control.columns || [], controlId)
+                    .filter(item => item.id !== row?.dataset.requirementTableRow);
+                saveRequirementControlValue(controlId, rows);
+                renderRequirementControl(controlId);
+                if (controlId === 'quantityScheduleRows') renderRequirementControl('specificationCards');
+                return;
+            }
+
+            if (control.type === 'cards') {
+                const row = target.closest('[data-requirement-card-row]');
+                const cards = normalizeCreateTenderRequirementObjectRows(getRequirementControlValue(controlId), control.fields || [], controlId)
+                    .filter(item => item.id !== row?.dataset.requirementCardRow);
+                saveRequirementControlValue(controlId, cards);
+                renderRequirementControl(controlId);
+            }
+            return;
+        }
+
+        if (target.matches('[data-requirement-add]')) {
+            const listId = target.dataset.requirementAdd;
+            const items = getRequirementListItems(listId);
+            const profile = getSelectedProfile();
+            const requirementDraft = getCreateTenderRequirementDraft(profile.id);
+            requirementDraft.lists = {
+                ...(requirementDraft.lists || {}),
+                [listId]: [
+                    ...items,
+                    normalizeCreateTenderRequirementItem({ id: `requirement-${listId}-${Date.now()}`, text: '' }, items.length)
+                ]
+            };
+            saveCreateTenderRequirementDraft(profile.id, requirementDraft);
+            renderRequirementList(listId);
+            wizard.querySelector(`[data-requirement-list-items="${CSS.escape(listId)}"] [data-requirement-row]:last-child [data-requirement-list-input]`)?.focus();
+            return;
+        }
+
+        if (target.matches('[data-requirement-delete]')) {
+            const row = target.closest('[data-requirement-row]');
+            const listId = row?.dataset.requirementList;
+            if (!listId) return;
+            saveRequirementListItems(listId, getRequirementListItems(listId).filter(item => item.id !== row.dataset.requirementRow));
+            renderRequirementList(listId);
+            return;
+        }
+
+        if (target.matches('[data-license-add]')) {
+            setLicenseAddPickerOpen(true);
+            renderLicenseAddResults('');
+            const addSearch = wizard.querySelector('[data-license-add-search]');
+            if (addSearch) {
+                addSearch.value = '';
+                addSearch.focus();
+            }
             return;
         }
 
@@ -2255,9 +3783,48 @@ function initializeCreateTenderWizard() {
         }
     });
 
+    customCategoryInput?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            addSelectedCategory(customCategoryInput.value);
+        }
+    });
+
     categoryPicker?.addEventListener('focusout', (event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) {
             setCategoryResultsOpen(false);
+        }
+    });
+
+    inviteSearchInput?.addEventListener('focus', () => {
+        renderInviteResults(inviteSearchInput.value);
+    });
+
+    inviteSearchInput?.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            setInviteResultsOpen(false);
+        }
+    });
+
+    wizard.querySelector('.invite-picker')?.addEventListener('focusout', (event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+            setInviteResultsOpen(false);
+        }
+    });
+
+    wizard.querySelector('[data-license-add-picker]')?.addEventListener('focusout', (event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+            setLicenseAddPickerOpen(false);
+        }
+    });
+
+    wizard.querySelector('[data-license-add-search]')?.addEventListener('focus', (event) => {
+        renderLicenseAddResults(event.target.value);
+    });
+
+    wizard.querySelector('[data-license-add-search]')?.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            setLicenseAddPickerOpen(false);
         }
     });
 
@@ -2271,20 +3838,17 @@ function initializeCreateTenderWizard() {
     wizard.addEventListener('focusout', (event) => {
         const row = event.target?.closest?.('[data-license-row]');
         if (row && !row.contains(event.relatedTarget)) {
-            setLicenseResultsOpen(row, false);
+            setLicensePickerOpen(row, false);
         }
     });
 
-    setCategoryValue(categoryInput?.value || getSelectedProcurementType().categories[0], {
-        custom: categoryInput?.dataset.custom === 'true',
-        keepSearch: true,
-        keepCustomValue: true
-    });
+    renderSelectedCategories(getCreateTenderSelectedCategories(getCreateTenderMainDraft()));
     refreshContactSummary();
     refreshBoqSummary();
     refreshMilestoneSummary();
     refreshScopeSummary();
     refreshProfileText();
+    syncTenderMethod();
     syncCustomCategoryField();
     refreshTenderReview();
     setActiveStep(0);

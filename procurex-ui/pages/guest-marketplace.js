@@ -1,7 +1,7 @@
 // Guest Marketplace Page Component
 
 function renderGuestMarketplace() {
-    const tenders = mockData.tenders;
+    const tenders = typeof getProcurexMarketplaceTenders === 'function' ? getProcurexMarketplaceTenders() : mockData.tenders;
 
     return `
         <div class="app-container">
@@ -50,8 +50,8 @@ function renderGuestMarketplace() {
                             <option>All Types</option>
                             <option>Goods</option>
                             <option>Works</option>
-                            <option>Non-Consultancy Services</option>
-                            <option>Consultancy Services</option>
+                            <option>Service</option>
+                            <option>Consultancy</option>
                         </select>
                     </div>
 

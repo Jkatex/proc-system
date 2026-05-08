@@ -32,8 +32,8 @@ function renderSupplierMarketplace() {
                         <option>All tender types</option>
                         <option>Goods</option>
                         <option>Works</option>
-                        <option>Non-Consultancy Services</option>
-                        <option>Consultancy Services</option>
+                        <option>Service</option>
+                        <option>Consultancy</option>
                     </select>
                     <button class="btn btn-primary">Search</button>
                 </section>

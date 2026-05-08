@@ -1,0 +1,1616 @@
+/* Apple-style DESIGN.md platform theme override.
+   Loaded last so every ProcureX screen shares one visual language. */
+
+:root {
+    --design-primary: #008080;
+    --design-primary-focus: #009a9a;
+    --design-primary-on-dark: #40c9c9;
+    --design-primary-border: #006666;
+    --design-ink: #1d1d1f;
+    --design-body: #1d1d1f;
+    --design-body-on-dark: #ffffff;
+    --design-body-muted: #cccccc;
+    --design-ink-muted-80: #333333;
+    --design-ink-muted-48: #7a7a7a;
+    --design-divider-soft: #f0f0f0;
+    --design-hairline: #e0e0e0;
+    --design-canvas: #ffffff;
+    --design-canvas-parchment: #f5f5f7;
+    --design-surface-pearl: #fafafc;
+    --design-surface-tile-1: #272729;
+    --design-surface-tile-2: #2a2a2c;
+    --design-surface-tile-3: #252527;
+    --design-surface-black: #000000;
+    --design-chip-translucent: rgba(210, 210, 215, 0.64);
+    --design-product-shadow: rgba(0, 0, 0, 0.22) 3px 5px 30px 0;
+
+    --font-display: "SF Pro Display", system-ui, -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+    --font-text: "SF Pro Text", system-ui, -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+
+    --space-xxs: 4px;
+    --space-xs: 8px;
+    --space-sm: 12px;
+    --space-md: 17px;
+    --space-lg: 24px;
+    --space-xl: 32px;
+    --space-xxl: 48px;
+    --space-section: 80px;
+    --top-nav-height: clamp(56px, 5vw, 64px);
+    --top-nav-font: clamp(14px, 1.05vw, 16px);
+    --top-nav-mark: clamp(34px, 3.2vw, 40px);
+    --top-nav-icon: clamp(38px, 3.2vw, 44px);
+
+    --radius-none: 0;
+    --radius-xs: 5px;
+    --radius-sm: 8px;
+    --radius-md: 11px;
+    --radius-lg: 18px;
+    --radius-xl: 18px;
+    --radius-xxl: 18px;
+    --radius-xxxl: 18px;
+    --radius-full: 9999px;
+
+    --primary-blue: var(--design-primary);
+    --primary-blue-deep: var(--design-primary-focus);
+    --primary-blue-light: rgba(0, 128, 128, 0.10);
+    --primary-blue-soft: var(--design-primary);
+    --text-primary: var(--design-ink);
+    --text-secondary: var(--design-ink-muted-80);
+    --text-muted: var(--design-ink-muted-48);
+    --border: var(--design-hairline);
+    --border-soft: var(--design-divider-soft);
+    --background: var(--design-canvas);
+    --surface-soft: var(--design-canvas-parchment);
+    --card-bg: var(--design-canvas);
+    --ink-button: var(--design-primary);
+    --ink-button-pressed: var(--design-primary-focus);
+    --success-green: var(--design-ink);
+    --success-bg: var(--design-canvas-parchment);
+    --warning-amber: var(--design-ink-muted-48);
+    --warning-bg: var(--design-canvas-parchment);
+    --error-red: #b00020;
+    --error-bg: #fff5f5;
+    --sidebar-width: 232px;
+    --header-height: var(--top-nav-height);
+    --shadow-sm: none;
+    --shadow-md: none;
+    --shadow-lg: none;
+    --shadow-sticky: none;
+
+    --primary: var(--design-primary);
+    --primary-light: var(--primary-blue-light);
+    --primary-accent: var(--design-primary);
+    --success: var(--success-green);
+    --success-light: var(--success-bg);
+    --error: var(--error-red);
+    --error-light: var(--error-bg);
+    --warning: var(--warning-amber);
+    --warning-light: var(--warning-bg);
+    --text-dark: var(--design-ink);
+    --text-base: var(--design-body);
+    --text-muted-auth: var(--design-ink-muted-48);
+    --border-light: var(--design-divider-soft);
+    --bg-light: var(--design-canvas-parchment);
+    --bg-white: var(--design-canvas);
+}
+
+html {
+    color-scheme: light;
+    background: var(--design-canvas);
+}
+
+body {
+    font-family: var(--font-text);
+    font-size: 17px;
+    line-height: 1.47;
+    color: var(--design-body);
+    background: var(--design-canvas);
+    letter-spacing: 0;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+select,
+textarea {
+    font-family: var(--font-text);
+    letter-spacing: 0;
+}
+
+a {
+    color: var(--design-primary);
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--design-primary-focus);
+}
+
+:focus-visible {
+    outline: 2px solid var(--design-primary-focus);
+    outline-offset: 2px;
+}
+
+/* Typography */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.header h1,
+.nav-title,
+.brand-text,
+.section-header h2,
+.landing-hero h1,
+.journey-hero h1,
+.dashboard-hero h1,
+.launcher-intro-hero h1,
+.workspace-hero h1,
+.procurement-hero h1,
+.procurement-market-hero h1,
+.screen-header-new h2,
+.coming-soon-title {
+    font-family: var(--font-display);
+    color: var(--design-ink);
+    font-weight: 600 !important;
+    letter-spacing: 0;
+}
+
+.landing-hero h1,
+.journey-hero h1,
+.dashboard-hero h1,
+.launcher-intro-hero h1,
+.workspace-hero h1,
+.procurement-hero h1,
+.procurement-market-hero h1,
+.dashboard-welcome-card h1 {
+    font-size: clamp(34px, 5vw, 56px) !important;
+    line-height: 1.07 !important;
+}
+
+.section-header h2,
+.coming-soon-title,
+.dashboard-panel h2,
+.procurement-panel h2,
+.procurement-list-panel h2,
+.ekyc-header h1 {
+    font-size: clamp(28px, 3vw, 40px) !important;
+    line-height: 1.1 !important;
+}
+
+p,
+small,
+.tender-description,
+.launcher-app-card p,
+.procurement-action p,
+.journey-panel p,
+.activity-item span,
+.status-section span,
+.option-card span,
+.form-hint,
+.wizard-rail-step span {
+    color: var(--design-ink-muted-48);
+}
+
+.section-kicker,
+.section-label,
+.eyebrow,
+.kpi-label,
+.registry-summary span,
+.analytics-card span,
+.snapshot-item span,
+.live-feed-type,
+.visual-chip {
+    color: var(--design-ink-muted-48) !important;
+    font-family: var(--font-text);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+/* Shared app frame */
+.app-container,
+.main-layout,
+.workspace-home,
+.ekyc-page,
+.register-page-new,
+.signin-page-new,
+.role-page,
+.landing-page,
+.register-container-new,
+.signin-container-new {
+    background: var(--design-canvas) !important;
+    color: var(--design-body);
+}
+
+.main-content,
+.workspace-shell,
+.procurement-market-shell,
+.ekyc-main {
+    color: var(--design-body);
+}
+
+.main-content {
+    padding: var(--space-xl) var(--space-xl) var(--space-xxl);
+}
+
+/* Top navigation */
+.landing-nav,
+.app-topbar {
+    min-height: var(--top-nav-height) !important;
+    height: var(--top-nav-height);
+    background: var(--design-surface-black) !important;
+    border: 0 !important;
+    color: var(--design-body-on-dark) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+.landing-nav-inner,
+.app-topbar {
+    min-height: var(--top-nav-height) !important;
+}
+
+.landing-nav .brand,
+.landing-nav a,
+.app-topbar,
+.app-topbar button,
+.app-brand-button,
+.app-brand-button span {
+    color: var(--design-body-on-dark) !important;
+}
+
+.landing-nav-links a,
+.app-brand-button {
+    min-height: var(--top-nav-height);
+    font-size: var(--top-nav-font);
+    line-height: 1.15;
+    font-weight: 700 !important;
+    white-space: nowrap;
+}
+
+.brand,
+.app-brand-button {
+    gap: clamp(8px, 1vw, 12px);
+    font-weight: 700 !important;
+    min-width: 0;
+}
+
+.app-brand-button {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+
+.brand-mark,
+.brand-mark-new {
+    width: var(--top-nav-mark) !important;
+    height: var(--top-nav-mark) !important;
+    border-radius: var(--radius-full) !important;
+    background: transparent !important;
+    color: var(--design-body-on-dark) !important;
+    border: 1px solid rgba(255, 255, 255, 0.32);
+    font-size: 14px !important;
+    font-weight: 700 !important;
+}
+
+.landing-nav-links {
+    gap: clamp(14px, 2vw, 28px);
+    min-width: 0;
+}
+
+.nav-link-secondary,
+.landing-nav-links a:hover,
+.landing-nav-links a.active {
+    color: var(--design-primary-on-dark) !important;
+}
+
+.nav-header,
+.header,
+.register-header-new,
+.signin-header-new {
+    background: rgba(245, 245, 247, 0.82) !important;
+    border-color: rgba(0, 0, 0, 0.08) !important;
+    color: var(--design-ink) !important;
+    box-shadow: none !important;
+    backdrop-filter: saturate(180%) blur(20px);
+}
+
+.sidebar {
+    background: var(--design-canvas-parchment) !important;
+    border-right: 1px solid var(--design-hairline) !important;
+    padding: var(--space-lg) var(--space-sm) !important;
+}
+
+.sidebar h3,
+.nav-title {
+    color: var(--design-ink) !important;
+}
+
+.sidebar-nav a {
+    min-height: 44px;
+    border-radius: var(--radius-full) !important;
+    color: var(--design-ink-muted-80);
+    font-size: 14px;
+    font-weight: 400 !important;
+}
+
+.sidebar-nav a:hover,
+.sidebar-nav a.active,
+.wizard-rail-step.active,
+.wizard-rail-step:hover {
+    background: var(--design-primary) !important;
+    color: var(--design-body-on-dark) !important;
+}
+
+.wizard-rail-step.active span,
+.wizard-rail-step:hover span {
+    color: rgba(255, 255, 255, 0.72) !important;
+}
+
+/* Buttons */
+.btn,
+.btn-continue-new,
+.btn-continue-to-password-new,
+.btn-create-new,
+.btn-dashboard-new,
+.btn-resend-new,
+.btn-open-email-new,
+.btn-resend-link-new,
+.login-link-new,
+.mock-fill-btn,
+.tab,
+.confirm-action-button,
+.app-menu-card,
+.profile-menu button {
+    min-height: 44px;
+    padding: 11px 22px;
+    border-radius: var(--radius-full) !important;
+    border: 1px solid var(--design-hairline) !important;
+    font-family: var(--font-text);
+    font-size: 17px;
+    line-height: 1;
+    font-weight: 400 !important;
+    box-shadow: none !important;
+    transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+
+.btn:hover,
+.btn-continue-new:hover,
+.btn-continue-to-password-new:hover,
+.btn-create-new:hover,
+.btn-dashboard-new:hover,
+.btn-resend-new:hover,
+.btn-open-email-new:hover,
+.btn-resend-link-new:hover,
+.login-link-new:hover,
+.mock-fill-btn:hover,
+.tab:hover,
+.confirm-action-button:hover,
+.app-menu-card:hover,
+.profile-menu button:hover {
+    transform: none !important;
+}
+
+.btn:active,
+.btn-continue-new:active,
+.btn-continue-to-password-new:active,
+.btn-create-new:active,
+.btn-dashboard-new:active,
+.btn-resend-new:active,
+.btn-open-email-new:active,
+.btn-resend-link-new:active,
+.login-link-new:active,
+.mock-fill-btn:active,
+.tab:active,
+.confirm-action-button:active,
+.app-menu-card:active,
+.profile-menu button:active {
+    transform: scale(0.95) !important;
+}
+
+.btn-primary,
+.btn-accent,
+.btn-continue-new,
+.btn-continue-to-password-new,
+.btn-create-new,
+.btn-dashboard-new,
+.tab.active,
+.confirm-action-button.confirmed {
+    background: var(--design-primary) !important;
+    border-color: var(--design-primary-border) !important;
+    color: var(--design-body-on-dark) !important;
+}
+
+.btn-primary:hover,
+.btn-primary:active,
+.btn-accent:hover,
+.btn-accent:active,
+.btn-continue-new:hover,
+.btn-continue-to-password-new:hover,
+.btn-create-new:hover,
+.btn-dashboard-new:hover,
+.confirm-action-button.confirmed:hover {
+    background: var(--design-primary-focus) !important;
+    border-color: var(--design-primary-border) !important;
+    color: var(--design-body-on-dark) !important;
+}
+
+.btn-secondary,
+.btn-resend-new,
+.btn-open-email-new,
+.btn-resend-link-new,
+.login-link-new,
+.mock-fill-btn,
+.tab,
+.confirm-action-button {
+    background: transparent !important;
+    border-color: var(--design-primary) !important;
+    color: var(--design-primary) !important;
+}
+
+.btn-secondary:hover,
+.btn-secondary:active,
+.login-link-new:hover,
+.mock-fill-btn:hover,
+.tab:hover {
+    background: var(--design-surface-pearl) !important;
+    border-color: var(--design-primary-focus) !important;
+    color: var(--design-primary-focus) !important;
+}
+
+.btn:disabled,
+.btn-continue-new:disabled {
+    background: var(--design-canvas-parchment) !important;
+    border-color: var(--design-hairline) !important;
+    color: var(--design-ink-muted-48) !important;
+}
+
+.icon-menu-btn,
+.profile-button,
+.nav-back-btn,
+.nav-home-btn,
+.boq-row-action,
+.icon-delete-btn {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    border-radius: var(--radius-full) !important;
+    background: var(--design-chip-translucent) !important;
+    border: 1px solid var(--design-hairline) !important;
+    color: var(--design-ink) !important;
+    box-shadow: none !important;
+}
+
+.app-topbar .icon-menu-btn,
+.app-topbar .profile-button {
+    width: var(--top-nav-icon);
+    min-width: var(--top-nav-icon);
+    height: var(--top-nav-icon);
+    background: rgba(210, 210, 215, 0.24) !important;
+    border-color: rgba(255, 255, 255, 0.24) !important;
+    color: var(--design-body-on-dark) !important;
+}
+
+/* Cards, panels, tables */
+.card,
+.kpi-card,
+.dashboard-panel,
+.journey-panel,
+.procurement-panel,
+.procurement-list-panel,
+.procurement-search-panel,
+.procurement-action,
+.app-tile,
+.launcher-app-card,
+.launcher-intro-card,
+.iam-review-panel,
+.registry-summary div,
+.status-section,
+.analytics-card,
+.snapshot-item,
+.alert-item,
+.urgent-item,
+.workflow-item,
+.app-shortcut,
+.smart-action,
+.insight-item,
+.activity-item,
+.tender-card,
+.data-table,
+.chart-container,
+.register-card-new,
+.signin-card-new,
+.ekyc-section,
+.ekyc-role-card,
+.signature-panel,
+.wizard-rail,
+.timeline-tile,
+.attachment-card,
+.criterion-row,
+.permission-card,
+.admin-flow div,
+.option-card,
+.upload-area,
+.progress-section-new,
+.screen-footer-new,
+.password-requirements-new,
+.verification-box-new,
+.success-message-new,
+.ekyc-fetch-panel,
+.signature-preview,
+.registry-review,
+.confirm-action-note,
+.feature-card,
+.step-item,
+.trust-panel,
+.trust-card,
+.testimonial,
+.preview-chart-container,
+.preview-table,
+.kpi,
+.stat-card {
+    background: var(--design-canvas) !important;
+    border: 1px solid var(--design-hairline) !important;
+    border-radius: var(--radius-lg) !important;
+    box-shadow: none !important;
+    color: var(--design-body);
+}
+
+.dashboard-panel:hover,
+.journey-panel:hover,
+.launcher-app-card:hover,
+.procurement-action:hover,
+.tender-card:hover,
+.option-card:hover,
+.ekyc-role-card:hover,
+.app-shortcut:hover,
+.smart-action:hover,
+.workflow-item:hover,
+.urgent-item:hover,
+.insight-item:hover,
+.feature-card:hover,
+.step-item:hover {
+    border-color: var(--design-primary) !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+.option-card.selected,
+.ekyc-role-card.selected,
+.status-section.done,
+.admin-flow div.current,
+.check-chip input:checked + span {
+    background: var(--design-canvas) !important;
+    border-color: var(--design-primary-focus) !important;
+    color: var(--design-ink) !important;
+}
+
+.dashboard-panel,
+.procurement-panel,
+.procurement-list-panel,
+.procurement-search-panel,
+.wizard-rail,
+.data-table,
+.chart-container,
+.visual-card,
+.dashboard-preview {
+    background: var(--design-canvas-parchment) !important;
+}
+
+.data-table th {
+    background: var(--design-canvas-parchment) !important;
+    color: var(--design-ink) !important;
+    font-weight: 600;
+}
+
+.data-table td,
+.data-table th {
+    border-color: var(--design-hairline) !important;
+}
+
+/* Hero and tile rhythm */
+.landing-page .container {
+    width: min(100%, 1440px);
+    padding-left: clamp(20px, 4vw, 80px);
+    padding-right: clamp(20px, 4vw, 80px);
+}
+
+.landing-hero {
+    width: 100% !important;
+    max-width: none !important;
+    min-height: calc(100vh - 64px);
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xxl) !important;
+    padding: var(--space-section) clamp(20px, 5vw, 80px) !important;
+    text-align: center;
+    background: var(--design-canvas) !important;
+}
+
+.hero-copy {
+    max-width: 880px !important;
+    margin: 0 auto;
+}
+
+.eyebrow,
+.section-label,
+.visual-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 6px 14px;
+    border: 1px solid var(--design-hairline);
+    border-radius: var(--radius-full);
+    background: var(--design-surface-pearl) !important;
+}
+
+.landing-hero p {
+    max-width: 760px !important;
+    margin: var(--space-md) auto var(--space-xl) !important;
+    font-family: var(--font-display);
+    font-size: clamp(21px, 2.8vw, 28px) !important;
+    line-height: 1.14 !important;
+    color: var(--design-ink) !important;
+}
+
+.hero-actions,
+.cta-actions {
+    justify-content: center;
+    gap: var(--space-sm);
+}
+
+.hero-stat-grid {
+    max-width: 820px;
+    margin: 0 auto;
+    gap: var(--space-lg) !important;
+}
+
+.stat-card {
+    background: var(--design-canvas-parchment) !important;
+    padding: var(--space-lg) !important;
+}
+
+.stat-card strong,
+.kpi-value,
+.trust-stat {
+    color: var(--design-ink) !important;
+    font-weight: 600 !important;
+}
+
+.hero-visual {
+    width: min(100%, 980px);
+}
+
+.visual-card {
+    max-width: 980px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: var(--radius-none) !important;
+    overflow: visible;
+}
+
+.visual-screenshot {
+    display: block;
+    width: 100%;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--design-product-shadow);
+}
+
+.dashboard-preview {
+    margin-top: var(--space-lg);
+    padding: var(--space-lg);
+    border-radius: var(--radius-lg);
+}
+
+.landing-section,
+.landing-cta {
+    width: 100% !important;
+    max-width: none !important;
+    padding: var(--space-section) clamp(20px, 5vw, 80px) !important;
+}
+
+.landing-section:nth-of-type(odd),
+.landing-cta {
+    background: var(--design-canvas-parchment) !important;
+}
+
+.landing-section:nth-of-type(even) {
+    background: var(--design-surface-tile-1) !important;
+    color: var(--design-body-on-dark) !important;
+}
+
+.landing-section:nth-of-type(even) h2,
+.landing-section:nth-of-type(even) h3,
+.landing-section:nth-of-type(even) h4,
+.landing-section:nth-of-type(even) p,
+.landing-section:nth-of-type(even) li,
+.landing-section:nth-of-type(even) .section-label {
+    color: var(--design-body-on-dark) !important;
+}
+
+.landing-section:nth-of-type(even) .feature-card,
+.landing-section:nth-of-type(even) .step-item,
+.landing-section:nth-of-type(even) .section-label {
+    background: var(--design-surface-tile-2) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.section-header,
+.benefits-copy {
+    max-width: 980px;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+
+.features-grid {
+    max-width: 1440px;
+    margin: var(--space-xxl) auto 0;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) !important;
+    gap: var(--space-lg) !important;
+}
+
+.feature-card,
+.step-item {
+    min-height: 220px;
+    padding: var(--space-xl) !important;
+}
+
+.steps-flow {
+    max-width: 980px;
+    margin: var(--space-xxl) auto 0;
+}
+
+.step-badge,
+.feature-icon,
+.ekyc-step-badge,
+.app-menu-icon,
+.app-icon,
+.procure-icon,
+.ekyc-role-icon {
+    background: var(--design-primary) !important;
+    color: var(--design-body-on-dark) !important;
+    border-radius: var(--radius-full) !important;
+}
+
+.benefits-section {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 420px);
+    max-width: none !important;
+    gap: var(--space-xxl) !important;
+    align-items: center;
+}
+
+.benefits-list li::before {
+    color: var(--design-primary) !important;
+}
+
+.cta-panel {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: var(--space-xxl) !important;
+    background: var(--design-canvas) !important;
+    border: 1px solid var(--design-hairline) !important;
+    border-radius: var(--radius-lg) !important;
+    box-shadow: none !important;
+    text-align: center;
+}
+
+.landing-footer {
+    width: 100% !important;
+    max-width: none !important;
+    padding: 64px clamp(20px, 5vw, 80px) !important;
+    background: var(--design-canvas-parchment) !important;
+    border-top: 1px solid var(--design-hairline) !important;
+    color: var(--design-ink-muted-48) !important;
+    font-size: 12px;
+}
+
+/* App page heroes become quiet product tiles. */
+.journey-hero,
+.workspace-hero > div:first-child,
+.dashboard-welcome-card,
+.procurement-hero,
+.procurement-market-hero,
+.launcher-intro-hero {
+    background: var(--design-canvas-parchment) !important;
+    border: 0 !important;
+    border-radius: var(--radius-none) !important;
+    color: var(--design-ink) !important;
+    box-shadow: none !important;
+    padding: var(--space-section) clamp(24px, 5vw, 80px) !important;
+}
+
+.journey-hero::before,
+.journey-hero::after,
+.workspace-hero > div:first-child::before,
+.workspace-hero > div:first-child::after,
+.dashboard-welcome-card::before,
+.dashboard-welcome-card::after,
+.procurement-hero::before,
+.procurement-hero::after,
+.procurement-market-hero::before,
+.procurement-market-hero::after,
+.launcher-intro-hero::before,
+.launcher-intro-hero::after {
+    display: none !important;
+}
+
+.journey-hero h1,
+.journey-hero p,
+.workspace-hero h1,
+.workspace-hero p,
+.dashboard-welcome-card h1,
+.dashboard-welcome-card p,
+.procurement-hero h1,
+.procurement-hero p,
+.procurement-market-hero h1,
+.procurement-market-hero p,
+.launcher-intro-hero h1,
+.launcher-intro-hero p {
+    color: var(--design-ink) !important;
+}
+
+.submit-strip,
+.hero-cta-strip,
+.ekyc-side {
+    background: var(--design-surface-tile-1) !important;
+    color: var(--design-body-on-dark) !important;
+}
+
+.ekyc-side * {
+    color: inherit;
+}
+
+.ekyc-side-status p,
+.ekyc-brand span:last-child,
+.ekyc-steps li {
+    color: var(--design-body-muted) !important;
+}
+
+/* Badges and chips */
+.badge,
+.check-chip span,
+.requirement-check-option span,
+.tender-badge,
+.trust-badges span {
+    min-height: 28px;
+    padding: 6px 12px;
+    border-radius: var(--radius-full) !important;
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0;
+    border: 1px solid var(--design-hairline) !important;
+}
+
+.badge-info,
+.badge-warning,
+.badge-success,
+.badge-error,
+.tender-badge {
+    background: var(--design-canvas-parchment) !important;
+    color: var(--design-ink) !important;
+}
+
+/* Forms */
+.form-input,
+.form-input-new,
+textarea.form-input,
+select.form-input,
+.market-search-field input,
+.otp-input,
+.otp-input-new,
+.password-input-new,
+.confirm-password-new,
+.requirement-list-input,
+.requirement-currency-input {
+    min-height: 44px;
+    padding: 12px 20px;
+    background: var(--design-canvas) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    border-radius: var(--radius-full) !important;
+    color: var(--design-ink) !important;
+    box-shadow: none !important;
+    font-size: 17px;
+}
+
+textarea.form-input,
+.requirement-rich-input {
+    border-radius: var(--radius-lg) !important;
+}
+
+.market-search-field input {
+    background: var(--design-canvas) !important;
+}
+
+.form-input:focus,
+.form-input-new:focus,
+textarea.form-input:focus,
+select.form-input:focus,
+.market-search-field input:focus,
+.otp-input:focus,
+.otp-input-new:focus,
+.password-input-new:focus,
+.confirm-password-new:focus {
+    border-color: var(--design-primary-focus) !important;
+    box-shadow: 0 0 0 2px var(--design-primary-focus) !important;
+    outline: none;
+}
+
+.form-label,
+.form-label-new {
+    color: var(--design-ink) !important;
+    font-weight: 600;
+}
+
+::placeholder {
+    color: var(--design-ink-muted-48) !important;
+}
+
+/* Progress, charts, feeds */
+.analytics-bar i,
+.progress-fill,
+.live-feed-dots span.active,
+.progress-step-new.active .progress-circle-new,
+.progress-step-new.completed .progress-circle-new,
+.step.active .step-circle,
+.step.completed .step-circle {
+    background: var(--design-primary) !important;
+    border-color: var(--design-primary) !important;
+    color: var(--design-body-on-dark) !important;
+}
+
+.progress-bar,
+.step-circle,
+.progress-circle-new {
+    background: var(--design-canvas-parchment) !important;
+    border-color: var(--design-hairline) !important;
+}
+
+.risk-item.warning,
+.status-section.attention,
+.urgent-item em,
+.live-feed-type,
+.risk-item.success,
+.live-feed-card,
+.live-feed-card.tone-success,
+.live-feed-card.tone-warning,
+.live-feed-card.tone-info,
+.live-feed-card.tone-blue,
+.live-feed-card.tone-rose {
+    background: var(--design-canvas) !important;
+    color: var(--design-body) !important;
+    border-color: var(--design-hairline) !important;
+}
+
+.bar {
+    background: var(--design-primary) !important;
+}
+
+/* Menus */
+.app-drawer-menu,
+.profile-menu,
+.modal-card {
+    background: var(--design-canvas) !important;
+    border-color: var(--design-hairline) !important;
+    border-radius: var(--radius-lg) !important;
+    box-shadow: none !important;
+}
+
+.app-menu-card:hover,
+.profile-menu button:hover {
+    background: var(--design-canvas-parchment) !important;
+}
+
+.app-drawer-menu,
+.app-drawer-menu button,
+.app-drawer-menu strong,
+.app-drawer-menu em,
+.app-drawer-menu span:not(.app-menu-icon),
+.profile-menu,
+.profile-menu button {
+    color: var(--design-ink) !important;
+}
+
+.app-drawer-menu em,
+.app-menu-header span {
+    color: var(--design-ink-muted-48) !important;
+}
+
+/* Clean up old decorative gradients and colored callouts. */
+[style*="var(--primary-blue-light)"],
+[style*="var(--background)"],
+[style*="#eff6ff"],
+[style*="#f8fafc"],
+[style*="#ecfdf5"],
+[style*="#fffbeb"],
+[style*="#ecfeff"] {
+    background: var(--design-canvas-parchment) !important;
+    border-color: var(--design-hairline) !important;
+    color: var(--design-ink) !important;
+}
+
+[style*="#2563"],
+[style*="#1d4ed8"],
+[style*="#0064e0"],
+[style*="#3b82f6"] {
+    background: var(--design-primary) !important;
+    border-color: var(--design-primary) !important;
+    color: var(--design-body-on-dark) !important;
+}
+
+[style*="font-weight: 500"] {
+    font-weight: 600 !important;
+}
+
+.auth-note,
+.mock-fill-btn,
+.registry-review,
+.ekyc-upload.has-file,
+.confirm-action.confirmed .confirm-action-note {
+    background: var(--design-canvas-parchment) !important;
+    border-color: var(--design-hairline) !important;
+    color: var(--design-ink) !important;
+}
+
+.password-strength-bar,
+.strength-fill-new {
+    background: var(--design-primary) !important;
+}
+
+/* Contrast hardening: legacy pages sometimes set white or very pale text on
+   elements that the theme has moved back onto white/parchment surfaces. */
+:where(
+    .card,
+    .kpi-card,
+    .dashboard-panel,
+    .journey-panel,
+    .procurement-panel,
+    .procurement-list-panel,
+    .procurement-search-panel,
+    .procurement-action,
+    .app-tile,
+    .launcher-app-card,
+    .launcher-intro-card,
+    .iam-review-panel,
+    .registry-summary,
+    .status-section,
+    .analytics-card,
+    .snapshot-item,
+    .alert-item,
+    .urgent-item,
+    .workflow-item,
+    .app-shortcut,
+    .smart-action,
+    .insight-item,
+    .activity-item,
+    .tender-card,
+    .data-table,
+    .chart-container,
+    .register-card-new,
+    .signin-card-new,
+    .ekyc-section,
+    .ekyc-role-card,
+    .signature-panel,
+    .wizard-rail,
+    .timeline-tile,
+    .attachment-card,
+    .criterion-row,
+    .permission-card,
+    .option-card,
+    .upload-area,
+    .progress-section-new,
+    .screen-footer-new,
+    .password-requirements-new,
+    .verification-box-new,
+    .success-message-new,
+    .ekyc-fetch-panel,
+    .signature-preview,
+    .registry-review,
+    .confirm-action-note,
+    .trust-panel,
+    .trust-card,
+    .testimonial,
+    .preview-chart-container,
+    .preview-table,
+    .kpi,
+    .stat-card,
+    .app-drawer-menu,
+    .profile-menu,
+    .modal-card
+) :where(h1, h2, h3, h4, h5, h6, p, span, strong, em, small, label, li, td, th, div):not(.btn):not(.badge):not(.brand-mark):not(.brand-mark-new):not(.app-menu-icon):not(.app-icon):not(.procure-icon):not(.feature-icon):not(.step-badge):not(.ekyc-step-badge) {
+    color: var(--design-ink) !important;
+}
+
+:where(
+    .card,
+    .dashboard-panel,
+    .journey-panel,
+    .procurement-panel,
+    .procurement-list-panel,
+    .procurement-search-panel,
+    .tender-card,
+    .data-table,
+    .register-card-new,
+    .signin-card-new,
+    .ekyc-section,
+    .app-drawer-menu,
+    .profile-menu,
+    .modal-card
+) :where(p, small, em, .form-hint, .kpi-label, .section-kicker, .app-menu-header span, .app-menu-card em, .tender-description, .tender-meta) {
+    color: var(--design-ink-muted-48) !important;
+}
+
+:where(
+    .card,
+    .dashboard-panel,
+    .journey-panel,
+    .procurement-panel,
+    .procurement-list-panel,
+    .procurement-search-panel,
+    .tender-card,
+    .data-table,
+    .register-card-new,
+    .signin-card-new,
+    .ekyc-section,
+    .app-drawer-menu,
+    .profile-menu,
+    .modal-card,
+    .registry-review,
+    .confirm-action-note
+) [style*="color: white"],
+:where(
+    .card,
+    .dashboard-panel,
+    .journey-panel,
+    .procurement-panel,
+    .procurement-list-panel,
+    .procurement-search-panel,
+    .tender-card,
+    .data-table,
+    .register-card-new,
+    .signin-card-new,
+    .ekyc-section,
+    .app-drawer-menu,
+    .profile-menu,
+    .modal-card,
+    .registry-review,
+    .confirm-action-note
+) [style*="color: #ffffff"],
+:where(
+    .card,
+    .dashboard-panel,
+    .journey-panel,
+    .procurement-panel,
+    .procurement-list-panel,
+    .procurement-search-panel,
+    .tender-card,
+    .data-table,
+    .register-card-new,
+    .signin-card-new,
+    .ekyc-section,
+    .app-drawer-menu,
+    .profile-menu,
+    .modal-card,
+    .registry-review,
+    .confirm-action-note
+) [style*="rgba(255, 255, 255"] {
+    color: var(--design-ink) !important;
+}
+
+.btn-primary,
+.btn-primary *,
+.btn-accent,
+.btn-accent *,
+.btn-continue-new,
+.btn-continue-new *,
+.btn-create-new,
+.btn-create-new *,
+.btn-dashboard-new,
+.btn-dashboard-new *,
+.tab.active,
+.tab.active *,
+.confirm-action-button.confirmed,
+.confirm-action-button.confirmed *,
+.sidebar-nav a.active,
+.sidebar-nav a.active *,
+.step-badge,
+.feature-icon,
+.ekyc-step-badge,
+.app-icon,
+.procure-icon,
+.progress-step-new.active .progress-circle-new,
+.progress-step-new.completed .progress-circle-new,
+.step.active .step-circle,
+.step.completed .step-circle {
+    color: var(--design-body-on-dark) !important;
+}
+
+.btn-secondary,
+.btn-secondary *,
+.btn-resend-new,
+.btn-resend-new *,
+.btn-open-email-new,
+.btn-open-email-new *,
+.btn-resend-link-new,
+.btn-resend-link-new *,
+.login-link-new,
+.login-link-new *,
+.mock-fill-btn,
+.mock-fill-btn *,
+.tab,
+.tab *,
+.confirm-action-button,
+.confirm-action-button * {
+    color: var(--design-primary) !important;
+}
+
+.btn-primary *,
+.btn-accent *,
+.btn-continue-new *,
+.btn-create-new *,
+.btn-dashboard-new *,
+.tab.active *,
+.confirm-action-button.confirmed * {
+    color: inherit !important;
+}
+
+.landing-nav,
+.landing-nav *,
+.app-topbar,
+.app-topbar > *:not(.app-drawer-menu):not(.profile-menu),
+.app-topbar > *:not(.app-drawer-menu):not(.profile-menu) *,
+.ekyc-side,
+.ekyc-side *,
+.submit-strip,
+.submit-strip *,
+.hero-cta-strip,
+.hero-cta-strip *,
+.landing-section:nth-of-type(even),
+.landing-section:nth-of-type(even) h1,
+.landing-section:nth-of-type(even) h2,
+.landing-section:nth-of-type(even) h3,
+.landing-section:nth-of-type(even) h4,
+.landing-section:nth-of-type(even) p,
+.landing-section:nth-of-type(even) span,
+.landing-section:nth-of-type(even) strong,
+.landing-section:nth-of-type(even) em,
+.landing-section:nth-of-type(even) li,
+.landing-section:nth-of-type(even) small {
+    color: var(--design-body-on-dark) !important;
+}
+
+.landing-section:nth-of-type(even) .section-label,
+.landing-section:nth-of-type(even) .feature-card,
+.landing-section:nth-of-type(even) .feature-card *,
+.landing-section:nth-of-type(even) .step-item,
+.landing-section:nth-of-type(even) .step-item * {
+    color: var(--design-body-on-dark) !important;
+}
+
+/* Landing page corrections: reset legacy pill nav links and keep CTA copy visible. */
+.landing-nav-inner {
+    width: min(100%, 1440px) !important;
+    min-height: var(--top-nav-height) !important;
+    margin: 0 auto !important;
+    padding: 0 clamp(24px, 4vw, 76px) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: clamp(20px, 4vw, 64px) !important;
+}
+
+.landing-nav .brand {
+    flex: 0 0 auto;
+    display: inline-flex !important;
+    align-items: center !important;
+    color: var(--design-body-on-dark) !important;
+}
+
+.landing-nav .brand-text {
+    color: var(--design-body-on-dark) !important;
+    font-size: clamp(20px, 1.6vw, 26px) !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+}
+
+.landing-nav-links {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    flex-wrap: nowrap !important;
+    gap: clamp(18px, 2.2vw, 36px) !important;
+}
+
+.landing-nav-links a {
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: auto !important;
+    height: auto !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: var(--design-body-on-dark) !important;
+    font-size: clamp(15px, 1.2vw, 18px) !important;
+    font-weight: 700 !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+}
+
+.landing-nav-links a:hover,
+.landing-nav-links a.active {
+    background: transparent !important;
+    color: var(--design-primary-on-dark) !important;
+}
+
+.landing-nav-links .nav-link-secondary {
+    min-height: 44px !important;
+    padding: 0 24px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid var(--design-primary-border) !important;
+    border-radius: var(--radius-full) !important;
+    background: var(--design-primary) !important;
+    color: var(--design-body-on-dark) !important;
+}
+
+.landing-nav-links .nav-link-secondary:hover {
+    background: var(--design-primary-focus) !important;
+    color: var(--design-body-on-dark) !important;
+}
+
+.cta-panel,
+.landing-cta .cta-panel {
+    background: var(--design-canvas) !important;
+    color: var(--design-ink) !important;
+    border: 1px solid var(--design-hairline) !important;
+}
+
+.cta-panel h2,
+.cta-panel p,
+.landing-cta .cta-panel h2,
+.landing-cta .cta-panel p {
+    color: var(--design-ink) !important;
+}
+
+/* Dashboard welcome card is now a light surface, so override legacy dark-hero text. */
+.dashboard-welcome-card,
+.dashboard-welcome-card .dashboard-welcome-copy,
+.dashboard-welcome-card .dashboard-welcome-visual,
+.dashboard-welcome-card .dashboard-welcome-profile,
+.dashboard-welcome-card .dashboard-welcome-chips {
+    color: var(--design-ink) !important;
+}
+
+.dashboard-welcome-card .section-kicker,
+.dashboard-welcome-card h1,
+.dashboard-welcome-card h1 strong,
+.dashboard-welcome-card p,
+.dashboard-welcome-profile strong,
+.dashboard-welcome-profile span:not(.badge),
+.dashboard-welcome-chips span {
+    color: var(--design-ink) !important;
+}
+
+.dashboard-welcome-card .section-kicker,
+.dashboard-welcome-profile span:not(.badge) {
+    color: var(--design-ink-muted-48) !important;
+}
+
+.dashboard-welcome-profile {
+    background: var(--design-canvas) !important;
+    border: 1px solid var(--design-hairline) !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 18px 22px !important;
+}
+
+.dashboard-welcome-chips span {
+    background: var(--design-canvas) !important;
+    border: 1px solid var(--design-hairline) !important;
+    color: var(--design-ink) !important;
+}
+
+.dashboard-welcome-card .btn-primary,
+.dashboard-welcome-card .btn-primary * {
+    color: var(--design-body-on-dark) !important;
+}
+
+.app-topbar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: clamp(16px, 2vw, 28px) !important;
+    padding: 0 clamp(24px, 4vw, 40px) !important;
+}
+
+.app-topbar-left,
+.app-topbar-actions {
+    display: flex !important;
+    align-items: center !important;
+    flex-direction: row !important;
+}
+
+.app-topbar-left {
+    min-width: 0;
+}
+
+.app-topbar-actions {
+    margin-left: auto;
+    gap: 16px !important;
+    flex: 0 0 auto;
+}
+
+@media (max-width: 833px) {
+    .landing-nav,
+    .app-topbar {
+        height: auto;
+        min-height: 56px !important;
+    }
+
+    .landing-nav-inner {
+        flex-direction: row !important;
+        align-items: center !important;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+    }
+
+    .app-topbar,
+    .app-topbar-actions {
+        align-items: center !important;
+        flex-direction: row !important;
+    }
+
+    .app-topbar {
+        gap: 12px !important;
+        justify-content: space-between !important;
+        padding: 8px 14px !important;
+    }
+
+    .app-topbar-left {
+        min-width: 0;
+    }
+
+    .app-brand-button span:last-child,
+    .brand-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .landing-nav-links a,
+    .app-brand-button {
+        font-size: 15px;
+        min-height: 56px;
+    }
+
+    .brand-mark,
+    .brand-mark-new {
+        width: 36px !important;
+        height: 36px !important;
+    }
+
+    .app-topbar .icon-menu-btn,
+    .app-topbar .profile-button {
+        width: 40px;
+        min-width: 40px;
+        height: 40px;
+    }
+
+    .landing-nav-links a:not(.nav-link-secondary) {
+        display: none;
+    }
+
+    .main-layout,
+    .dashboard-grid,
+    .marketplace-grid,
+    .tender-content,
+    .tracking-content,
+    .negotiation-layout,
+    .benefits-section {
+        grid-template-columns: 1fr !important;
+    }
+
+    .sidebar {
+        width: 100% !important;
+        border-right: 0 !important;
+        border-bottom: 1px solid var(--design-hairline) !important;
+    }
+
+    .main-content,
+    .workspace-shell,
+    .procurement-market-shell {
+        width: min(100% - 32px, 1280px) !important;
+        padding: var(--space-lg) var(--space-sm) var(--space-xl) !important;
+    }
+
+    .landing-hero,
+    .landing-section,
+    .landing-cta,
+    .journey-hero,
+    .workspace-hero > div:first-child,
+    .dashboard-welcome-card,
+    .procurement-hero,
+    .procurement-market-hero,
+    .launcher-intro-hero {
+        padding-top: 48px !important;
+        padding-bottom: 48px !important;
+    }
+
+    .landing-hero h1,
+    .journey-hero h1,
+    .dashboard-hero h1,
+    .launcher-intro-hero h1,
+    .workspace-hero h1,
+    .procurement-hero h1,
+    .procurement-market-hero h1 {
+        font-size: 34px !important;
+    }
+
+    .hero-stat-grid,
+    .preview-kpis,
+    .features-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+@media (max-width: 419px) {
+    .landing-nav-links {
+        gap: 10px;
+    }
+
+    .landing-nav-links a,
+    .app-brand-button {
+        font-size: 14px;
+        min-height: 52px;
+    }
+
+    .brand-mark,
+    .brand-mark-new {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 12px !important;
+    }
+
+    .app-topbar .icon-menu-btn,
+    .app-topbar .profile-button {
+        width: 36px;
+        min-width: 36px;
+        height: 36px;
+    }
+
+    body {
+        font-size: 16px;
+    }
+
+    .landing-hero h1,
+    .journey-hero h1,
+    .dashboard-hero h1,
+    .launcher-intro-hero h1,
+    .workspace-hero h1,
+    .procurement-hero h1,
+    .procurement-market-hero h1 {
+        font-size: 28px !important;
+    }
+
+    .btn,
+    .btn-continue-new,
+    .btn-continue-to-password-new,
+    .btn-create-new,
+    .btn-dashboard-new,
+    .login-link-new,
+    .mock-fill-btn,
+    .tab {
+        width: 100%;
+    }
+}
