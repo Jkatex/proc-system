@@ -1999,6 +1999,431 @@
     display: block;
 }
 
+.evaluation-builder {
+    display: grid;
+    gap: 16px;
+}
+
+.evaluation-builder-header,
+.evaluation-toolbar,
+.evaluation-builder-grid,
+.evaluation-criterion-topline {
+    display: grid;
+    gap: 14px;
+}
+
+.evaluation-builder-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    padding: 18px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-xl);
+    background: var(--surface-soft);
+}
+
+.evaluation-builder-header h3 {
+    margin: 4px 0 0;
+}
+
+.evaluation-weight-panel {
+    display: grid;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    background: var(--card-bg);
+}
+
+.evaluation-weight-panel.balanced {
+    border-color: rgba(49, 162, 76, 0.45);
+}
+
+.evaluation-weight-panel.under {
+    border-color: rgba(242, 169, 24, 0.55);
+}
+
+.evaluation-weight-panel.over {
+    border-color: rgba(176, 0, 32, 0.32);
+    background: var(--error-bg);
+}
+
+.evaluation-weight-status {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.evaluation-progress-track {
+    overflow: hidden;
+    height: 8px;
+    border-radius: var(--radius-full);
+    background: var(--surface-soft);
+}
+
+.evaluation-progress-track span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--primary-blue);
+    transition: width 0.2s ease;
+}
+
+.evaluation-weight-panel.under .evaluation-progress-track span {
+    background: var(--warning);
+}
+
+.evaluation-weight-panel.over .evaluation-progress-track span {
+    background: var(--error);
+}
+
+.evaluation-toolbar {
+    grid-template-columns: minmax(180px, 1fr) auto auto auto;
+    align-items: end;
+    padding: 14px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    background: var(--surface-soft);
+}
+
+.evaluation-toolbar label {
+    display: grid;
+    gap: 7px;
+}
+
+.evaluation-builder-grid {
+    grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.75fr);
+    align-items: start;
+}
+
+.evaluation-selected-panel,
+.evaluation-suggestions-panel {
+    display: grid;
+    gap: 14px;
+    min-width: 0;
+}
+
+.evaluation-criteria-list,
+.evaluation-suggestion-list {
+    display: grid;
+    gap: 12px;
+}
+
+.evaluation-criterion-card {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    background: var(--card-bg);
+}
+
+.evaluation-criterion-topline {
+    grid-template-columns: minmax(180px, 1fr) 130px auto;
+    align-items: end;
+}
+
+.evaluation-criterion-topline label,
+.evaluation-subcriteria-control {
+    display: grid;
+    gap: 7px;
+    min-width: 0;
+}
+
+.evaluation-subcriteria-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    background: var(--surface-soft);
+}
+
+.evaluation-subcriterion-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    max-width: 100%;
+    padding: 7px 9px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-full);
+    background: var(--card-bg);
+    color: var(--text-primary);
+    font-size: 13px;
+    line-height: 1.25;
+}
+
+.evaluation-subcriterion-chip button {
+    border: 0;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font: inherit;
+    font-weight: 800;
+}
+
+.evaluation-subcriteria-add-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+}
+
+.evaluation-suggestion {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 4px 10px;
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    background: var(--card-bg);
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+}
+
+.evaluation-suggestion:hover {
+    border-color: var(--primary-blue);
+    background: var(--primary-blue-light);
+}
+
+.evaluation-suggestion span {
+    grid-row: span 2;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-full);
+    background: var(--surface-soft);
+    color: var(--primary-blue);
+    font-weight: 800;
+}
+
+.evaluation-suggestion strong,
+.evaluation-suggestion small {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.evaluation-suggestion small {
+    color: var(--text-secondary);
+    line-height: 1.35;
+}
+
+.tender-review-workspace {
+    display: grid;
+    gap: 16px;
+}
+
+.tender-review-panel {
+    display: grid;
+    gap: 14px;
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-xl);
+    background: var(--surface-soft);
+}
+
+.buyer-view-card {
+    display: grid;
+    gap: 10px;
+    padding: 18px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    background: var(--card-bg);
+}
+
+.buyer-view-card > span {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.buyer-view-card h3,
+.buyer-view-card p {
+    margin: 0;
+}
+
+.buyer-view-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.buyer-view-metrics div,
+.tender-review-field,
+.tender-review-record {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    background: var(--card-bg);
+}
+
+.buyer-view-metrics span,
+.tender-review-field span {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.buyer-view-metrics strong,
+.tender-review-field strong {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+}
+
+.tender-review-field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.tender-review-section-stack,
+.tender-review-record-list,
+.tender-review-control {
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+}
+
+.tender-review-section {
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    background: var(--card-bg);
+}
+
+.tender-review-section h4,
+.tender-review-two-column h4 {
+    margin: 0 0 4px;
+}
+
+.tender-review-bullet-list {
+    display: grid;
+    gap: 7px;
+    margin: 0;
+    padding-left: 20px;
+    color: var(--text-primary);
+}
+
+.tender-review-record-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.tender-review-record-heading span {
+    color: var(--text-secondary);
+    font-weight: 800;
+}
+
+.tender-review-two-column {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.system-evaluation-workspace {
+    display: grid;
+    gap: 16px;
+}
+
+.system-evaluation-panel {
+    display: grid;
+    gap: 14px;
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-xl);
+    background: var(--surface-soft);
+}
+
+.system-evaluation-score-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.system-evaluation-score-grid article {
+    display: grid;
+    gap: 7px;
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    background: var(--card-bg);
+}
+
+.system-evaluation-score-grid span {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.system-evaluation-score-grid strong {
+    font-size: 24px;
+    line-height: 1.1;
+}
+
+.system-evaluation-checklist {
+    display: grid;
+    gap: 10px;
+}
+
+.system-evaluation-checklist div {
+    display: grid;
+    grid-template-columns: 110px minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    background: var(--card-bg);
+}
+
+.system-evaluation-checklist .passed {
+    border-color: rgba(49, 162, 76, 0.45);
+}
+
+.system-evaluation-checklist .pending {
+    border-color: rgba(242, 169, 24, 0.55);
+}
+
+.system-evaluation-checklist strong {
+    color: var(--text-secondary);
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.system-evaluation-pass-note {
+    padding: 14px;
+    border: 1px solid rgba(49, 162, 76, 0.45);
+    border-radius: var(--radius-lg);
+    background: var(--card-bg);
+    color: var(--text-primary);
+}
+
+.system-evaluation-publish .btn[disabled] {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
 .timeline-grid,
 .attachment-grid {
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -2430,6 +2855,30 @@
     grid-template-columns: minmax(0, 1fr);
     gap: 14px;
     margin-bottom: 16px;
+}
+
+.tender-wizard-page .consultancy-tor-workspace {
+    margin-bottom: 18px;
+}
+
+.tender-wizard-page .consultancy-tor-main {
+    min-width: 0;
+}
+
+.tender-wizard-page .consultancy-tor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 14px;
+    padding: 18px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-xl);
+    background: var(--surface-soft);
+}
+
+.tender-wizard-page .consultancy-tor-header h3 {
+    margin: 4px 0 0;
 }
 
 .tender-wizard-page [data-post-license-requirement-sections] .requirement-section-grid {
@@ -3598,6 +4047,15 @@
     .tender-wizard-page .requirement-section-grid,
     .tender-wizard-page .requirement-control-grid,
     .tender-wizard-page .requirement-card-grid,
+    .tender-wizard-page .evaluation-builder-header,
+    .tender-wizard-page .evaluation-toolbar,
+    .tender-wizard-page .evaluation-builder-grid,
+    .tender-wizard-page .evaluation-criterion-topline,
+    .tender-wizard-page .buyer-view-metrics,
+    .tender-wizard-page .tender-review-field-grid,
+    .tender-wizard-page .tender-review-two-column,
+    .tender-wizard-page .system-evaluation-score-grid,
+    .tender-wizard-page .system-evaluation-checklist div,
     .tender-wizard-page .review-summary-grid {
         grid-template-columns: 1fr;
     }

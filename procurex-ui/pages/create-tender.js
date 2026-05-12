@@ -791,109 +791,408 @@ const createTenderRequirementTemplates = {
         title: 'Consultancy Tender Requirements',
         sections: [
             {
-                id: 'torPreparation',
-                title: 'Terms of Reference (TOR) Preparation',
-                hint: 'Accordion sections give a professional TOR editing experience.',
+                id: 'consultancyIntroduction',
+                title: '1. Introduction',
+                hint: 'Provides assignment background, procuring entity context, project background, and the problem statement.',
                 controls: [
                     {
-                        id: 'torSections',
-                        label: 'TOR sections',
+                        id: 'consultancyEntityBackground',
+                        label: '1.1 Procuring Entity Background',
+                        type: 'cards',
+                        addLabel: 'Add Entity Background',
+                        emptyText: 'No procuring entity background captured yet.',
+                        cardTitle: 'Procuring entity background',
+                        fields: [
+                            { id: 'organizationBackground', label: 'Organization Background', type: 'richtext' },
+                            { id: 'departmentUnit', label: 'Department / Unit', type: 'select-custom-prompt', options: ['Procurement Management Unit', 'Finance', 'Planning', 'ICT', 'Engineering', 'Legal', 'User Department', 'Other'] },
+                            { id: 'projectName', label: 'Project Name', type: 'text' },
+                            { id: 'fundingSource', label: 'Funding Source', type: 'select-custom-prompt', options: ['Government of Tanzania', 'Own Source', 'Donor Funded', 'Development Partner', 'Loan', 'Grant', 'Other'] },
+                            { id: 'procurementReferenceNo', label: 'Procurement Reference No', type: 'text', placeholder: 'Auto-generated reference' }
+                        ],
+                        defaultValue: []
+                    },
+                    {
+                        id: 'consultancyProjectBackground',
+                        label: '1.2 Project Background',
                         type: 'accordion',
                         panels: [
-                            { id: 'background', label: 'Background' },
-                            { id: 'objectives', label: 'Objectives' },
-                            { id: 'scope', label: 'Scope' },
-                            { id: 'deliverables', label: 'Deliverables' },
-                            { id: 'timeline', label: 'Timeline' },
-                            { id: 'reportingStructure', label: 'Reporting structure' }
+                            { id: 'backgroundNarrative', label: 'Background Narrative' },
+                            { id: 'existingChallenges', label: 'Existing Challenges' },
+                            { id: 'currentSituation', label: 'Current Situation' },
+                            { id: 'relatedInitiatives', label: 'Related Initiatives' }
+                        ]
+                    },
+                    {
+                        id: 'consultancyProblemStatement',
+                        label: '1.3 Problem Statement',
+                        type: 'accordion',
+                        panels: [
+                            { id: 'mainProblemDescription', label: 'Main Problem Description' },
+                            { id: 'expectedImpact', label: 'Expected Impact' }
                         ]
                     }
                 ]
             },
             {
-                id: 'consultancyInformation',
-                title: 'Consultancy Information',
-                hint: 'Capture the core consultancy setup.',
+                id: 'consultancyObjectives',
+                title: '2. Objectives of the Consultancy',
+                hint: 'Defines the general objective and specific outcomes expected from the assignment.',
                 controls: [
-                    { id: 'assignmentTitle', label: 'Assignment title', type: 'text' },
-                    { id: 'duration', label: 'Duration', type: 'text' },
-                    { id: 'typeOfConsultancy', label: 'Type of consultancy', type: 'text' },
-                    { id: 'selectionMethod', label: 'Selection method', type: 'text' }
-                ]
-            },
-            {
-                id: 'termsOfReference',
-                title: 'Terms of Reference',
-                hint: 'Define what consultants will do and submit.',
-                controls: [
-                    { id: 'tasks', label: 'Tasks', type: 'list', addLabel: 'Add Task', emptyText: 'No tasks added yet.' },
-                    { id: 'expectedOutputs', label: 'Expected outputs', type: 'list', addLabel: 'Add Expected Output', emptyText: 'No expected outputs added yet.' },
-                    { id: 'torDeliverables', label: 'Deliverables', type: 'list', addLabel: 'Add TOR Deliverable', emptyText: 'No TOR deliverables added yet.' },
-                    { id: 'torReportingObligations', label: 'Reporting obligations', type: 'list', addLabel: 'Add Reporting Obligation', emptyText: 'No reporting obligations added yet.' }
-                ]
-            },
-            {
-                id: 'qualificationRequirements',
-                title: 'Consultant Qualification Requirements',
-                hint: 'Expert cards for position, experience, qualifications, certifications, and CV requirements.',
-                controls: [
-                    { id: 'firmRegistration', label: 'Firm registration', type: 'text' },
-                    { id: 'firmExperience', label: 'Firm experience', type: 'textarea' },
-                    { id: 'financialCapacity', label: 'Financial capacity', type: 'text' },
+                    { id: 'consultancyGeneralObjective', label: '2.1 General Objective', type: 'richtext' },
                     {
-                        id: 'expertCards',
-                        label: 'Expert requirements',
+                        id: 'consultancySpecificObjectives',
+                        label: '2.2 Specific Objectives',
                         type: 'cards',
-                        addLabel: 'Add Expert',
-                        emptyText: 'No expert requirements added yet.',
+                        addLabel: 'Add Objective',
+                        emptyText: 'No specific objectives added yet.',
+                        cardTitleField: 'objectiveTitle',
                         fields: [
-                            { id: 'position', label: 'Position', type: 'text' },
-                            { id: 'yearsExperience', label: 'Years experience', type: 'number' },
-                            { id: 'qualifications', label: 'Qualifications', type: 'textarea' },
-                            { id: 'certifications', label: 'Certifications', type: 'multiselect', options: createTenderRequirementOptions.certifications },
-                            { id: 'cvRequired', label: 'CV required', type: 'toggle' }
+                            { id: 'objectiveTitle', label: 'Objective Title', type: 'text' },
+                            { id: 'objectiveDescription', label: 'Objective Description', type: 'textarea' },
+                            { id: 'priorityLevel', label: 'Priority Level', type: 'select', options: ['High', 'Medium', 'Low'] },
+                            { id: 'mandatory', label: 'Mandatory', type: 'toggle' }
                         ],
-                        presets: ['Team leader', 'Subject expert', 'Specialist']
+                        defaultValue: []
                     }
                 ]
             },
             {
-                id: 'technicalProposalRequirements',
-                title: 'Technical Proposal Requirements',
-                hint: 'Checklist builder table for proposal submission requirements.',
+                id: 'consultancyScopeServices',
+                title: '3. Scope of Consultancy Services',
+                hint: 'Defines assignment activities, geographic coverage, and assignment boundaries.',
                 controls: [
                     {
-                        id: 'technicalProposalChecklist',
-                        label: 'Technical proposal checklist',
+                        id: 'consultancyAssignmentActivities',
+                        label: '3.1 Assignment Activities',
                         type: 'table',
-                        addLabel: 'Add Requirement',
-                        emptyText: 'No technical proposal requirements added yet.',
+                        addLabel: 'Add Activity',
+                        emptyText: 'No assignment activities added yet.',
                         columns: [
-                            { id: 'requirement', label: 'Requirement', type: 'select', options: ['Methodology', 'Work plan', 'Team composition', 'CVs', 'Understanding of assignment'] },
+                            { id: 'activityTitle', label: 'Activity Title', type: 'text' },
+                            { id: 'detailedDescription', label: 'Detailed Description', type: 'richtext' },
+                            { id: 'expectedOutput', label: 'Expected Output', type: 'text' },
+                            { id: 'location', label: 'Location', type: 'text' },
+                            { id: 'duration', label: 'Duration', type: 'number', suffix: 'days' },
+                            { id: 'mandatoryActivity', label: 'Mandatory', type: 'toggle' }
+                        ]
+                    },
+                    {
+                        id: 'consultancyGeographicCoverage',
+                        label: '3.2 Geographic Coverage',
+                        type: 'cards',
+                        addLabel: 'Add Coverage',
+                        emptyText: 'No geographic coverage added yet.',
+                        cardTitle: 'Geographic coverage',
+                        fields: [
+                            { id: 'regionsCovered', label: 'Regions Covered', type: 'multiselect', options: ['Arusha', 'Dar es Salaam', 'Dodoma', 'Geita', 'Iringa', 'Kagera', 'Katavi', 'Kigoma', 'Kilimanjaro', 'Lindi', 'Manyara', 'Mara', 'Mbeya', 'Morogoro', 'Mtwara', 'Mwanza', 'Njombe', 'Pwani', 'Rukwa', 'Ruvuma', 'Shinyanga', 'Simiyu', 'Singida', 'Songwe', 'Tabora', 'Tanga', 'Zanzibar'] },
+                            { id: 'siteVisitsRequired', label: 'Site Visits Required', type: 'toggle' },
+                            { id: 'travelRequirements', label: 'Travel Requirements', type: 'richtext' }
+                        ],
+                        defaultValue: []
+                    },
+                    {
+                        id: 'consultancyAssignmentBoundaries',
+                        label: '3.3 Assignment Boundaries',
+                        type: 'accordion',
+                        panels: [
+                            { id: 'outOfScopeActivities', label: 'Out-of-Scope Activities' },
+                            { id: 'constraints', label: 'Constraints' }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'consultancyResponsibilities',
+                title: '4. Duties and Responsibilities of the Parties',
+                hint: 'Defines obligations of the client, consultant, and counterpart staff.',
+                controls: [
+                    {
+                        id: 'consultancyClientResponsibilities',
+                        label: '4.1 Client Responsibilities',
+                        type: 'cards',
+                        addLabel: 'Add Client Responsibility',
+                        emptyText: 'No client responsibilities added yet.',
+                        cardTitleField: 'responsibilityTitle',
+                        fields: [
+                            { id: 'responsibilityTitle', label: 'Responsibility Title', type: 'text' },
+                            { id: 'description', label: 'Description', type: 'textarea' },
+                            { id: 'supportType', label: 'Support Type', type: 'select', options: ['Office access', 'Document access', 'Meeting coordination', 'Counterpart staff', 'Logistics', 'Data access', 'Other'] }
+                        ],
+                        defaultValue: []
+                    },
+                    {
+                        id: 'consultancyConsultantResponsibilities',
+                        label: '4.2 Consultant Responsibilities',
+                        type: 'cards',
+                        addLabel: 'Add Consultant Responsibility',
+                        emptyText: 'No consultant responsibilities added yet.',
+                        cardTitleField: 'responsibility',
+                        fields: [
+                            { id: 'responsibility', label: 'Responsibility', type: 'text' },
+                            { id: 'description', label: 'Description', type: 'richtext' },
+                            { id: 'reportingFrequency', label: 'Reporting Frequency', type: 'select', options: createTenderRequirementOptions.frequency }
+                        ],
+                        defaultValue: []
+                    },
+                    {
+                        id: 'consultancyCounterpartStaff',
+                        label: '4.3 Counterpart Staff',
+                        type: 'cards',
+                        addLabel: 'Add Counterpart Staff',
+                        emptyText: 'No counterpart staff added yet.',
+                        cardTitleField: 'staffRole',
+                        fields: [
+                            { id: 'staffRole', label: 'Staff Role', type: 'text' },
+                            { id: 'responsibility', label: 'Responsibility', type: 'textarea' },
+                            { id: 'department', label: 'Department', type: 'select-custom-prompt', options: ['Procurement Management Unit', 'Finance', 'Planning', 'ICT', 'Engineering', 'Legal', 'User Department', 'Other'] }
+                        ],
+                        defaultValue: []
+                    }
+                ]
+            },
+            {
+                id: 'consultancyDeliverablesTimeline',
+                title: '5. Deliverables and Timeline',
+                hint: 'Defines expected outputs, reporting requirements, and work schedule.',
+                controls: [
+                    {
+                        id: 'consultancyDeliverables',
+                        label: '5.1 Deliverables',
+                        type: 'table',
+                        addLabel: 'Add Deliverable',
+                        emptyText: 'No deliverables added yet.',
+                        columns: [
+                            { id: 'deliverableName', label: 'Deliverable Name', type: 'text' },
+                            { id: 'description', label: 'Description', type: 'richtext' },
+                            { id: 'submissionTimeline', label: 'Submission Timeline', type: 'text', placeholder: 'e.g. 2 weeks or 2026-06-30' },
+                            { id: 'formatRequired', label: 'Format Required', type: 'select', options: ['PDF', 'Word', 'Excel', 'PowerPoint', 'Hard copy', 'Soft copy', 'Other'] },
+                            { id: 'reviewer', label: 'Reviewer', type: 'select-custom-prompt', options: ['Project Manager', 'Supervising Officer', 'Accounting Officer', 'Evaluation Committee', 'User Department', 'Other'] },
+                            { id: 'mandatory', label: 'Mandatory', type: 'toggle' }
+                        ]
+                    },
+                    {
+                        id: 'consultancyReportingRequirements',
+                        label: '5.2 Reporting Requirements',
+                        type: 'table',
+                        addLabel: 'Add Reporting Requirement',
+                        emptyText: 'No reporting requirements added yet.',
+                        columns: [
+                            { id: 'reportType', label: 'Report Type', type: 'select', options: ['Weekly progress report', 'Monthly report', 'Inception report', 'Draft report', 'Final report', 'Ad hoc report'] },
+                            { id: 'frequency', label: 'Frequency', type: 'select', options: createTenderRequirementOptions.frequency },
+                            { id: 'submissionFormat', label: 'Submission Format', type: 'select', options: ['PDF', 'Word', 'Excel', 'PowerPoint', 'Hard copy', 'Soft copy'] },
+                            { id: 'submissionChannel', label: 'Submission Channel', type: 'select', options: ['Procurement portal', 'Email', 'Physical submission', 'Project meeting', 'Other'] }
+                        ]
+                    },
+                    {
+                        id: 'consultancyWorkSchedule',
+                        label: '5.3 Work Schedule',
+                        type: 'cards',
+                        addLabel: 'Add Work Schedule',
+                        emptyText: 'No work schedule added yet.',
+                        cardTitle: 'Work schedule',
+                        fields: [
+                            { id: 'assignmentStartEstimate', label: 'Assignment Start Estimate', type: 'date' },
+                            { id: 'assignmentDuration', label: 'Assignment Duration', type: 'number', suffix: 'days' },
+                            { id: 'workingDays', label: 'Working Days', type: 'number' }
+                        ],
+                        defaultValue: []
+                    }
+                ]
+            },
+            {
+                id: 'consultancyQualificationsExperience',
+                title: '6. Required Qualifications and Experience',
+                hint: 'Defines eligibility and the baseline for technical scoring.',
+                controls: [
+                    {
+                        id: 'consultancyFirmExperience',
+                        label: '6.1 Firm Experience',
+                        type: 'cards',
+                        addLabel: 'Add Firm Experience Requirement',
+                        emptyText: 'No firm experience requirements added yet.',
+                        cardTitle: 'Firm experience',
+                        fields: [
+                            { id: 'minimumYearsExperience', label: 'Minimum Years Experience', type: 'number' },
+                            { id: 'requiredSimilarAssignments', label: 'Required Similar Assignments', type: 'number' },
+                            { id: 'sectorExperience', label: 'Sector Experience', type: 'multiselect', options: ['Public sector', 'Health', 'Education', 'Infrastructure', 'ICT', 'Finance', 'Environment', 'Energy', 'Water', 'Transport', 'Agriculture', 'Research'] },
+                            { id: 'requiredEvidence', label: 'Required Evidence', type: 'file', accept: '.pdf,.doc,.docx,.xls,.xlsx' }
+                        ],
+                        defaultValue: []
+                    },
+                    {
+                        id: 'consultancyKeyExperts',
+                        label: '6.2 Key Experts',
+                        type: 'table',
+                        addLabel: 'Add Key Expert',
+                        emptyText: 'No key experts added yet.',
+                        columns: [
+                            { id: 'positionTitle', label: 'Position Title', type: 'text' },
+                            { id: 'minimumQualification', label: 'Minimum Qualification', type: 'select-custom-prompt', options: createTenderRequirementOptions.educationLevels },
+                            { id: 'yearsOfExperience', label: 'Years of Experience', type: 'number' },
+                            { id: 'certifications', label: 'Certifications', type: 'text' },
+                            { id: 'quantityRequired', label: 'Quantity Required', type: 'number' },
+                            { id: 'mandatory', label: 'Mandatory', type: 'toggle' }
+                        ]
+                    },
+                    {
+                        id: 'consultancyProfessionalRegistration',
+                        label: '6.3 Professional Registration',
+                        type: 'table',
+                        addLabel: 'Add Registration',
+                        emptyText: 'No professional registrations added yet.',
+                        columns: [
+                            { id: 'regulatoryBody', label: 'Regulatory Body', type: 'select-custom-prompt', options: ['ERB', 'PSPTB', 'NBAA', 'Tanganyika Law Society', 'Medical Council of Tanganyika', 'Architects and Quantity Surveyors Registration Board', 'Other'] },
+                            { id: 'registrationType', label: 'Registration Type', type: 'text' },
                             { id: 'mandatory', label: 'Mandatory', type: 'toggle' },
-                            { id: 'uploadRequired', label: 'Upload required', type: 'toggle' }
+                            { id: 'expiryValidationRequired', label: 'Expiry Validation Required', type: 'toggle' }
+                        ]
+                    },
+                    {
+                        id: 'consultancyStaffingRequirements',
+                        label: '6.4 Staffing Requirements',
+                        type: 'cards',
+                        addLabel: 'Add Staffing Requirement',
+                        emptyText: 'No staffing requirements added yet.',
+                        cardTitle: 'Staffing requirements',
+                        fields: [
+                            { id: 'minimumTeamSize', label: 'Minimum Team Size', type: 'number' },
+                            { id: 'localExpertRequirement', label: 'Local Expert Requirement', type: 'toggle' },
+                            { id: 'languageRequirement', label: 'Language Requirement', type: 'multiselect', options: ['English', 'Swahili', 'French', 'Arabic', 'Portuguese', 'Other'] }
                         ]
                     }
                 ]
             },
             {
-                id: 'financialProposalRequirements',
-                title: 'Financial Proposal Requirements',
-                hint: 'Financial table with calculated totals.',
+                id: 'consultancyEthicsKnowledgeTransfer',
+                title: '7. Ethical Considerations and Knowledge Transfer',
+                hint: 'Ensures integrity, confidentiality, institutional strengthening, and ownership clarity.',
                 controls: [
                     {
-                        id: 'financialProposalRows',
-                        label: 'Financial proposal lines',
+                        id: 'consultancyEthicalRequirements',
+                        label: '7.1 Ethical Requirements',
+                        type: 'cards',
+                        addLabel: 'Add Ethical Requirement',
+                        emptyText: 'No ethical requirements added yet.',
+                        cardTitle: 'Ethical requirements',
+                        fields: [
+                            { id: 'conflictOfInterestDeclaration', label: 'Conflict of Interest Declaration', type: 'toggle' },
+                            { id: 'confidentialityRequirement', label: 'Confidentiality Requirement', type: 'toggle' },
+                            { id: 'antiCorruptionCompliance', label: 'Anti-Corruption Compliance', type: 'toggle' },
+                            { id: 'dataProtectionRequirement', label: 'Data Protection Requirement', type: 'toggle' }
+                        ],
+                        defaultValue: []
+                    },
+                    {
+                        id: 'consultancyKnowledgeTransfer',
+                        label: '7.2 Knowledge Transfer',
+                        type: 'cards',
+                        addLabel: 'Add Knowledge Transfer Requirement',
+                        emptyText: 'No knowledge transfer requirements added yet.',
+                        cardTitle: 'Knowledge transfer',
+                        fields: [
+                            { id: 'trainingRequired', label: 'Training Required', type: 'toggle' },
+                            { id: 'mentorshipRequired', label: 'Mentorship Required', type: 'toggle' },
+                            { id: 'manualsRequired', label: 'Manuals Required', type: 'toggle' },
+                            { id: 'handoverDocumentation', label: 'Handover Documentation', type: 'toggle' }
+                        ],
+                        defaultValue: []
+                    },
+                    {
+                        id: 'consultancyIpDataOwnership',
+                        label: '7.3 Intellectual Property & Data Ownership',
+                        type: 'cards',
+                        addLabel: 'Add IP / Data Rule',
+                        emptyText: 'No IP or data ownership rules added yet.',
+                        cardTitle: 'IP and data ownership',
+                        fields: [
+                            { id: 'ownershipOfDeliverables', label: 'Ownership of Deliverables', type: 'select', options: ['Procuring entity', 'Consultant', 'Joint ownership', 'As specified in contract'] },
+                            { id: 'dataUsageRestrictions', label: 'Data Usage Restrictions', type: 'richtext' },
+                            { id: 'confidentialDataHandling', label: 'Confidential Data Handling', type: 'richtext' }
+                        ],
+                        defaultValue: []
+                    }
+                ]
+            },
+            {
+                id: 'consultancyInstitutionalArrangements',
+                title: '8. Institutional and Organizational Arrangements',
+                hint: 'Defines reporting hierarchy, coordination arrangements, and administrative support.',
+                controls: [
+                    {
+                        id: 'consultancyReportingStructure',
+                        label: '8.1 Reporting Structure',
+                        type: 'cards',
+                        addLabel: 'Add Reporting Structure',
+                        emptyText: 'No reporting structure added yet.',
+                        cardTitle: 'Reporting structure',
+                        fields: [
+                            { id: 'consultantReportsTo', label: 'Consultant Reports To', type: 'select-custom-prompt', options: ['Project Manager', 'Supervising Officer', 'Accounting Officer', 'User Department', 'Steering Committee', 'Other'] },
+                            { id: 'supervisingOfficer', label: 'Supervising Officer', type: 'select-custom-prompt', options: ['Project Manager', 'Head of Department', 'Director', 'Procurement Officer', 'Other'] },
+                            { id: 'approvalAuthority', label: 'Approval Authority', type: 'select-custom-prompt', options: ['Accounting Officer', 'Tender Board', 'Project Steering Committee', 'User Department', 'Other'] }
+                        ],
+                        defaultValue: []
+                    },
+                    {
+                        id: 'consultancyCoordinationArrangements',
+                        label: '8.2 Coordination Arrangements',
+                        type: 'cards',
+                        addLabel: 'Add Coordination Arrangement',
+                        emptyText: 'No coordination arrangements added yet.',
+                        cardTitle: 'Coordination arrangement',
+                        fields: [
+                            { id: 'meetingFrequency', label: 'Meeting Frequency', type: 'select', options: createTenderRequirementOptions.frequency },
+                            { id: 'coordinationMechanism', label: 'Coordination Mechanism', type: 'richtext' },
+                            { id: 'communicationMethod', label: 'Communication Method', type: 'multiselect', options: ['Email', 'Procurement portal', 'Physical meetings', 'Virtual meetings', 'Phone', 'Official letters'] }
+                        ],
+                        defaultValue: []
+                    },
+                    {
+                        id: 'consultancyAdministrativeArrangements',
+                        label: '8.3 Administrative Arrangements',
+                        type: 'cards',
+                        addLabel: 'Add Administrative Arrangement',
+                        emptyText: 'No administrative arrangements added yet.',
+                        cardTitle: 'Administrative arrangements',
+                        fields: [
+                            { id: 'officeSpaceProvided', label: 'Office Space Provided', type: 'toggle' },
+                            { id: 'accessToFacilities', label: 'Access to Facilities', type: 'toggle' },
+                            { id: 'accessToDocuments', label: 'Access to Documents', type: 'toggle' }
+                        ],
+                        defaultValue: []
+                    }
+                ]
+            },
+            {
+                id: 'consultancyAttachmentsReferences',
+                title: '9. Attachments & Reference Documents',
+                hint: 'Supports consultants with background materials, policy documents, studies, drawings, and external references.',
+                controls: [
+                    {
+                        id: 'consultancySupportingDocuments',
+                        label: '9.1 Supporting Documents',
                         type: 'table',
-                        addLabel: 'Add Financial Line',
-                        emptyText: 'No financial proposal lines added yet.',
+                        addLabel: 'Add Supporting Document',
+                        emptyText: 'No supporting documents added yet.',
                         columns: [
-                            { id: 'costItem', label: 'Cost item', type: 'text' },
-                            { id: 'unit', label: 'Unit', type: 'select', options: ['Day', 'Month', 'Output', 'Trip', 'Lot'] },
-                            { id: 'rate', label: 'Rate', type: 'currency' },
-                            { id: 'quantity', label: 'Quantity', type: 'number' },
-                            { id: 'total', label: 'Total', type: 'calculated', formula: 'rate*quantity' }
+                            { id: 'documentTitle', label: 'Document Title', type: 'text' },
+                            { id: 'fileUpload', label: 'File Upload', type: 'file', accept: '.pdf,.doc,.docx,.xls,.xlsx,.dwg,.dxf,.jpg,.jpeg,.png' },
+                            { id: 'category', label: 'Category', type: 'select', options: ['Existing reports', 'Policy documents', 'Architectural drawings', 'Baseline studies', 'Previous assessments', 'Other'] },
+                            { id: 'confidential', label: 'Confidential', type: 'toggle' }
                         ]
+                    },
+                    {
+                        id: 'consultancyExternalReferences',
+                        label: '9.2 External References',
+                        type: 'cards',
+                        addLabel: 'Add External Reference',
+                        emptyText: 'No external references added yet.',
+                        cardTitleField: 'referenceName',
+                        fields: [
+                            { id: 'referenceName', label: 'Reference Name', type: 'text' },
+                            { id: 'url', label: 'URL', type: 'text' },
+                            { id: 'description', label: 'Description', type: 'textarea' }
+                        ],
+                        defaultValue: []
                     }
                 ]
             },
@@ -1061,6 +1360,295 @@ const createTenderTypeProfiles = {
     }
 };
 
+const createTenderEvaluationCatalog = {
+    goods: [
+        {
+            id: 'goods-technical-compliance',
+            name: 'Technical Compliance',
+            category: 'Technical Compliance',
+            defaultWeight: 40,
+            subcriteria: [
+                'Conformity to technical specifications',
+                'Compliance with standards (ISO, TBS, etc.)',
+                'Brand/model compliance',
+                'Product performance characteristics',
+                'Sample evaluation / testing results',
+                'Compatibility with existing systems/equipment'
+            ]
+        },
+        {
+            id: 'goods-financial',
+            name: 'Financial',
+            category: 'Financial',
+            defaultWeight: 30,
+            subcriteria: ['Total price', 'Price competitiveness', 'Cost of maintenance']
+        },
+        {
+            id: 'goods-delivery-logistics',
+            name: 'Delivery & Logistics',
+            category: 'Delivery & Logistics',
+            defaultWeight: 15,
+            subcriteria: [
+                'Delivery time compliance',
+                'Availability of stock',
+                'Supply chain reliability',
+                'Packaging and transportation method',
+                'Installation requirement compliance'
+            ]
+        },
+        {
+            id: 'goods-quality-assurance',
+            name: 'Quality Assurance',
+            category: 'Quality Assurance',
+            defaultWeight: 10,
+            subcriteria: [
+                'Warranty period offered',
+                'After-sales support availability',
+                'Replacement/return policy',
+                'Quality certification of manufacturer'
+            ]
+        },
+        {
+            id: 'goods-supplier-capability',
+            name: 'Supplier Capability',
+            category: 'Supplier Capability',
+            defaultWeight: 5,
+            subcriteria: [
+                'Past performance / similar supply experience',
+                'Financial capacity of supplier',
+                'Local presence / support office',
+                'Authorized distributor/manufacturer status'
+            ]
+        }
+    ],
+    works: [
+        {
+            id: 'works-technical-methodology',
+            name: 'Technical Methodology',
+            category: 'Technical Methodology',
+            defaultWeight: 20,
+            subcriteria: [
+                'Construction methodology',
+                'Work execution plan',
+                'Site mobilization strategy',
+                'Risk management approach',
+                'Quality control plan',
+                'Environmental management plan'
+            ]
+        },
+        {
+            id: 'works-personnel',
+            name: 'Personnel',
+            category: 'Personnel',
+            defaultWeight: 15,
+            subcriteria: [
+                'Project manager qualification',
+                'Site engineer qualifications',
+                'Safety officer competence',
+                'Key technical staff experience',
+                'Availability of required personnel'
+            ]
+        },
+        {
+            id: 'works-equipment-resources',
+            name: 'Equipment & Resources',
+            category: 'Equipment & Resources',
+            defaultWeight: 10,
+            subcriteria: [
+                'Availability of construction equipment',
+                'Ownership vs leased equipment',
+                'Equipment capacity and suitability',
+                'Mobilization timeline for equipment'
+            ]
+        },
+        {
+            id: 'works-experience',
+            name: 'Experience',
+            category: 'Experience',
+            defaultWeight: 15,
+            subcriteria: [
+                'Similar completed projects',
+                'Project value history',
+                'Experience in similar terrain/environment',
+                'Track record of timely completion'
+            ]
+        },
+        {
+            id: 'works-schedule-execution',
+            name: 'Schedule & Execution',
+            category: 'Schedule & Execution',
+            defaultWeight: 10,
+            subcriteria: [
+                'Work program / timeline',
+                'Milestone alignment',
+                'Project completion duration',
+                'Critical path feasibility'
+            ]
+        },
+        {
+            id: 'works-hse',
+            name: 'Health, Safety & Environment (HSE)',
+            category: 'Health, Safety & Environment (HSE)',
+            defaultWeight: 10,
+            subcriteria: [
+                'Safety plan compliance',
+                'Environmental mitigation measures',
+                'Site safety record',
+                'Compliance with regulations'
+            ]
+        },
+        {
+            id: 'works-financial',
+            name: 'Financial',
+            category: 'Financial',
+            defaultWeight: 20,
+            subcriteria: ['Total BOQ price', 'Unit rate accuracy', 'Price realism', 'Corrected tender sum']
+        }
+    ],
+    services: [
+        {
+            id: 'services-delivery-approach',
+            name: 'Service Delivery Approach',
+            category: 'Service Delivery Approach',
+            defaultWeight: 20,
+            subcriteria: ['Service methodology', 'Operational plan', 'Service execution strategy', 'Workflow design']
+        },
+        {
+            id: 'services-staffing-personnel',
+            name: 'Staffing & Personnel',
+            category: 'Staffing & Personnel',
+            defaultWeight: 20,
+            subcriteria: ['Staff qualifications', 'Staff availability', 'Training plan', 'Supervisory structure']
+        },
+        {
+            id: 'services-service-capacity',
+            name: 'Service Capacity',
+            category: 'Service Capacity',
+            defaultWeight: 10,
+            subcriteria: [
+                'Ability to scale service',
+                'Resource availability',
+                'Coverage area capability',
+                'Backup/contingency resources'
+            ]
+        },
+        {
+            id: 'services-sla-performance',
+            name: 'SLA & Performance',
+            category: 'SLA & Performance',
+            defaultWeight: 20,
+            subcriteria: [
+                'Response time',
+                'Resolution time',
+                'Service uptime guarantee',
+                'Reporting frequency',
+                'Escalation procedures'
+            ]
+        },
+        {
+            id: 'services-tools-systems',
+            name: 'Tools & Systems',
+            category: 'Tools & Systems',
+            defaultWeight: 10,
+            subcriteria: ['Use of technology/tools', 'Service management systems', 'Monitoring & reporting systems']
+        },
+        {
+            id: 'services-experience',
+            name: 'Experience',
+            category: 'Experience',
+            defaultWeight: 10,
+            subcriteria: ['Similar service contracts', 'Industry experience', 'Client references', 'Performance history']
+        },
+        {
+            id: 'services-financial',
+            name: 'Financial',
+            category: 'Financial',
+            defaultWeight: 10,
+            subcriteria: ['Service pricing model', 'Monthly/annual cost', 'Cost per unit/service', 'Value for money']
+        }
+    ],
+    consultancy: [
+        {
+            id: 'consultancy-methodology-approach',
+            name: 'Methodology & Approach',
+            category: 'Methodology & Approach',
+            defaultWeight: 30,
+            subcriteria: [
+                'Understanding of Terms of Reference (ToR)',
+                'Methodology clarity',
+                'Technical approach quality',
+                'Innovation in approach',
+                'Risk identification & mitigation',
+                'Work plan and timeline'
+            ]
+        },
+        {
+            id: 'consultancy-key-experts',
+            name: 'Key Experts',
+            category: 'Key Experts',
+            defaultWeight: 35,
+            subcriteria: [
+                'Team leader qualification',
+                'Relevant academic qualifications',
+                'Professional certifications',
+                'Years of experience',
+                'Similar assignments handled',
+                'Role relevance to assignment'
+            ]
+        },
+        {
+            id: 'consultancy-firm-experience',
+            name: 'Firm Experience',
+            category: 'Firm Experience',
+            defaultWeight: 15,
+            subcriteria: [
+                'Similar consultancy assignments',
+                'Sector experience',
+                'Regional experience',
+                'Institutional capacity',
+                'Past performance record'
+            ]
+        },
+        {
+            id: 'consultancy-work-plan-organization',
+            name: 'Work Plan & Organization',
+            category: 'Work Plan & Organization',
+            defaultWeight: 10,
+            subcriteria: [
+                'Task allocation clarity',
+                'Time schedule realism',
+                'Resource allocation efficiency',
+                'Deliverable structure'
+            ]
+        },
+        {
+            id: 'consultancy-knowledge-transfer',
+            name: 'Knowledge Transfer',
+            category: 'Knowledge Transfer',
+            defaultWeight: 10,
+            subcriteria: [
+                'Training plan for client staff',
+                'Capacity building approach',
+                'Documentation quality',
+                'Sustainability of results'
+            ]
+        },
+        {
+            id: 'consultancy-financial',
+            name: 'Financial',
+            category: 'Financial',
+            defaultWeight: 0,
+            subcriteria: [
+                'Total consultancy fee',
+                'Breakdown of costs',
+                'Cost realism',
+                'Budget alignment',
+                'Price competitiveness'
+            ]
+        }
+    ]
+};
+
 const defaultCreateTenderContact = {
     tenderLocation: '',
     contactName: '',
@@ -1080,6 +1668,8 @@ const defaultCreateTenderMainDraft = {
     visibility: 'Public marketplace',
     visibilityNote: 'Visible to everyone in the public marketplace.',
     invitedUsers: [],
+    evaluation: {},
+    systemEvaluation: {},
     requirements: {}
 };
 
@@ -1383,6 +1973,10 @@ function getCreateTenderRequirementCardTitle(control, card, cardIndex, fields = 
     const selectedLabel = selectedOption
         ? (typeof selectedOption === 'object' && selectedOption !== null ? String(selectedOption.label || selectedOption.value || '') : String(selectedOption))
         : '';
+
+    if (selectedValue && !selectedOption) {
+        return control.cardTitlePrefix ? `${control.cardTitlePrefix} ${selectedValue}` : selectedValue;
+    }
 
     if (selectedLabel && control.cardTitlePrefix) {
         return `${control.cardTitlePrefix} ${selectedLabel}`;
@@ -1859,7 +2453,54 @@ function renderCreateTenderRequirementControl(control, value, profileId = '') {
 }
 
 function getCreateTenderPostLicenseRequirementSectionIds(profile = {}) {
-    return profile.id === 'goods' ? ['eligibilityRequirements'] : [];
+    if (profile.id === 'goods') return ['eligibilityRequirements'];
+    if (profile.id === 'consultancy') return ['consultancyContractClauses'];
+    return [];
+}
+
+function renderCreateTenderRequirementSectionBlock(section, requirementDraft, profileId = '') {
+    return `
+        <article class="requirement-block" id="requirement-section-${escapeCreateTenderHtml(section.id)}" data-consultancy-tor-section="${escapeCreateTenderHtml(section.id)}">
+            <div>
+                <h4>${escapeCreateTenderHtml(section.title)}</h4>
+                <span class="form-hint">${escapeCreateTenderHtml(section.hint)}</span>
+            </div>
+            <div class="requirement-control-grid">
+                ${(section.controls || []).filter(control => {
+                    if (!control.showWhen) return true;
+                    return isCreateTenderShowWhenMatched(control.showWhen, requirementDraft.fields);
+                }).map(control => `
+                    <div class="requirement-control ${['table', 'cards', 'accordion', 'textarea', 'richtext'].includes(control.type) ? 'requirement-control-wide' : ''}">
+                        <span class="form-label">${escapeCreateTenderHtml(control.label)}</span>
+                        ${renderCreateTenderRequirementControl(control, requirementDraft.fields?.[control.id], profileId)}
+                        ${getCreateTenderRequirementHelperText(control, requirementDraft.fields?.[control.id])
+                            ? `<span class="form-hint" data-requirement-helper="${escapeCreateTenderHtml(control.id)}">${escapeCreateTenderHtml(getCreateTenderRequirementHelperText(control, requirementDraft.fields?.[control.id]))}</span>`
+                            : ''}
+                        ${renderCreateTenderRequirementCounter(control, requirementDraft.fields?.[control.id])}
+                    </div>
+                `).join('')}
+            </div>
+        </article>
+    `;
+}
+
+function renderCreateTenderConsultancyTorWorkspace(sections = [], requirementDraft, profile = {}) {
+    return `
+        <div class="consultancy-tor-workspace">
+            <div class="consultancy-tor-main">
+                <div class="consultancy-tor-header">
+                    <div>
+                        <span class="section-kicker">Structured assignment-definition workspace</span>
+                        <h3>Consultancy Procurement TOR</h3>
+                    </div>
+                    <span class="badge badge-info">${escapeCreateTenderHtml(profile.commercialName)}</span>
+                </div>
+                <div class="requirement-section-grid">
+                    ${sections.map(section => renderCreateTenderRequirementSectionBlock(section, requirementDraft, profile.id)).join('')}
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 function renderCreateTenderRequirementSections(profile, mainDraft = getCreateTenderMainDraft(), options = {}) {
@@ -1874,6 +2515,10 @@ function renderCreateTenderRequirementSections(profile, mainDraft = getCreateTen
     });
 
     if (!sections.length) return '';
+
+    if (profile.id === 'consultancy' && !includeSectionIds) {
+        return renderCreateTenderConsultancyTorWorkspace(sections, requirementDraft, profile);
+    }
 
     return `
         ${options.showHeader === false ? '' : `
@@ -1890,29 +2535,7 @@ function renderCreateTenderRequirementSections(profile, mainDraft = getCreateTen
                 ? renderCreateTenderScopeDescriptionSection(section, requirementDraft, profile.id)
                 : section.id === 'technicalCapacity'
                     ? renderCreateTenderTechnicalCapacitySection(section, requirementDraft, profile.id)
-                : `
-                    <article class="requirement-block">
-                    <div>
-                        <h4>${escapeCreateTenderHtml(section.title)}</h4>
-                        <span class="form-hint">${escapeCreateTenderHtml(section.hint)}</span>
-                    </div>
-                    <div class="requirement-control-grid">
-                        ${(section.controls || []).filter(control => {
-                            if (!control.showWhen) return true;
-                            return isCreateTenderShowWhenMatched(control.showWhen, requirementDraft.fields);
-                        }).map(control => `
-                            <div class="requirement-control ${['table', 'cards', 'accordion'].includes(control.type) ? 'requirement-control-wide' : ''}">
-                                <span class="form-label">${escapeCreateTenderHtml(control.label)}</span>
-                                ${renderCreateTenderRequirementControl(control, requirementDraft.fields?.[control.id], profile.id)}
-                                ${getCreateTenderRequirementHelperText(control, requirementDraft.fields?.[control.id])
-                                    ? `<span class="form-hint" data-requirement-helper="${escapeCreateTenderHtml(control.id)}">${escapeCreateTenderHtml(getCreateTenderRequirementHelperText(control, requirementDraft.fields?.[control.id]))}</span>`
-                                    : ''}
-                                ${renderCreateTenderRequirementCounter(control, requirementDraft.fields?.[control.id])}
-                            </div>
-                        `).join('')}
-                    </div>
-                </article>
-                `
+                : renderCreateTenderRequirementSectionBlock(section, requirementDraft, profile.id)
             ).join('')}
         </div>
     `;
@@ -2019,6 +2642,194 @@ function formatCreateTenderCompactMoney(value) {
     if (amount >= 1000000000) return `TZS ${(amount / 1000000000).toFixed(1).replace(/\.0$/, '')}B estimate`;
     if (amount >= 1000000) return `TZS ${(amount / 1000000).toFixed(1).replace(/\.0$/, '')}M estimate`;
     return `${formatCreateTenderMoney(amount)} estimate`;
+}
+
+function clampCreateTenderEvaluationWeight(value) {
+    return Math.min(Math.max(parseCreateTenderNumber(value), 0), 100);
+}
+
+function getCreateTenderEvaluationCatalog(profileId = 'works') {
+    const typeId = getCreateTenderTypeId(profileId);
+    return createTenderEvaluationCatalog[typeId] || createTenderEvaluationCatalog.works;
+}
+
+function normalizeCreateTenderEvaluationSubcriteria(value = []) {
+    if (Array.isArray(value)) {
+        return value.map(item => String(item || '').trim()).filter(Boolean);
+    }
+    return String(value || '')
+        .split(/\r?\n/)
+        .map(item => item.trim())
+        .filter(Boolean);
+}
+
+function getCreateTenderEvaluationCriterionCatalogItem(profileId = 'works', criterion = {}) {
+    return getCreateTenderEvaluationCatalog(profileId)
+        .find(entry => entry.id === criterion.id || entry.name === criterion.name || entry.category === criterion.category);
+}
+
+function getCreateTenderAvailableEvaluationSubcriteria(profileId = 'works', criterion = {}) {
+    const catalogItem = getCreateTenderEvaluationCriterionCatalogItem(profileId, criterion);
+    return normalizeCreateTenderEvaluationSubcriteria(catalogItem?.subcriteria || []);
+}
+
+function normalizeCreateTenderEvaluationCriterion(item = {}, index = 0, profileId = 'works') {
+    const catalogItem = getCreateTenderEvaluationCatalog(profileId).find(entry => entry.id === item.id || entry.name === item.name);
+    const fallback = catalogItem || {};
+
+    return {
+        id: String(item.id || fallback.id || `evaluation-${profileId}-${Date.now()}-${index}`),
+        name: String(item.name || fallback.name || `Criterion ${index + 1}`),
+        category: String(item.category || fallback.category || item.name || `Criterion ${index + 1}`),
+        weight: clampCreateTenderEvaluationWeight(item.weight ?? fallback.defaultWeight ?? 0),
+        subcriteria: normalizeCreateTenderEvaluationSubcriteria(item.subcriteria || fallback.subcriteria || []),
+        custom: Boolean(item.custom)
+    };
+}
+
+function getCreateTenderDefaultEvaluationDraft(profileId = 'works') {
+    const criteria = getCreateTenderEvaluationCatalog(profileId)
+        .filter(item => parseCreateTenderNumber(item.defaultWeight) > 0)
+        .map((item, index) => normalizeCreateTenderEvaluationCriterion({
+            ...item,
+            weight: item.defaultWeight
+        }, index, profileId));
+
+    return {
+        mode: 'manual',
+        criteria
+    };
+}
+
+function normalizeCreateTenderEvaluationDraft(profileId = 'works', draft = {}) {
+    const mode = ['manual', 'assisted', 'auto'].includes(draft?.mode) ? draft.mode : 'manual';
+    const criteria = Array.isArray(draft?.criteria)
+        ? draft.criteria.map((item, index) => normalizeCreateTenderEvaluationCriterion(item, index, profileId))
+        : getCreateTenderDefaultEvaluationDraft(profileId).criteria;
+
+    return { mode, criteria };
+}
+
+function getCreateTenderEvaluationDraft(profileId = 'works', mainDraft = getCreateTenderMainDraft()) {
+    const typeId = getCreateTenderTypeId(profileId);
+    return normalizeCreateTenderEvaluationDraft(typeId, mainDraft.evaluation?.[typeId]);
+}
+
+function saveCreateTenderEvaluationDraft(profileId = 'works', evaluationDraft = {}) {
+    const typeId = getCreateTenderTypeId(profileId);
+    const mainDraft = getCreateTenderMainDraft();
+    const normalizedDraft = normalizeCreateTenderEvaluationDraft(typeId, evaluationDraft);
+    saveCreateTenderMainDraft({
+        evaluation: {
+            ...(mainDraft.evaluation || {}),
+            [typeId]: normalizedDraft
+        }
+    });
+    return normalizedDraft;
+}
+
+function getCreateTenderEvaluationSummary(evaluationDraft = {}) {
+    const criteria = Array.isArray(evaluationDraft.criteria) ? evaluationDraft.criteria : [];
+    const total = criteria.reduce((sum, item) => sum + clampCreateTenderEvaluationWeight(item.weight), 0);
+    const roundedTotal = Math.round(total * 100) / 100;
+    const remaining = Math.round((100 - roundedTotal) * 100) / 100;
+    const hasCriteria = criteria.length > 0;
+    const hasMissingWeight = criteria.some(item => clampCreateTenderEvaluationWeight(item.weight) <= 0);
+    const state = !hasCriteria ? 'empty' : remaining === 0 && hasMissingWeight ? 'incomplete' : remaining === 0 ? 'balanced' : remaining > 0 ? 'under' : 'over';
+    const message = state === 'incomplete'
+        ? 'Set all weights'
+        : state === 'balanced'
+        ? 'Balanced'
+        : state === 'over'
+            ? `Reduce by ${Math.abs(remaining)}%`
+            : `Add ${remaining}% remaining`;
+
+    return {
+        total: roundedTotal,
+        remaining,
+        state,
+        message,
+        hasCriteria,
+        hasMissingWeight,
+        isBalanced: hasCriteria && remaining === 0 && !hasMissingWeight
+    };
+}
+
+function createTenderEvaluationCriterionFromCatalog(profileId, suggestionId) {
+    const suggestion = getCreateTenderEvaluationCatalog(profileId).find(item => item.id === suggestionId);
+    if (!suggestion) return null;
+    return normalizeCreateTenderEvaluationCriterion({
+        ...suggestion,
+        weight: suggestion.defaultWeight || 0
+    }, Date.now(), profileId);
+}
+
+function distributeCreateTenderEvaluationRemaining(evaluationDraft = {}) {
+    const criteria = Array.isArray(evaluationDraft.criteria) ? evaluationDraft.criteria.map(item => ({ ...item })) : [];
+    if (!criteria.length) return evaluationDraft;
+    const summary = getCreateTenderEvaluationSummary({ criteria });
+    if (summary.remaining <= 0) return { ...evaluationDraft, criteria };
+    const increment = summary.remaining / criteria.length;
+    return {
+        ...evaluationDraft,
+        criteria: criteria.map(item => ({
+            ...item,
+            weight: Math.round((clampCreateTenderEvaluationWeight(item.weight) + increment) * 100) / 100
+        }))
+    };
+}
+
+function balanceCreateTenderEvaluationWeights(evaluationDraft = {}) {
+    const criteria = Array.isArray(evaluationDraft.criteria) ? evaluationDraft.criteria.map(item => ({ ...item })) : [];
+    if (!criteria.length) return evaluationDraft;
+    const total = criteria.reduce((sum, item) => sum + clampCreateTenderEvaluationWeight(item.weight), 0);
+    const hasMissingWeight = criteria.some(item => clampCreateTenderEvaluationWeight(item.weight) <= 0);
+    if (!total || hasMissingWeight) {
+        const base = Math.floor((100 / criteria.length) * 100) / 100;
+        let used = 0;
+        return {
+            ...evaluationDraft,
+            criteria: criteria.map((item, index) => {
+                const weight = index === criteria.length - 1 ? Math.round((100 - used) * 100) / 100 : base;
+                used += weight;
+                return { ...item, weight };
+            })
+        };
+    }
+    let used = 0;
+    return {
+        ...evaluationDraft,
+        criteria: criteria.map((item, index) => {
+            const weight = index === criteria.length - 1
+                ? Math.round((100 - used) * 100) / 100
+                : Math.round((clampCreateTenderEvaluationWeight(item.weight) / total) * 10000) / 100;
+            used += weight;
+            return { ...item, weight: clampCreateTenderEvaluationWeight(weight) };
+        })
+    };
+}
+
+function autoBalanceCreateTenderEvaluationWeights(evaluationDraft = {}, changedCriterionId = '') {
+    const criteria = Array.isArray(evaluationDraft.criteria) ? evaluationDraft.criteria.map(item => ({ ...item })) : [];
+    if (criteria.length < 2 || !changedCriterionId) return balanceCreateTenderEvaluationWeights(evaluationDraft);
+    const changed = criteria.find(item => item.id === changedCriterionId);
+    const others = criteria.filter(item => item.id !== changedCriterionId);
+    if (!changed || !others.length) return evaluationDraft;
+    const changedWeight = clampCreateTenderEvaluationWeight(changed.weight);
+    const remaining = Math.max(100 - changedWeight, 0);
+    const otherTotal = others.reduce((sum, item) => sum + clampCreateTenderEvaluationWeight(item.weight), 0);
+    let used = 0;
+    const nextOthers = others.map((item, index) => {
+        const weight = index === others.length - 1
+            ? Math.round((remaining - used) * 100) / 100
+            : Math.round(((otherTotal ? clampCreateTenderEvaluationWeight(item.weight) / otherTotal : 1 / others.length) * remaining) * 100) / 100;
+        used += weight;
+        return { ...item, weight: clampCreateTenderEvaluationWeight(weight) };
+    });
+    return {
+        ...evaluationDraft,
+        criteria: criteria.map(item => item.id === changedCriterionId ? { ...changed, weight: changedWeight } : nextOthers.shift())
+    };
 }
 
 function normalizeCreateTenderBoqItem(item, index = 0) {
@@ -2413,6 +3224,11 @@ function publishCreateTenderToMarketplace(wizard) {
     const milestones = getCreateTenderMilestones();
     const closingDate = milestones.find(item => item.id === 'milestone-closing')?.date || milestones[milestones.length - 1]?.date || '';
     const profile = getCreateTenderTypeProfile(selectedType);
+    const evaluationDraft = getCreateTenderEvaluationDraft(profile.id);
+    const evaluationSummary = getCreateTenderEvaluationSummary(evaluationDraft);
+    if (!evaluationSummary.isBalanced) return null;
+    const systemEvaluation = getCreateTenderSavedSystemEvaluation(profile.id);
+    if (!isCreateTenderSavedSystemEvaluationCurrent(profile)) return null;
     const requirementSummary = getCreateTenderRequirementSummary(profile, getCreateTenderMainDraft());
     const boqItems = getCreateTenderBoqItems(profile);
     const budget = getCreateTenderBoqTotal(boqItems);
@@ -2434,6 +3250,8 @@ function publishCreateTenderToMarketplace(wizard) {
         eligibility: `${method} / ${category}`,
         documents,
         requirements: getCreateTenderRequirementDraft(profile.id),
+        evaluation: evaluationDraft,
+        systemEvaluation,
         regulatoryLicenses: getCreateTenderRegulatoryLicenses(profile),
         category,
         categories,
@@ -2626,6 +3444,637 @@ function renderCreateTenderProfileCards(profile) {
     `;
 }
 
+function renderCreateTenderEvaluationStatus(summary = getCreateTenderEvaluationSummary()) {
+    const statusClass = summary.state === 'balanced' ? 'balanced' : summary.state === 'over' ? 'over' : 'under';
+    return `
+        <div class="evaluation-weight-panel ${statusClass}" data-evaluation-status-panel>
+            <div class="evaluation-weight-status">
+                <span>Total Weight: <strong data-evaluation-total>${escapeCreateTenderHtml(summary.total)}%</strong></span>
+                <span data-evaluation-remaining>${escapeCreateTenderHtml(summary.message)}</span>
+            </div>
+            <div class="evaluation-progress-track" aria-hidden="true">
+                <span style="width: ${Math.min(summary.total, 100)}%"></span>
+            </div>
+        </div>
+    `;
+}
+
+function renderCreateTenderEvaluationSubcriteriaControl(profile, criterion) {
+    const selectedSubcriteria = normalizeCreateTenderEvaluationSubcriteria(criterion.subcriteria);
+    const availableSubcriteria = getCreateTenderAvailableEvaluationSubcriteria(profile.id, criterion);
+    return `
+        <div class="evaluation-subcriteria-control">
+            <span class="form-label">Subcriteria</span>
+            <div class="evaluation-subcriteria-list">
+                ${selectedSubcriteria.length ? selectedSubcriteria.map(item => `
+                    <span class="evaluation-subcriterion-chip">
+                        ${escapeCreateTenderHtml(item)}
+                        <button type="button" data-evaluation-remove-subcriterion="${escapeCreateTenderHtml(item)}" aria-label="Remove ${escapeCreateTenderHtml(item)}">x</button>
+                    </span>
+                `).join('') : '<span class="requirement-tag-empty">No subcriteria selected</span>'}
+            </div>
+            <div class="evaluation-subcriteria-add-row">
+                <select class="form-input" data-evaluation-subcriteria-picker aria-label="Select subcriterion" ${availableSubcriteria.length ? '' : 'disabled'}>
+                    <option value="">Choose subcriterion</option>
+                    ${availableSubcriteria.map(item => `<option value="${escapeCreateTenderHtml(item)}">${escapeCreateTenderHtml(item)}</option>`).join('')}
+                </select>
+                <button class="btn btn-secondary" type="button" data-evaluation-add-subcriterion ${availableSubcriteria.length ? '' : 'disabled'}>Add</button>
+            </div>
+            <div class="evaluation-subcriteria-add-row">
+                <input class="form-input" data-evaluation-custom-subcriterion placeholder="Custom subcriterion" aria-label="Custom subcriterion">
+                <button class="btn btn-secondary" type="button" data-evaluation-add-custom-subcriterion>Add Custom</button>
+            </div>
+        </div>
+    `;
+}
+
+function renderCreateTenderEvaluationSelectedCriteria(profile, evaluationDraft = {}) {
+    const criteria = Array.isArray(evaluationDraft.criteria) ? evaluationDraft.criteria : [];
+    if (!criteria.length) {
+        return '<div class="scope-empty">No evaluation criteria selected yet.</div>';
+    }
+
+    return criteria.map(criterion => `
+        <article class="evaluation-criterion-card" data-evaluation-criterion="${escapeCreateTenderHtml(criterion.id)}">
+            <div class="evaluation-criterion-topline">
+                <label>
+                    <span class="form-label">Criterion name</span>
+                    <input class="form-input" value="${escapeCreateTenderHtml(criterion.name)}" data-evaluation-field="name" aria-label="Criterion name">
+                </label>
+                <label>
+                    <span class="form-label">Weight</span>
+                    <div class="requirement-input-affix">
+                        <input class="form-input evaluation-weight-input" type="number" min="0" max="100" step="0.01" value="${escapeCreateTenderHtml(criterion.weight)}" data-evaluation-field="weight" aria-label="Criterion weight">
+                        <span>%</span>
+                    </div>
+                </label>
+                <button class="boq-row-action icon-delete-btn" type="button" data-evaluation-delete="${escapeCreateTenderHtml(criterion.id)}" aria-label="Delete criterion" title="Delete criterion">${renderCreateTenderTrashIcon()}</button>
+            </div>
+            ${renderCreateTenderEvaluationSubcriteriaControl(profile, criterion)}
+            <span class="form-hint">${escapeCreateTenderHtml(criterion.category)}${criterion.custom ? ' / Custom criterion' : ''}</span>
+        </article>
+    `).join('');
+}
+
+function renderCreateTenderEvaluationSuggestions(profile, evaluationDraft = {}) {
+    const selectedIds = new Set((evaluationDraft.criteria || []).map(item => item.id));
+    const suggestions = getCreateTenderEvaluationCatalog(profile.id).filter(item => !selectedIds.has(item.id));
+    if (!suggestions.length) {
+        return '<div class="scope-empty">All suggested criteria have been added.</div>';
+    }
+
+    return suggestions.map(suggestion => `
+        <button class="evaluation-suggestion" type="button" data-evaluation-add-suggestion="${escapeCreateTenderHtml(suggestion.id)}">
+            <span>+</span>
+            <strong>${escapeCreateTenderHtml(suggestion.name)}</strong>
+            <small>${escapeCreateTenderHtml((suggestion.subcriteria || []).slice(0, 3).join(', '))}</small>
+        </button>
+    `).join('');
+}
+
+function renderCreateTenderEvaluationBuilder(profile, mainDraft = getCreateTenderMainDraft()) {
+    const evaluationDraft = getCreateTenderEvaluationDraft(profile.id, mainDraft);
+    const summary = getCreateTenderEvaluationSummary(evaluationDraft);
+    const badgeClass = summary.state === 'balanced' ? 'badge-success' : summary.state === 'over' ? 'badge-error' : 'badge-warning';
+    return `
+        <div class="evaluation-builder" data-evaluation-builder>
+            <div class="evaluation-builder-header">
+                <div>
+                    <span class="section-kicker">Evaluation setup</span>
+                    <h3>Criteria suggestion library</h3>
+                </div>
+                <span class="badge ${badgeClass}" data-evaluation-status-badge>${escapeCreateTenderHtml(summary.message)}</span>
+            </div>
+            ${renderCreateTenderEvaluationStatus(summary)}
+            <div class="evaluation-toolbar">
+                <label>
+                    <span class="form-label">Balancing mode</span>
+                    <select class="form-input" data-evaluation-mode>
+                        <option value="manual" ${evaluationDraft.mode === 'manual' ? 'selected' : ''}>Manual</option>
+                        <option value="assisted" ${evaluationDraft.mode === 'assisted' ? 'selected' : ''}>Assisted</option>
+                        <option value="auto" ${evaluationDraft.mode === 'auto' ? 'selected' : ''}>Auto-balance</option>
+                    </select>
+                </label>
+                <button class="btn btn-secondary" type="button" data-evaluation-distribute>Distribute remaining evenly</button>
+                <button class="btn btn-secondary" type="button" data-evaluation-balance>Balance Now</button>
+                <button class="btn btn-primary" type="button" data-evaluation-add-custom>Add Custom Criterion</button>
+            </div>
+            <div class="evaluation-builder-grid">
+                <section class="evaluation-selected-panel">
+                    <div class="scope-list-heading">
+                        <div>
+                            <h3>Selected criteria</h3>
+                            <span class="form-hint">Buyer-controlled labels, weights, and selectable subcriteria.</span>
+                        </div>
+                        <span class="badge badge-info">${escapeCreateTenderHtml(evaluationDraft.criteria.length)} criteria</span>
+                    </div>
+                    <div class="evaluation-criteria-list" data-evaluation-criteria-list>
+                        ${renderCreateTenderEvaluationSelectedCriteria(profile, evaluationDraft)}
+                    </div>
+                </section>
+                <section class="evaluation-suggestions-panel">
+                    <div class="scope-list-heading">
+                        <div>
+                            <h3>Suggested criteria</h3>
+                            <span class="form-hint">Suggestions are guidance only and can be removed after adding.</span>
+                        </div>
+                    </div>
+                    <div class="evaluation-suggestion-list" data-evaluation-suggestion-list>
+                        ${renderCreateTenderEvaluationSuggestions(profile, evaluationDraft)}
+                    </div>
+                </section>
+            </div>
+        </div>
+    `;
+}
+
+function isCreateTenderReviewValueEmpty(value) {
+    if (Array.isArray(value)) return !value.length;
+    if (value && typeof value === 'object') return !Object.keys(value).length;
+    return String(value ?? '').trim() === '';
+}
+
+function formatCreateTenderReviewValue(value) {
+    if (Array.isArray(value)) {
+        return value.length
+            ? value.map(item => escapeCreateTenderHtml(item)).join(', ')
+            : 'Not provided';
+    }
+    if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+    if (value && typeof value === 'object') return Object.values(value).filter(item => !isCreateTenderReviewValueEmpty(item)).map(escapeCreateTenderHtml).join(', ') || 'Not provided';
+    return escapeCreateTenderHtml(value || 'Not provided');
+}
+
+function renderCreateTenderReviewField(label, value) {
+    return `
+        <div class="tender-review-field">
+            <span>${escapeCreateTenderHtml(label)}</span>
+            <strong>${formatCreateTenderReviewValue(value)}</strong>
+        </div>
+    `;
+}
+
+function renderCreateTenderReviewTextList(items = [], emptyText = 'No items added yet.') {
+    const values = (items || []).map(item => item.text || item.name || item.title || '').filter(Boolean);
+    if (!values.length) return `<div class="scope-empty">${escapeCreateTenderHtml(emptyText)}</div>`;
+    return `
+        <ul class="tender-review-bullet-list">
+            ${values.map(item => `<li>${escapeCreateTenderHtml(item)}</li>`).join('')}
+        </ul>
+    `;
+}
+
+function renderCreateTenderReviewObjectRows(rows = [], fields = []) {
+    const normalizedRows = Array.isArray(rows) ? rows : [];
+    if (!normalizedRows.length) return '<div class="scope-empty">No records added yet.</div>';
+    return `
+        <div class="tender-review-record-list">
+            ${normalizedRows.map((row, index) => `
+                <article class="tender-review-record">
+                    <strong>Item ${index + 1}</strong>
+                    <div class="tender-review-field-grid">
+                        ${fields.filter(field => field.type !== 'index' && field.type !== 'calculated').map(field => renderCreateTenderReviewField(field.label, row[field.id])).join('')}
+                    </div>
+                </article>
+            `).join('')}
+        </div>
+    `;
+}
+
+function renderCreateTenderReviewControl(control, value, profileId = 'works') {
+    if (control.type === 'list') {
+        return renderCreateTenderReviewTextList(normalizeCreateTenderRequirementTextItems(value, control.id), control.emptyText);
+    }
+    if (control.type === 'table') {
+        const columns = resolveCreateTenderRequirementColumns(control, profileId);
+        return renderCreateTenderReviewObjectRows(normalizeCreateTenderRequirementTableRows(value, columns, control.id), columns);
+    }
+    if (control.type === 'cards') {
+        const fields = resolveCreateTenderRequirementFields(control, profileId);
+        return renderCreateTenderReviewObjectRows(normalizeCreateTenderRequirementObjectRows(value, fields, control.id), fields);
+    }
+    if (control.type === 'accordion') {
+        const values = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+        return `
+            <div class="tender-review-field-grid">
+                ${(control.panels || []).map(panel => renderCreateTenderReviewField(panel.label, values[panel.id])).join('')}
+            </div>
+        `;
+    }
+    return renderCreateTenderReviewField(control.label, value);
+}
+
+function renderCreateTenderReviewRequirements(profile, mainDraft = getCreateTenderMainDraft()) {
+    const template = getCreateTenderRequirementTemplate(profile.id);
+    const requirementDraft = getCreateTenderRequirementDraft(profile.id);
+    return `
+        <div class="tender-review-section-stack">
+            ${template.sections.map(section => `
+                <article class="tender-review-section">
+                    <div>
+                        <h4>${escapeCreateTenderHtml(section.title)}</h4>
+                        <span class="form-hint">${escapeCreateTenderHtml(section.hint || '')}</span>
+                    </div>
+                    ${(section.controls || []).map(control => `
+                        <div class="tender-review-control">
+                            <span class="form-label">${escapeCreateTenderHtml(control.label)}</span>
+                            ${renderCreateTenderReviewControl(control, requirementDraft.fields?.[control.id], profile.id)}
+                        </div>
+                    `).join('')}
+                </article>
+            `).join('')}
+        </div>
+    `;
+}
+
+function renderCreateTenderReviewEvaluation(evaluationDraft = {}) {
+    const criteria = Array.isArray(evaluationDraft.criteria) ? evaluationDraft.criteria : [];
+    if (!criteria.length) return '<div class="scope-empty">No evaluation criteria configured.</div>';
+    return `
+        <div class="tender-review-record-list">
+            ${criteria.map(criterion => `
+                <article class="tender-review-record">
+                    <div class="tender-review-record-heading">
+                        <strong>${escapeCreateTenderHtml(criterion.name)}</strong>
+                        <span>${escapeCreateTenderHtml(criterion.weight)}%</span>
+                    </div>
+                    ${renderCreateTenderReviewTextList((criterion.subcriteria || []).map(text => ({ text })), 'No subcriteria selected.')}
+                </article>
+            `).join('')}
+        </div>
+    `;
+}
+
+function renderCreateTenderReviewWorkspace(profile, mainDraft = getCreateTenderMainDraft()) {
+    const setup = getCreateTenderSetup();
+    const selectedType = setup.types.find(type => type.id === profile.id) || setup.defaultType;
+    const contact = getCreateTenderContactDetails();
+    const categories = getCreateTenderSelectedCategories(mainDraft);
+    const method = normalizeCreateTenderMethod(mainDraft.method);
+    const licenses = getCreateTenderRegulatoryLicenses(profile);
+    const boqItems = getCreateTenderBoqItems(profile);
+    const deliverables = getCreateTenderDeliverables(profile);
+    const attachments = getCreateTenderRequiredAttachments(profile);
+    const milestones = getCreateTenderMilestones();
+    const milestoneSummary = getCreateTenderMilestoneSummary(milestones);
+    const evaluationDraft = getCreateTenderEvaluationDraft(profile.id, mainDraft);
+    const evaluationSummary = getCreateTenderEvaluationSummary(evaluationDraft);
+    const requirementSummary = getCreateTenderRequirementSummary(profile, mainDraft);
+    const invitedUsers = getCreateTenderInvitedUsers();
+
+    return `
+        <div class="tender-review-workspace">
+            <section class="tender-review-panel buyer-view-panel">
+                <div class="scope-list-heading">
+                    <div>
+                        <h3>Buyer view</h3>
+                        <span class="form-hint">Internal preview of the tender package before final publication.</span>
+                    </div>
+                    <span class="badge ${evaluationSummary.isBalanced ? 'badge-success' : 'badge-warning'}">${evaluationSummary.isBalanced ? 'Ready for final review' : 'Review gaps'}</span>
+                </div>
+                <div class="buyer-view-card">
+                    <span>${escapeCreateTenderHtml(selectedType.label)} / ${escapeCreateTenderHtml(method)}</span>
+                    <h3>${escapeCreateTenderHtml(mainDraft.title || 'Untitled tender')}</h3>
+                    <p>${escapeCreateTenderHtml(categories.join(', ') || 'No category selected')}</p>
+                    <div class="buyer-view-metrics">
+                        <div><span>Budget</span><strong>${formatCreateTenderMoney(getCreateTenderBoqTotal(boqItems))}</strong></div>
+                        <div><span>Closing</span><strong>${formatCreateTenderDate(milestones.find(item => item.id === 'milestone-closing')?.date || '')}</strong></div>
+                        <div><span>Evaluation</span><strong>${escapeCreateTenderHtml(evaluationSummary.total)}%</strong></div>
+                        <div><span>Licenses</span><strong>${licenses.length}</strong></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="tender-review-panel">
+                <div class="scope-list-heading">
+                    <div>
+                        <h3>Tender information</h3>
+                        <span class="form-hint">Basic details, contact, procurement type, category, method, and visibility.</span>
+                    </div>
+                </div>
+                <div class="tender-review-field-grid">
+                    ${renderCreateTenderReviewField('Tender title', mainDraft.title)}
+                    ${renderCreateTenderReviewField('Procurement type', selectedType.label)}
+                    ${renderCreateTenderReviewField('Categories', categories)}
+                    ${renderCreateTenderReviewField('Procurement method', method)}
+                    ${renderCreateTenderReviewField('Visibility', getCreateTenderVisibilityForMethod(method))}
+                    ${renderCreateTenderReviewField('Invited suppliers', invitedUsers.map(user => user.name))}
+                    ${renderCreateTenderReviewField('Location', contact.tenderLocation)}
+                    ${renderCreateTenderReviewField('Contact person / department', contact.contactName)}
+                    ${renderCreateTenderReviewField('Phone', contact.phone)}
+                    ${renderCreateTenderReviewField('Email', contact.email)}
+                </div>
+            </section>
+
+            <section class="tender-review-panel">
+                <div class="scope-list-heading">
+                    <div>
+                        <h3>Tender requirements</h3>
+                        <span class="form-hint">${escapeCreateTenderHtml(requirementSummary.filledControls)} of ${escapeCreateTenderHtml(requirementSummary.totalControls)} structured fields started.</span>
+                    </div>
+                </div>
+                ${renderCreateTenderReviewRequirements(profile, mainDraft)}
+            </section>
+
+            <section class="tender-review-panel">
+                <div class="scope-list-heading">
+                    <div>
+                        <h3>Regulatory license requirements</h3>
+                        <span class="form-hint">Licenses required for supplier eligibility.</span>
+                    </div>
+                </div>
+                ${licenses.length ? renderCreateTenderReviewObjectRows(licenses, [
+                    { id: 'license', label: 'License' },
+                    { id: 'body', label: 'Issuing body' },
+                    { id: 'mandatory', label: 'Mandatory' },
+                    { id: 'expiryRequired', label: 'Expiry validation' }
+                ]) : '<div class="scope-empty">No regulatory licenses selected.</div>'}
+            </section>
+
+            <section class="tender-review-panel">
+                <div class="scope-list-heading">
+                    <div>
+                        <h3>${escapeCreateTenderHtml(profile.commercialTitle)}</h3>
+                        <span class="form-hint">Commercial schedule and estimated amount.</span>
+                    </div>
+                    <span class="badge badge-info">${formatCreateTenderMoney(getCreateTenderBoqTotal(boqItems))}</span>
+                </div>
+                ${boqItems.length ? renderCreateTenderReviewObjectRows(boqItems, [
+                    { id: 'item', label: 'Code' },
+                    { id: 'description', label: 'Requirement' },
+                    { id: 'qty', label: 'Qty / Duration' },
+                    { id: 'unit', label: 'Unit' },
+                    { id: 'rate', label: 'Rate / Fee' }
+                ]) : `<div class="scope-empty">${escapeCreateTenderHtml(profile.commercialEmptyText)}</div>`}
+            </section>
+
+            <section class="tender-review-panel">
+                <div class="scope-list-heading">
+                    <div>
+                        <h3>Deliverables and attachments</h3>
+                        <span class="form-hint">Outputs and required supporting documents.</span>
+                    </div>
+                </div>
+                <div class="tender-review-two-column">
+                    <div>
+                        <h4>${escapeCreateTenderHtml(profile.deliverablesTitle)}</h4>
+                        ${renderCreateTenderReviewTextList(deliverables, 'No deliverables added yet.')}
+                    </div>
+                    <div>
+                        <h4>Required attachments</h4>
+                        ${renderCreateTenderReviewTextList(attachments, 'No required attachments added yet.')}
+                    </div>
+                </div>
+            </section>
+
+            <section class="tender-review-panel">
+                <div class="scope-list-heading">
+                    <div>
+                        <h3>Evaluation criteria and timeline</h3>
+                        <span class="form-hint">Evaluation weights and publication milestones.</span>
+                    </div>
+                    <span class="badge ${evaluationSummary.isBalanced ? 'badge-success' : 'badge-warning'}">${escapeCreateTenderHtml(evaluationSummary.message)}</span>
+                </div>
+                <div class="tender-review-two-column">
+                    <div>
+                        <h4>Evaluation criteria</h4>
+                        ${renderCreateTenderReviewEvaluation(evaluationDraft)}
+                    </div>
+                    <div>
+                        <h4>Timeline</h4>
+                        <div class="tender-review-field-grid">
+                            ${milestones.map(item => renderCreateTenderReviewField(item.name, item.date ? formatCreateTenderDate(item.date) : '')).join('')}
+                            ${renderCreateTenderReviewField('Window', milestoneSummary.days ? `${milestoneSummary.days} days` : '')}
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    `;
+}
+
+function collectCreateTenderSystemEvaluationText(profile, mainDraft = getCreateTenderMainDraft()) {
+    const requirementDraft = getCreateTenderRequirementDraft(profile.id);
+    const fields = requirementDraft.fields || {};
+    const values = [];
+    const collect = (value) => {
+        if (value === null || value === undefined) return;
+        if (Array.isArray(value)) {
+            value.forEach(collect);
+            return;
+        }
+        if (typeof value === 'object') {
+            Object.entries(value).forEach(([key, entry]) => {
+                if (key !== 'id') collect(entry);
+            });
+            return;
+        }
+        const text = String(value || '').trim();
+        if (text) values.push(text);
+    };
+
+    collect(mainDraft.title);
+    collect(mainDraft.category);
+    collect(fields);
+    collect(getCreateTenderDeliverables(profile));
+    collect(getCreateTenderRequiredAttachments(profile));
+    collect(getCreateTenderBoqItems(profile));
+    return values.join(' ');
+}
+
+function getCreateTenderGrammarIssues(text = '') {
+    const issues = [];
+    const normalizedText = String(text || '').trim();
+    if (!normalizedText) {
+        return ['Tender content is too limited for a language check.'];
+    }
+    if (/\s{2,}/.test(normalizedText)) {
+        issues.push('Remove repeated spaces.');
+    }
+    if (/\b(teh|recieve|seperate|adress|definately|occured|untill|wich)\b/i.test(normalizedText)) {
+        issues.push('Correct common spelling mistakes.');
+    }
+    const sentences = normalizedText
+        .split(/(?<=[.!?])\s+/)
+        .map(sentence => sentence.trim())
+        .filter(sentence => sentence.length > 12);
+    const missingPunctuation = sentences.filter(sentence => !/[.!?]$/.test(sentence)).length;
+    if (sentences.length && missingPunctuation > Math.max(1, Math.floor(sentences.length * 0.25))) {
+        issues.push('Add punctuation to long sentences.');
+    }
+    const weakStarts = sentences.filter(sentence => /^[a-z]/.test(sentence)).length;
+    if (weakStarts > Math.max(1, Math.floor(sentences.length * 0.25))) {
+        issues.push('Start sentences with capital letters.');
+    }
+    if (normalizedText.length < 250) {
+        issues.push('Add more descriptive tender content for a clearer review.');
+    }
+    return issues;
+}
+
+function getCreateTenderSystemEvaluationSignature(profile, mainDraft = getCreateTenderMainDraft()) {
+    const evaluationDraft = getCreateTenderEvaluationDraft(profile.id, mainDraft);
+    const milestones = getCreateTenderMilestones().map(item => `${item.id}:${item.date}`).join('|');
+    return JSON.stringify({
+        title: mainDraft.title || '',
+        categories: getCreateTenderSelectedCategories(mainDraft),
+        requirements: collectCreateTenderSystemEvaluationText(profile, mainDraft),
+        commercialCount: getCreateTenderBoqItems(profile).length,
+        commercialTotal: getCreateTenderBoqTotal(getCreateTenderBoqItems(profile)),
+        evaluation: evaluationDraft.criteria.map(item => ({
+            name: item.name,
+            weight: item.weight,
+            subcriteria: item.subcriteria
+        })),
+        milestones
+    });
+}
+
+function getCreateTenderSystemEvaluation(profile, mainDraft = getCreateTenderMainDraft()) {
+    const requirementSummary = getCreateTenderRequirementSummary(profile, mainDraft);
+    const evaluationDraft = getCreateTenderEvaluationDraft(profile.id, mainDraft);
+    const evaluationSummary = getCreateTenderEvaluationSummary(evaluationDraft);
+    const text = collectCreateTenderSystemEvaluationText(profile, mainDraft);
+    const grammarIssues = getCreateTenderGrammarIssues(text);
+    const hasTitle = String(mainDraft.title || '').trim().length >= 8;
+    const hasCategory = getCreateTenderSelectedCategories(mainDraft).length > 0;
+    const hasRequirements = requirementSummary.filledControls >= Math.max(1, Math.ceil(requirementSummary.totalControls * 0.2));
+    const hasCommercial = getCreateTenderBoqItems(profile).length > 0;
+    const hasTimeline = getCreateTenderMilestoneSummary(getCreateTenderMilestones()).datedCount >= 2;
+    const hasEvaluation = evaluationSummary.isBalanced;
+    const understandingChecks = [
+        { label: 'Tender title is clear', passed: hasTitle },
+        { label: 'Procurement category is selected', passed: hasCategory },
+        { label: 'Tender requirements contain enough detail', passed: hasRequirements },
+        { label: `${profile.commercialName} has at least one line`, passed: hasCommercial },
+        { label: 'Key timeline dates are set', passed: hasTimeline },
+        { label: 'Evaluation weights are balanced', passed: hasEvaluation }
+    ];
+    const passedUnderstanding = understandingChecks.filter(item => item.passed).length;
+    const grammarScore = Math.max(0, 100 - (grammarIssues.length * 18));
+    const understandingScore = Math.round((passedUnderstanding / understandingChecks.length) * 100);
+    const overallScore = Math.round((understandingScore * 0.65) + (grammarScore * 0.35));
+    const passed = overallScore >= 70 && grammarIssues.length <= 3 && passedUnderstanding >= 4 && hasEvaluation;
+
+    return {
+        status: passed ? 'passed' : 'needs_attention',
+        completed: passed,
+        overallScore,
+        understandingScore,
+        grammarScore,
+        grammarIssues,
+        understandingChecks,
+        signature: getCreateTenderSystemEvaluationSignature(profile, mainDraft),
+        evaluatedAt: new Date().toISOString()
+    };
+}
+
+function getCreateTenderSavedSystemEvaluation(profileId = 'works', mainDraft = getCreateTenderMainDraft()) {
+    const typeId = getCreateTenderTypeId(profileId);
+    const evaluations = mainDraft.systemEvaluation || {};
+    const savedEvaluation = evaluations[typeId];
+    return savedEvaluation && typeof savedEvaluation === 'object' ? savedEvaluation : null;
+}
+
+function isCreateTenderSavedSystemEvaluationCurrent(profile, mainDraft = getCreateTenderMainDraft()) {
+    const savedEvaluation = getCreateTenderSavedSystemEvaluation(profile.id, mainDraft);
+    return Boolean(savedEvaluation?.completed && savedEvaluation.signature === getCreateTenderSystemEvaluationSignature(profile, mainDraft));
+}
+
+function saveCreateTenderSystemEvaluation(profileId = 'works', result = {}) {
+    const typeId = getCreateTenderTypeId(profileId);
+    const mainDraft = getCreateTenderMainDraft();
+    saveCreateTenderMainDraft({
+        systemEvaluation: {
+            ...(mainDraft.systemEvaluation || {}),
+            [typeId]: result
+        }
+    });
+    return result;
+}
+
+function renderCreateTenderSystemEvaluationChecklist(checks = []) {
+    return `
+        <div class="system-evaluation-checklist">
+            ${checks.map(check => `
+                <div class="${check.passed ? 'passed' : 'pending'}">
+                    <strong>${check.passed ? 'Pass' : 'Needs work'}</strong>
+                    <span>${escapeCreateTenderHtml(check.label)}</span>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function renderCreateTenderSystemEvaluationPanel(profile, mainDraft = getCreateTenderMainDraft()) {
+    const savedEvaluation = getCreateTenderSavedSystemEvaluation(profile.id, mainDraft);
+    const isCurrent = isCreateTenderSavedSystemEvaluationCurrent(profile, mainDraft);
+    const previewEvaluation = isCurrent ? savedEvaluation : getCreateTenderSystemEvaluation(profile, mainDraft);
+    const badgeClass = isCurrent ? 'badge-success' : 'badge-warning';
+    return `
+        <div class="system-evaluation-workspace" data-system-evaluation-wrap>
+            <section class="system-evaluation-panel">
+                <div class="scope-list-heading">
+                    <div>
+                        <h3>System evaluation</h3>
+                        <span class="form-hint">Basic understanding and grammar review before marketplace publication.</span>
+                    </div>
+                    <span class="badge ${badgeClass}" data-system-evaluation-status>${isCurrent ? 'Evaluation completed' : 'Evaluation required'}</span>
+                </div>
+                <div class="system-evaluation-score-grid">
+                    <article>
+                        <span>Overall</span>
+                        <strong data-system-score-overall>${escapeCreateTenderHtml(previewEvaluation.overallScore)}%</strong>
+                    </article>
+                    <article>
+                        <span>Understanding</span>
+                        <strong data-system-score-understanding>${escapeCreateTenderHtml(previewEvaluation.understandingScore)}%</strong>
+                    </article>
+                    <article>
+                        <span>Grammar</span>
+                        <strong data-system-score-grammar>${escapeCreateTenderHtml(previewEvaluation.grammarScore)}%</strong>
+                    </article>
+                </div>
+                <button class="btn btn-secondary" type="button" data-run-system-evaluation>Run System Evaluation</button>
+            </section>
+
+            <section class="system-evaluation-panel">
+                <div class="scope-list-heading">
+                    <div>
+                        <h3>Understanding checks</h3>
+                        <span class="form-hint">The system checks whether the tender has enough structure to publish.</span>
+                    </div>
+                </div>
+                <div data-system-understanding-checks>
+                    ${renderCreateTenderSystemEvaluationChecklist(previewEvaluation.understandingChecks)}
+                </div>
+            </section>
+
+            <section class="system-evaluation-panel">
+                <div class="scope-list-heading">
+                    <div>
+                        <h3>Basic grammar review</h3>
+                        <span class="form-hint">Simple grammar and readability issues detected from entered tender text.</span>
+                    </div>
+                </div>
+                <div data-system-grammar-issues>
+                    ${previewEvaluation.grammarIssues.length
+                        ? `<ul class="tender-review-bullet-list">${previewEvaluation.grammarIssues.map(issue => `<li>${escapeCreateTenderHtml(issue)}</li>`).join('')}</ul>`
+                        : '<div class="system-evaluation-pass-note">No basic grammar issues detected.</div>'}
+                </div>
+            </section>
+
+            <section class="submit-strip buyer-review-submit system-evaluation-publish">
+                <div>
+                    <strong>Publish to marketplace</strong>
+                    <span data-system-publish-note>${isCurrent ? 'System evaluation is complete. You can publish this tender.' : 'Run and pass system evaluation before publishing.'}</span>
+                </div>
+                <button class="btn btn-primary" type="button" data-publish-tender ${isCurrent ? '' : 'disabled'}>Publish to Marketplace</button>
+            </section>
+        </div>
+    `;
+}
+
 function renderCreateTender() {
     const procurementSetup = getCreateTenderSetup();
     const mainDraft = getCreateTenderMainDraft();
@@ -2643,6 +4092,8 @@ function renderCreateTender() {
     const requiredAttachments = getCreateTenderRequiredAttachments(selectedProfile);
     const regulatoryLicenses = getCreateTenderRegulatoryLicenses(selectedProfile);
     const requirementSummary = getCreateTenderRequirementSummary(selectedProfile, mainDraft);
+    const evaluationDraft = getCreateTenderEvaluationDraft(selectedProfile.id, mainDraft);
+    const evaluationSummary = getCreateTenderEvaluationSummary(evaluationDraft);
     const tenderMethod = normalizeCreateTenderMethod(mainDraft.method);
     const invitedUsers = getCreateTenderInvitedUsers();
     const isClosedTender = isCreateTenderClosedMethod(tenderMethod);
@@ -2651,8 +4102,8 @@ function renderCreateTender() {
         ['02', 'Tender Planning', 'Type, category, method, invitations'],
         ['03', 'Tender Requirements', `${requirementSummary.title}, licenses`],
         ['04', 'Evaluation Criteria & Weights', 'Criteria, weights, pass marks'],
-        ['05', 'Publish Tender', 'Portal, invitations, vendor notifications'],
-        ['06', 'Pre-Bid & Review', 'Clarifications, addenda, final review']
+        ['05', 'Review Tender', 'All entries and buyer view'],
+        ['06', 'System Evaluation', 'Understanding, grammar, publish']
     ];
 
     return `
@@ -2877,16 +4328,10 @@ function renderCreateTender() {
                                         <span class="section-kicker">Step 4</span>
                                         <h2>Evaluation Criteria & Weights</h2>
                                     </div>
-                                    <span class="badge badge-success">100% balanced</span>
+                                    <span class="badge ${evaluationSummary.state === 'balanced' ? 'badge-success' : evaluationSummary.state === 'over' ? 'badge-error' : 'badge-warning'}" data-evaluation-header-badge>${escapeCreateTenderHtml(evaluationSummary.message)}</span>
                                 </div>
-                                <div class="criteria-grid">
-                                    ${selectedProfile.evaluationCriteria.map(item => `
-                                        <div class="criterion-row">
-                                            <div><strong>${item[0]}</strong><span>${item[2]}</span></div>
-                                            <input type="number" class="form-input" value="${item[1]}" min="0" max="100">
-                                            <span>%</span>
-                                        </div>
-                                    `).join('')}
+                                <div data-evaluation-builder-wrap>
+                                    ${renderCreateTenderEvaluationBuilder(selectedProfile, mainDraft)}
                                 </div>
                             </section>
 
@@ -2894,35 +4339,12 @@ function renderCreateTender() {
                                 <div class="panel-heading">
                                     <div>
                                         <span class="section-kicker">Step 5</span>
-                                        <h2>Publish Tender</h2>
+                                        <h2>Review Tender</h2>
                                     </div>
-                                    <span class="badge badge-success" data-milestone-badge>${milestoneSummary.count} milestones</span>
+                                    <span class="badge badge-info">Buyer preview</span>
                                 </div>
-                                <div class="review-summary-grid" style="margin-bottom: 20px;">
-                                    <article class="review-card">
-                                        <span>Publish channel</span>
-                                        <strong data-publish-visibility>${escapeCreateTenderHtml(getCreateTenderVisibilityForMethod(tenderMethod))}</strong>
-                                        <small data-publish-visibility-note>${escapeCreateTenderHtml(getCreateTenderVisibilityNoteForMethod(tenderMethod, invitedUsers.length))}</small>
-                                    </article>
-                                    <article class="review-card">
-                                        <span>Vendor notification</span>
-                                        <strong>Notify eligible vendors</strong>
-                                        <small>Public portal listing and invited supplier alerts are prepared.</small>
-                                    </article>
-                                    <article class="review-card">
-                                        <span>Deadline enforcement</span>
-                                        <strong>Auto-lock at closing</strong>
-                                        <small>Bid submissions lock after the configured deadline.</small>
-                                    </article>
-                                </div>
-                                <div class="timeline-summary-strip">
-                                    <div><span>Milestones</span><strong data-milestone-count>${milestoneSummary.count}</strong></div>
-                                    <div><span>Start</span><strong data-milestone-start>${formatCreateTenderDate(milestoneSummary.start)}</strong></div>
-                                    <div><span>End</span><strong data-milestone-end>${formatCreateTenderDate(milestoneSummary.end)}</strong></div>
-                                    <div><span>Window</span><strong data-milestone-window>${milestoneSummary.days ? `${milestoneSummary.days} days` : 'Set dates'}</strong></div>
-                                </div>
-                                <div class="timeline-grid timeline-editor" data-milestone-list>
-                                    ${renderCreateTenderMilestoneRows(milestones)}
+                                <div data-tender-review-wrap>
+                                    ${renderCreateTenderReviewWorkspace(selectedProfile, mainDraft)}
                                 </div>
                             </section>
 
@@ -2930,80 +4352,11 @@ function renderCreateTender() {
                                 <div class="panel-heading">
                                     <div>
                                         <span class="section-kicker">Step 6</span>
-                                        <h2>Pre-Bid Phase & Buyer Review</h2>
+                                        <h2>System Evaluation & Publish</h2>
                                     </div>
-                                    <span class="badge badge-info" data-review-readiness>Review required</span>
+                                    <span class="badge ${isCreateTenderSavedSystemEvaluationCurrent(selectedProfile, mainDraft) ? 'badge-success' : 'badge-warning'}" data-system-evaluation-header-badge>${isCreateTenderSavedSystemEvaluationCurrent(selectedProfile, mainDraft) ? 'Evaluation complete' : 'Evaluation required'}</span>
                                 </div>
-                                <div class="review-summary-grid" style="margin-bottom: 20px;">
-                                    <article class="review-card">
-                                        <span>Clarifications</span>
-                                        <strong>Enabled before deadline</strong>
-                                        <small>Suppliers can ask questions and buyer answers stay in the tender record.</small>
-                                    </article>
-                                    <article class="review-card">
-                                        <span>${selectedProfile.id === 'works' ? 'Site visits' : 'Pre-bid session'}</span>
-                                        <strong>${selectedProfile.id === 'works' ? 'Site visit allowed' : 'Optional briefing'}</strong>
-                                        <small>${selectedProfile.id === 'works' ? 'Works tenders can include site conditions and visit schedules.' : 'Buyer can issue briefing notes or responses as addenda.'}</small>
-                                    </article>
-                                    <article class="review-card">
-                                        <span>Addenda</span>
-                                        <strong>Versioned updates</strong>
-                                        <small>Changes to documents, dates, or requirements are published as addenda.</small>
-                                    </article>
-                                </div>
-                                <div class="review-summary-grid">
-                                    <article class="review-card">
-                                        <span>Tender</span>
-                                        <strong data-review-title>Tender not set</strong>
-                                        <small data-review-scope>${requirementSummary.filledControls ? `${requirementSummary.filledControls} of ${requirementSummary.totalControls} requirement fields started` : 'Requirements not started'}</small>
-                                    </article>
-                                    <article class="review-card">
-                                        <span>Location & contact</span>
-                                        <strong data-review-contact>${escapeCreateTenderHtml(contactDetails.tenderLocation)}</strong>
-                                        <small data-review-contact-status>${contactSummary.complete ? 'Contact verified' : 'Verification pending'}</small>
-                                    </article>
-                                    <article class="review-card">
-                                        <span>Procurement</span>
-                                        <strong data-review-procurement>${selectedType.label}</strong>
-                                        <small data-review-category>${escapeCreateTenderHtml(categorySummary)}</small>
-                                    </article>
-                                    <article class="review-card">
-                                        <span>Visibility</span>
-                                        <strong data-review-visibility>${escapeCreateTenderHtml(getCreateTenderVisibilityForMethod(tenderMethod))}</strong>
-                                        <small data-review-visibility-note>${escapeCreateTenderHtml(getCreateTenderVisibilityNoteForMethod(tenderMethod, invitedUsers.length))}</small>
-                                    </article>
-                                    <article class="review-card">
-                                        <span>Requirements</span>
-                                        <strong data-review-scope-count>${requirementSummary.filledControls + regulatoryLicenses.length} items</strong>
-                                        <small data-review-scope-breakdown>${requirementSummary.filledControls} requirement fields, ${regulatoryLicenses.length} licenses</small>
-                                    </article>
-                                    <article class="review-card">
-                                        <span data-review-commercial-label>${selectedProfile.reviewLabel}</span>
-                                        <strong data-review-boq-total>${formatCreateTenderMoney(boqTotal)}</strong>
-                                        <small data-review-boq-count>${boqItems.length} line items</small>
-                                    </article>
-                                    <article class="review-card">
-                                        <span>Timeline</span>
-                                        <strong data-review-timeline>${formatCreateTenderDate(milestoneSummary.start)} to ${formatCreateTenderDate(milestoneSummary.end)}</strong>
-                                        <small data-review-window>${milestoneSummary.days ? `${milestoneSummary.days} days` : 'Milestone dates pending'}</small>
-                                    </article>
-                                    <article class="review-card">
-                                        <span>Evaluation</span>
-                                        <strong data-review-evaluation>100% balanced</strong>
-                                        <small>5 weighted criteria</small>
-                                    </article>
-                                </div>
-                                <div class="review-checklist">
-                                    <div><strong>Buyer confirmation</strong><span data-review-confirmation>Review scope, licenses, ${selectedProfile.commercialName}, timeline, evaluation, and visibility before publishing.</span></div>
-                                    <div><strong>Publication result</strong><span>Submission publishes the tender to the marketplace and opens buyer management controls.</span></div>
-                                </div>
-                                <div class="submit-strip buyer-review-submit">
-                                    <div>
-                                        <strong>Submit and publish reviewed tender</strong>
-                                        <span>The tender becomes active in the marketplace and appears in your dashboard.</span>
-                                    </div>
-                                    <button class="btn btn-primary" type="button" data-publish-tender>Submit and Publish</button>
-                                </div>
+                                ${renderCreateTenderSystemEvaluationPanel(selectedProfile, mainDraft)}
                             </section>
 
                             <div class="wizard-flow-controls" data-wizard-flow-controls>
@@ -3068,6 +4421,69 @@ function initializeCreateTenderWizard() {
     const getSelectedProfile = () => {
         const selectedTypeId = wizard.querySelector('input[name="procurementType"]:checked')?.value || setup.defaultType.id;
         return getCreateTenderTypeProfile(selectedTypeId);
+    };
+
+    const getSelectedEvaluationDraft = () => getCreateTenderEvaluationDraft(getSelectedProfile().id);
+
+    const saveSelectedEvaluationDraft = (evaluationDraft) => saveCreateTenderEvaluationDraft(getSelectedProfile().id, evaluationDraft);
+
+    const syncEvaluationStatus = () => {
+        const profile = getSelectedProfile();
+        const evaluationDraft = getCreateTenderEvaluationDraft(profile.id);
+        const summary = getCreateTenderEvaluationSummary(evaluationDraft);
+        const statusClass = summary.state === 'balanced' ? 'balanced' : summary.state === 'over' ? 'over' : 'under';
+    const badgeClass = summary.state === 'balanced' ? 'badge-success' : summary.state === 'over' ? 'badge-error' : 'badge-warning';
+        const panel = wizard.querySelector('[data-evaluation-status-panel]');
+        const headerBadge = wizard.querySelector('[data-evaluation-header-badge]');
+        const builderBadge = wizard.querySelector('[data-evaluation-status-badge]');
+        const totalOutput = wizard.querySelector('[data-evaluation-total]');
+        const remainingOutput = wizard.querySelector('[data-evaluation-remaining]');
+        const progress = wizard.querySelector('.evaluation-progress-track span');
+
+        if (panel) {
+            panel.classList.toggle('balanced', statusClass === 'balanced');
+            panel.classList.toggle('under', statusClass === 'under');
+            panel.classList.toggle('over', statusClass === 'over');
+        }
+        [headerBadge, builderBadge].forEach(badge => {
+            if (!badge) return;
+            badge.textContent = summary.message;
+            badge.classList.toggle('badge-success', badgeClass === 'badge-success');
+            badge.classList.toggle('badge-warning', badgeClass === 'badge-warning');
+            badge.classList.toggle('badge-error', badgeClass === 'badge-error');
+        });
+        if (totalOutput) totalOutput.textContent = `${summary.total}%`;
+        if (remainingOutput) remainingOutput.textContent = summary.message;
+        if (progress) progress.style.width = `${Math.min(summary.total, 100)}%`;
+        refreshTenderReview();
+    };
+
+    const renderEvaluationBuilder = () => {
+        const wrap = wizard.querySelector('[data-evaluation-builder-wrap]');
+        if (!wrap) return;
+        wrap.innerHTML = renderCreateTenderEvaluationBuilder(getSelectedProfile(), getCreateTenderMainDraft());
+        syncEvaluationStatus();
+    };
+
+    const renderTenderReviewWorkspace = () => {
+        const wrap = wizard.querySelector('[data-tender-review-wrap]');
+        if (!wrap) return;
+        wrap.innerHTML = renderCreateTenderReviewWorkspace(getSelectedProfile(), getCreateTenderMainDraft());
+    };
+
+    const renderSystemEvaluationPanel = () => {
+        const wrap = wizard.querySelector('[data-system-evaluation-wrap]');
+        if (!wrap) return;
+        const profile = getSelectedProfile();
+        wrap.outerHTML = renderCreateTenderSystemEvaluationPanel(profile, getCreateTenderMainDraft());
+        const headerBadge = wizard.querySelector('[data-system-evaluation-header-badge]');
+        const savedEvaluation = getCreateTenderSavedSystemEvaluation(profile.id);
+        const isCurrent = isCreateTenderSavedSystemEvaluationCurrent(profile);
+        if (headerBadge) {
+            headerBadge.textContent = isCurrent ? 'Evaluation complete' : 'Evaluation required';
+            headerBadge.classList.toggle('badge-success', isCurrent);
+            headerBadge.classList.toggle('badge-warning', !isCurrent);
+        }
     };
 
     const getSelectedProcurementType = () => {
@@ -3284,6 +4700,8 @@ function initializeCreateTenderWizard() {
 
         const evaluationRail = railSteps[3]?.querySelector('span');
         if (evaluationRail) evaluationRail.textContent = 'Evaluation Criteria & Weights';
+        renderEvaluationBuilder();
+        renderTenderReviewWorkspace();
         const commercialHead = wizard.querySelector('[data-boq-editor] thead');
         if (commercialHead) commercialHead.innerHTML = renderCreateTenderCommercialTableHead(profile);
         const importButton = wizard.querySelector('[data-boq-import]');
@@ -3594,13 +5012,13 @@ function initializeCreateTenderWizard() {
         const method = normalizeCreateTenderMethod(methodSelect?.value);
         const invitedUsers = getCreateTenderInvitedUsers();
         const milestoneSummary = getCreateTenderMilestoneSummary(getCreateTenderMilestones());
-        const evaluationWeights = Array.from(wizard.querySelectorAll('.criterion-row input'))
-            .map(input => parseCreateTenderNumber(input.value));
-        const evaluationTotal = evaluationWeights.reduce((total, weight) => total + weight, 0);
+        const evaluationDraft = getCreateTenderEvaluationDraft(profile.id);
+        const evaluationSummary = getCreateTenderEvaluationSummary(evaluationDraft);
         const readiness = title !== 'Untitled tender'
             && contactSummary.complete
             && boqItems.length
             && milestoneSummary.datedCount === milestoneSummary.count
+            && evaluationSummary.isBalanced
             && (!isCreateTenderClosedMethod(method) || invitedUsers.length);
         const reviewBadge = wizard.querySelector('[data-review-readiness]');
 
@@ -3627,7 +5045,8 @@ function initializeCreateTenderWizard() {
                 : 'Milestone dates pending'
         );
         setReviewText('[data-review-window]', milestoneSummary.days ? `${milestoneSummary.days} days` : 'Set milestone dates');
-        setReviewText('[data-review-evaluation]', `${evaluationTotal}% ${evaluationTotal === 100 ? 'balanced' : 'configured'}`);
+        setReviewText('[data-review-evaluation]', `${evaluationSummary.total}% ${evaluationSummary.isBalanced ? 'balanced' : 'configured'}`);
+        setReviewText('[data-review-evaluation-count]', `${evaluationDraft.criteria.length} weighted criteria`);
 
         if (reviewBadge) {
             reviewBadge.textContent = readiness ? 'Ready to publish' : 'Review gaps';
@@ -3684,6 +5103,35 @@ function initializeCreateTenderWizard() {
         return false;
     };
 
+    const validateEvaluationBeforeLeavingStep = () => {
+        const evaluationDraft = getSelectedEvaluationDraft();
+        const summary = getCreateTenderEvaluationSummary(evaluationDraft);
+        if (summary.isBalanced) return true;
+
+        if (activeStepIndex !== 3) {
+            setActiveStep(3);
+        }
+        syncEvaluationStatus();
+        const firstWeight = Array.from(wizard.querySelectorAll('[data-evaluation-field="weight"]'))
+            .find(input => parseCreateTenderNumber(input.value) <= 0)
+            || wizard.querySelector('[data-evaluation-field="weight"]');
+        firstWeight?.classList.add('error');
+        firstWeight?.focus();
+        alert(`Evaluation weights must total 100% before continuing. ${summary.message}.`);
+        return false;
+    };
+
+    const validateSystemEvaluationBeforePublish = () => {
+        const profile = getSelectedProfile();
+        if (isCreateTenderSavedSystemEvaluationCurrent(profile)) return true;
+        if (activeStepIndex !== panels.length - 1) {
+            setActiveStep(panels.length - 1);
+        }
+        renderSystemEvaluationPanel();
+        alert('Run and pass system evaluation before publishing to the marketplace.');
+        return false;
+    };
+
     const setActiveStep = (index) => {
         const boundedIndex = Math.min(Math.max(index, 0), panels.length - 1);
         activeStepIndex = boundedIndex;
@@ -3705,7 +5153,12 @@ function initializeCreateTenderWizard() {
         if (progressOutput) progressOutput.textContent = `Step ${activeStepIndex + 1} of ${panels.length}`;
         if (stepTitleOutput) stepTitleOutput.textContent = railSteps[activeStepIndex]?.querySelector('span')?.textContent || '';
 
-        if (activeStepIndex === panels.length - 1) refreshTenderReview();
+        if (activeStepIndex === 3) syncEvaluationStatus();
+        if (activeStepIndex === 4) renderTenderReviewWorkspace();
+        if (activeStepIndex === panels.length - 1) {
+            renderSystemEvaluationPanel();
+            refreshTenderReview();
+        }
     };
 
     const nextBoqItemCode = (items) => {
@@ -3762,6 +5215,48 @@ function initializeCreateTenderWizard() {
         item.text = input.value;
         saveScopeItemsByType(type, items);
         refreshScopeSummary();
+    };
+
+    const updateEvaluationField = (input) => {
+        const row = input.closest('[data-evaluation-criterion]');
+        const field = input.dataset.evaluationField;
+        if (!row || !field) return;
+
+        const evaluationDraft = getSelectedEvaluationDraft();
+        const criterion = evaluationDraft.criteria.find(item => item.id === row.dataset.evaluationCriterion);
+        if (!criterion) return;
+
+        if (field === 'weight') {
+            const shouldKeepBlank = input.value === '';
+            const clampedWeight = clampCreateTenderEvaluationWeight(input.value);
+            criterion.weight = clampedWeight;
+            if (!shouldKeepBlank && String(clampedWeight) !== input.value) input.value = clampedWeight;
+            input.classList.toggle('error', shouldKeepBlank || clampedWeight <= 0 || clampedWeight > 100);
+            const nextDraft = evaluationDraft.mode === 'auto'
+                ? autoBalanceCreateTenderEvaluationWeights(evaluationDraft, criterion.id)
+                : evaluationDraft;
+            saveSelectedEvaluationDraft(nextDraft);
+            if (evaluationDraft.mode === 'auto') {
+                renderEvaluationBuilder();
+                return;
+            }
+            syncEvaluationStatus();
+            return;
+        }
+
+        if (field !== 'weight') {
+            criterion[field] = input.value;
+        }
+        saveSelectedEvaluationDraft(evaluationDraft);
+        syncEvaluationStatus();
+    };
+
+    const updateEvaluationMode = (select) => {
+        const evaluationDraft = getSelectedEvaluationDraft();
+        evaluationDraft.mode = ['manual', 'assisted', 'auto'].includes(select.value) ? select.value : 'manual';
+        const nextDraft = evaluationDraft.mode === 'auto' ? balanceCreateTenderEvaluationWeights(evaluationDraft) : evaluationDraft;
+        saveSelectedEvaluationDraft(nextDraft);
+        renderEvaluationBuilder();
     };
 
     const getRequirementListItems = (listId) => {
@@ -4003,6 +5498,8 @@ function initializeCreateTenderWizard() {
                 ? Array.from(new Set([...(Array.isArray(card[fieldId]) ? card[fieldId] : []), input.value]))
                 : (Array.isArray(card[fieldId]) ? card[fieldId] : []);
             input.value = '';
+        } else if (field.type === 'file') {
+            card[fieldId] = input.files?.[0]?.name || card[fieldId] || '';
         } else if (input.type === 'checkbox') {
             card[fieldId] = input.checked;
         } else {
@@ -4150,10 +5647,16 @@ function initializeCreateTenderWizard() {
         if (event.target?.matches('[data-license-field]')) {
             updateLicenseRequirement(event.target);
         }
+        if (event.target?.matches('[data-evaluation-field]')) {
+            updateEvaluationField(event.target);
+        }
+        if (event.target?.matches('[data-evaluation-mode]')) {
+            updateEvaluationMode(event.target);
+        }
         if (event.target?.matches('[data-procurement-method]')) {
             syncTenderMethod();
         }
-        if (event.target?.matches('[data-tender-title], [data-procurement-method], .criterion-row input')) {
+        if (event.target?.matches('[data-tender-title], [data-procurement-method], [data-evaluation-field]')) {
             saveMainDetailsFromInputs();
             refreshTenderReview();
         }
@@ -4217,7 +5720,10 @@ function initializeCreateTenderWizard() {
         if (event.target?.matches('[data-license-field]')) {
             updateLicenseRequirement(event.target);
         }
-        if (event.target?.matches('[data-tender-title], .criterion-row input')) {
+        if (event.target?.matches('[data-evaluation-field]')) {
+            updateEvaluationField(event.target);
+        }
+        if (event.target?.matches('[data-tender-title], [data-evaluation-field]')) {
             saveMainDetailsFromInputs();
             refreshTenderReview();
         }
@@ -4230,6 +5736,7 @@ function initializeCreateTenderWizard() {
             const requestedStepIndex = Number(railStep.dataset.wizardStepIndex);
             if (requestedStepIndex > activeStepIndex && !validateActiveStep()) return;
             if (requestedStepIndex > 2 && !validateRequirementsBeforeLeavingStep()) return;
+            if (requestedStepIndex > 3 && !validateEvaluationBeforeLeavingStep()) return;
             setActiveStep(requestedStepIndex);
             return;
         }
@@ -4353,6 +5860,115 @@ function initializeCreateTenderWizard() {
             return;
         }
 
+        if (target.matches('[data-evaluation-add-subcriterion]')) {
+            const row = target.closest('[data-evaluation-criterion]');
+            const picker = row?.querySelector('[data-evaluation-subcriteria-picker]');
+            const selectedValue = String(picker?.value || '').trim();
+            if (!row || !selectedValue) return;
+            const evaluationDraft = getSelectedEvaluationDraft();
+            const criterion = evaluationDraft.criteria.find(item => item.id === row.dataset.evaluationCriterion);
+            if (!criterion) return;
+            const existing = new Set(normalizeCreateTenderEvaluationSubcriteria(criterion.subcriteria).map(item => item.toLowerCase()));
+            if (!existing.has(selectedValue.toLowerCase())) {
+                criterion.subcriteria = [...normalizeCreateTenderEvaluationSubcriteria(criterion.subcriteria), selectedValue];
+                saveSelectedEvaluationDraft(evaluationDraft);
+                renderEvaluationBuilder();
+            }
+            return;
+        }
+
+        if (target.matches('[data-evaluation-add-custom-subcriterion]')) {
+            const row = target.closest('[data-evaluation-criterion]');
+            const input = row?.querySelector('[data-evaluation-custom-subcriterion]');
+            const selectedValue = String(input?.value || '').trim();
+            if (!row || !selectedValue) return;
+            const evaluationDraft = getSelectedEvaluationDraft();
+            const criterion = evaluationDraft.criteria.find(item => item.id === row.dataset.evaluationCriterion);
+            if (!criterion) return;
+            const existing = new Set(normalizeCreateTenderEvaluationSubcriteria(criterion.subcriteria).map(item => item.toLowerCase()));
+            if (!existing.has(selectedValue.toLowerCase())) {
+                criterion.subcriteria = [...normalizeCreateTenderEvaluationSubcriteria(criterion.subcriteria), selectedValue];
+                saveSelectedEvaluationDraft(evaluationDraft);
+                renderEvaluationBuilder();
+            }
+            return;
+        }
+
+        if (target.matches('[data-evaluation-remove-subcriterion]')) {
+            const row = target.closest('[data-evaluation-criterion]');
+            if (!row) return;
+            const evaluationDraft = getSelectedEvaluationDraft();
+            const criterion = evaluationDraft.criteria.find(item => item.id === row.dataset.evaluationCriterion);
+            if (!criterion) return;
+            const removeValue = String(target.dataset.evaluationRemoveSubcriterion || '').toLowerCase();
+            criterion.subcriteria = normalizeCreateTenderEvaluationSubcriteria(criterion.subcriteria)
+                .filter(item => item.toLowerCase() !== removeValue);
+            saveSelectedEvaluationDraft(evaluationDraft);
+            renderEvaluationBuilder();
+            return;
+        }
+
+        if (target.matches('[data-evaluation-add-suggestion]')) {
+            const profile = getSelectedProfile();
+            const evaluationDraft = getSelectedEvaluationDraft();
+            const nextCriterion = createTenderEvaluationCriterionFromCatalog(profile.id, target.dataset.evaluationAddSuggestion);
+            if (!nextCriterion) return;
+            evaluationDraft.criteria.push(nextCriterion);
+            const nextDraft = evaluationDraft.mode === 'auto' ? balanceCreateTenderEvaluationWeights(evaluationDraft) : evaluationDraft;
+            saveSelectedEvaluationDraft(nextDraft);
+            renderEvaluationBuilder();
+            return;
+        }
+
+        if (target.matches('[data-evaluation-add-custom]')) {
+            const evaluationDraft = getSelectedEvaluationDraft();
+            evaluationDraft.criteria.push(normalizeCreateTenderEvaluationCriterion({
+                id: `evaluation-custom-${Date.now()}`,
+                name: 'Custom criterion',
+                category: 'Custom',
+                weight: 0,
+                subcriteria: [],
+                custom: true
+            }, evaluationDraft.criteria.length, getSelectedProfile().id));
+            const nextDraft = evaluationDraft.mode === 'auto' ? balanceCreateTenderEvaluationWeights(evaluationDraft) : evaluationDraft;
+            saveSelectedEvaluationDraft(nextDraft);
+            renderEvaluationBuilder();
+            wizard.querySelector('[data-evaluation-criteria-list] [data-evaluation-criterion]:last-child [data-evaluation-field="name"]')?.focus();
+            return;
+        }
+
+        if (target.matches('[data-evaluation-delete]')) {
+            const evaluationDraft = getSelectedEvaluationDraft();
+            evaluationDraft.criteria = evaluationDraft.criteria.filter(item => item.id !== target.dataset.evaluationDelete);
+            const nextDraft = evaluationDraft.mode === 'auto' ? balanceCreateTenderEvaluationWeights(evaluationDraft) : evaluationDraft;
+            saveSelectedEvaluationDraft(nextDraft);
+            renderEvaluationBuilder();
+            return;
+        }
+
+        if (target.matches('[data-evaluation-distribute]')) {
+            saveSelectedEvaluationDraft(distributeCreateTenderEvaluationRemaining(getSelectedEvaluationDraft()));
+            renderEvaluationBuilder();
+            return;
+        }
+
+        if (target.matches('[data-evaluation-balance]')) {
+            saveSelectedEvaluationDraft(balanceCreateTenderEvaluationWeights(getSelectedEvaluationDraft()));
+            renderEvaluationBuilder();
+            return;
+        }
+
+        if (target.matches('[data-run-system-evaluation]')) {
+            const profile = getSelectedProfile();
+            const result = getCreateTenderSystemEvaluation(profile, getCreateTenderMainDraft());
+            saveCreateTenderSystemEvaluation(profile.id, result);
+            renderSystemEvaluationPanel();
+            if (!result.completed) {
+                alert('System evaluation found issues. Improve the highlighted understanding or grammar items, then run evaluation again.');
+            }
+            return;
+        }
+
         if (target.matches('[data-wizard-prev]')) {
             setActiveStep(activeStepIndex - 1);
             return;
@@ -4361,14 +5977,17 @@ function initializeCreateTenderWizard() {
         if (target.matches('[data-wizard-next]')) {
             if (!validateActiveStep()) return;
             if (activeStepIndex === 2 && !validateRequirementsBeforeLeavingStep()) return;
+            if (activeStepIndex === 3 && !validateEvaluationBeforeLeavingStep()) return;
             setActiveStep(activeStepIndex + 1);
             return;
         }
 
         if (target.matches('[data-publish-tender]')) {
             saveMainDetailsFromInputs();
-            publishCreateTenderToMarketplace(wizard);
-            window.app?.navigateTo('supplier-marketplace');
+            if (!validateEvaluationBeforeLeavingStep()) return;
+            if (!validateSystemEvaluationBeforePublish()) return;
+            const publishedTender = publishCreateTenderToMarketplace(wizard);
+            if (publishedTender) window.app?.navigateTo('supplier-marketplace');
             return;
         }
 
