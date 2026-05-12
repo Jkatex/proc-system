@@ -296,20 +296,11 @@ const createTenderRequirementTemplates = {
                     {
                         id: 'contractType',
                         label: 'Contract type',
-                        type: 'select',
+                        type: 'select-other',
                         options: createTenderRequirementOptions.worksContractTypes,
                         required: true,
                         helperDescriptions: createTenderWorksContractTypeDescriptions,
-                        helperText: 'Select the contract structure that will govern pricing and payment.'
-                    },
-                    {
-                        id: 'otherContractType',
-                        label: 'Other contract type',
-                        type: 'text',
-                        required: true,
-                        placeholder: 'Write the contract type',
-                        helperText: 'Enter the specific contract type to be used for this tender.',
-                        showWhen: { field: 'contractType', value: 'Other' }
+                        helperText: 'Select Other to type a contract type that is not listed.'
                     },
                     { id: 'completionPeriod', label: 'Completion period', type: 'text' },
                     { id: 'fundingSource', label: 'Funding source', type: 'text' }
@@ -1157,6 +1148,33 @@ function renderCreateTenderRequirementField(field, value, attributes = '') {
     if (field.type === 'select') {
         return `<select class="form-input" ${requiredAttribute} ${attributes}>${renderCreateTenderRequirementSelectOptions(field.options || [], value)}</select>`;
     }
+    if (field.type === 'select-other') {
+        const optionValues = (field.options || []).map(getCreateTenderRequirementOptionValue);
+        const selectedValue = String(value || '');
+        const isListedValue = !selectedValue || optionValues.includes(selectedValue);
+        const selectValue = isListedValue ? selectedValue : 'Other';
+        const customValue = isListedValue ? '' : selectedValue;
+        const otherInputAttributes = attributes
+            .replace(/\bid="[^"]*"\s*/g, '')
+            .replace(/\bdata-requirement-input="[^"]*"\s*/g, '');
+        return `
+            <div class="requirement-select-other">
+                <select class="form-input" ${requiredAttribute} ${attributes} data-select-other-control>
+                    ${renderCreateTenderRequirementSelectOptions(field.options || [], selectValue)}
+                </select>
+                <input class="form-input" type="text" value="${escapeCreateTenderHtml(customValue)}" placeholder="Type contract type" ${requiredAttribute} ${otherInputAttributes} data-requirement-other-input="${escapeCreateTenderHtml(field.id)}" ${selectValue === 'Other' ? '' : 'hidden disabled'}>
+            </div>
+        `;
+    }
+    if (field.type === 'combobox') {
+        const listId = `requirement-${field.id}-options`;
+        return `
+            <input class="form-input" type="text" list="${escapeCreateTenderHtml(listId)}" value="${escapeCreateTenderHtml(value || '')}" ${requiredAttribute} ${field.placeholder ? `placeholder="${escapeCreateTenderHtml(field.placeholder)}"` : ''} ${attributes}>
+            <datalist id="${escapeCreateTenderHtml(listId)}">
+                ${(field.options || []).map(option => `<option value="${escapeCreateTenderHtml(getCreateTenderRequirementOptionValue(option))}"></option>`).join('')}
+            </datalist>
+        `;
+    }
     if (field.type === 'yesno') {
         const radioAttributes = attributes.replace(/\bid="[^"]*"\s*/g, '');
         const selectedValue = String(value || 'No');
@@ -1454,6 +1472,7 @@ function getCreateTenderRequirementOptionValue(option) {
 
 function isCreateTenderRequirementControlValid(control = {}, value = '') {
     if (!isCreateTenderRequirementValueFilled(value)) return false;
+    if (control.type === 'select-other') return String(value || '').trim() !== 'Other';
     if (control.type !== 'select') return true;
     const allowedValues = new Set((control.options || []).map(getCreateTenderRequirementOptionValue));
     return allowedValues.has(String(value || ''));
@@ -1484,9 +1503,6 @@ function getCreateTenderMissingRequiredRequirements(profile, mainDraft = getCrea
 
 function getCreateTenderEffectiveContractType(profileId = 'works') {
     const fields = getCreateTenderRequirementDraft(profileId).fields || {};
-    if (fields.contractType === 'Other') {
-        return String(fields.otherContractType || '').trim();
-    }
     return String(fields.contractType || '').trim();
 }
 
@@ -3189,7 +3205,10 @@ function initializeCreateTenderWizard() {
             setActiveStep(2);
         }
 
-        const field = wizard.querySelector(`[data-requirement-input="${CSS.escape(firstMissingControl.id)}"]`);
+        const currentValue = getRequirementControlValue(firstMissingControl.id);
+        const field = firstMissingControl.type === 'select-other' && String(currentValue || '').trim() === 'Other'
+            ? wizard.querySelector(`[data-requirement-other-input="${CSS.escape(firstMissingControl.id)}"]`)
+            : wizard.querySelector(`[data-requirement-input="${CSS.escape(firstMissingControl.id)}"]`);
         field?.classList.add('error');
         field?.reportValidity();
         field?.focus();
@@ -3398,7 +3417,18 @@ function initializeCreateTenderWizard() {
         refreshRequirementHelper(controlId);
         if (controlId === 'contractType' || controlId === 'requireSamples') {
             refreshProfileText();
+            if (input.value === 'Other') {
+                wizard.querySelector(`[data-requirement-other-input="${CSS.escape(controlId)}"]`)?.focus();
+            }
         }
+    };
+
+    const updateRequirementOtherInput = (input) => {
+        const controlId = input.dataset.requirementOtherInput;
+        if (!controlId) return;
+        saveRequirementControlValue(controlId, input.value);
+        input.classList.toggle('error', input.required && !input.checkValidity());
+        refreshRequirementHelper(controlId);
     };
 
     const updateRequirementControlListItem = (input) => {
@@ -3601,6 +3631,9 @@ function initializeCreateTenderWizard() {
         if (event.target?.matches('[data-requirement-input]')) {
             updateRequirementInput(event.target);
         }
+        if (event.target?.matches('[data-requirement-other-input]')) {
+            updateRequirementOtherInput(event.target);
+        }
         if (event.target?.matches('[data-requirement-list-input]')) {
             updateRequirementListItem(event.target);
         }
@@ -3667,6 +3700,9 @@ function initializeCreateTenderWizard() {
         }
         if (event.target?.matches('[data-requirement-input]')) {
             updateRequirementInput(event.target);
+        }
+        if (event.target?.matches('[data-requirement-other-input]')) {
+            updateRequirementOtherInput(event.target);
         }
         if (event.target?.matches('[data-requirement-list-input]')) {
             updateRequirementListItem(event.target);
