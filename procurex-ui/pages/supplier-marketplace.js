@@ -66,7 +66,7 @@ function renderSupplierMarketplace() {
                                 </div>
                                 <div class="tender-row-actions">
                                     <button class="btn btn-secondary" data-select-tender="${tender.id}" data-navigate="${tender.createdByCurrentUser ? 'tender-details' : 'supplier-tender-detail'}">View Tender</button>
-                                    <button class="btn btn-primary" data-select-tender="${tender.id}" ${tender.status === 'Open' && !tender.createdByCurrentUser ? 'data-navigate="bidding-workspace"' : 'disabled'}>${tender.createdByCurrentUser ? 'Your Tender' : 'Bid'}</button>
+                                    <button class="btn btn-primary" data-select-tender="${tender.id}" ${tender.status === 'Open' && !tender.createdByCurrentUser ? 'data-navigate="supplier-tender-detail"' : 'disabled'}>${tender.createdByCurrentUser ? 'Your Tender' : 'Bid'}</button>
                                 </div>
                             </article>
                         `).join('') || '<div class="scope-empty">No active marketplace tenders right now.</div>'}

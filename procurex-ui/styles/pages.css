@@ -1658,6 +1658,10 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.journey-grid.four-col {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .journey-panel {
     border: 1px solid var(--border-soft);
     border-radius: var(--radius-xl);
@@ -2464,6 +2468,117 @@
     display: block;
     margin-top: 4px;
     color: rgba(255, 255, 255, 0.72);
+}
+
+.submit-strip.compact {
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.supplier-tender-detail-page {
+    display: grid;
+    gap: 24px;
+}
+
+.supplier-requirement-preview-list,
+.bid-requirement-list,
+.supplier-timeline-list {
+    display: grid;
+    gap: 14px;
+}
+
+.supplier-requirement-preview,
+.bid-requirement-card,
+.bid-requirement-summary-card,
+.timeline-row {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    background: var(--surface-soft);
+}
+
+.supplier-requirement-preview span,
+.bid-requirement-card .section-kicker,
+.bid-requirement-summary-card span,
+.timeline-row span {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.supplier-requirement-preview strong,
+.bid-requirement-card h3,
+.bid-requirement-summary-card strong,
+.timeline-row strong {
+    color: var(--text-primary);
+    font-size: 15px;
+    line-height: 1.35;
+}
+
+.supplier-requirement-preview small,
+.bid-requirement-card p,
+.bid-requirement-summary-card small {
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.clarification-compose {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: start;
+    margin-bottom: 18px;
+}
+
+.bid-gate-status {
+    margin-bottom: 18px;
+    padding: 14px 16px;
+    border: 1px solid rgba(242, 169, 24, 0.42);
+    border-radius: var(--radius-lg);
+    background: var(--warning-bg);
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.bid-gate-status.balanced {
+    border-color: rgba(49, 162, 76, 0.42);
+    background: var(--success-bg);
+}
+
+.bid-requirement-card {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.bid-requirement-card.completed {
+    border-color: rgba(49, 162, 76, 0.48);
+    background: var(--success-bg);
+}
+
+.bid-requirement-card.invalid {
+    border-color: rgba(220, 38, 38, 0.48);
+    background: rgba(254, 242, 242, 0.95);
+}
+
+.bid-response-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 12px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-md);
+    background: var(--card-bg);
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.bid-response-check input {
+    width: 18px;
+    height: 18px;
 }
 
 .tender-wizard-page {
@@ -4056,7 +4171,9 @@
     .tender-wizard-page .tender-review-two-column,
     .tender-wizard-page .system-evaluation-score-grid,
     .tender-wizard-page .system-evaluation-checklist div,
-    .tender-wizard-page .review-summary-grid {
+    .tender-wizard-page .review-summary-grid,
+    .journey-grid.four-col,
+    .clarification-compose {
         grid-template-columns: 1fr;
     }
 
@@ -4148,6 +4265,7 @@
     .journey-hero,
     .journey-grid.two-col,
     .journey-grid.three-col,
+    .journey-grid.four-col,
     .wizard-shell,
     .ekyc-role-grid.three,
     .option-grid.three,

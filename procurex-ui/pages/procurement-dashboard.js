@@ -168,7 +168,7 @@ function renderProcurementDashboard() {
                                     </div>
                                     <div class="tender-row-actions">
                                         <button class="btn btn-secondary" data-select-tender="${tender.id}" data-navigate="${tender.createdByCurrentUser ? 'tender-details' : 'supplier-tender-detail'}">Review</button>
-                                        <button class="btn btn-primary" data-select-tender="${tender.id}" ${tender.status === 'Open' && !tender.createdByCurrentUser ? 'data-navigate="supplier-journey"' : 'disabled'}>${tender.createdByCurrentUser ? 'Manage' : 'Apply'}</button>
+                                        <button class="btn btn-primary" data-select-tender="${tender.id}" ${tender.status === 'Open' && !tender.createdByCurrentUser ? 'data-navigate="supplier-tender-detail"' : 'disabled'}>${tender.createdByCurrentUser ? 'Manage' : 'Apply'}</button>
                                     </div>
                                 </article>
                             `).join('') || '<div class="scope-empty">No active marketplace tenders right now.</div>'}

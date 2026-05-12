@@ -298,6 +298,47 @@ small,
     font-weight: 700 !important;
 }
 
+.platform-logo {
+    position: relative;
+    display: inline-grid !important;
+    place-items: center;
+    flex: 0 0 auto;
+    width: var(--top-nav-mark) !important;
+    height: var(--top-nav-mark) !important;
+    border-radius: var(--radius-full) !important;
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.26);
+    box-shadow: none;
+}
+
+.platform-logo.platform-logo-sm {
+    width: 30px !important;
+    height: 30px !important;
+}
+
+.platform-logo-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.register-header-new .platform-logo,
+.signin-header-new .platform-logo,
+.ekyc-brand .platform-logo,
+.app-menu-header .platform-logo {
+    background: #ffffff;
+    border-color: rgba(10, 12, 18, 0.14);
+}
+
+.app-menu-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
 .landing-nav-links {
     gap: clamp(14px, 2vw, 28px);
     min-width: 0;
@@ -1013,7 +1054,7 @@ select.form-input:focus,
 .app-drawer-menu button,
 .app-drawer-menu strong,
 .app-drawer-menu em,
-.app-drawer-menu span:not(.app-menu-icon),
+.app-drawer-menu span:not(.app-menu-icon):not(.platform-logo),
 .profile-menu,
 .profile-menu button {
     color: var(--design-ink) !important;
@@ -1125,7 +1166,7 @@ select.form-input:focus,
     .app-drawer-menu,
     .profile-menu,
     .modal-card
-) :where(h1, h2, h3, h4, h5, h6, p, span, strong, em, small, label, li, td, th, div):not(.btn):not(.badge):not(.brand-mark):not(.brand-mark-new):not(.app-menu-icon):not(.app-icon):not(.procure-icon):not(.feature-icon):not(.step-badge):not(.ekyc-step-badge) {
+) :where(h1, h2, h3, h4, h5, h6, p, span, strong, em, small, label, li, td, th, div):not(.btn):not(.badge):not(.brand-mark):not(.brand-mark-new):not(.platform-logo):not(.app-menu-icon):not(.app-icon):not(.procure-icon):not(.feature-icon):not(.step-badge):not(.ekyc-step-badge) {
     color: var(--design-ink) !important;
 }
 
@@ -1481,7 +1522,7 @@ select.form-input:focus,
         min-width: 0;
     }
 
-    .app-brand-button span:last-child,
+    .app-brand-button > span:last-child,
     .brand-text {
         overflow: hidden;
         text-overflow: ellipsis;
@@ -1495,7 +1536,8 @@ select.form-input:focus,
     }
 
     .brand-mark,
-    .brand-mark-new {
+    .brand-mark-new,
+    .platform-logo {
         width: 36px !important;
         height: 36px !important;
     }
@@ -1576,7 +1618,8 @@ select.form-input:focus,
     }
 
     .brand-mark,
-    .brand-mark-new {
+    .brand-mark-new,
+    .platform-logo {
         width: 32px !important;
         height: 32px !important;
         font-size: 12px !important;

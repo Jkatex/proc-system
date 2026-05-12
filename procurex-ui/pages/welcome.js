@@ -7,7 +7,7 @@ function renderWelcome() {
             <header class="landing-nav">
                 <div class="landing-nav-inner container">
                     <div class="brand">
-                        <span class="brand-mark">PX</span>
+                        ${renderPlatformLogo()}
                         <span class="brand-text">ProcureX</span>
                     </div>
                     <nav class="landing-nav-links">

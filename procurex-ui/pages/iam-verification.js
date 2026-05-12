@@ -40,7 +40,7 @@ function renderIamVerification() {
             <div class="ekyc-shell">
                 <aside class="ekyc-side">
                     <div class="ekyc-brand" data-navigate="welcome">
-                        <span class="brand-mark">PX</span>
+                        ${renderPlatformLogo()}
                         <div>
                             <strong>ProcureX</strong>
                             <span>Secure onboarding</span>

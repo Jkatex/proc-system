@@ -6,7 +6,7 @@ function renderRegister() {
             <header class="register-header-new">
                 <div class="register-header-inner-new">
                     <div class="brand-new" data-navigate="welcome">
-                        <span class="brand-mark-new">PX</span>
+                        ${renderPlatformLogo()}
                         <span class="brand-text-new">ProcureX</span>
                     </div>
                     <a href="#" data-navigate="sign-in" class="login-link-new">Already have an account? Sign in</a>

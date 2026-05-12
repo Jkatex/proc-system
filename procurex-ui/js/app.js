@@ -1,5 +1,15 @@
 // ProcureX SPA Application
 
+const PLATFORM_LOGO_SRC = 'assets/logo.svg';
+
+function renderPlatformLogo(className = 'platform-logo') {
+    return `
+        <span class="${className}">
+            <img class="platform-logo-image" src="${PLATFORM_LOGO_SRC}" alt="ProcureX">
+        </span>
+    `;
+}
+
 class ProcureXApp {
     constructor() {
         this.currentPage = 'welcome';
@@ -100,7 +110,7 @@ class ProcureXApp {
             <header class="app-topbar">
                 <div class="app-topbar-left">
                     <button class="app-brand-button" type="button" data-navigate="workspace-dashboard">
-                        <span class="brand-mark">PX</span>
+                        ${renderPlatformLogo()}
                         <span>${currentAppName}</span>
                     </button>
                 </div>
@@ -120,7 +130,10 @@ class ProcureXApp {
 
                 <div class="app-drawer-menu" data-app-menu>
                     <div class="app-menu-header">
-                        <strong>ProcureX Apps</strong>
+                        <div class="app-menu-brand">
+                            ${renderPlatformLogo('platform-logo platform-logo-sm')}
+                            <strong>ProcureX Apps</strong>
+                        </div>
                         <span>Switch workspace</span>
                     </div>
                     <button class="app-menu-card app-menu-iam" data-navigate="verification-status">
@@ -294,6 +307,9 @@ class ProcureXApp {
         }
         if (typeof window.initializeBiddingWorkspace === 'function') {
             window.initializeBiddingWorkspace();
+        }
+        if (typeof window.initializeSupplierTenderDetail === 'function') {
+            window.initializeSupplierTenderDetail();
         }
         this.initializeProcurementLiveFeed();
     }
