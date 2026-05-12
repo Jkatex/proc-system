@@ -2743,6 +2743,58 @@
     gap: 8px;
 }
 
+.tender-wizard-page .requirement-tag-select {
+    display: grid;
+    gap: 8px;
+    min-width: 220px;
+}
+
+.tender-wizard-page .requirement-tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.tender-wizard-page .requirement-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 28px;
+    padding: 4px 8px;
+    border: 1px solid var(--border-soft);
+    border-radius: 999px;
+    background: var(--primary-blue-light);
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.tender-wizard-page .requirement-tag button {
+    display: inline-grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.tender-wizard-page .requirement-tag button:hover {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+}
+
+.tender-wizard-page .requirement-tag-empty {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 700;
+}
+
 .tender-wizard-page .requirement-choice-group {
     display: inline-grid;
     grid-template-columns: repeat(2, minmax(84px, 1fr));

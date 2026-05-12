@@ -158,6 +158,19 @@ const createTenderRequirementOptions = {
     worksContractTypes: ['Lump Sum Contract', 'Unit Price Contract', 'Fixed Price Contract', 'Framework Contract', 'Consultancy / Time-Based Contract', 'Other'],
     worksDocumentTypes: ['Architectural drawings', 'Structural drawings', 'Electrical drawings', 'Mechanical drawings', 'Geotechnical report', 'Environmental report', 'Other'],
     worksTechnicalSpecificationTitles: ['Applicable standards / codes', 'Material specifications', 'Workmanship standards', 'Engineering requirements', 'Equipment requirements', 'Others'],
+    serviceTypes: ['Security', 'Cleaning', 'Vehicle maintenance', 'Generator maintenance', 'Catering', 'IT Support', 'Consultancy', 'Internet services', 'Transport / logistics', 'Maintenance', 'Training', 'Other'],
+    serviceTemplates: ['Cleaning Services Template', 'Security Services Template', 'Consultancy Services Template', 'Waste Management Template', 'ICT Support Services Template'],
+    financialRequirementTypes: ['Minimum Annual Turnover', 'Average Annual Turnover', 'Positive Net Worth', 'Working Capital', 'Access to Credit', 'Bank Statement Requirement', 'Audited Financial Statements'],
+    financialPeriods: ['Annual', 'Current', 'Last 12 Months', 'Last 3 Years', 'Last 5 Years'],
+    financialEvidence: ['Audited accounts', 'Bank statement', 'Bank letter', 'Credit facility letter', 'Tax clearance', 'Management accounts'],
+    serviceCategories: ['Security', 'Cleaning', 'Maintenance', 'Transport', 'Catering', 'IT Support', 'Consultancy', 'Training', 'Waste Management', 'Other'],
+    educationLevels: ['Certificate', 'Diploma', 'Bachelor Degree', 'Postgraduate Diploma', 'Masters Degree', 'Professional Qualification'],
+    ownershipTypes: ['Owned', 'Leased', 'Either'],
+    equipmentEvidence: ['Logbook', 'Lease agreement', 'Purchase receipt', 'Photos', 'Inspection certificate', 'Availability declaration'],
+    esCategories: ['Worker Safety', 'Gender & SEA/SH', 'Environmental Protection', 'Labor Compliance', 'Other'],
+    esEvidence: ['Policy document', 'Certificate', 'Training records', 'Environmental plan', 'Compliance report', 'Procedure manual'],
+    evaluationMethods: ['Pass/Fail', 'Scored', 'Compliance Review'],
+    responseTypes: ['Upload', 'Text response', 'Yes/No', 'Upload + Text'],
     units: ['Pcs', 'Unit', 'Set', 'Lot', 'Kg', 'Litre', 'Meter', 'Sqm', 'Day', 'Month'],
     materialQualities: ['Standard', 'Premium', 'Certified', 'Industrial grade', 'Food grade', 'Medical grade'],
     standards: ['ISO', 'TBS', 'CE', 'UL', 'Energy Star', 'Manufacturer certificate'],
@@ -174,6 +187,80 @@ const createTenderWorksContractTypeDescriptions = {
     'Framework Contract': 'Used for repeated or recurring procurement over a defined period.',
     'Consultancy / Time-Based Contract': 'Payment is based on consultant time, milestones, or agreed service duration.'
 };
+
+const createTenderContractClauseCatalog = {
+    goods: [
+        ['Delivery Clause', 'Delivery location, delivery timeline, and partial vs full delivery.'],
+        ['Payment Terms', 'Payment after delivery or inspection, invoice requirements, and payment timeline.'],
+        ['Inspection & Acceptance Clause', 'Inspection process, rejection conditions, and replacement rules.'],
+        ['Warranty Clause', 'Warranty period, repair or replacement obligations, and defect handling.'],
+        ['Penalty for Delay', 'Liquidated damages per day or week and maximum penalty cap.'],
+        ['Risk & Ownership Transfer', 'When risk passes to the buyer, usually upon delivery or acceptance.'],
+        ['Packaging & Transport Clause', 'Packaging standards and transport responsibility, including Incoterms where applicable.'],
+        ['Termination Clause', 'Breach conditions and cancellation rights.']
+    ],
+    works: [
+        ['Scope of Works Clause', 'Project scope, drawings or specifications reference, and bill of quantities.'],
+        ['Contract Price & Payment Schedule', 'Milestone-based payments, interim certificates, and retention money.'],
+        ['Time for Completion Clause', 'Project duration, start date, and completion deadline.'],
+        ['Liquidated Damages Clause', 'Penalty per delay day or week and maximum cap, often 10% of contract value.'],
+        ['Defects Liability Clause', 'Post-completion defect period and contractor responsibility for repairs.'],
+        ['Variation Clause', 'How changes to works are approved and how price adjustments are handled.'],
+        ['Site & Access Clause', 'Site handover rules, access rights, and utility responsibilities.'],
+        ['Health, Safety & Environment Clause', 'Safety compliance, environmental protection, and worker safety obligations.'],
+        ['Performance Security Clause', 'Bank guarantee requirement and percentage such as 5-10%.']
+    ],
+    services: [
+        ['Service Scope Clause', 'Detailed service description and service boundaries.'],
+        ['Service Level Agreement (SLA)', 'Performance standards, uptime or response time, and service quality metrics.'],
+        ['KPI & Performance Monitoring Clause', 'KPIs, measurement method, and reporting mechanism.'],
+        ['Payment Terms Clause', 'Monthly or periodic payments and deductions for poor performance.'],
+        ['Penalty Clause', 'SLA breach penalties, service credit deductions, and escalation rules.'],
+        ['Staffing & Personnel Clause', 'Required staff, qualifications, and replacement rules.'],
+        ['Equipment & Resources Clause', 'Tools or equipment required and ownership responsibilities.'],
+        ['Reporting Requirements Clause', 'Reporting frequency, format, and submission channels.'],
+        ['Termination Clause', 'Poor performance termination, notice period, and breach triggers.'],
+        ['Renewal Clause', 'Extension conditions and performance-based renewal.'],
+        ['Confidentiality Clause', 'Data protection and non-disclosure obligations.']
+    ],
+    consultancy: [
+        ['Scope of Services Clause', 'Deliverables such as reports, studies, designs, and methodology boundaries.'],
+        ['Deliverables & Milestones Clause', 'Outputs required, submission timeline, and approval process.'],
+        ['Payment Terms Clause', 'Milestone-based and acceptance-linked payments.'],
+        ['Personnel Clause', 'Key experts, CV approval requirement, and substitution restrictions.'],
+        ['Performance & Evaluation Clause', 'Quality evaluation of deliverables and acceptance criteria.'],
+        ['Intellectual Property Clause', 'Ownership of reports or data and usage rights.'],
+        ['Confidentiality Clause', 'Data protection and non-disclosure obligations.'],
+        ['Time Schedule Clause', 'Assignment duration and submission deadlines.'],
+        ['Termination Clause', 'Termination for unsatisfactory performance and withdrawal rules.'],
+        ['Conflict of Interest Clause', 'Disclosure obligations and restrictions on bias.']
+    ]
+};
+
+function createTenderContractClauseSection(profileId, title) {
+    const clauses = createTenderContractClauseCatalog[profileId] || [];
+    return {
+        id: `${profileId}ContractClauses`,
+        title,
+        hint: 'Select and configure the core contract clauses for this procurement classification.',
+        controls: [
+            {
+                id: `${profileId}ContractClauseCards`,
+                label: 'Contract clauses',
+                type: 'cards',
+                addLabel: 'Add Clause',
+                emptyText: 'No contract clauses added yet.',
+                cardTitleField: 'clauseTitle',
+                clauseDefinitions: Object.fromEntries(clauses),
+                fields: [
+                    { id: 'clauseTitle', label: 'Clause title', type: 'select', options: clauses.map(([clause]) => clause) },
+                    { id: 'defines', label: 'Description', type: 'textarea' }
+                ],
+                defaultValue: []
+            }
+        ]
+    };
+}
 
 const createTenderRequirementTemplates = {
     goods: {
@@ -281,7 +368,8 @@ const createTenderRequirementTemplates = {
                         presets: ['Certificate of incorporation', 'Tax clearance certificate', 'VAT registration', 'Manufacturer authorization', 'Past supply contracts', 'Audited financial statements']
                     }
                 ]
-            }
+            },
+            createTenderContractClauseSection('goods', 'Goods Contract Clauses')
         ]
     },
     works: {
@@ -451,7 +539,6 @@ const createTenderRequirementTemplates = {
                     { id: 'siteSurveyUpload', label: 'Site survey', type: 'upload-button', buttonLabel: 'Upload Site survey', accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png,.dwg,.dxf', showWhen: { field: 'siteVisitRequirement', value: 'Not mandatory' } }
                 ]
             },
-            
             {
                 id: 'technicalCapacity',
                 title: 'Technical Capacity',
@@ -470,7 +557,7 @@ const createTenderRequirementTemplates = {
                     }
                 ]
             },
-            
+            createTenderContractClauseSection('works', 'Works Contract Clauses')
         ]
     },
     services: {
@@ -479,107 +566,225 @@ const createTenderRequirementTemplates = {
             {
                 id: 'serviceDefinition',
                 title: 'Service Definition',
-                hint: 'Define the service at a high level.',
+                hint: 'Core mandatory details for the service being procured.',
                 controls: [
                     { id: 'scopeOfServices', label: 'Scope of services', type: 'textarea' },
                     { id: 'serviceLocations', label: 'Service locations', type: 'list', addLabel: 'Add Service Location', emptyText: 'No service locations added yet.' },
-                    { id: 'duration', label: 'Duration', type: 'text' }
+                    { id: 'duration', label: 'Duration', type: 'text' },
+                    { id: 'fundingSource', label: 'Funding source', type: 'text' }
                 ]
             },
-            
             {
-                id: 'serviceRequirements',
-                title: 'Service Requirements',
-                hint: 'Conditional forms show the right fields for security, cleaning, or other service needs.',
+                id: 'financialCapacity',
+                title: 'Financial Capacity Requirements',
+                hint: 'Structured financial rules used to verify whether bidders can sustain the service contract.',
                 controls: [
                     {
-                        id: 'serviceRequirementCards',
-                        label: 'Service requirements',
-                        type: 'cards',
-                        addLabel: 'Add Service Requirement',
-                        emptyText: 'No service requirements added yet.',
-                        fields: [
-                            { id: 'serviceType', label: 'Service type', type: 'select', options: ['Security', 'Cleaning', 'Other'] },
-                            { id: 'numberOfGuards', label: 'Number of guards', type: 'number', showWhen: { field: 'serviceType', value: 'Security' } },
-                            { id: 'patrolFrequency', label: 'Patrol frequency', type: 'select', options: createTenderRequirementOptions.frequency, showWhen: { field: 'serviceType', value: 'Security' } },
-                            { id: 'shiftSchedule', label: 'Shift schedule', type: 'text', showWhen: { field: 'serviceType', value: 'Security' } },
-                            { id: 'cleaningAreas', label: 'Cleaning areas', type: 'textarea', showWhen: { field: 'serviceType', value: 'Cleaning' } },
-                            { id: 'cleaningFrequency', label: 'Cleaning frequency', type: 'select', options: createTenderRequirementOptions.frequency, showWhen: { field: 'serviceType', value: 'Cleaning' } },
-                            { id: 'cleaningMaterials', label: 'Cleaning materials', type: 'textarea', showWhen: { field: 'serviceType', value: 'Cleaning' } },
-                            { id: 'otherRequirement', label: 'Other requirement', type: 'textarea', showWhen: { field: 'serviceType', value: 'Other' } }
+                        id: 'financialRequirementRows',
+                        label: 'Financial requirements',
+                        type: 'table',
+                        addLabel: 'Add Financial Requirement',
+                        emptyText: 'No financial requirements added yet.',
+                        columns: [
+                            { id: 'requirementType', label: 'Requirement type', type: 'select', options: createTenderRequirementOptions.financialRequirementTypes },
+                            { id: 'minimumValue', label: 'Minimum value', type: 'number' },
+                            { id: 'currency', label: 'Currency', type: 'select', options: createTenderRequirementOptions.currencies },
+                            { id: 'period', label: 'Period', type: 'select', options: createTenderRequirementOptions.financialPeriods },
+                            { id: 'evidenceRequired', label: 'Evidence required', type: 'tag-select', options: createTenderRequirementOptions.financialEvidence },
+                            { id: 'mandatory', label: 'Mandatory', type: 'toggle' }
                         ]
                     }
                 ]
             },
             {
                 id: 'staffingRequirements',
-                title: 'Staffing Requirements',
-                hint: 'Staff cards for role, qualifications, experience, certifications, and uniform rules.',
+                title: 'Personnel Requirements',
+                hint: 'Position-based personnel requirements for labor-based and professional services.',
                 controls: [
                     {
-                        id: 'staffCards',
-                        label: 'Staff requirements',
-                        type: 'cards',
-                        addLabel: 'Add Staff Requirement',
-                        emptyText: 'No staff requirements added yet.',
-                        fields: [
-                            { id: 'role', label: 'Role', type: 'text' },
-                            { id: 'qualification', label: 'Qualification', type: 'textarea' },
-                            { id: 'experience', label: 'Experience', type: 'number', suffix: 'years' },
-                            { id: 'certifications', label: 'Certification', type: 'multiselect', options: createTenderRequirementOptions.certifications },
-                            { id: 'uniformRequired', label: 'Uniform required', type: 'toggle' }
+                        id: 'personnelRequirementRows',
+                        label: 'Personnel table',
+                        type: 'table',
+                        addLabel: 'Add Personnel Requirement',
+                        emptyText: 'No personnel requirements added yet.',
+                        columns: [
+                            { id: 'position', label: 'Role / position', type: 'text' },
+                            { id: 'minimumEducation', label: 'Minimum education', type: 'select', options: createTenderRequirementOptions.educationLevels },
+                            { id: 'minimumYearsExperience', label: 'Experience(Years)', type: 'number' },
+                            { id: 'cvRequired', label: 'CV required', type: 'toggle' },
+                            { id: 'mandatory', label: 'Mandatory', type: 'toggle' }
                         ]
                     }
+                ]
+            },
+            {
+                id: 'securityRequirements',
+                title: 'Security Service Requirements',
+                hint: 'Shown for security tenders: guards, shifts, patrols, weapons, and control room requirements.',
+                showWhen: { field: 'serviceCategory', value: 'Security' },
+                controls: [
+                    { id: 'numberOfGuards', label: 'Number of guards', type: 'number' },
+                    { id: 'shiftSchedule', label: 'Shift schedule', type: 'text' },
+                    { id: 'patrolFrequency', label: 'Patrol frequency', type: 'select', options: createTenderRequirementOptions.frequency },
+                    { id: 'weaponRequirement', label: 'Weapons requirement', type: 'textarea' },
+                    { id: 'controlRoomRequirement', label: 'Control room requirement', type: 'textarea' }
+                ]
+            },
+            {
+                id: 'cleaningRequirements',
+                title: 'Cleaning Service Requirements',
+                hint: 'Shown for cleaning tenders: schedules, materials, areas, and waste disposal.',
+                showWhen: { field: 'serviceCategory', value: 'Cleaning' },
+                controls: [
+                    { id: 'cleaningAreas', label: 'Cleaning areas', type: 'textarea' },
+                    { id: 'cleaningFrequency', label: 'Cleaning frequency', type: 'select', options: createTenderRequirementOptions.frequency },
+                    { id: 'cleaningMaterials', label: 'Cleaning materials', type: 'textarea' },
+                    { id: 'wasteDisposalRequirements', label: 'Waste disposal requirements', type: 'textarea' }
+                ]
+            },
+            {
+                id: 'deliverablesSection',
+                title: 'Deliverables & Reports',
+                hint: 'Shown for consultancy, IT implementation, research, audits, and training services.',
+                showWhen: { field: 'serviceCategory', values: ['Consultancy', 'IT Support', 'Training', 'Other'] },
+                controls: [
+                    { id: 'serviceDeliverables', label: 'Deliverables', type: 'list', addLabel: 'Add Deliverable', emptyText: 'No deliverables added yet.' },
+                    { id: 'serviceMilestones', label: 'Milestones', type: 'list', addLabel: 'Add Milestone', emptyText: 'No milestones added yet.' },
+                    { id: 'reportingRequirements', label: 'Reporting requirements', type: 'textarea' }
+                ]
+            },
+            {
+                id: 'itSupportRequirements',
+                title: 'IT Support / Internet Requirements',
+                hint: 'Shown for IT support and internet services: SLA, uptime, and response requirements.',
+                showWhen: { field: 'serviceCategory', values: ['IT Support', 'Internet services'] },
+                controls: [
+                    { id: 'slaRequirement', label: 'SLA requirement', type: 'textarea' },
+                    { id: 'uptimeRequirement', label: 'Uptime requirement', type: 'text' },
+                    { id: 'responseTime', label: 'Response time', type: 'text' },
+                    { id: 'supportHours', label: 'Support hours', type: 'text' }
+                ]
+            },
+            {
+                id: 'maintenanceRequirements',
+                title: 'Maintenance Requirements',
+                hint: 'Shown for maintenance tenders: tools, spare parts, technicians, and service schedule.',
+                showWhen: { field: 'serviceCategory', values: ['Vehicle maintenance', 'Generator maintenance', 'Maintenance'] },
+                controls: [
+                    { id: 'maintenanceSchedule', label: 'Maintenance schedule', type: 'textarea' },
+                    { id: 'sparePartsRequirement', label: 'Spare parts requirement', type: 'textarea' },
+                    { id: 'technicianRequirements', label: 'Technician requirements', type: 'textarea' }
+                ]
+            },
+            {
+                id: 'cateringRequirements',
+                title: 'Catering Requirements',
+                hint: 'Shown for catering tenders: menus, hygiene, and food certifications.',
+                showWhen: { field: 'serviceCategory', value: 'Catering' },
+                controls: [
+                    { id: 'menuRequirements', label: 'Menu requirements', type: 'textarea' },
+                    { id: 'hygieneRequirements', label: 'Hygiene requirements', type: 'textarea' },
+                    { id: 'foodCertifications', label: 'Food certifications', type: 'list', addLabel: 'Add Certification', emptyText: 'No food certifications added yet.' }
+                ]
+            },
+            {
+                id: 'transportRequirements',
+                title: 'Transport / Logistics Requirements',
+                hint: 'Shown for transport and logistics tenders: fleet, insurance, and driver licenses.',
+                showWhen: { field: 'serviceCategory', value: 'Transport / logistics' },
+                controls: [
+                    { id: 'fleetRequirements', label: 'Fleet requirements', type: 'textarea' },
+                    { id: 'driverLicenseRequirements', label: 'Driver license requirements', type: 'textarea' },
+                    { id: 'routeCoverage', label: 'Route / coverage requirements', type: 'textarea' }
                 ]
             },
             {
                 id: 'equipmentRequirements',
                 title: 'Equipment Requirements',
-                hint: 'List required equipment, machines, systems, vehicles, or tools.',
-                controls: [
-                    { id: 'equipment', label: 'Equipment', type: 'list', addLabel: 'Add Equipment', emptyText: 'No equipment added yet.' }
-                ]
-            },
-            {
-                id: 'performanceStandards',
-                title: 'Performance Standards',
-                hint: 'KPI table for measurable standards, targets, penalties, and reporting.',
+                hint: 'Shown only for service categories where equipment is normally needed.',
+                showWhen: { field: 'serviceCategory', values: ['Security', 'Cleaning', 'Vehicle maintenance', 'Generator maintenance', 'Maintenance', 'Catering', 'Transport / logistics'] },
                 controls: [
                     {
-                        id: 'performanceKpiRows',
-                        label: 'KPI table',
+                        id: 'equipmentRequirementRows',
+                        label: 'Equipment schedule',
                         type: 'table',
-                        addLabel: 'Add KPI',
-                        emptyText: 'No KPIs added yet.',
+                        addLabel: 'Add Equipment',
+                        emptyText: 'No equipment requirements added yet.',
                         columns: [
-                            { id: 'kpi', label: 'KPI', type: 'text' },
-                            { id: 'target', label: 'Target', type: 'text' },
-                            { id: 'penalty', label: 'Penalty', type: 'text' },
-                            { id: 'reportingFrequency', label: 'Reporting frequency', type: 'select', options: createTenderRequirementOptions.frequency }
+                            { id: 'equipmentName', label: 'Equipment name', type: 'text' },
+                            { id: 'quantity', label: 'Minimum qty', type: 'number' },
+                            { id: 'ownershipRequirement', label: 'Ownership type', type: 'select', options: createTenderRequirementOptions.ownershipTypes },
+                            { id: 'technicalSpecification', label: 'Technical specification', type: 'textarea' },
+                            { id: 'evidenceRequired', label: 'Evidence required', type: 'multiselect', options: createTenderRequirementOptions.equipmentEvidence },
+                            { id: 'mandatory', label: 'Mandatory', type: 'toggle' },
+                            { id: 'evaluationMethod', label: 'Evaluation method', type: 'select', options: createTenderRequirementOptions.evaluationMethods },
+                            { id: 'supplierResponseType', label: 'Response type', type: 'select', options: createTenderRequirementOptions.responseTypes }
                         ]
                     }
                 ]
             },
             {
-                id: 'contractRequirements',
-                title: 'Service Contract Requirements',
-                hint: 'Clause builder for SLA, KPI, reporting, penalty, and renewal clauses.',
+                id: 'environmentalSocialRequirements',
+                title: 'Environmental & Social Requirements',
+                hint: 'Categorized compliance requirements for worker safety, SEA/SH, environment, and labor compliance.',
                 controls: [
                     {
-                        id: 'contractClauseCards',
-                        label: 'Contract clauses',
+                        id: 'esRequirementCards',
+                        label: 'ES requirements',
                         type: 'cards',
-                        addLabel: 'Add Clause',
-                        emptyText: 'No contract clauses added yet.',
+                        addLabel: 'Add ES Requirement',
+                        emptyText: 'No environmental or social requirements added yet.',
+                        cardTitleField: 'category',
+                        cardTitlePrefix: 'ES requirement for',
                         fields: [
-                            { id: 'clauseTitle', label: 'Clause title', type: 'text' },
+                            { id: 'category', label: 'Category', type: 'select', options: createTenderRequirementOptions.esCategories },
                             { id: 'description', label: 'Description', type: 'textarea' },
+                            { id: 'evidenceRequired', label: 'Evidence required', type: 'tag-select', options: createTenderRequirementOptions.esEvidence },
                             { id: 'mandatory', label: 'Mandatory', type: 'toggle' }
-                        ],
-                        presets: ['Service level agreement (SLA)', 'KPIs', 'Reporting obligations', 'Penalty clauses', 'Renewal options']
+                        ]
                     }
                 ]
-            }
+            },
+            {
+                id: 'supportingDocuments',
+                title: 'Supporting Documents',
+                hint: 'Define submission documents suppliers must upload or respond to.',
+                controls: [
+                    {
+                        id: 'supportingDocumentRows',
+                        label: 'Required documents',
+                        type: 'table',
+                        addLabel: 'Add Required Document',
+                        emptyText: 'No supporting documents added yet.',
+                        columns: [
+                            { id: 'documentName', label: 'Document name', type: 'text' },
+                            { id: 'mandatory', label: 'Mandatory', type: 'toggle' }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'insuranceRequirements',
+                title: 'Insurance Requirements',
+                hint: 'Shown for higher-risk services where insurance evidence is important.',
+                showWhen: { field: 'serviceCategory', values: ['Security', 'Vehicle maintenance', 'Generator maintenance', 'Maintenance', 'Transport / logistics'] },
+                controls: [
+                    { id: 'insuranceCovers', label: 'Required insurance covers', type: 'list', addLabel: 'Add Insurance Cover', emptyText: 'No insurance covers added yet.' },
+                    { id: 'insuranceNotes', label: 'Insurance notes', type: 'textarea' }
+                ]
+            },
+            {
+                id: 'riskSafetyRequirements',
+                title: 'Risk & Safety Requirements',
+                hint: 'Shown for technical, field, maintenance, transport, and security services.',
+                showWhen: { field: 'serviceCategory', values: ['Security', 'Vehicle maintenance', 'Generator maintenance', 'Maintenance', 'Transport / logistics'] },
+                controls: [
+                    { id: 'riskAssessmentRequirement', label: 'Risk assessment requirement', type: 'textarea' },
+                    { id: 'safetyPlanRequirement', label: 'Safety plan requirement', type: 'textarea' },
+                    { id: 'ppeRequirements', label: 'PPE requirements', type: 'textarea' }
+                ]
+            },
+            createTenderContractClauseSection('services', 'Service Contract Clauses')
         ]
     },
     consultancy: {
@@ -691,7 +896,8 @@ const createTenderRequirementTemplates = {
                         ]
                     }
                 ]
-            }
+            },
+            createTenderContractClauseSection('consultancy', 'Consultancy Contract Clauses')
         ]
     }
 };
@@ -970,14 +1176,50 @@ function getCreateTenderRequirementDefaultFields(profileId = 'works') {
         }, {});
 }
 
+function isCreateTenderLegacyDefaultClauseCards(value, control) {
+    if (!Array.isArray(value) || !control?.clauseDefinitions) return false;
+
+    const catalogEntries = Object.entries(control.clauseDefinitions);
+    if (value.length !== catalogEntries.length) return false;
+
+    return catalogEntries.every(([clauseTitle, defines], index) => {
+        const item = value[index] || {};
+        return String(item.clauseTitle || '') === clauseTitle
+            && String(item.defines || '') === defines
+            && (item.mandatory === true || item.mandatory === undefined)
+            && String(item.notes || '') === '';
+    });
+}
+
+function sanitizeCreateTenderRequirementFields(profileId = 'works', fields = {}) {
+    const sanitizedFields = { ...(fields || {}) };
+    getCreateTenderRequirementTemplate(profileId).sections
+        .flatMap(section => section.controls || [])
+        .filter(control => control.clauseDefinitions)
+        .forEach(control => {
+            const value = sanitizedFields[control.id];
+            if (isCreateTenderLegacyDefaultClauseCards(value, control)) {
+                sanitizedFields[control.id] = [];
+                return;
+            }
+            if (!Array.isArray(value)) return;
+            sanitizedFields[control.id] = value.map((item, index) => ({
+                id: String(item?.id || `requirement-${control.id}-${Date.now()}-${index}`),
+                clauseTitle: String(item?.clauseTitle || ''),
+                defines: String(item?.defines || '')
+            }));
+        });
+    return sanitizedFields;
+}
+
 function getCreateTenderRequirementDraft(profileId = 'works') {
     const mainDraft = getCreateTenderMainDraft();
     const requirements = mainDraft.requirements && typeof mainDraft.requirements === 'object' ? mainDraft.requirements : {};
     return {
-        fields: {
+        fields: sanitizeCreateTenderRequirementFields(profileId, {
             ...getCreateTenderRequirementDefaultFields(profileId),
             ...(requirements[profileId]?.fields || {})
-        },
+        }),
         lists: { ...(requirements[profileId]?.lists || {}) }
     };
 }
@@ -1025,7 +1267,7 @@ function normalizeCreateTenderRequirementTableRows(rows = [], columns = [], cont
             id: String(row?.id || `requirement-${controlId}-${Date.now()}-${index}`)
         };
         columns.forEach(column => {
-            if (column.type === 'multiselect') {
+            if (column.type === 'multiselect' || column.type === 'tag-select') {
                 normalizedRow[column.id] = Array.isArray(row?.[column.id]) ? row[column.id].map(String) : [];
                 return;
             }
@@ -1048,7 +1290,7 @@ function normalizeCreateTenderRequirementObjectRows(rows = [], fields = [], cont
             id: String(row?.id || `requirement-${controlId}-${Date.now()}-${index}`)
         };
         fields.forEach(field => {
-            if (field.type === 'multiselect') {
+            if (field.type === 'multiselect' || field.type === 'tag-select') {
                 normalizedRow[field.id] = Array.isArray(row?.[field.id]) ? row[field.id].map(String) : [];
                 return;
             }
@@ -1166,6 +1408,33 @@ function renderCreateTenderRequirementMultiSelect(options = [], selectedValues =
     `;
 }
 
+function renderCreateTenderRequirementTagSelect(field, value, attributes = '') {
+    const selectedValues = Array.isArray(value) ? value.map(String).filter(Boolean) : [];
+    const selectedSet = new Set(selectedValues);
+    const availableOptions = (field.options || [])
+        .map(getCreateTenderRequirementOptionValue)
+        .filter(option => option && !selectedSet.has(option));
+
+    return `
+        <div class="requirement-tag-select">
+            <div class="requirement-tag-list">
+                ${selectedValues.length
+                    ? selectedValues.map(option => `
+                        <span class="requirement-tag">
+                            ${escapeCreateTenderHtml(option)}
+                            <button type="button" data-requirement-tag-remove="${escapeCreateTenderHtml(option)}" aria-label="Remove ${escapeCreateTenderHtml(option)}">x</button>
+                        </span>
+                    `).join('')
+                    : '<span class="requirement-tag-empty">No evidence selected</span>'}
+            </div>
+            <select class="form-input requirement-tag-picker" ${attributes}>
+                <option value="">Choose evidence</option>
+                ${availableOptions.map(option => `<option value="${escapeCreateTenderHtml(option)}">${escapeCreateTenderHtml(option)}</option>`).join('')}
+            </select>
+        </div>
+    `;
+}
+
 function parseCreateTenderRequirementAmount(value) {
     const parsed = Number(String(value ?? '').replace(/[^0-9.-]/g, ''));
     return Number.isFinite(parsed) ? parsed : 0;
@@ -1251,6 +1520,9 @@ function renderCreateTenderRequirementField(field, value, attributes = '') {
     if (field.type === 'multiselect') {
         return renderCreateTenderRequirementMultiSelect(field.options || [], value, attributes);
     }
+    if (field.type === 'tag-select') {
+        return renderCreateTenderRequirementTagSelect(field, value, attributes);
+    }
     if (field.type === 'toggle') {
         return `
             <label class="requirement-toggle">
@@ -1296,6 +1568,15 @@ function getCreateTenderRequirementHelperText(control = {}, value = '') {
         return control.helperDescriptions[selectedValue];
     }
     return control.helperText || '';
+}
+
+function isCreateTenderShowWhenMatched(showWhen = {}, fields = {}) {
+    if (!showWhen.field) return true;
+    const actualValue = fields?.[showWhen.field];
+    if (Array.isArray(showWhen.values)) {
+        return showWhen.values.map(String).includes(String(actualValue || ''));
+    }
+    return String(actualValue || '') === String(showWhen.value);
 }
 
 function renderCreateTenderRequirementCounter(control = {}, value = '') {
@@ -1404,7 +1685,7 @@ function renderCreateTenderScopeDescriptionSection(section, requirementDraft, pr
 function renderCreateTenderTechnicalCapacitySection(section, requirementDraft, profileId = '') {
     const visibleControls = (section.controls || []).filter(control => {
         if (!control.showWhen) return true;
-        return requirementDraft.fields?.[control.showWhen.field] === control.showWhen.value;
+        return isCreateTenderShowWhenMatched(control.showWhen, requirementDraft.fields);
     });
 
     return `
@@ -1588,6 +1869,7 @@ function renderCreateTenderRequirementSections(profile, mainDraft = getCreateTen
     const excludeSectionIds = new Set(Array.isArray(options.excludeSectionIds) ? options.excludeSectionIds : []);
     const sections = template.sections.filter(section => {
         if (includeSectionIds && !includeSectionIds.has(section.id)) return false;
+        if (section.showWhen && !isCreateTenderShowWhenMatched(section.showWhen, requirementDraft.fields)) return false;
         return !excludeSectionIds.has(section.id);
     });
 
@@ -1617,7 +1899,7 @@ function renderCreateTenderRequirementSections(profile, mainDraft = getCreateTen
                     <div class="requirement-control-grid">
                         ${(section.controls || []).filter(control => {
                             if (!control.showWhen) return true;
-                            return String(requirementDraft.fields?.[control.showWhen.field] || '') === String(control.showWhen.value);
+                            return isCreateTenderShowWhenMatched(control.showWhen, requirementDraft.fields);
                         }).map(control => `
                             <div class="requirement-control ${['table', 'cards', 'accordion'].includes(control.type) ? 'requirement-control-wide' : ''}">
                                 <span class="form-label">${escapeCreateTenderHtml(control.label)}</span>
@@ -3625,7 +3907,7 @@ function initializeCreateTenderWizard() {
         refreshRequirementHelper(controlId);
         refreshRequirementCounter(controlId);
         const shouldRefreshContractTypeControl = controlId === 'contractType' && input.tagName === 'SELECT';
-        if (shouldRefreshContractTypeControl || controlId === 'requireSamples' || controlId === 'siteVisitRequirement' || controlId === 'bankStatementsRequired') {
+        if (shouldRefreshContractTypeControl || controlId === 'serviceCategory' || controlId === 'requireSamples' || controlId === 'siteVisitRequirement' || controlId === 'bankStatementsRequired') {
             refreshProfileText();
             wizard.querySelector(`[data-requirement-input="${CSS.escape(controlId)}"]`)?.focus();
         }
@@ -3662,6 +3944,11 @@ function initializeCreateTenderWizard() {
 
         if (column?.type === 'multiselect') {
             tableRow[field] = Array.from(row.querySelectorAll(`[data-requirement-table-field="${CSS.escape(field)}"]:checked`)).map(item => item.value);
+        } else if (column?.type === 'tag-select') {
+            tableRow[field] = input.value
+                ? Array.from(new Set([...(Array.isArray(tableRow[field]) ? tableRow[field] : []), input.value]))
+                : (Array.isArray(tableRow[field]) ? tableRow[field] : []);
+            input.value = '';
         } else if (column?.type === 'file') {
             tableRow[field] = input.files?.[0]?.name || tableRow[field] || '';
         } else if (input.type === 'checkbox') {
@@ -3682,6 +3969,9 @@ function initializeCreateTenderWizard() {
             renderRequirementControl(controlId);
         }
         if (column?.type === 'select-custom-prompt' && input.tagName === 'SELECT') {
+            renderRequirementControl(controlId);
+        }
+        if (column?.type === 'tag-select') {
             renderRequirementControl(controlId);
         }
         if (controlId === 'quantityScheduleRows') {
@@ -3708,14 +3998,22 @@ function initializeCreateTenderWizard() {
 
         if (field.type === 'multiselect') {
             card[fieldId] = Array.from(row.querySelectorAll(`[data-requirement-card-field="${CSS.escape(fieldId)}"]:checked`)).map(item => item.value);
+        } else if (field.type === 'tag-select') {
+            card[fieldId] = input.value
+                ? Array.from(new Set([...(Array.isArray(card[fieldId]) ? card[fieldId] : []), input.value]))
+                : (Array.isArray(card[fieldId]) ? card[fieldId] : []);
+            input.value = '';
         } else if (input.type === 'checkbox') {
             card[fieldId] = input.checked;
         } else {
             card[fieldId] = input.value;
         }
+        if (control.clauseDefinitions && fieldId === 'clauseTitle') {
+            card.defines = control.clauseDefinitions[input.value] || '';
+        }
 
         saveRequirementControlValue(controlId, cards);
-        if (fields.some(item => item.showWhen?.field === fieldId) || field.sourceControlId) {
+        if (fields.some(item => item.showWhen?.field === fieldId) || field.sourceControlId || field.type === 'tag-select' || (control.clauseDefinitions && fieldId === 'clauseTitle')) {
             renderRequirementControl(controlId);
         }
     };
@@ -3972,6 +4270,39 @@ function initializeCreateTenderWizard() {
         if (target.matches('[data-upload-button-trigger]')) {
             const controlId = target.dataset.uploadButtonTrigger;
             target.closest('.requirement-control')?.querySelector(`[data-requirement-input="${CSS.escape(controlId)}"]`)?.click();
+            return;
+        }
+
+        if (target.matches('[data-requirement-tag-remove]')) {
+            const row = target.closest('[data-requirement-table-row]');
+            const cardRow = target.closest('[data-requirement-card-row]');
+            const controlId = row?.dataset.requirementControl || cardRow?.dataset.requirementControl;
+            const tagSelect = target.closest('.requirement-tag-select');
+            const picker = tagSelect?.querySelector('[data-requirement-table-field], [data-requirement-card-field]');
+            const field = picker?.dataset.requirementTableField || picker?.dataset.requirementCardField;
+            if (!controlId || !field) return;
+
+            const profile = getSelectedProfile();
+            const control = getCreateTenderRequirementControl(profile.id, controlId);
+            if (row) {
+                const columns = resolveCreateTenderRequirementColumns(control, profile.id);
+                const rows = normalizeCreateTenderRequirementTableRows(getRequirementControlValue(controlId), columns, controlId);
+                const tableRow = rows.find(entry => entry.id === row.dataset.requirementTableRow);
+                if (!tableRow) return;
+                tableRow[field] = (Array.isArray(tableRow[field]) ? tableRow[field] : [])
+                    .filter(item => item !== target.dataset.requirementTagRemove);
+                saveRequirementControlValue(controlId, rows);
+            }
+            if (cardRow) {
+                const fields = resolveCreateTenderRequirementFields(control, profile.id);
+                const cards = normalizeCreateTenderRequirementObjectRows(getRequirementControlValue(controlId), fields, controlId);
+                const card = cards.find(entry => entry.id === cardRow.dataset.requirementCardRow);
+                if (!card) return;
+                card[field] = (Array.isArray(card[field]) ? card[field] : [])
+                    .filter(item => item !== target.dataset.requirementTagRemove);
+                saveRequirementControlValue(controlId, cards);
+            }
+            renderRequirementControl(controlId);
             return;
         }
 
