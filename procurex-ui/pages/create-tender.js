@@ -155,6 +155,7 @@ const defaultCreateTenderRegulatoryLicenses = [];
 const createTenderRequirementOptions = {
     currencies: ['TZS', 'USD', 'EUR', 'GBP'],
     procurementMethods: ['Open Tender', 'Invited Tender'],
+    worksContractTypes: ['Lump Sum Contract', 'Unit Price Contract', 'Fixed Price Contract', 'Framework Contract', 'Consultancy / Time-Based Contract', 'Other'],
     worksDocumentTypes: ['Architectural drawings', 'Structural drawings', 'Electrical drawings', 'Mechanical drawings', 'Site reports', 'Material specifications', 'Geotechnical report', 'Environmental report', 'Bill of quantities template', 'Other'],
     units: ['Pcs', 'Unit', 'Set', 'Lot', 'Kg', 'Litre', 'Meter', 'Sqm', 'Day', 'Month'],
     materialQualities: ['Standard', 'Premium', 'Certified', 'Industrial grade', 'Food grade', 'Medical grade'],
@@ -163,6 +164,14 @@ const createTenderRequirementOptions = {
     frequency: ['Daily', 'Weekly', 'Monthly', 'Quarterly', 'On demand'],
     serviceLevels: ['Basic', 'Standard', 'Premium', 'Critical'],
     yesNo: ['Yes', 'No']
+};
+
+const createTenderWorksContractTypeDescriptions = {
+    'Lump Sum Contract': 'A single total price is agreed for the whole work or project.',
+    'Unit Price Contract': 'Payment is based on measured quantities completed.',
+    'Fixed Price Contract': 'The supplier agrees to deliver goods or services at a fixed agreed price.',
+    'Framework Contract': 'Used for repeated or recurring procurement over a defined period.',
+    'Consultancy / Time-Based Contract': 'Payment is based on consultant time, milestones, or agreed service duration.'
 };
 
 const createTenderRequirementTemplates = {
@@ -284,7 +293,24 @@ const createTenderRequirementTemplates = {
                 controls: [
                     { id: 'projectName', label: 'Project name', type: 'text' },
                     { id: 'location', label: 'Location', type: 'text' },
-                    { id: 'contractType', label: 'Contract type', type: 'text' },
+                    {
+                        id: 'contractType',
+                        label: 'Contract type',
+                        type: 'select',
+                        options: createTenderRequirementOptions.worksContractTypes,
+                        required: true,
+                        helperDescriptions: createTenderWorksContractTypeDescriptions,
+                        helperText: 'Select the contract structure that will govern pricing and payment.'
+                    },
+                    {
+                        id: 'otherContractType',
+                        label: 'Other contract type',
+                        type: 'text',
+                        required: true,
+                        placeholder: 'Write the contract type',
+                        helperText: 'Enter the specific contract type to be used for this tender.',
+                        showWhen: { field: 'contractType', value: 'Other' }
+                    },
                     { id: 'completionPeriod', label: 'Completion period', type: 'text' },
                     { id: 'fundingSource', label: 'Funding source', type: 'text' }
                 ]
@@ -1127,8 +1153,9 @@ function formatCreateTenderRequirementCalculatedValue(value) {
 }
 
 function renderCreateTenderRequirementField(field, value, attributes = '') {
+    const requiredAttribute = field.required ? 'required' : '';
     if (field.type === 'select') {
-        return `<select class="form-input" ${attributes}>${renderCreateTenderRequirementSelectOptions(field.options || [], value)}</select>`;
+        return `<select class="form-input" ${requiredAttribute} ${attributes}>${renderCreateTenderRequirementSelectOptions(field.options || [], value)}</select>`;
     }
     if (field.type === 'yesno') {
         const radioAttributes = attributes.replace(/\bid="[^"]*"\s*/g, '');
@@ -1170,11 +1197,19 @@ function renderCreateTenderRequirementField(field, value, attributes = '') {
     if (field.type === 'currency') {
         return `<input class="form-input requirement-currency-input" type="number" min="0" step="0.01" value="${escapeCreateTenderHtml(value || '')}" ${attributes}>`;
     }
-    const inputMarkup = `<input class="form-input" type="${escapeCreateTenderHtml(field.type || 'text')}" value="${escapeCreateTenderHtml(value || '')}" ${field.placeholder ? `placeholder="${escapeCreateTenderHtml(field.placeholder)}"` : ''} ${attributes}>`;
+    const inputMarkup = `<input class="form-input" type="${escapeCreateTenderHtml(field.type || 'text')}" value="${escapeCreateTenderHtml(value || '')}" ${requiredAttribute} ${field.placeholder ? `placeholder="${escapeCreateTenderHtml(field.placeholder)}"` : ''} ${attributes}>`;
     if (field.suffix) {
         return `<div class="requirement-input-affix">${inputMarkup}<span>${escapeCreateTenderHtml(field.suffix)}</span></div>`;
     }
     return inputMarkup;
+}
+
+function getCreateTenderRequirementHelperText(control = {}, value = '') {
+    const selectedValue = String(value || '');
+    if (control.helperDescriptions && selectedValue && control.helperDescriptions[selectedValue]) {
+        return control.helperDescriptions[selectedValue];
+    }
+    return control.helperText || '';
 }
 
 function renderCreateTenderRequirementListRows(items = [], listId = '') {
@@ -1389,6 +1424,9 @@ function renderCreateTenderRequirementSections(profile, mainDraft = getCreateTen
                             <div class="requirement-control ${['table', 'cards', 'accordion'].includes(control.type) ? 'requirement-control-wide' : ''}">
                                 <span class="form-label">${escapeCreateTenderHtml(control.label)}</span>
                                 ${renderCreateTenderRequirementControl(control, requirementDraft.fields?.[control.id], profile.id)}
+                                ${getCreateTenderRequirementHelperText(control, requirementDraft.fields?.[control.id])
+                                    ? `<span class="form-hint" data-requirement-helper="${escapeCreateTenderHtml(control.id)}">${escapeCreateTenderHtml(getCreateTenderRequirementHelperText(control, requirementDraft.fields?.[control.id]))}</span>`
+                                    : ''}
                             </div>
                         `).join('')}
                     </div>
@@ -1410,6 +1448,17 @@ function isCreateTenderRequirementValueFilled(value) {
     return String(value || '').trim().length > 0;
 }
 
+function getCreateTenderRequirementOptionValue(option) {
+    return typeof option === 'object' && option !== null ? String(option.value || '') : String(option);
+}
+
+function isCreateTenderRequirementControlValid(control = {}, value = '') {
+    if (!isCreateTenderRequirementValueFilled(value)) return false;
+    if (control.type !== 'select') return true;
+    const allowedValues = new Set((control.options || []).map(getCreateTenderRequirementOptionValue));
+    return allowedValues.has(String(value || ''));
+}
+
 function getCreateTenderRequirementSummary(profile, mainDraft = getCreateTenderMainDraft()) {
     const template = getCreateTenderRequirementTemplate(profile.id);
     const fields = mainDraft.requirements?.[profile.id]?.fields || {};
@@ -1421,6 +1470,24 @@ function getCreateTenderRequirementSummary(profile, mainDraft = getCreateTenderM
         totalControls: controls.length,
         filledControls
     };
+}
+
+function getCreateTenderMissingRequiredRequirements(profile, mainDraft = getCreateTenderMainDraft()) {
+    const template = getCreateTenderRequirementTemplate(profile.id);
+    const fields = mainDraft.requirements?.[profile.id]?.fields || {};
+    return template.sections
+        .flatMap(section => section.controls || [])
+        .filter(control => control.required)
+        .filter(control => !control.showWhen || String(fields[control.showWhen.field] || '') === String(control.showWhen.value))
+        .filter(control => !isCreateTenderRequirementControlValid(control, fields[control.id]));
+}
+
+function getCreateTenderEffectiveContractType(profileId = 'works') {
+    const fields = getCreateTenderRequirementDraft(profileId).fields || {};
+    if (fields.contractType === 'Other') {
+        return String(fields.otherContractType || '').trim();
+    }
+    return String(fields.contractType || '').trim();
 }
 
 function renderCreateTenderTrashIcon() {
@@ -1904,6 +1971,7 @@ function publishCreateTenderToMarketplace(wizard) {
         commercialItems: boqItems,
         commercialModel: profile.commercialName,
         commercialLabel: profile.reviewLabel,
+        contractType: getCreateTenderEffectiveContractType(profile.id),
         deliverables: getCreateTenderDeliverables(profile).map(item => item.text).filter(Boolean),
         milestones,
         amendments: [
@@ -3088,6 +3156,46 @@ function initializeCreateTenderWizard() {
         }
     };
 
+    const refreshRequirementHelper = (controlId) => {
+        const profile = getSelectedProfile();
+        const control = getCreateTenderRequirementControl(profile.id, controlId);
+        const helper = wizard.querySelector(`[data-requirement-helper="${CSS.escape(controlId)}"]`);
+        if (!control || !helper) return;
+        helper.textContent = getCreateTenderRequirementHelperText(control, getRequirementControlValue(controlId));
+    };
+
+    const validateActiveStep = () => {
+        const activePanel = panels[activeStepIndex];
+        if (!activePanel) return true;
+
+        const requiredFields = Array.from(activePanel.querySelectorAll('[required]'))
+            .filter(field => !field.disabled && field.offsetParent !== null);
+        const firstInvalidField = requiredFields.find(field => !field.checkValidity());
+
+        requiredFields.forEach(field => field.classList.toggle('error', !field.checkValidity()));
+        if (!firstInvalidField) return true;
+
+        firstInvalidField.reportValidity();
+        firstInvalidField.focus();
+        return false;
+    };
+
+    const validateRequirementsBeforeLeavingStep = () => {
+        const missingRequiredControls = getCreateTenderMissingRequiredRequirements(getSelectedProfile(), getCreateTenderMainDraft());
+        if (!missingRequiredControls.length) return true;
+
+        const firstMissingControl = missingRequiredControls[0];
+        if (activeStepIndex !== 2) {
+            setActiveStep(2);
+        }
+
+        const field = wizard.querySelector(`[data-requirement-input="${CSS.escape(firstMissingControl.id)}"]`);
+        field?.classList.add('error');
+        field?.reportValidity();
+        field?.focus();
+        return false;
+    };
+
     const setActiveStep = (index) => {
         const boundedIndex = Math.min(Math.max(index, 0), panels.length - 1);
         activeStepIndex = boundedIndex;
@@ -3286,7 +3394,9 @@ function initializeCreateTenderWizard() {
         const controlId = input.dataset.requirementInput;
         if (!controlId) return;
         saveRequirementControlValue(controlId, input.type === 'checkbox' ? input.checked : input.value);
-        if (controlId === 'requireSamples') {
+        input.classList.toggle('error', input.required && !input.checkValidity());
+        refreshRequirementHelper(controlId);
+        if (controlId === 'contractType' || controlId === 'requireSamples') {
             refreshProfileText();
         }
     };
@@ -3586,7 +3696,10 @@ function initializeCreateTenderWizard() {
         const railStep = event.target?.closest('[data-wizard-step-index]');
         if (railStep) {
             event.preventDefault();
-            setActiveStep(Number(railStep.dataset.wizardStepIndex));
+            const requestedStepIndex = Number(railStep.dataset.wizardStepIndex);
+            if (requestedStepIndex > activeStepIndex && !validateActiveStep()) return;
+            if (requestedStepIndex > 2 && !validateRequirementsBeforeLeavingStep()) return;
+            setActiveStep(requestedStepIndex);
             return;
         }
 
@@ -3651,6 +3764,8 @@ function initializeCreateTenderWizard() {
         }
 
         if (target.matches('[data-wizard-next]')) {
+            if (!validateActiveStep()) return;
+            if (activeStepIndex === 2 && !validateRequirementsBeforeLeavingStep()) return;
             setActiveStep(activeStepIndex + 1);
             return;
         }
