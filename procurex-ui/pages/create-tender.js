@@ -156,7 +156,7 @@ const createTenderRequirementOptions = {
     currencies: ['TZS', 'USD', 'EUR', 'GBP'],
     procurementMethods: ['Open Tender', 'Invited Tender'],
     worksContractTypes: ['Lump Sum Contract', 'Unit Price Contract', 'Fixed Price Contract', 'Framework Contract', 'Consultancy / Time-Based Contract', 'Other'],
-    worksDocumentTypes: ['Architectural drawings', 'Structural drawings', 'Electrical drawings', 'Mechanical drawings', 'Site reports', 'Material specifications', 'Geotechnical report', 'Environmental report', 'Bill of quantities template', 'Other'],
+    worksDocumentTypes: ['Architectural drawings', 'Structural drawings', 'Electrical drawings', 'Mechanical drawings', 'Geotechnical report', 'Environmental report', 'Other'],
     units: ['Pcs', 'Unit', 'Set', 'Lot', 'Kg', 'Litre', 'Meter', 'Sqm', 'Day', 'Month'],
     materialQualities: ['Standard', 'Premium', 'Certified', 'Industrial grade', 'Food grade', 'Medical grade'],
     standards: ['ISO', 'TBS', 'CE', 'UL', 'Energy Star', 'Manufacturer certificate'],
@@ -288,11 +288,12 @@ const createTenderRequirementTemplates = {
         sections: [
             {
                 id: 'generalInformation',
-                title: 'General Tender Information',
-                hint: 'Capture the core project details.',
+                title: '1. Project Overview',
+                hint: 'Capture the purpose, buyer context, objective, and location of the works.',
                 controls: [
-                    { id: 'projectName', label: 'Project name', type: 'text' },
-                    { id: 'location', label: 'Location', type: 'text' },
+                    { id: 'projectName', label: 'Project title', type: 'text' },
+                    { id: 'procuringEntity', label: 'Procuring entity', type: 'text' },
+                    { id: 'location', label: 'Project location', type: 'text' },
                     {
                         id: 'contractType',
                         label: 'Contract type',
@@ -303,44 +304,107 @@ const createTenderRequirementTemplates = {
                         helperText: 'Select Other to type a contract type that is not listed.'
                     },
                     { id: 'completionPeriod', label: 'Completion period', type: 'text' },
-                    { id: 'fundingSource', label: 'Funding source', type: 'text' },
+                    { id: 'fundingSource', label: 'Funding source', type: 'text' }
+                ]
+            },
+            {
+                id: 'scopeDescription',
+                title: '2. Scope Description',
+                hint: 'Summarize the works, major construction activities, and any project notes.',
+                controls: [
                     {
-                        id: 'siteVisitRequirement',
-                        label: 'Site visit requirement',
-                        type: 'choice',
-                        defaultValue: 'Not mandatory',
-                        options: ['Mandatory', 'Not mandatory']
+                        id: 'scopeSummary',
+                        label: 'Scope Summary *',
+                        type: 'textarea',
+                        required: true,
+                        maxLength: 1000,
+                        rows: 6,
+                        placeholder: 'Example: Construction of a 3-floor academic building including structural works, electrical installation, plumbing, roofing, doors and windows, finishing works and external works.',
+                        helperText: 'Summarize the overall scope of the project including what the contractor is expected to do.'
+                    },
+                    {
+                        id: 'mainConstructionActivities',
+                        label: 'Main Activities *',
+                        type: 'list',
+                        required: true,
+                        defaultValue: [
+                            { text: 'Site preparation' },
+                            { text: 'Foundation works' },
+                            { text: 'Structural works' },
+                            { text: 'Roofing works' },
+                            { text: 'Electrical installation' }
+                        ],
+                        addLabel: '+ Add Activity',
+                        emptyText: 'No activities added yet.',
+                        helperText: 'List the major construction activities to be carried out.'
+                    },
+                ]
+            },
+            {
+                id: 'technicalSpecifications',
+                title: '3. Technical Specifications',
+                hint: 'Detailed technical requirements and mandatory specification documents.',
+                controls: [
+                    { id: 'applicableStandardsCodes', label: 'Applicable standards / codes', type: 'list', addLabel: 'Add Standard or Code', emptyText: 'No standards or codes added yet.' },
+                    { id: 'materialSpecifications', label: 'Material specifications', type: 'textarea' },
+                    { id: 'workmanshipStandards', label: 'Workmanship standards', type: 'textarea' },
+                    { id: 'engineeringRequirements', label: 'Engineering requirements', type: 'textarea' },
+                    { id: 'equipmentRequirementsSummary', label: 'Equipment requirements', type: 'textarea' },
+                    {
+                        id: 'technicalSpecificationDocuments',
+                        label: 'Technical specification documents',
+                        type: 'table',
+                        addLabel: 'Add Specification Document',
+                        emptyText: 'No specification documents added yet.',
+                        columns: [
+                            { id: 'documentTitle', label: 'Document title', type: 'text' },
+                            { id: 'referenceStandard', label: 'Standard reference', type: 'text' },
+                            { id: 'documentUpload', label: 'Upload document', type: 'file', accept: '.pdf,.doc,.docx,.xls,.xlsx' },
+                            { id: 'mandatory', label: 'Mandatory before publication', type: 'toggle' }
+                        ]
                     }
                 ]
             },
             {
-                id: 'technicalRequirements',
-                title: 'Technical Requirements',
-                hint: 'Upload required documents and add notes for each requirement.',
+                id: 'drawingsDesignDocuments',
+                title: '4. Drawings & Design Documents',
+                hint: 'Reference drawings, revisions, design consultants, and CAD/PDF uploads.',
                 controls: [
                     {
-                        id: 'requiredDocuments',
-                        label: 'Required documents',
+                        id: 'drawingDesignRows',
+                        label: 'Drawings and design documents',
                         type: 'table',
-                        addLabel: 'Add Document',
-                        emptyText: 'No document requirements added yet.',
+                        addLabel: 'Add Drawing',
+                        emptyText: 'No drawings or design documents added yet.',
                         columns: [
                             { id: 'documentType', label: 'Document type', type: 'select', options: createTenderRequirementOptions.worksDocumentTypes },
                             { id: 'otherDocumentName', label: 'Other document name', type: 'text', showWhen: { field: 'documentType', value: 'Other' }, hideColumnUntilMatch: true, placeholder: 'Write document name' },
-                            { id: 'buyerDocumentUpload', label: 'Upload required document', type: 'file', accept: '.pdf,.doc,.docx,.xls,.xlsx,.dwg,.dxf,.jpg,.jpeg,.png' },
-                            { id: 'notes', label: 'Notes', type: 'textarea' }
+                            { id: 'buyerDocumentUpload', label: 'CAD / PDF upload', type: 'file', accept: '.pdf,.dwg,.dxf,.jpg,.jpeg,.png' }
                         ]
                     }
                 ]
             },
             {
                 id: 'boqRequirements',
-                title: 'Bills of Quantities (BOQ)',
-                hint: 'Advanced financial table with calculated line totals.',
+                title: '5. Bill of Quantities (BoQ) / Pricing Schedule',
+                hint: 'Commercial breakdown of works. Lump Sum uses summary pricing; Unit Price uses detailed measured items.',
                 controls: [
                     {
+                        id: 'lumpSumPricingRows',
+                        label: 'Summary pricing schedule',
+                        type: 'table',
+                        addLabel: 'Add Pricing Section',
+                        emptyText: 'No summary pricing sections added yet.',
+                        showWhen: { field: 'contractType', value: 'Lump Sum Contract' },
+                        columns: [
+                            { id: 'section', label: 'Section', type: 'text' },
+                            { id: 'description', label: 'Description', type: 'textarea' },
+                            { id: 'amount', label: 'Amount', type: 'currency' }
+                        ]
+                    },
+                    {
                         id: 'boqRows',
-                        label: 'BOQ lines',
+                        label: 'Bill of Quantities table',
                         type: 'table',
                         addLabel: 'Add BOQ Line',
                         emptyText: 'No BOQ lines added yet.',
@@ -354,6 +418,72 @@ const createTenderRequirementTemplates = {
                             { id: 'totalCost', label: 'Total', type: 'calculated', formula: 'laborCost+materialCost+equipmentCost' }
                         ]
                     }
+                ]
+            },
+            {
+                id: 'deliverablesOutputs',
+                title: '6. Deliverables & Outputs',
+                hint: 'Define what the contractor must hand over at completion or milestones.',
+                controls: [
+                    { id: 'completionDeliverables', label: 'Completion deliverables', type: 'list', addLabel: 'Add Completion Deliverable', emptyText: 'No completion deliverables added yet.' },
+                    { id: 'asBuiltDrawings', label: 'As-built drawings', type: 'choice', defaultValue: 'Required', options: ['Required', 'Not required'] },
+                    { id: 'testCertificates', label: 'Test certificates', type: 'list', addLabel: 'Add Test Certificate', emptyText: 'No test certificates added yet.' },
+                    { id: 'operationManuals', label: 'Operation manuals', type: 'choice', defaultValue: 'Required', options: ['Required', 'Not required'] },
+                    { id: 'trainingRequirements', label: 'Training requirements', type: 'textarea' }
+                ]
+            },
+            {
+                id: 'timeScheduleMilestones',
+                title: '7. Time Schedule & Milestones',
+                hint: 'Capture expected timelines, milestone triggers, and optional work program uploads.',
+                controls: [
+                    { id: 'commencementDate', label: 'Commencement date', type: 'date' },
+                    { id: 'worksCompletionPeriod', label: 'Completion period', type: 'text' },
+                    {
+                        id: 'worksMilestoneRows',
+                        label: 'Works milestones',
+                        type: 'table',
+                        addLabel: 'Add Milestone',
+                        emptyText: 'No works milestones added yet.',
+                        columns: [
+                            { id: 'milestone', label: 'Milestone', type: 'text' },
+                            { id: 'targetDate', label: 'Target date', type: 'date' },
+                            { id: 'deliverable', label: 'Deliverable', type: 'text' },
+                            { id: 'liquidatedDamagesTrigger', label: 'LD trigger', type: 'toggle' }
+                        ]
+                    },
+                    { id: 'liquidatedDamagesTriggers', label: 'Liquidated damages triggers', type: 'textarea' },
+                    {
+                        id: 'workProgramUploads',
+                        label: 'Work program / Gantt chart uploads',
+                        type: 'table',
+                        addLabel: 'Add Schedule Document',
+                        emptyText: 'No schedule documents added yet.',
+                        columns: [
+                            { id: 'documentType', label: 'Document type', type: 'select', options: ['Work program', 'Gantt chart', 'Other'] },
+                            { id: 'documentUpload', label: 'Upload', type: 'file', accept: '.pdf,.doc,.docx,.xls,.xlsx,.mpp,.jpg,.jpeg,.png' },
+                            { id: 'notes', label: 'Notes', type: 'textarea' }
+                        ]
+                    }
+                ]
+            },
+            {
+                id: 'siteInformation',
+                title: '8. Site Information',
+                hint: 'Important works-procurement context for access, utilities, infrastructure, and ground conditions.',
+                controls: [
+                    {
+                        id: 'siteVisitRequirement',
+                        label: 'Site visit requirement',
+                        type: 'choice',
+                        defaultValue: 'Not mandatory',
+                        options: ['Mandatory', 'Not mandatory']
+                    },
+                    { id: 'siteConditions', label: 'Site conditions', type: 'textarea' },
+                    { id: 'accessRestrictions', label: 'Access restrictions', type: 'textarea' },
+                    { id: 'existingInfrastructure', label: 'Existing infrastructure', type: 'textarea' },
+                    { id: 'utilitiesAvailability', label: 'Utilities availability', type: 'textarea' },
+                    { id: 'geotechnicalInformation', label: 'Geotechnical information', type: 'textarea' }
                 ]
             },
             {
@@ -943,7 +1073,9 @@ function getCreateTenderRequirementDefaultFields(profileId = 'works') {
         .flatMap(section => section.controls || [])
         .reduce((defaults, control) => {
             if (control.defaultValue !== undefined) {
-                defaults[control.id] = control.defaultValue;
+                defaults[control.id] = Array.isArray(control.defaultValue)
+                    ? control.defaultValue.map(item => ({ ...item }))
+                    : control.defaultValue;
             }
             return defaults;
         }, {});
@@ -1166,21 +1298,28 @@ function formatCreateTenderRequirementCalculatedValue(value) {
 
 function renderCreateTenderRequirementField(field, value, attributes = '') {
     const requiredAttribute = field.required ? 'required' : '';
+    const placeholderAttribute = field.placeholder ? `placeholder="${escapeCreateTenderHtml(field.placeholder)}"` : '';
+    const maxLengthAttribute = field.maxLength ? `maxlength="${escapeCreateTenderHtml(field.maxLength)}"` : '';
     if (field.type === 'select') {
         return `<select class="form-input" ${requiredAttribute} ${attributes}>${renderCreateTenderRequirementSelectOptions(field.options || [], value)}</select>`;
     }
     if (field.type === 'select-custom-prompt') {
         const optionValues = (field.options || []).map(getCreateTenderRequirementOptionValue);
         const selectedValue = String(value || '');
-        const customOption = selectedValue && !optionValues.includes(selectedValue)
-            ? `<option value="${escapeCreateTenderHtml(selectedValue)}" selected>${escapeCreateTenderHtml(selectedValue)}</option>`
-            : '';
-        return `<select class="form-input" ${requiredAttribute} ${attributes}>${customOption}${renderCreateTenderRequirementSelectOptions(field.options || [], value)}</select>`;
+        if (selectedValue === 'Other' || (selectedValue && !optionValues.includes(selectedValue))) {
+            return `
+                <div class="requirement-custom-select-field">
+                    <input class="form-input" type="text" value="${selectedValue === 'Other' ? '' : escapeCreateTenderHtml(selectedValue)}" ${requiredAttribute} placeholder="Type contract type" ${attributes}>
+                    <button class="btn btn-secondary" type="button" data-requirement-reset-select="${escapeCreateTenderHtml(field.id)}">Choose from list</button>
+                </div>
+            `;
+        }
+        return `<select class="form-input" ${requiredAttribute} ${attributes}>${renderCreateTenderRequirementSelectOptions(field.options || [], value)}</select>`;
     }
     if (field.type === 'combobox') {
         const listId = `requirement-${field.id}-options`;
         return `
-            <input class="form-input" type="text" list="${escapeCreateTenderHtml(listId)}" value="${escapeCreateTenderHtml(value || '')}" ${requiredAttribute} ${field.placeholder ? `placeholder="${escapeCreateTenderHtml(field.placeholder)}"` : ''} ${attributes}>
+            <input class="form-input" type="text" list="${escapeCreateTenderHtml(listId)}" value="${escapeCreateTenderHtml(value || '')}" ${requiredAttribute} ${placeholderAttribute} ${maxLengthAttribute} ${attributes}>
             <datalist id="${escapeCreateTenderHtml(listId)}">
                 ${(field.options || []).map(option => `<option value="${escapeCreateTenderHtml(getCreateTenderRequirementOptionValue(option))}"></option>`).join('')}
             </datalist>
@@ -1232,7 +1371,7 @@ function renderCreateTenderRequirementField(field, value, attributes = '') {
         `;
     }
     if (field.type === 'textarea' || field.type === 'richtext') {
-        return `<textarea class="form-input requirement-rich-input" rows="3" ${attributes}>${escapeCreateTenderHtml(value || '')}</textarea>`;
+        return `<textarea class="form-input requirement-rich-input" rows="${escapeCreateTenderHtml(field.rows || 3)}" ${requiredAttribute} ${placeholderAttribute} ${maxLengthAttribute} ${attributes}>${escapeCreateTenderHtml(value || '')}</textarea>`;
     }
     if (field.type === 'file') {
         return `
@@ -1245,7 +1384,7 @@ function renderCreateTenderRequirementField(field, value, attributes = '') {
     if (field.type === 'currency') {
         return `<input class="form-input requirement-currency-input" type="number" min="0" step="0.01" value="${escapeCreateTenderHtml(value || '')}" ${attributes}>`;
     }
-    const inputMarkup = `<input class="form-input" type="${escapeCreateTenderHtml(field.type || 'text')}" value="${escapeCreateTenderHtml(value || '')}" ${requiredAttribute} ${field.placeholder ? `placeholder="${escapeCreateTenderHtml(field.placeholder)}"` : ''} ${attributes}>`;
+    const inputMarkup = `<input class="form-input" type="${escapeCreateTenderHtml(field.type || 'text')}" value="${escapeCreateTenderHtml(value || '')}" ${requiredAttribute} ${placeholderAttribute} ${maxLengthAttribute} ${attributes}>`;
     if (field.suffix) {
         return `<div class="requirement-input-affix">${inputMarkup}<span>${escapeCreateTenderHtml(field.suffix)}</span></div>`;
     }
@@ -1258,6 +1397,12 @@ function getCreateTenderRequirementHelperText(control = {}, value = '') {
         return control.helperDescriptions[selectedValue];
     }
     return control.helperText || '';
+}
+
+function renderCreateTenderRequirementCounter(control = {}, value = '') {
+    if (!control.maxLength) return '';
+    const currentLength = String(value || '').length;
+    return `<span class="form-hint requirement-character-counter" data-requirement-counter="${escapeCreateTenderHtml(control.id)}">${currentLength}/${escapeCreateTenderHtml(control.maxLength)}</span>`;
 }
 
 function renderCreateTenderRequirementListRows(items = [], listId = '') {
@@ -1295,6 +1440,66 @@ function renderCreateTenderRequirementControlListItems(control, value) {
             <button class="boq-row-action icon-delete-btn" type="button" data-requirement-control-delete="${escapeCreateTenderHtml(control.id)}" aria-label="Remove ${escapeCreateTenderHtml(control.label)}" title="Remove item">${renderCreateTenderTrashIcon()}</button>
         </div>
     `).join('');
+}
+
+function renderCreateTenderScopeActivityRows(control, value) {
+    const items = normalizeCreateTenderRequirementTextItems(value, control.id);
+    if (!items.length) {
+        return `<div class="scope-empty">${escapeCreateTenderHtml(control.emptyText || 'No activities added yet.')}</div>`;
+    }
+
+    return items.map(item => `
+        <div class="scope-activity-row" data-requirement-control-row="${escapeCreateTenderHtml(item.id)}" data-requirement-control="${escapeCreateTenderHtml(control.id)}">
+            <span class="scope-activity-handle" aria-hidden="true">::</span>
+            <input class="scope-activity-input" value="${escapeCreateTenderHtml(item.text)}" data-requirement-list-item aria-label="${escapeCreateTenderHtml(control.label)} item">
+            <button class="boq-row-action icon-delete-btn scope-activity-delete" type="button" data-requirement-control-delete="${escapeCreateTenderHtml(control.id)}" aria-label="Remove ${escapeCreateTenderHtml(control.label)}" title="Remove activity">${renderCreateTenderTrashIcon()}</button>
+        </div>
+    `).join('');
+}
+
+function renderCreateTenderScopeDescriptionSection(section, requirementDraft, profileId = '') {
+    const controls = section.controls || [];
+    const scopeSummary = controls.find(control => control.id === 'scopeSummary');
+    const activities = controls.find(control => control.id === 'mainConstructionActivities');
+    const dependencies = controls.find(control => control.id === 'dependenciesNotes');
+
+    return `
+        <article class="requirement-block scope-description-block">
+            <div class="scope-description-heading">
+                <h4>${escapeCreateTenderHtml(section.title)}</h4>
+                <p>${escapeCreateTenderHtml(section.hint)}</p>
+            </div>
+            ${scopeSummary ? `
+                <div class="scope-field-group">
+                    <span class="form-label">${escapeCreateTenderHtml(scopeSummary.label)}</span>
+                    <span class="form-hint">${escapeCreateTenderHtml(getCreateTenderRequirementHelperText(scopeSummary, requirementDraft.fields?.[scopeSummary.id]))}</span>
+                    ${renderCreateTenderRequirementControl(scopeSummary, requirementDraft.fields?.[scopeSummary.id], profileId)}
+                    ${renderCreateTenderRequirementCounter(scopeSummary, requirementDraft.fields?.[scopeSummary.id])}
+                </div>
+            ` : ''}
+            ${activities ? `
+                <div class="scope-field-group scope-activity-group">
+                    <div class="scope-activity-heading">
+                        <div>
+                            <span class="form-label">${escapeCreateTenderHtml(activities.label)}</span>
+                            <span class="form-hint">${escapeCreateTenderHtml(getCreateTenderRequirementHelperText(activities, requirementDraft.fields?.[activities.id]))}</span>
+                        </div>
+                        <button class="btn btn-secondary scope-add scope-activity-add" type="button" data-requirement-control-add="${escapeCreateTenderHtml(activities.id)}">${escapeCreateTenderHtml(activities.addLabel || '+ Add Activity')}</button>
+                    </div>
+                    <div class="scope-activity-list" data-requirement-list-items="${escapeCreateTenderHtml(activities.id)}">
+                        ${renderCreateTenderScopeActivityRows(activities, requirementDraft.fields?.[activities.id])}
+                    </div>
+                </div>
+            ` : ''}
+            ${dependencies ? `
+                <div class="scope-field-group">
+                    <span class="form-label">${escapeCreateTenderHtml(dependencies.label)}</span>
+                    <span class="form-hint">${escapeCreateTenderHtml(getCreateTenderRequirementHelperText(dependencies, requirementDraft.fields?.[dependencies.id]))}</span>
+                    ${renderCreateTenderRequirementControl(dependencies, requirementDraft.fields?.[dependencies.id], profileId)}
+                </div>
+            ` : ''}
+        </article>
+    `;
 }
 
 function renderCreateTenderRequirementTableRows(rows = [], control, profileId = '') {
@@ -1458,8 +1663,10 @@ function renderCreateTenderRequirementSections(profile, mainDraft = getCreateTen
             </div>
         `}
         <div class="requirement-section-grid">
-            ${sections.map(section => `
-                <article class="requirement-block">
+            ${sections.map(section => section.id === 'scopeDescription'
+                ? renderCreateTenderScopeDescriptionSection(section, requirementDraft, profile.id)
+                : `
+                    <article class="requirement-block">
                     <div>
                         <h4>${escapeCreateTenderHtml(section.title)}</h4>
                         <span class="form-hint">${escapeCreateTenderHtml(section.hint)}</span>
@@ -1475,11 +1682,13 @@ function renderCreateTenderRequirementSections(profile, mainDraft = getCreateTen
                                 ${getCreateTenderRequirementHelperText(control, requirementDraft.fields?.[control.id])
                                     ? `<span class="form-hint" data-requirement-helper="${escapeCreateTenderHtml(control.id)}">${escapeCreateTenderHtml(getCreateTenderRequirementHelperText(control, requirementDraft.fields?.[control.id]))}</span>`
                                     : ''}
+                                ${renderCreateTenderRequirementCounter(control, requirementDraft.fields?.[control.id])}
                             </div>
                         `).join('')}
                     </div>
                 </article>
-            `).join('')}
+                `
+            ).join('')}
         </div>
     `;
 }
@@ -3210,6 +3419,14 @@ function initializeCreateTenderWizard() {
         helper.textContent = getCreateTenderRequirementHelperText(control, getRequirementControlValue(controlId));
     };
 
+    const refreshRequirementCounter = (controlId) => {
+        const profile = getSelectedProfile();
+        const control = getCreateTenderRequirementControl(profile.id, controlId);
+        const counter = wizard.querySelector(`[data-requirement-counter="${CSS.escape(controlId)}"]`);
+        if (!control?.maxLength || !counter) return;
+        counter.textContent = `${String(getRequirementControlValue(controlId) || '').length}/${control.maxLength}`;
+    };
+
     const validateActiveStep = () => {
         const activePanel = panels[activeStepIndex];
         if (!activePanel) return true;
@@ -3402,7 +3619,11 @@ function initializeCreateTenderWizard() {
 
         if (control.type === 'list') {
             const listNode = wizard.querySelector(`[data-requirement-list-items="${CSS.escape(controlId)}"]`);
-            if (listNode) listNode.innerHTML = renderCreateTenderRequirementControlListItems(control, getRequirementControlValue(controlId));
+            if (listNode) {
+                listNode.innerHTML = listNode.classList.contains('scope-activity-list')
+                    ? renderCreateTenderScopeActivityRows(control, getRequirementControlValue(controlId))
+                    : renderCreateTenderRequirementControlListItems(control, getRequirementControlValue(controlId));
+            }
             return;
         }
 
@@ -3433,6 +3654,20 @@ function initializeCreateTenderWizard() {
                     `;
                 }
             }
+            return;
+        }
+
+        const inputNode = wizard.querySelector(`[data-requirement-input="${CSS.escape(controlId)}"]`);
+        const controlNode = inputNode?.closest('.requirement-control');
+        if (controlNode) {
+            controlNode.innerHTML = `
+                <span class="form-label">${escapeCreateTenderHtml(control.label)}</span>
+                ${renderCreateTenderRequirementControl(control, getRequirementControlValue(controlId), profile.id)}
+                ${getCreateTenderRequirementHelperText(control, getRequirementControlValue(controlId))
+                    ? `<span class="form-hint" data-requirement-helper="${escapeCreateTenderHtml(control.id)}">${escapeCreateTenderHtml(getCreateTenderRequirementHelperText(control, getRequirementControlValue(controlId)))}</span>`
+                    : ''}
+                ${renderCreateTenderRequirementCounter(control, getRequirementControlValue(controlId))}
+            `;
         }
     };
 
@@ -3442,18 +3677,12 @@ function initializeCreateTenderWizard() {
         const profile = getSelectedProfile();
         const control = getCreateTenderRequirementControl(profile.id, controlId);
         let nextValue = input.type === 'checkbox' ? input.checked : input.value;
-        if (control?.type === 'select-custom-prompt' && nextValue === 'Other') {
-            const typedValue = window.prompt(`Enter ${control.label.toLowerCase()}`, '');
-            nextValue = String(typedValue || '').trim();
-            if (!nextValue) {
-                nextValue = '';
-            }
-            input.value = nextValue;
-        }
-        input.classList.toggle('error', input.required && !input.checkValidity());
         saveRequirementControlValue(controlId, nextValue);
+        input.classList.toggle('error', input.required && !input.checkValidity());
         refreshRequirementHelper(controlId);
-        if (controlId === 'contractType' || controlId === 'requireSamples') {
+        refreshRequirementCounter(controlId);
+        const shouldRefreshContractTypeControl = controlId === 'contractType' && input.tagName === 'SELECT';
+        if (shouldRefreshContractTypeControl || controlId === 'requireSamples') {
             refreshProfileText();
             wizard.querySelector(`[data-requirement-input="${CSS.escape(controlId)}"]`)?.focus();
         }
@@ -3766,6 +3995,15 @@ function initializeCreateTenderWizard() {
 
         if (target.matches('[data-category-option]')) {
             selectCategoryOption(target.dataset.categoryOption);
+            return;
+        }
+
+        if (target.matches('[data-requirement-reset-select]')) {
+            const controlId = target.dataset.requirementResetSelect;
+            saveRequirementControlValue(controlId, '');
+            renderRequirementControl(controlId);
+            refreshRequirementHelper(controlId);
+            wizard.querySelector(`[data-requirement-input="${CSS.escape(controlId)}"]`)?.focus();
             return;
         }
 

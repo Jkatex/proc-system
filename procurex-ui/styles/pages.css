@@ -2472,6 +2472,130 @@
     min-height: 132px;
 }
 
+.tender-wizard-page .scope-description-block {
+    gap: 22px;
+    padding: 24px;
+    background: var(--card-bg);
+}
+
+.tender-wizard-page .scope-description-heading h4 {
+    margin: 0 0 8px;
+    font-size: 24px;
+    line-height: 1.2;
+}
+
+.tender-wizard-page .scope-description-heading p {
+    margin: 0;
+    color: var(--text-secondary);
+}
+
+.tender-wizard-page .scope-field-group {
+    display: grid;
+    gap: 9px;
+    min-width: 0;
+}
+
+.tender-wizard-page .scope-field-group .form-label {
+    font-size: 16px;
+}
+
+.tender-wizard-page .scope-field-group .form-hint {
+    margin-top: 0;
+    font-size: 14px;
+}
+
+.tender-wizard-page .scope-description-block textarea.form-input {
+    min-height: 132px;
+    border-radius: var(--radius-lg);
+}
+
+.tender-wizard-page .scope-description-block .requirement-character-counter {
+    justify-self: end;
+    margin-top: -5px;
+    font-size: 13px;
+}
+
+.tender-wizard-page .scope-activity-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.tender-wizard-page .scope-activity-add {
+    min-height: 40px;
+    white-space: nowrap;
+}
+
+.tender-wizard-page .scope-activity-list {
+    display: grid;
+    overflow: hidden;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    background: var(--card-bg);
+}
+
+.tender-wizard-page .scope-activity-row {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: center;
+    min-height: 46px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.tender-wizard-page .scope-activity-row:last-child {
+    border-bottom: 0;
+}
+
+.tender-wizard-page .scope-activity-handle {
+    color: var(--text-secondary);
+    font-weight: 900;
+    letter-spacing: 1px;
+}
+
+.tender-wizard-page .scope-activity-input {
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 15px;
+}
+
+.tender-wizard-page .scope-activity-input:focus {
+    outline: none;
+}
+
+.tender-wizard-page .scope-activity-delete {
+    border-color: rgba(239, 68, 68, 0.35);
+    color: #ef4444;
+}
+
+.tender-wizard-page .scope-description-note {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-secondary);
+}
+
+.tender-wizard-page .scope-description-note span {
+    display: inline-grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: rgba(0, 128, 128, 0.10);
+    color: var(--primary);
+    font-weight: 900;
+}
+
+.tender-wizard-page .scope-description-note p {
+    margin: 0;
+}
+
 .tender-wizard-page .requirement-extra-panel {
     margin-bottom: 16px;
 }
@@ -2555,6 +2679,13 @@
     font-size: 12px;
     font-weight: 800;
     text-transform: uppercase;
+}
+
+.tender-wizard-page .requirement-custom-select-field {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
 }
 
 .tender-wizard-page .requirement-multi-select {
