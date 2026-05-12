@@ -286,7 +286,14 @@ const createTenderRequirementTemplates = {
                     { id: 'location', label: 'Location', type: 'text' },
                     { id: 'contractType', label: 'Contract type', type: 'text' },
                     { id: 'completionPeriod', label: 'Completion period', type: 'text' },
-                    { id: 'fundingSource', label: 'Funding source', type: 'text' }
+                    { id: 'fundingSource', label: 'Funding source', type: 'text' },
+                    {
+                        id: 'siteVisitRequirement',
+                        label: 'Site visit requirement',
+                        type: 'choice',
+                        defaultValue: 'Not mandatory',
+                        options: ['Mandatory', 'Not mandatory']
+                    }
                 ]
             },
             {
@@ -914,11 +921,25 @@ function getCreateTenderRequirementTemplate(profileId = 'works') {
     return createTenderRequirementTemplates[profileId] || createTenderRequirementTemplates.works;
 }
 
+function getCreateTenderRequirementDefaultFields(profileId = 'works') {
+    return getCreateTenderRequirementTemplate(profileId).sections
+        .flatMap(section => section.controls || [])
+        .reduce((defaults, control) => {
+            if (control.defaultValue !== undefined) {
+                defaults[control.id] = control.defaultValue;
+            }
+            return defaults;
+        }, {});
+}
+
 function getCreateTenderRequirementDraft(profileId = 'works') {
     const mainDraft = getCreateTenderMainDraft();
     const requirements = mainDraft.requirements && typeof mainDraft.requirements === 'object' ? mainDraft.requirements : {};
     return {
-        fields: { ...(requirements[profileId]?.fields || {}) },
+        fields: {
+            ...getCreateTenderRequirementDefaultFields(profileId),
+            ...(requirements[profileId]?.fields || {})
+        },
         lists: { ...(requirements[profileId]?.lists || {}) }
     };
 }
@@ -1142,6 +1163,25 @@ function renderCreateTenderRequirementField(field, value, attributes = '') {
                         <span>${option}</span>
                     </label>
                 `).join('')}
+            </div>
+        `;
+    }
+    if (field.type === 'choice') {
+        const radioAttributes = attributes.replace(/\bid="[^"]*"\s*/g, '');
+        const selectedValue = String(value || field.defaultValue || '');
+        const name = `requirement-${field.id}`;
+        return `
+            <div class="requirement-choice-group" role="radiogroup" aria-label="${escapeCreateTenderHtml(field.label)}">
+                ${(field.options || []).map(option => {
+                    const optionValue = typeof option === 'object' && option !== null ? String(option.value || '') : String(option);
+                    const optionLabel = typeof option === 'object' && option !== null ? String(option.label || option.value || '') : String(option);
+                    return `
+                        <label class="requirement-choice-option">
+                            <input type="radio" name="${escapeCreateTenderHtml(name)}" value="${escapeCreateTenderHtml(optionValue)}" ${selectedValue === optionValue ? 'checked' : ''} ${radioAttributes}>
+                            <span>${escapeCreateTenderHtml(optionLabel)}</span>
+                        </label>
+                    `;
+                }).join('')}
             </div>
         `;
     }
