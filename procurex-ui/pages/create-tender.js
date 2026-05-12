@@ -296,7 +296,7 @@ const createTenderRequirementTemplates = {
                     {
                         id: 'contractType',
                         label: 'Contract type',
-                        type: 'select-other',
+                        type: 'select-custom-prompt',
                         options: createTenderRequirementOptions.worksContractTypes,
                         required: true,
                         helperDescriptions: createTenderWorksContractTypeDescriptions,
@@ -1148,23 +1148,13 @@ function renderCreateTenderRequirementField(field, value, attributes = '') {
     if (field.type === 'select') {
         return `<select class="form-input" ${requiredAttribute} ${attributes}>${renderCreateTenderRequirementSelectOptions(field.options || [], value)}</select>`;
     }
-    if (field.type === 'select-other') {
+    if (field.type === 'select-custom-prompt') {
         const optionValues = (field.options || []).map(getCreateTenderRequirementOptionValue);
         const selectedValue = String(value || '');
-        const isListedValue = !selectedValue || optionValues.includes(selectedValue);
-        const selectValue = isListedValue ? selectedValue : 'Other';
-        const customValue = isListedValue ? '' : selectedValue;
-        const otherInputAttributes = attributes
-            .replace(/\bid="[^"]*"\s*/g, '')
-            .replace(/\bdata-requirement-input="[^"]*"\s*/g, '');
-        return `
-            <div class="requirement-select-other">
-                <select class="form-input" ${requiredAttribute} ${attributes} data-select-other-control>
-                    ${renderCreateTenderRequirementSelectOptions(field.options || [], selectValue)}
-                </select>
-                <input class="form-input" type="text" value="${escapeCreateTenderHtml(customValue)}" placeholder="Type contract type" ${requiredAttribute} ${otherInputAttributes} data-requirement-other-input="${escapeCreateTenderHtml(field.id)}" ${selectValue === 'Other' ? '' : 'hidden disabled'}>
-            </div>
-        `;
+        const customOption = selectedValue && !optionValues.includes(selectedValue)
+            ? `<option value="${escapeCreateTenderHtml(selectedValue)}" selected>${escapeCreateTenderHtml(selectedValue)}</option>`
+            : '';
+        return `<select class="form-input" ${requiredAttribute} ${attributes}>${customOption}${renderCreateTenderRequirementSelectOptions(field.options || [], value)}</select>`;
     }
     if (field.type === 'combobox') {
         const listId = `requirement-${field.id}-options`;
@@ -1472,7 +1462,7 @@ function getCreateTenderRequirementOptionValue(option) {
 
 function isCreateTenderRequirementControlValid(control = {}, value = '') {
     if (!isCreateTenderRequirementValueFilled(value)) return false;
-    if (control.type === 'select-other') return String(value || '').trim() !== 'Other';
+    if (control.type === 'select-custom-prompt') return String(value || '').trim() !== 'Other';
     if (control.type !== 'select') return true;
     const allowedValues = new Set((control.options || []).map(getCreateTenderRequirementOptionValue));
     return allowedValues.has(String(value || ''));
@@ -3205,10 +3195,7 @@ function initializeCreateTenderWizard() {
             setActiveStep(2);
         }
 
-        const currentValue = getRequirementControlValue(firstMissingControl.id);
-        const field = firstMissingControl.type === 'select-other' && String(currentValue || '').trim() === 'Other'
-            ? wizard.querySelector(`[data-requirement-other-input="${CSS.escape(firstMissingControl.id)}"]`)
-            : wizard.querySelector(`[data-requirement-input="${CSS.escape(firstMissingControl.id)}"]`);
+        const field = wizard.querySelector(`[data-requirement-input="${CSS.escape(firstMissingControl.id)}"]`);
         field?.classList.add('error');
         field?.reportValidity();
         field?.focus();
@@ -3412,23 +3399,24 @@ function initializeCreateTenderWizard() {
     const updateRequirementInput = (input) => {
         const controlId = input.dataset.requirementInput;
         if (!controlId) return;
-        saveRequirementControlValue(controlId, input.type === 'checkbox' ? input.checked : input.value);
+        const profile = getSelectedProfile();
+        const control = getCreateTenderRequirementControl(profile.id, controlId);
+        let nextValue = input.type === 'checkbox' ? input.checked : input.value;
+        if (control?.type === 'select-custom-prompt' && nextValue === 'Other') {
+            const typedValue = window.prompt(`Enter ${control.label.toLowerCase()}`, '');
+            nextValue = String(typedValue || '').trim();
+            if (!nextValue) {
+                nextValue = '';
+            }
+            input.value = nextValue;
+        }
         input.classList.toggle('error', input.required && !input.checkValidity());
+        saveRequirementControlValue(controlId, nextValue);
         refreshRequirementHelper(controlId);
         if (controlId === 'contractType' || controlId === 'requireSamples') {
             refreshProfileText();
-            if (input.value === 'Other') {
-                wizard.querySelector(`[data-requirement-other-input="${CSS.escape(controlId)}"]`)?.focus();
-            }
+            wizard.querySelector(`[data-requirement-input="${CSS.escape(controlId)}"]`)?.focus();
         }
-    };
-
-    const updateRequirementOtherInput = (input) => {
-        const controlId = input.dataset.requirementOtherInput;
-        if (!controlId) return;
-        saveRequirementControlValue(controlId, input.value);
-        input.classList.toggle('error', input.required && !input.checkValidity());
-        refreshRequirementHelper(controlId);
     };
 
     const updateRequirementControlListItem = (input) => {
@@ -3631,9 +3619,6 @@ function initializeCreateTenderWizard() {
         if (event.target?.matches('[data-requirement-input]')) {
             updateRequirementInput(event.target);
         }
-        if (event.target?.matches('[data-requirement-other-input]')) {
-            updateRequirementOtherInput(event.target);
-        }
         if (event.target?.matches('[data-requirement-list-input]')) {
             updateRequirementListItem(event.target);
         }
@@ -3700,9 +3685,6 @@ function initializeCreateTenderWizard() {
         }
         if (event.target?.matches('[data-requirement-input]')) {
             updateRequirementInput(event.target);
-        }
-        if (event.target?.matches('[data-requirement-other-input]')) {
-            updateRequirementOtherInput(event.target);
         }
         if (event.target?.matches('[data-requirement-list-input]')) {
             updateRequirementListItem(event.target);
