@@ -157,6 +157,7 @@ const createTenderRequirementOptions = {
     procurementMethods: ['Open Tender', 'Invited Tender'],
     worksContractTypes: ['Lump Sum Contract', 'Unit Price Contract', 'Fixed Price Contract', 'Framework Contract', 'Consultancy / Time-Based Contract', 'Other'],
     worksDocumentTypes: ['Architectural drawings', 'Structural drawings', 'Electrical drawings', 'Mechanical drawings', 'Geotechnical report', 'Environmental report', 'Other'],
+    worksTechnicalSpecificationTitles: ['Applicable standards / codes', 'Material specifications', 'Workmanship standards', 'Engineering requirements', 'Equipment requirements', 'Others'],
     units: ['Pcs', 'Unit', 'Set', 'Lot', 'Kg', 'Litre', 'Meter', 'Sqm', 'Day', 'Month'],
     materialQualities: ['Standard', 'Premium', 'Certified', 'Industrial grade', 'Food grade', 'Medical grade'],
     standards: ['ISO', 'TBS', 'CE', 'UL', 'Energy Star', 'Manufacturer certificate'],
@@ -345,11 +346,6 @@ const createTenderRequirementTemplates = {
                 title: '3. Technical Specifications',
                 hint: 'Detailed technical requirements and mandatory specification documents.',
                 controls: [
-                    { id: 'applicableStandardsCodes', label: 'Applicable standards / codes', type: 'list', addLabel: 'Add Standard or Code', emptyText: 'No standards or codes added yet.' },
-                    { id: 'materialSpecifications', label: 'Material specifications', type: 'textarea' },
-                    { id: 'workmanshipStandards', label: 'Workmanship standards', type: 'textarea' },
-                    { id: 'engineeringRequirements', label: 'Engineering requirements', type: 'textarea' },
-                    { id: 'equipmentRequirementsSummary', label: 'Equipment requirements', type: 'textarea' },
                     {
                         id: 'technicalSpecificationDocuments',
                         label: 'Technical specification documents',
@@ -357,10 +353,8 @@ const createTenderRequirementTemplates = {
                         addLabel: 'Add Specification Document',
                         emptyText: 'No specification documents added yet.',
                         columns: [
-                            { id: 'documentTitle', label: 'Document title', type: 'text' },
-                            { id: 'referenceStandard', label: 'Standard reference', type: 'text' },
-                            { id: 'documentUpload', label: 'Upload document', type: 'file', accept: '.pdf,.doc,.docx,.xls,.xlsx' },
-                            { id: 'mandatory', label: 'Mandatory before publication', type: 'toggle' }
+                            { id: 'documentTitle', label: 'Document title', type: 'select-custom-prompt', options: createTenderRequirementOptions.worksTechnicalSpecificationTitles },
+                            { id: 'documentUpload', label: 'Upload document', type: 'file', accept: '.pdf,.doc,.docx,.xls,.xlsx' }
                         ]
                     }
                 ]
@@ -407,6 +401,7 @@ const createTenderRequirementTemplates = {
                         label: 'Bill of Quantities table',
                         type: 'table',
                         addLabel: 'Add BOQ Line',
+                        importLabel: 'Import Excel',
                         emptyText: 'No BOQ lines added yet.',
                         columns: [
                             { id: 'workItem', label: 'Work item', type: 'text' },
@@ -421,20 +416,8 @@ const createTenderRequirementTemplates = {
                 ]
             },
             {
-                id: 'deliverablesOutputs',
-                title: '6. Deliverables & Outputs',
-                hint: 'Define what the contractor must hand over at completion or milestones.',
-                controls: [
-                    { id: 'completionDeliverables', label: 'Completion deliverables', type: 'list', addLabel: 'Add Completion Deliverable', emptyText: 'No completion deliverables added yet.' },
-                    { id: 'asBuiltDrawings', label: 'As-built drawings', type: 'choice', defaultValue: 'Required', options: ['Required', 'Not required'] },
-                    { id: 'testCertificates', label: 'Test certificates', type: 'list', addLabel: 'Add Test Certificate', emptyText: 'No test certificates added yet.' },
-                    { id: 'operationManuals', label: 'Operation manuals', type: 'choice', defaultValue: 'Required', options: ['Required', 'Not required'] },
-                    { id: 'trainingRequirements', label: 'Training requirements', type: 'textarea' }
-                ]
-            },
-            {
                 id: 'timeScheduleMilestones',
-                title: '7. Time Schedule & Milestones',
+                title: '6. Time Schedule & Milestones',
                 hint: 'Capture expected timelines, milestone triggers, and optional work program uploads.',
                 controls: [
                     { id: 'commencementDate', label: 'Commencement date', type: 'date' },
@@ -448,28 +431,14 @@ const createTenderRequirementTemplates = {
                         columns: [
                             { id: 'milestone', label: 'Milestone', type: 'text' },
                             { id: 'targetDate', label: 'Target date', type: 'date' },
-                            { id: 'deliverable', label: 'Deliverable', type: 'text' },
                             { id: 'liquidatedDamagesTrigger', label: 'LD trigger', type: 'toggle' }
-                        ]
-                    },
-                    { id: 'liquidatedDamagesTriggers', label: 'Liquidated damages triggers', type: 'textarea' },
-                    {
-                        id: 'workProgramUploads',
-                        label: 'Work program / Gantt chart uploads',
-                        type: 'table',
-                        addLabel: 'Add Schedule Document',
-                        emptyText: 'No schedule documents added yet.',
-                        columns: [
-                            { id: 'documentType', label: 'Document type', type: 'select', options: ['Work program', 'Gantt chart', 'Other'] },
-                            { id: 'documentUpload', label: 'Upload', type: 'file', accept: '.pdf,.doc,.docx,.xls,.xlsx,.mpp,.jpg,.jpeg,.png' },
-                            { id: 'notes', label: 'Notes', type: 'textarea' }
                         ]
                     }
                 ]
             },
             {
                 id: 'siteInformation',
-                title: '8. Site Information',
+                title: '7. Site Information',
                 hint: 'Important works-procurement context for access, utilities, infrastructure, and ground conditions.',
                 controls: [
                     {
@@ -479,89 +448,29 @@ const createTenderRequirementTemplates = {
                         defaultValue: 'Not mandatory',
                         options: ['Mandatory', 'Not mandatory']
                     },
-                    { id: 'siteConditions', label: 'Site conditions', type: 'textarea' },
-                    { id: 'accessRestrictions', label: 'Access restrictions', type: 'textarea' },
-                    { id: 'existingInfrastructure', label: 'Existing infrastructure', type: 'textarea' },
-                    { id: 'utilitiesAvailability', label: 'Utilities availability', type: 'textarea' },
-                    { id: 'geotechnicalInformation', label: 'Geotechnical information', type: 'textarea' }
+                    { id: 'siteSurveyUpload', label: 'Site survey', type: 'upload-button', buttonLabel: 'Upload Site survey', accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png,.dwg,.dxf', showWhen: { field: 'siteVisitRequirement', value: 'Not mandatory' } }
                 ]
             },
-            {
-                id: 'contractorQualifications',
-                title: 'Contractor Qualification Requirements',
-                hint: 'Expandable requirement cards for qualifications and thresholds.',
-                controls: [
-                    {
-                        id: 'contractorQualificationCards',
-                        label: 'Qualification requirements',
-                        type: 'cards',
-                        addLabel: 'Add Qualification',
-                        emptyText: 'No contractor qualifications added yet.',
-                        fields: [
-                            { id: 'requirementTitle', label: 'Requirement title', type: 'text' },
-                            { id: 'minimumThreshold', label: 'Minimum threshold', type: 'text' },
-                            { id: 'mandatory', label: 'Mandatory', type: 'toggle' },
-                            { id: 'uploadRequired', label: 'Upload required', type: 'toggle' },
-                            { id: 'notes', label: 'Notes', type: 'textarea' }
-                        ],
-                        presets: ['Construction license', 'Contractor registration class', 'Tax certificates', 'Insurance', 'OSHA compliance']
-                    }
-                ]
-            },
+            
             {
                 id: 'technicalCapacity',
                 title: 'Technical Capacity',
-                hint: 'Technical capacity evidence that can grow by requirement.',
+                hint: 'Turn each technical capacity evidence requirement on or off.',
                 controls: [
-                    { id: 'similarCompletedProjects', label: 'Similar completed projects', type: 'list', addLabel: 'Add Similar Project', emptyText: 'No similar projects added yet.' },
-                    { id: 'keyPersonnelCvs', label: 'Key personnel CVs', type: 'list', addLabel: 'Add CV Requirement', emptyText: 'No CV requirements added yet.' },
-                    { id: 'equipmentOwnership', label: 'Equipment ownership', type: 'list', addLabel: 'Add Equipment Ownership Requirement', emptyText: 'No equipment ownership requirements added yet.' },
-                    { id: 'bankStatements', label: 'Bank statements', type: 'text' },
-                    { id: 'annualTurnover', label: 'Annual turnover', type: 'number' }
-                ]
-            },
-            {
-                id: 'keyPersonnel',
-                title: 'Key Personnel Requirements',
-                hint: 'Personnel cards for role-specific experience, qualifications, and document toggles.',
-                controls: [
+                    { id: 'similarCompletedProjectsRequired', label: 'Similar completed projects', type: 'toggle', helperText: 'Require bidders to submit evidence of similar completed works.' },
+                    { id: 'keyPersonnelCvsRequired', label: 'Key personnel CVs', type: 'toggle', helperText: 'Require CVs for proposed key personnel.' },
+                    { id: 'bankStatementsRequired', label: 'Bank statements', type: 'toggle', helperText: 'Require bank statements as financial capacity evidence.' },
                     {
-                        id: 'keyPersonnelCards',
-                        label: 'Key personnel',
-                        type: 'cards',
-                        addLabel: 'Add Personnel Role',
-                        emptyText: 'No key personnel roles added yet.',
-                        fields: [
-                            { id: 'position', label: 'Position', type: 'text' },
-                            { id: 'minimumExperience', label: 'Minimum experience', type: 'number', suffix: 'years' },
-                            { id: 'requiredQualification', label: 'Required qualification', type: 'textarea' },
-                            { id: 'certifications', label: 'Certifications', type: 'multiselect', options: createTenderRequirementOptions.certifications },
-                            { id: 'cvRequired', label: 'CV required', type: 'toggle' },
-                            { id: 'academicCertificateRequired', label: 'Academic cert required', type: 'toggle' }
-                        ]
+                        id: 'bankStatementPeriod',
+                        label: 'Bank statement period',
+                        type: 'textarea',
+                        placeholder: 'Example: Submit bank statements covering the last 6 months.',
+                        helperText: 'Describe how far back the bank statements should cover.',
+                        showWhen: { field: 'bankStatementsRequired', value: true }
                     }
                 ]
             },
-            {
-                id: 'equipmentRequirements',
-                title: 'Equipment Requirements',
-                hint: 'Add each required equipment item and its proof.',
-                controls: [
-                    {
-                        id: 'equipmentRows',
-                        label: 'Required equipment',
-                        type: 'table',
-                        addLabel: 'Add Equipment',
-                        emptyText: 'No equipment requirements added yet.',
-                        columns: [
-                            { id: 'equipment', label: 'Equipment', type: 'text' },
-                            { id: 'quantity', label: 'Quantity', type: 'number' },
-                            { id: 'ownershipProof', label: 'Ownership proof', type: 'toggle' },
-                            { id: 'leaseAllowed', label: 'Lease allowed', type: 'toggle' }
-                        ]
-                    }
-                ]
-            }
+            
         ]
     },
     services: {
@@ -574,30 +483,10 @@ const createTenderRequirementTemplates = {
                 controls: [
                     { id: 'scopeOfServices', label: 'Scope of services', type: 'textarea' },
                     { id: 'serviceLocations', label: 'Service locations', type: 'list', addLabel: 'Add Service Location', emptyText: 'No service locations added yet.' },
-                    { id: 'performanceStandardsSummary', label: 'Performance standards', type: 'textarea' },
                     { id: 'duration', label: 'Duration', type: 'text' }
                 ]
             },
-            {
-                id: 'serviceScope',
-                title: 'Service Scope',
-                hint: 'Dynamic task cards for service tasks, frequency, KPI, and service level.',
-                controls: [
-                    {
-                        id: 'serviceTaskCards',
-                        label: 'Service tasks',
-                        type: 'cards',
-                        addLabel: 'Add Task',
-                        emptyText: 'No service tasks added yet.',
-                        fields: [
-                            { id: 'taskName', label: 'Task name', type: 'text' },
-                            { id: 'frequency', label: 'Frequency', type: 'select', options: createTenderRequirementOptions.frequency },
-                            { id: 'kpi', label: 'KPI', type: 'text' },
-                            { id: 'serviceLevel', label: 'Service level', type: 'select', options: createTenderRequirementOptions.serviceLevels }
-                        ]
-                    }
-                ]
-            },
+            
             {
                 id: 'serviceRequirements',
                 title: 'Service Requirements',
@@ -1306,10 +1195,10 @@ function renderCreateTenderRequirementField(field, value, attributes = '') {
     if (field.type === 'select-custom-prompt') {
         const optionValues = (field.options || []).map(getCreateTenderRequirementOptionValue);
         const selectedValue = String(value || '');
-        if (selectedValue === 'Other' || (selectedValue && !optionValues.includes(selectedValue))) {
+        if (selectedValue === 'Other' || selectedValue === 'Others' || (selectedValue && !optionValues.includes(selectedValue))) {
             return `
                 <div class="requirement-custom-select-field">
-                    <input class="form-input" type="text" value="${selectedValue === 'Other' ? '' : escapeCreateTenderHtml(selectedValue)}" ${requiredAttribute} placeholder="Type contract type" ${attributes}>
+                    <input class="form-input" type="text" value="${selectedValue === 'Other' || selectedValue === 'Others' ? '' : escapeCreateTenderHtml(selectedValue)}" ${requiredAttribute} placeholder="${escapeCreateTenderHtml(field.customPlaceholder || 'Type value')}" ${attributes}>
                     <button class="btn btn-secondary" type="button" data-requirement-reset-select="${escapeCreateTenderHtml(field.id)}">Choose from list</button>
                 </div>
             `;
@@ -1378,6 +1267,16 @@ function renderCreateTenderRequirementField(field, value, attributes = '') {
             <div class="requirement-file-field">
                 <input class="form-input" type="file" ${field.accept ? `accept="${escapeCreateTenderHtml(field.accept)}"` : ''} ${attributes}>
                 <span>${value ? escapeCreateTenderHtml(value) : 'No file selected'}</span>
+            </div>
+        `;
+    }
+    if (field.type === 'upload-button') {
+        const fileAttributes = attributes.replace(/\bid="[^"]*"\s*/g, '');
+        return `
+            <div class="requirement-upload-button-field">
+                <button class="btn btn-secondary" type="button" data-upload-button-trigger="${escapeCreateTenderHtml(field.id)}">${escapeCreateTenderHtml(field.buttonLabel || 'Upload file')}</button>
+                <input type="file" ${field.accept ? `accept="${escapeCreateTenderHtml(field.accept)}"` : ''} ${fileAttributes} hidden>
+                <span class="form-hint">${value ? escapeCreateTenderHtml(value) : 'No file selected'}</span>
             </div>
         `;
     }
@@ -1502,6 +1401,45 @@ function renderCreateTenderScopeDescriptionSection(section, requirementDraft, pr
     `;
 }
 
+function renderCreateTenderTechnicalCapacitySection(section, requirementDraft, profileId = '') {
+    const visibleControls = (section.controls || []).filter(control => {
+        if (!control.showWhen) return true;
+        return requirementDraft.fields?.[control.showWhen.field] === control.showWhen.value;
+    });
+
+    return `
+        <article class="requirement-block technical-capacity-block">
+            <div>
+                <h4>${escapeCreateTenderHtml(section.title)}</h4>
+                <span class="form-hint">${escapeCreateTenderHtml(section.hint)}</span>
+            </div>
+            <div class="technical-capacity-list">
+                ${visibleControls.map(control => {
+                    const value = Boolean(requirementDraft.fields?.[control.id]);
+                    if (control.type !== 'toggle') {
+                        return `
+                            <div class="technical-capacity-detail-row">
+                                <span class="form-label">${escapeCreateTenderHtml(control.label)}</span>
+                                <span class="form-hint">${escapeCreateTenderHtml(getCreateTenderRequirementHelperText(control, requirementDraft.fields?.[control.id]))}</span>
+                                ${renderCreateTenderRequirementControl(control, requirementDraft.fields?.[control.id], profileId)}
+                            </div>
+                        `;
+                    }
+                    return `
+                        <div class="technical-capacity-row">
+                            <div>
+                                <strong>${escapeCreateTenderHtml(control.label)}</strong>
+                                <span>${escapeCreateTenderHtml(getCreateTenderRequirementHelperText(control, value))}</span>
+                            </div>
+                            ${renderCreateTenderRequirementControl(control, value, profileId)}
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </article>
+    `;
+}
+
 function renderCreateTenderRequirementTableRows(rows = [], control, profileId = '') {
     const columns = resolveCreateTenderRequirementColumns(control, profileId);
     const normalizedRows = normalizeCreateTenderRequirementTableRows(rows, columns, control.id);
@@ -1565,7 +1503,10 @@ function renderCreateTenderRequirementControlTable(control, value, profileId = '
             </table>
         </div>
         ${shouldDisableAdd ? `<span class="form-hint">${escapeCreateTenderHtml(control.sourceEmptyText || 'Add a source item first.')}</span>` : ''}
-        <button class="btn btn-secondary scope-add" type="button" data-requirement-control-add="${escapeCreateTenderHtml(control.id)}" ${shouldDisableAdd ? 'disabled' : ''}>${escapeCreateTenderHtml(control.addLabel || `Add ${control.label}`)}</button>
+        <div class="requirement-table-actions">
+            ${control.importLabel ? `<button class="btn btn-secondary scope-add" type="button" data-requirement-import="${escapeCreateTenderHtml(control.id)}">${escapeCreateTenderHtml(control.importLabel)}</button>` : ''}
+            <button class="btn btn-secondary scope-add" type="button" data-requirement-control-add="${escapeCreateTenderHtml(control.id)}" ${shouldDisableAdd ? 'disabled' : ''}>${escapeCreateTenderHtml(control.addLabel || `Add ${control.label}`)}</button>
+        </div>
     `;
 }
 
@@ -1665,6 +1606,8 @@ function renderCreateTenderRequirementSections(profile, mainDraft = getCreateTen
         <div class="requirement-section-grid">
             ${sections.map(section => section.id === 'scopeDescription'
                 ? renderCreateTenderScopeDescriptionSection(section, requirementDraft, profile.id)
+                : section.id === 'technicalCapacity'
+                    ? renderCreateTenderTechnicalCapacitySection(section, requirementDraft, profile.id)
                 : `
                     <article class="requirement-block">
                     <div>
@@ -1711,7 +1654,7 @@ function getCreateTenderRequirementOptionValue(option) {
 
 function isCreateTenderRequirementControlValid(control = {}, value = '') {
     if (!isCreateTenderRequirementValueFilled(value)) return false;
-    if (control.type === 'select-custom-prompt') return String(value || '').trim() !== 'Other';
+    if (control.type === 'select-custom-prompt') return !['Other', 'Others'].includes(String(value || '').trim());
     if (control.type !== 'select') return true;
     const allowedValues = new Set((control.options || []).map(getCreateTenderRequirementOptionValue));
     return allowedValues.has(String(value || ''));
@@ -3682,7 +3625,7 @@ function initializeCreateTenderWizard() {
         refreshRequirementHelper(controlId);
         refreshRequirementCounter(controlId);
         const shouldRefreshContractTypeControl = controlId === 'contractType' && input.tagName === 'SELECT';
-        if (shouldRefreshContractTypeControl || controlId === 'requireSamples') {
+        if (shouldRefreshContractTypeControl || controlId === 'requireSamples' || controlId === 'siteVisitRequirement' || controlId === 'bankStatementsRequired') {
             refreshProfileText();
             wizard.querySelector(`[data-requirement-input="${CSS.escape(controlId)}"]`)?.focus();
         }
@@ -3736,6 +3679,9 @@ function initializeCreateTenderWizard() {
                 if (output) output.textContent = formatCreateTenderRequirementCalculatedValue(calculateCreateTenderRequirementFormula(column.formula, tableRow));
             });
         if (columns.some(column => column.showWhen?.field === field)) {
+            renderRequirementControl(controlId);
+        }
+        if (column?.type === 'select-custom-prompt' && input.tagName === 'SELECT') {
             renderRequirementControl(controlId);
         }
         if (controlId === 'quantityScheduleRows') {
@@ -4000,10 +3946,32 @@ function initializeCreateTenderWizard() {
 
         if (target.matches('[data-requirement-reset-select]')) {
             const controlId = target.dataset.requirementResetSelect;
+            if (target.closest('[data-requirement-table-row]')) {
+                const row = target.closest('[data-requirement-table-row]');
+                const input = row?.querySelector(`[data-requirement-table-field="${CSS.escape(controlId)}"]`);
+                if (input) {
+                    input.value = '';
+                    updateRequirementTableField(input);
+                    renderRequirementControl(row?.dataset.requirementControl);
+                    input.focus();
+                }
+                return;
+            }
             saveRequirementControlValue(controlId, '');
             renderRequirementControl(controlId);
             refreshRequirementHelper(controlId);
             wizard.querySelector(`[data-requirement-input="${CSS.escape(controlId)}"]`)?.focus();
+            return;
+        }
+
+        if (target.matches('[data-requirement-import]')) {
+            wizard.querySelector('[data-boq-file]')?.click();
+            return;
+        }
+
+        if (target.matches('[data-upload-button-trigger]')) {
+            const controlId = target.dataset.uploadButtonTrigger;
+            target.closest('.requirement-control')?.querySelector(`[data-requirement-input="${CSS.escape(controlId)}"]`)?.click();
             return;
         }
 

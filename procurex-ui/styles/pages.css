@@ -2596,6 +2596,51 @@
     margin: 0;
 }
 
+.tender-wizard-page .technical-capacity-block {
+    background: var(--surface-soft);
+}
+
+.tender-wizard-page .technical-capacity-list {
+    display: grid;
+    gap: 10px;
+}
+
+.tender-wizard-page .technical-capacity-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 16px;
+    align-items: center;
+    padding: 14px 16px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    background: var(--card-bg);
+}
+
+.tender-wizard-page .technical-capacity-row strong,
+.tender-wizard-page .technical-capacity-row span {
+    display: block;
+}
+
+.tender-wizard-page .technical-capacity-row strong {
+    color: var(--text-primary);
+    font-size: 15px;
+}
+
+.tender-wizard-page .technical-capacity-row span {
+    margin-top: 3px;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.tender-wizard-page .technical-capacity-detail-row {
+    display: grid;
+    gap: 7px;
+    padding: 14px 16px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    background: var(--card-bg);
+}
+
 .tender-wizard-page .requirement-extra-panel {
     margin-bottom: 16px;
 }
@@ -2683,9 +2728,13 @@
 
 .tender-wizard-page .requirement-custom-select-field {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 10px;
-    align-items: center;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    align-items: start;
+}
+
+.tender-wizard-page .requirement-custom-select-field .btn {
+    width: fit-content;
 }
 
 .tender-wizard-page .requirement-multi-select {
@@ -2818,6 +2867,13 @@
     background: var(--card-bg);
 }
 
+.tender-wizard-page .requirement-table-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
 .tender-wizard-page .requirement-table {
     width: 100%;
     min-width: 720px;
@@ -2894,6 +2950,13 @@
     font-size: 12px;
     font-weight: 700;
     overflow-wrap: anywhere;
+}
+
+.tender-wizard-page .requirement-upload-button-field {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
 }
 
 .tender-wizard-page .requirement-conditional-cell.muted {
