@@ -1467,6 +1467,15 @@ select.form-input:focus,
     color: var(--design-body-on-dark) !important;
 }
 
+.submit-strip.system-evaluation-publish,
+.submit-strip.system-evaluation-publish strong {
+    color: #ffffff !important;
+}
+
+.submit-strip.system-evaluation-publish span[data-system-publish-note] {
+    color: rgba(255, 255, 255, 0.78) !important;
+}
+
 .app-topbar {
     display: flex !important;
     align-items: center !important;

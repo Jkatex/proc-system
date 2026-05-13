@@ -4061,9 +4061,9 @@ function renderCreateTenderSystemEvaluationPanel(profile, mainDraft = getCreateT
                     </label>
                 </div>
                 <div class="submit-strip buyer-review-submit system-evaluation-publish">
-                    <div>
-                        <strong>Actions</strong>
-                        <span data-system-publish-note>Submit the tender to the evaluator. The creation wizard will close after submission.</span>
+                    <div style="color: #ffffff !important;">
+                        <strong style="color: #ffffff !important;">Actions</strong>
+                        <span data-system-publish-note style="color: rgba(255, 255, 255, 0.78) !important;">Submit the tender to the evaluator. The creation wizard will close after submission.</span>
                     </div>
                     <button class="btn btn-primary" type="button" data-run-system-evaluation disabled>Submit Tender for Evaluation</button>
                 </div>

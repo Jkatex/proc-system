@@ -4439,11 +4439,15 @@
     margin-top: 0;
     border: 1px solid var(--border-soft);
     background: var(--text-primary);
-    color: #ffffff;
+    color: #ffffff !important;
+}
+
+.tender-wizard-page .submit-strip.system-evaluation-publish strong {
+    color: #ffffff !important;
 }
 
 .tender-wizard-page .submit-strip.system-evaluation-publish span {
-    color: rgba(255, 255, 255, 0.78);
+    color: rgba(255, 255, 255, 0.78) !important;
 }
 
 @media (max-width: 820px) {
