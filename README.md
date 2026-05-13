@@ -53,8 +53,8 @@ Onboard user
   -> define requirements
   -> configure evaluation criteria
   -> review tender
-  -> run system evaluation
-  -> publish to marketplace
+  -> submit for evaluation
+  -> approved tenders publish automatically
   -> receive bids
   -> evaluate
   -> award and manage contract
@@ -68,10 +68,10 @@ The tender wizard is the most developed flow in the current UI.
 | --- | --- |
 | 1. Basic Information | Tender title, buyer contact, location, and submission dates |
 | 2. Tender Planning | Procurement type, category, method, and invited suppliers |
-| 3. Tender Requirements | Type-specific requirements, regulatory licenses, and contract clauses |
+| 3. Tender Requirements | Type-specific requirements and regulatory licenses |
 | 4. Evaluation Criteria & Weights | Suggested criteria library, selected subcriteria, custom criteria, and 100% balancing |
-| 5. Review Tender | Complete buyer review of entered data and internal buyer view |
-| 6. System Evaluation & Publish | System understanding check, grammar review, and marketplace publishing gate |
+| 5. Review Tender | Complete buyer review of entered data |
+| 6. Evaluation | Submit to an evaluator for grammar, formality, and information review; approved tenders publish automatically |
 
 ## Consultancy Procurement Support
 
@@ -83,11 +83,10 @@ ProcureX includes a structured consultancy TOR model tailored for Tanzania procu
 - Duties and responsibilities of parties
 - Deliverables and timeline
 - Qualifications and experience
-- Ethics and knowledge transfer
 - Institutional arrangements
 - Attachments and reference documents
 - Regulatory license requirements
-- Consultancy contract clauses
+- Ethics, knowledge transfer, IP, and consultancy contract setup continue in the contract management flow
 
 This makes consultancy tender design more structured than a plain form, while still keeping the buyer fully in control.
 

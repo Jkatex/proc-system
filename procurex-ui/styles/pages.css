@@ -1518,6 +1518,73 @@
     width: 100%;
 }
 
+.contract-clause-library {
+    display: grid;
+    gap: 18px;
+}
+
+.contract-clause-note {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin: -6px 0 0;
+}
+
+.contract-clause-library-stack {
+    display: grid;
+    gap: 16px;
+}
+
+.contract-clause-category {
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    padding: 16px;
+    background: var(--background);
+}
+
+.contract-clause-category.active {
+    border-color: rgba(37, 99, 235, 0.28);
+    background: var(--primary-blue-light);
+}
+
+.contract-clause-category-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+
+.contract-clause-category-heading h4 {
+    margin: 4px 0 0;
+}
+
+.contract-clause-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
+}
+
+.contract-clause-card {
+    display: grid;
+    gap: 6px;
+    min-height: 104px;
+    padding: 12px;
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    background: var(--card-bg);
+}
+
+.contract-clause-card strong {
+    color: var(--text-primary);
+    line-height: 1.35;
+}
+
+.contract-clause-card span {
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
 /* Buyer journey */
 .journey-page {
     width: min(1280px, 100%);
@@ -2084,7 +2151,7 @@
 }
 
 .evaluation-toolbar {
-    grid-template-columns: minmax(180px, 1fr) auto auto auto;
+    grid-template-columns: minmax(180px, 1fr) auto;
     align-items: end;
     padding: 14px;
     border: 1px solid var(--border-soft);
@@ -2098,8 +2165,16 @@
 }
 
 .evaluation-builder-grid {
-    grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.75fr);
+    grid-template-columns: minmax(0, 1fr);
     align-items: start;
+}
+
+.evaluation-suggestions-row {
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    background: var(--surface-soft);
 }
 
 .evaluation-selected-panel,
@@ -2113,6 +2188,124 @@
 .evaluation-suggestion-list {
     display: grid;
     gap: 12px;
+}
+
+.evaluation-weight-cell {
+    min-width: 110px;
+}
+
+.evaluation-selected-card {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    background: var(--card-bg);
+}
+
+.evaluation-selected-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 18px;
+    align-items: start;
+}
+
+.evaluation-selected-copy {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+}
+
+.evaluation-selected-heading-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.evaluation-selected-heading-meta > span:first-child {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.evaluation-selected-copy strong {
+    color: var(--text-primary);
+    font-size: 16px;
+}
+
+.evaluation-subcriteria-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.evaluation-selected-actions {
+    display: grid;
+    grid-template-columns: 120px auto;
+    gap: 10px;
+    align-items: end;
+}
+
+.evaluation-card-action-stack {
+    display: grid;
+    gap: 8px;
+    justify-items: center;
+}
+
+.evaluation-edit-menu {
+    display: grid;
+    gap: 12px;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    z-index: 90;
+    width: min(720px, calc(100vw - 32px));
+    max-height: min(760px, calc(100vh - 48px));
+    overflow: auto;
+    padding: 18px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--card-bg);
+    box-shadow: var(--shadow-xl);
+    transform: translate(-50%, -50%);
+}
+
+.evaluation-edit-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+}
+
+.evaluation-edit-menu::before {
+    content: "";
+    position: fixed;
+    inset: -100vh -100vw;
+    z-index: -1;
+    background: rgba(15, 23, 42, 0.42);
+}
+
+.evaluation-edit-menu[hidden] {
+    display: none;
+}
+
+.evaluation-edit-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(160px, 0.5fr);
+    gap: 12px;
+}
+
+.evaluation-edit-grid label {
+    display: grid;
+    gap: 7px;
+}
+
+.evaluation-edit-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-end;
 }
 
 .evaluation-criterion-card {
@@ -2347,85 +2540,148 @@
     gap: 16px;
 }
 
-.system-evaluation-panel {
+.system-evaluation-submit-flow {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.system-evaluation-submit-card {
     display: grid;
-    gap: 14px;
+    gap: 22px;
     min-width: 0;
-    padding: 16px;
+    padding: 24px;
     border: 1px solid var(--border-soft);
     border-radius: var(--radius-xl);
+    background: var(--card-bg);
+    box-shadow: var(--shadow-sm);
+}
+
+.system-evaluation-submit-header {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.system-evaluation-submit-header h3 {
+    margin: 4px 0 0;
+    font-size: 28px;
+    line-height: 1.15;
+}
+
+.system-evaluation-description {
+    display: grid;
+    gap: 8px;
+    padding: 16px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
     background: var(--surface-soft);
 }
 
-.system-evaluation-score-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
+.system-evaluation-description strong {
+    font-size: 13px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
 }
 
-.system-evaluation-score-grid article {
+.system-evaluation-description p {
+    margin: 0;
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+.system-evaluation-outcome-grid {
     display: grid;
-    gap: 7px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.system-evaluation-outcome-card {
+    display: grid;
+    gap: 10px;
     min-width: 0;
     padding: 16px;
     border: 1px solid var(--border-soft);
     border-radius: var(--radius-lg);
-    background: var(--card-bg);
+    background: var(--surface-soft);
 }
 
-.system-evaluation-score-grid span {
+.system-evaluation-outcome-card h4 {
+    margin: 0;
+    font-size: 15px;
+}
+
+.system-evaluation-outcome-card ul {
+    margin: 0;
+    padding-left: 18px;
     color: var(--text-secondary);
-    font-size: 12px;
-    font-weight: 800;
-    text-transform: uppercase;
+    line-height: 1.55;
 }
 
-.system-evaluation-score-grid strong {
-    font-size: 24px;
-    line-height: 1.1;
+.system-evaluation-outcome-card li + li {
+    margin-top: 6px;
 }
 
-.system-evaluation-checklist {
+.system-evaluation-outcome-card.outcome-pass {
+    border-color: rgba(49, 162, 76, 0.35);
+    background: rgba(49, 162, 76, 0.06);
+}
+
+.system-evaluation-outcome-card.outcome-return {
+    border-color: rgba(242, 169, 24, 0.42);
+    background: rgba(242, 169, 24, 0.08);
+}
+
+.system-evaluation-confirmations {
     display: grid;
     gap: 10px;
 }
 
-.system-evaluation-checklist div {
+.system-evaluation-confirmations label {
     display: grid;
-    grid-template-columns: 110px minmax(0, 1fr);
+    grid-template-columns: 20px minmax(0, 1fr);
     gap: 12px;
-    align-items: center;
-    padding: 12px;
+    align-items: flex-start;
+    padding: 13px 14px;
     border: 1px solid var(--border-soft);
     border-radius: var(--radius-lg);
-    background: var(--card-bg);
-}
-
-.system-evaluation-checklist .passed {
-    border-color: rgba(49, 162, 76, 0.45);
-}
-
-.system-evaluation-checklist .pending {
-    border-color: rgba(242, 169, 24, 0.55);
-}
-
-.system-evaluation-checklist strong {
-    color: var(--text-secondary);
-    font-size: 12px;
-    text-transform: uppercase;
-}
-
-.system-evaluation-pass-note {
-    padding: 14px;
-    border: 1px solid rgba(49, 162, 76, 0.45);
-    border-radius: var(--radius-lg);
-    background: var(--card-bg);
+    background: var(--surface-soft);
+    font-weight: 700;
     color: var(--text-primary);
+}
+
+.system-evaluation-confirmations input {
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+    accent-color: var(--primary);
 }
 
 .system-evaluation-publish .btn[disabled] {
     opacity: 0.55;
     cursor: not-allowed;
+}
+
+.submit-strip.system-evaluation-publish {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    align-items: start;
+    justify-content: initial;
+    margin-top: 0;
+    padding: 16px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    background: var(--text-primary);
+    color: #ffffff;
+}
+
+.submit-strip.system-evaluation-publish span {
+    color: rgba(255, 255, 255, 0.78);
+}
+
+.submit-strip.system-evaluation-publish .btn {
+    justify-self: start;
 }
 
 .timeline-grid,
@@ -3359,6 +3615,30 @@
     font-weight: 700;
 }
 
+.tender-wizard-page .requirement-repeatable-add-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+}
+
+.tender-wizard-page .requirement-repeatable-certification-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: end;
+}
+
+.tender-wizard-page .requirement-toggle-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
 .tender-wizard-page .requirement-choice-group {
     display: inline-grid;
     grid-template-columns: repeat(2, minmax(84px, 1fr));
@@ -4154,6 +4434,18 @@
     align-items: center;
 }
 
+.tender-wizard-page .submit-strip.system-evaluation-publish {
+    align-items: start;
+    margin-top: 0;
+    border: 1px solid var(--border-soft);
+    background: var(--text-primary);
+    color: #ffffff;
+}
+
+.tender-wizard-page .submit-strip.system-evaluation-publish span {
+    color: rgba(255, 255, 255, 0.78);
+}
+
 @media (max-width: 820px) {
     .tender-wizard-page .contact-detail-grid,
     .tender-wizard-page .contact-verification-summary,
@@ -4169,8 +4461,8 @@
     .tender-wizard-page .buyer-view-metrics,
     .tender-wizard-page .tender-review-field-grid,
     .tender-wizard-page .tender-review-two-column,
-    .tender-wizard-page .system-evaluation-score-grid,
-    .tender-wizard-page .system-evaluation-checklist div,
+    .tender-wizard-page .system-evaluation-submit-header,
+    .tender-wizard-page .system-evaluation-outcome-grid,
     .tender-wizard-page .review-summary-grid,
     .journey-grid.four-col,
     .clarification-compose {
@@ -4183,6 +4475,10 @@
 
     .tender-wizard-page .wizard-flow-controls {
         grid-template-columns: 1fr;
+    }
+
+    .tender-wizard-page .system-evaluation-submit-header {
+        flex-direction: column;
     }
 
     .tender-wizard-page .boq-summary-strip,

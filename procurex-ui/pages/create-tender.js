@@ -94,6 +94,46 @@ const createTenderContactStorageKey = 'procurex.createTender.v2.contactDetails';
 const createTenderDraftStorageKey = 'procurex.createTender.v2.savedDraft';
 const createTenderPublishedStorageKey = 'procurex.marketplace.publishedTenders';
 const createTenderSelectedTenderStorageKey = 'procurex.marketplace.selectedTenderId';
+const createTenderLegacyContractClauseFieldIds = new Set([
+    'goodsContractClauseCards',
+    'worksContractClauseCards',
+    'servicesContractClauseCards',
+    'consultancyContractClauseCards'
+]);
+const createTenderLegacyConsultancyRequirementFieldIds = new Set([
+    'consultancyGeographicCoverage',
+    'consultancyCounterpartStaff',
+    'consultancyWorkSchedule',
+    'consultancyEthicalRequirements',
+    'consultancyKnowledgeTransfer',
+    'consultancyIpDataOwnership',
+    'consultancyProfessionalRegistration',
+    'consultancyStaffingRequirements'
+]);
+
+const createTenderFixedConsultancyCardControlIds = new Set([
+    'consultancyIndividualQualifications',
+    'consultancyFirmExperience',
+    'consultancyReportingStructure',
+    'consultancyCoordinationArrangements',
+    'consultancyAdministrativeArrangements'
+]);
+
+const createTenderProfessionalRegistrationCertificationOptions = [
+    'ERB',
+    'PSPTB',
+    'NBAA',
+    'Tanganyika Law Society',
+    'Medical Council of Tanganyika',
+    'Architects and Quantity Surveyors Registration Board',
+    'ISO 9001',
+    'ISO 14001',
+    'OSHA',
+    'Project Management Professional (PMP)',
+    'Certified Public Accountant (CPA)',
+    'Professional Engineer',
+    'Other'
+];
 
 const defaultCreateTenderBoqItems = [];
 
@@ -187,80 +227,6 @@ const createTenderWorksContractTypeDescriptions = {
     'Framework Contract': 'Used for repeated or recurring procurement over a defined period.',
     'Consultancy / Time-Based Contract': 'Payment is based on consultant time, milestones, or agreed service duration.'
 };
-
-const createTenderContractClauseCatalog = {
-    goods: [
-        ['Delivery Clause', 'Delivery location, delivery timeline, and partial vs full delivery.'],
-        ['Payment Terms', 'Payment after delivery or inspection, invoice requirements, and payment timeline.'],
-        ['Inspection & Acceptance Clause', 'Inspection process, rejection conditions, and replacement rules.'],
-        ['Warranty Clause', 'Warranty period, repair or replacement obligations, and defect handling.'],
-        ['Penalty for Delay', 'Liquidated damages per day or week and maximum penalty cap.'],
-        ['Risk & Ownership Transfer', 'When risk passes to the buyer, usually upon delivery or acceptance.'],
-        ['Packaging & Transport Clause', 'Packaging standards and transport responsibility, including Incoterms where applicable.'],
-        ['Termination Clause', 'Breach conditions and cancellation rights.']
-    ],
-    works: [
-        ['Scope of Works Clause', 'Project scope, drawings or specifications reference, and bill of quantities.'],
-        ['Contract Price & Payment Schedule', 'Milestone-based payments, interim certificates, and retention money.'],
-        ['Time for Completion Clause', 'Project duration, start date, and completion deadline.'],
-        ['Liquidated Damages Clause', 'Penalty per delay day or week and maximum cap, often 10% of contract value.'],
-        ['Defects Liability Clause', 'Post-completion defect period and contractor responsibility for repairs.'],
-        ['Variation Clause', 'How changes to works are approved and how price adjustments are handled.'],
-        ['Site & Access Clause', 'Site handover rules, access rights, and utility responsibilities.'],
-        ['Health, Safety & Environment Clause', 'Safety compliance, environmental protection, and worker safety obligations.'],
-        ['Performance Security Clause', 'Bank guarantee requirement and percentage such as 5-10%.']
-    ],
-    services: [
-        ['Service Scope Clause', 'Detailed service description and service boundaries.'],
-        ['Service Level Agreement (SLA)', 'Performance standards, uptime or response time, and service quality metrics.'],
-        ['KPI & Performance Monitoring Clause', 'KPIs, measurement method, and reporting mechanism.'],
-        ['Payment Terms Clause', 'Monthly or periodic payments and deductions for poor performance.'],
-        ['Penalty Clause', 'SLA breach penalties, service credit deductions, and escalation rules.'],
-        ['Staffing & Personnel Clause', 'Required staff, qualifications, and replacement rules.'],
-        ['Equipment & Resources Clause', 'Tools or equipment required and ownership responsibilities.'],
-        ['Reporting Requirements Clause', 'Reporting frequency, format, and submission channels.'],
-        ['Termination Clause', 'Poor performance termination, notice period, and breach triggers.'],
-        ['Renewal Clause', 'Extension conditions and performance-based renewal.'],
-        ['Confidentiality Clause', 'Data protection and non-disclosure obligations.']
-    ],
-    consultancy: [
-        ['Scope of Services Clause', 'Deliverables such as reports, studies, designs, and methodology boundaries.'],
-        ['Deliverables & Milestones Clause', 'Outputs required, submission timeline, and approval process.'],
-        ['Payment Terms Clause', 'Milestone-based and acceptance-linked payments.'],
-        ['Personnel Clause', 'Key experts, CV approval requirement, and substitution restrictions.'],
-        ['Performance & Evaluation Clause', 'Quality evaluation of deliverables and acceptance criteria.'],
-        ['Intellectual Property Clause', 'Ownership of reports or data and usage rights.'],
-        ['Confidentiality Clause', 'Data protection and non-disclosure obligations.'],
-        ['Time Schedule Clause', 'Assignment duration and submission deadlines.'],
-        ['Termination Clause', 'Termination for unsatisfactory performance and withdrawal rules.'],
-        ['Conflict of Interest Clause', 'Disclosure obligations and restrictions on bias.']
-    ]
-};
-
-function createTenderContractClauseSection(profileId, title) {
-    const clauses = createTenderContractClauseCatalog[profileId] || [];
-    return {
-        id: `${profileId}ContractClauses`,
-        title,
-        hint: 'Select and configure the core contract clauses for this procurement classification.',
-        controls: [
-            {
-                id: `${profileId}ContractClauseCards`,
-                label: 'Contract clauses',
-                type: 'cards',
-                addLabel: 'Add Clause',
-                emptyText: 'No contract clauses added yet.',
-                cardTitleField: 'clauseTitle',
-                clauseDefinitions: Object.fromEntries(clauses),
-                fields: [
-                    { id: 'clauseTitle', label: 'Clause title', type: 'select', options: clauses.map(([clause]) => clause) },
-                    { id: 'defines', label: 'Description', type: 'textarea' }
-                ],
-                defaultValue: []
-            }
-        ]
-    };
-}
 
 const createTenderRequirementTemplates = {
     goods: {
@@ -368,8 +334,7 @@ const createTenderRequirementTemplates = {
                         presets: ['Certificate of incorporation', 'Tax clearance certificate', 'VAT registration', 'Manufacturer authorization', 'Past supply contracts', 'Audited financial statements']
                     }
                 ]
-            },
-            createTenderContractClauseSection('goods', 'Goods Contract Clauses')
+            }
         ]
     },
     works: {
@@ -556,8 +521,7 @@ const createTenderRequirementTemplates = {
                         showWhen: { field: 'bankStatementsRequired', value: true }
                     }
                 ]
-            },
-            createTenderContractClauseSection('works', 'Works Contract Clauses')
+            }
         ]
     },
     services: {
@@ -783,8 +747,7 @@ const createTenderRequirementTemplates = {
                     { id: 'safetyPlanRequirement', label: 'Safety plan requirement', type: 'textarea' },
                     { id: 'ppeRequirements', label: 'PPE requirements', type: 'textarea' }
                 ]
-            },
-            createTenderContractClauseSection('services', 'Service Contract Clauses')
+            }
         ]
     },
     consultancy: {
@@ -805,9 +768,7 @@ const createTenderRequirementTemplates = {
                         fields: [
                             { id: 'organizationBackground', label: 'Organization Background', type: 'richtext' },
                             { id: 'departmentUnit', label: 'Department / Unit', type: 'select-custom-prompt', options: ['Procurement Management Unit', 'Finance', 'Planning', 'ICT', 'Engineering', 'Legal', 'User Department', 'Other'] },
-                            { id: 'projectName', label: 'Project Name', type: 'text' },
-                            { id: 'fundingSource', label: 'Funding Source', type: 'select-custom-prompt', options: ['Government of Tanzania', 'Own Source', 'Donor Funded', 'Development Partner', 'Loan', 'Grant', 'Other'] },
-                            { id: 'procurementReferenceNo', label: 'Procurement Reference No', type: 'text', placeholder: 'Auto-generated reference' }
+                            { id: 'fundingSource', label: 'Funding Source', type: 'select-custom-prompt', options: ['Government of Tanzania', 'Own Source', 'Donor Funded', 'Development Partner', 'Loan', 'Grant', 'Other'] }
                         ],
                         defaultValue: []
                     },
@@ -816,6 +777,7 @@ const createTenderRequirementTemplates = {
                         label: '1.2 Project Background',
                         type: 'accordion',
                         panels: [
+                            { id: 'projectName', label: 'Project Name', type: 'text' },
                             { id: 'backgroundNarrative', label: 'Background Narrative' },
                             { id: 'existingChallenges', label: 'Existing Challenges' },
                             { id: 'currentSituation', label: 'Current Situation' },
@@ -849,8 +811,7 @@ const createTenderRequirementTemplates = {
                         fields: [
                             { id: 'objectiveTitle', label: 'Objective Title', type: 'text' },
                             { id: 'objectiveDescription', label: 'Objective Description', type: 'textarea' },
-                            { id: 'priorityLevel', label: 'Priority Level', type: 'select', options: ['High', 'Medium', 'Low'] },
-                            { id: 'mandatory', label: 'Mandatory', type: 'toggle' }
+                            { id: 'priorityLevel', label: 'Priority Level', type: 'select', options: ['High', 'Medium', 'Low'] }
                         ],
                         defaultValue: []
                     }
@@ -859,7 +820,7 @@ const createTenderRequirementTemplates = {
             {
                 id: 'consultancyScopeServices',
                 title: '3. Scope of Consultancy Services',
-                hint: 'Defines assignment activities, geographic coverage, and assignment boundaries.',
+                hint: 'Defines assignment activities and assignment boundaries.',
                 controls: [
                     {
                         id: 'consultancyAssignmentActivities',
@@ -872,31 +833,15 @@ const createTenderRequirementTemplates = {
                             { id: 'detailedDescription', label: 'Detailed Description', type: 'richtext' },
                             { id: 'expectedOutput', label: 'Expected Output', type: 'text' },
                             { id: 'location', label: 'Location', type: 'text' },
-                            { id: 'duration', label: 'Duration', type: 'number', suffix: 'days' },
-                            { id: 'mandatoryActivity', label: 'Mandatory', type: 'toggle' }
+                            { id: 'duration', label: 'Duration', type: 'number', suffix: 'days' }
                         ]
                     },
                     {
-                        id: 'consultancyGeographicCoverage',
-                        label: '3.2 Geographic Coverage',
-                        type: 'cards',
-                        addLabel: 'Add Coverage',
-                        emptyText: 'No geographic coverage added yet.',
-                        cardTitle: 'Geographic coverage',
-                        fields: [
-                            { id: 'regionsCovered', label: 'Regions Covered', type: 'multiselect', options: ['Arusha', 'Dar es Salaam', 'Dodoma', 'Geita', 'Iringa', 'Kagera', 'Katavi', 'Kigoma', 'Kilimanjaro', 'Lindi', 'Manyara', 'Mara', 'Mbeya', 'Morogoro', 'Mtwara', 'Mwanza', 'Njombe', 'Pwani', 'Rukwa', 'Ruvuma', 'Shinyanga', 'Simiyu', 'Singida', 'Songwe', 'Tabora', 'Tanga', 'Zanzibar'] },
-                            { id: 'siteVisitsRequired', label: 'Site Visits Required', type: 'toggle' },
-                            { id: 'travelRequirements', label: 'Travel Requirements', type: 'richtext' }
-                        ],
-                        defaultValue: []
-                    },
-                    {
                         id: 'consultancyAssignmentBoundaries',
-                        label: '3.3 Assignment Boundaries',
+                        label: '3.2 Assignment Boundaries',
                         type: 'accordion',
                         panels: [
-                            { id: 'outOfScopeActivities', label: 'Out-of-Scope Activities' },
-                            { id: 'constraints', label: 'Constraints' }
+                            { id: 'outOfScopeActivities', label: 'Out-of-Scope Activities' }
                         ]
                     }
                 ]
@@ -904,7 +849,7 @@ const createTenderRequirementTemplates = {
             {
                 id: 'consultancyResponsibilities',
                 title: '4. Duties and Responsibilities of the Parties',
-                hint: 'Defines obligations of the client, consultant, and counterpart staff.',
+                hint: 'Defines obligations of the client and consultant.',
                 controls: [
                     {
                         id: 'consultancyClientResponsibilities',
@@ -933,27 +878,13 @@ const createTenderRequirementTemplates = {
                             { id: 'reportingFrequency', label: 'Reporting Frequency', type: 'select', options: createTenderRequirementOptions.frequency }
                         ],
                         defaultValue: []
-                    },
-                    {
-                        id: 'consultancyCounterpartStaff',
-                        label: '4.3 Counterpart Staff',
-                        type: 'cards',
-                        addLabel: 'Add Counterpart Staff',
-                        emptyText: 'No counterpart staff added yet.',
-                        cardTitleField: 'staffRole',
-                        fields: [
-                            { id: 'staffRole', label: 'Staff Role', type: 'text' },
-                            { id: 'responsibility', label: 'Responsibility', type: 'textarea' },
-                            { id: 'department', label: 'Department', type: 'select-custom-prompt', options: ['Procurement Management Unit', 'Finance', 'Planning', 'ICT', 'Engineering', 'Legal', 'User Department', 'Other'] }
-                        ],
-                        defaultValue: []
                     }
                 ]
             },
             {
                 id: 'consultancyDeliverablesTimeline',
                 title: '5. Deliverables and Timeline',
-                hint: 'Defines expected outputs, reporting requirements, and work schedule.',
+                hint: 'Defines expected outputs and reporting requirements.',
                 controls: [
                     {
                         id: 'consultancyDeliverables',
@@ -982,49 +913,53 @@ const createTenderRequirementTemplates = {
                             { id: 'submissionFormat', label: 'Submission Format', type: 'select', options: ['PDF', 'Word', 'Excel', 'PowerPoint', 'Hard copy', 'Soft copy'] },
                             { id: 'submissionChannel', label: 'Submission Channel', type: 'select', options: ['Procurement portal', 'Email', 'Physical submission', 'Project meeting', 'Other'] }
                         ]
-                    },
-                    {
-                        id: 'consultancyWorkSchedule',
-                        label: '5.3 Work Schedule',
-                        type: 'cards',
-                        addLabel: 'Add Work Schedule',
-                        emptyText: 'No work schedule added yet.',
-                        cardTitle: 'Work schedule',
-                        fields: [
-                            { id: 'assignmentStartEstimate', label: 'Assignment Start Estimate', type: 'date' },
-                            { id: 'assignmentDuration', label: 'Assignment Duration', type: 'number', suffix: 'days' },
-                            { id: 'workingDays', label: 'Working Days', type: 'number' }
-                        ],
-                        defaultValue: []
                     }
                 ]
             },
             {
                 id: 'consultancyQualificationsExperience',
                 title: '6. Required Qualifications and Experience',
-                hint: 'Defines eligibility and the baseline for technical scoring.',
+                hint: 'Separates requirements for individual consultants or sole proprietors from consulting firms.',
                 controls: [
                     {
-                        id: 'consultancyFirmExperience',
-                        label: '6.1 Firm Experience',
+                        id: 'consultancyIndividualQualifications',
+                        label: '6.1 Individual / Sole Proprietor',
                         type: 'cards',
-                        addLabel: 'Add Firm Experience Requirement',
+                        hideAdd: true,
+                        hideDelete: true,
+                        emptyText: 'No individual or sole proprietor requirements added yet.',
+                        cardTitle: 'Individual / sole proprietor requirement',
+                        fields: [
+                            { id: 'professionalRegistrationsCertifications', label: 'Professional Registration / Certifications', type: 'repeatable-certification', options: createTenderProfessionalRegistrationCertificationOptions },
+                            { id: 'cvRequired', label: 'CV', type: 'choice', defaultValue: 'Required', options: ['Required', 'Not required'], wide: true },
+                            { id: 'yearsOfExperience', label: 'Years of Experience', type: 'number' },
+                            { id: 'similarAssignmentsCount', label: 'Number of Similar Assignments', type: 'number' },
+                            { id: 'similarAssignmentsEvidenceRequired', label: 'Similar Assignment Evidence', type: 'choice', defaultValue: 'Required', options: ['Required', 'Not required'] }
+                        ],
+                        defaultValue: [{ id: 'requirement-consultancyIndividualQualifications-fixed', professionalRegistrationsCertifications: [], cvRequired: 'Required', similarAssignmentsEvidenceRequired: 'Required' }]
+                    },
+                    {
+                        id: 'consultancyFirmExperience',
+                        label: '6.2 Consulting Firm - Firm Experience',
+                        type: 'cards',
+                        hideAdd: true,
+                        hideDelete: true,
                         emptyText: 'No firm experience requirements added yet.',
                         cardTitle: 'Firm experience',
                         fields: [
                             { id: 'minimumYearsExperience', label: 'Minimum Years Experience', type: 'number' },
-                            { id: 'requiredSimilarAssignments', label: 'Required Similar Assignments', type: 'number' },
-                            { id: 'sectorExperience', label: 'Sector Experience', type: 'multiselect', options: ['Public sector', 'Health', 'Education', 'Infrastructure', 'ICT', 'Finance', 'Environment', 'Energy', 'Water', 'Transport', 'Agriculture', 'Research'] },
-                            { id: 'requiredEvidence', label: 'Required Evidence', type: 'file', accept: '.pdf,.doc,.docx,.xls,.xlsx' }
+                            { id: 'requiredSimilarAssignments', label: 'Number of Similar Assignments', type: 'number' },
+                            { id: 'sectorExperience', label: 'Sector Experience', type: 'tag-select', placeholder: 'Choose sector', emptyText: '', options: ['Public sector', 'Health', 'Education', 'Infrastructure', 'ICT', 'Finance', 'Environment', 'Energy', 'Water', 'Transport', 'Agriculture', 'Research'] },
+                            { id: 'requiredEvidence', label: 'Similar Assignments Evidence', type: 'choice', defaultValue: 'Required', options: ['Required', 'Not required'] }
                         ],
-                        defaultValue: []
+                        defaultValue: [{ id: 'requirement-consultancyFirmExperience-fixed', sectorExperience: [], requiredEvidence: 'Required' }]
                     },
                     {
                         id: 'consultancyKeyExperts',
-                        label: '6.2 Key Experts',
+                        label: 'Consulting Firm - Key Personnel',
                         type: 'table',
-                        addLabel: 'Add Key Expert',
-                        emptyText: 'No key experts added yet.',
+                        addLabel: 'Add Key Personnel',
+                        emptyText: 'No key personnel added yet.',
                         columns: [
                             { id: 'positionTitle', label: 'Position Title', type: 'text' },
                             { id: 'minimumQualification', label: 'Minimum Qualification', type: 'select-custom-prompt', options: createTenderRequirementOptions.educationLevels },
@@ -1035,94 +970,23 @@ const createTenderRequirementTemplates = {
                         ]
                     },
                     {
-                        id: 'consultancyProfessionalRegistration',
-                        label: '6.3 Professional Registration',
-                        type: 'table',
-                        addLabel: 'Add Registration',
-                        emptyText: 'No professional registrations added yet.',
-                        columns: [
-                            { id: 'regulatoryBody', label: 'Regulatory Body', type: 'select-custom-prompt', options: ['ERB', 'PSPTB', 'NBAA', 'Tanganyika Law Society', 'Medical Council of Tanganyika', 'Architects and Quantity Surveyors Registration Board', 'Other'] },
-                            { id: 'registrationType', label: 'Registration Type', type: 'text' },
-                            { id: 'mandatory', label: 'Mandatory', type: 'toggle' },
-                            { id: 'expiryValidationRequired', label: 'Expiry Validation Required', type: 'toggle' }
-                        ]
-                    },
-                    {
-                        id: 'consultancyStaffingRequirements',
-                        label: '6.4 Staffing Requirements',
-                        type: 'cards',
-                        addLabel: 'Add Staffing Requirement',
-                        emptyText: 'No staffing requirements added yet.',
-                        cardTitle: 'Staffing requirements',
-                        fields: [
-                            { id: 'minimumTeamSize', label: 'Minimum Team Size', type: 'number' },
-                            { id: 'localExpertRequirement', label: 'Local Expert Requirement', type: 'toggle' },
-                            { id: 'languageRequirement', label: 'Language Requirement', type: 'multiselect', options: ['English', 'Swahili', 'French', 'Arabic', 'Portuguese', 'Other'] }
-                        ]
-                    }
-                ]
-            },
-            {
-                id: 'consultancyEthicsKnowledgeTransfer',
-                title: '7. Ethical Considerations and Knowledge Transfer',
-                hint: 'Ensures integrity, confidentiality, institutional strengthening, and ownership clarity.',
-                controls: [
-                    {
-                        id: 'consultancyEthicalRequirements',
-                        label: '7.1 Ethical Requirements',
-                        type: 'cards',
-                        addLabel: 'Add Ethical Requirement',
-                        emptyText: 'No ethical requirements added yet.',
-                        cardTitle: 'Ethical requirements',
-                        fields: [
-                            { id: 'conflictOfInterestDeclaration', label: 'Conflict of Interest Declaration', type: 'toggle' },
-                            { id: 'confidentialityRequirement', label: 'Confidentiality Requirement', type: 'toggle' },
-                            { id: 'antiCorruptionCompliance', label: 'Anti-Corruption Compliance', type: 'toggle' },
-                            { id: 'dataProtectionRequirement', label: 'Data Protection Requirement', type: 'toggle' }
-                        ],
-                        defaultValue: []
-                    },
-                    {
-                        id: 'consultancyKnowledgeTransfer',
-                        label: '7.2 Knowledge Transfer',
-                        type: 'cards',
-                        addLabel: 'Add Knowledge Transfer Requirement',
-                        emptyText: 'No knowledge transfer requirements added yet.',
-                        cardTitle: 'Knowledge transfer',
-                        fields: [
-                            { id: 'trainingRequired', label: 'Training Required', type: 'toggle' },
-                            { id: 'mentorshipRequired', label: 'Mentorship Required', type: 'toggle' },
-                            { id: 'manualsRequired', label: 'Manuals Required', type: 'toggle' },
-                            { id: 'handoverDocumentation', label: 'Handover Documentation', type: 'toggle' }
-                        ],
-                        defaultValue: []
-                    },
-                    {
-                        id: 'consultancyIpDataOwnership',
-                        label: '7.3 Intellectual Property & Data Ownership',
-                        type: 'cards',
-                        addLabel: 'Add IP / Data Rule',
-                        emptyText: 'No IP or data ownership rules added yet.',
-                        cardTitle: 'IP and data ownership',
-                        fields: [
-                            { id: 'ownershipOfDeliverables', label: 'Ownership of Deliverables', type: 'select', options: ['Procuring entity', 'Consultant', 'Joint ownership', 'As specified in contract'] },
-                            { id: 'dataUsageRestrictions', label: 'Data Usage Restrictions', type: 'richtext' },
-                            { id: 'confidentialDataHandling', label: 'Confidential Data Handling', type: 'richtext' }
-                        ],
-                        defaultValue: []
+                        id: 'consultancyRegulatoryLicenses',
+                        label: '',
+                        type: 'regulatory-licenses'
                     }
                 ]
             },
             {
                 id: 'consultancyInstitutionalArrangements',
-                title: '8. Institutional and Organizational Arrangements',
+                title: '7. Institutional and Organizational Arrangements',
                 hint: 'Defines reporting hierarchy, coordination arrangements, and administrative support.',
                 controls: [
                     {
                         id: 'consultancyReportingStructure',
-                        label: '8.1 Reporting Structure',
+                        label: '7.1 Reporting Structure',
                         type: 'cards',
-                        addLabel: 'Add Reporting Structure',
+                        hideAdd: true,
+                        hideDelete: true,
                         emptyText: 'No reporting structure added yet.',
                         cardTitle: 'Reporting structure',
                         fields: [
@@ -1130,13 +994,14 @@ const createTenderRequirementTemplates = {
                             { id: 'supervisingOfficer', label: 'Supervising Officer', type: 'select-custom-prompt', options: ['Project Manager', 'Head of Department', 'Director', 'Procurement Officer', 'Other'] },
                             { id: 'approvalAuthority', label: 'Approval Authority', type: 'select-custom-prompt', options: ['Accounting Officer', 'Tender Board', 'Project Steering Committee', 'User Department', 'Other'] }
                         ],
-                        defaultValue: []
+                        defaultValue: [{ id: 'requirement-consultancyReportingStructure-fixed' }]
                     },
                     {
                         id: 'consultancyCoordinationArrangements',
-                        label: '8.2 Coordination Arrangements',
+                        label: '7.2 Coordination Arrangements',
                         type: 'cards',
-                        addLabel: 'Add Coordination Arrangement',
+                        hideAdd: true,
+                        hideDelete: true,
                         emptyText: 'No coordination arrangements added yet.',
                         cardTitle: 'Coordination arrangement',
                         fields: [
@@ -1144,13 +1009,14 @@ const createTenderRequirementTemplates = {
                             { id: 'coordinationMechanism', label: 'Coordination Mechanism', type: 'richtext' },
                             { id: 'communicationMethod', label: 'Communication Method', type: 'multiselect', options: ['Email', 'Procurement portal', 'Physical meetings', 'Virtual meetings', 'Phone', 'Official letters'] }
                         ],
-                        defaultValue: []
+                        defaultValue: [{ id: 'requirement-consultancyCoordinationArrangements-fixed', communicationMethod: [] }]
                     },
                     {
                         id: 'consultancyAdministrativeArrangements',
-                        label: '8.3 Administrative Arrangements',
+                        label: '7.3 Administrative Arrangements',
                         type: 'cards',
-                        addLabel: 'Add Administrative Arrangement',
+                        hideAdd: true,
+                        hideDelete: true,
                         emptyText: 'No administrative arrangements added yet.',
                         cardTitle: 'Administrative arrangements',
                         fields: [
@@ -1158,18 +1024,18 @@ const createTenderRequirementTemplates = {
                             { id: 'accessToFacilities', label: 'Access to Facilities', type: 'toggle' },
                             { id: 'accessToDocuments', label: 'Access to Documents', type: 'toggle' }
                         ],
-                        defaultValue: []
+                        defaultValue: [{ id: 'requirement-consultancyAdministrativeArrangements-fixed' }]
                     }
                 ]
             },
             {
                 id: 'consultancyAttachmentsReferences',
-                title: '9. Attachments & Reference Documents',
+                title: '8. Attachments & Reference Documents',
                 hint: 'Supports consultants with background materials, policy documents, studies, drawings, and external references.',
                 controls: [
                     {
                         id: 'consultancySupportingDocuments',
-                        label: '9.1 Supporting Documents',
+                        label: '8.1 Supporting Documents',
                         type: 'table',
                         addLabel: 'Add Supporting Document',
                         emptyText: 'No supporting documents added yet.',
@@ -1182,7 +1048,7 @@ const createTenderRequirementTemplates = {
                     },
                     {
                         id: 'consultancyExternalReferences',
-                        label: '9.2 External References',
+                        label: '8.2 External References',
                         type: 'cards',
                         addLabel: 'Add External Reference',
                         emptyText: 'No external references added yet.',
@@ -1195,8 +1061,7 @@ const createTenderRequirementTemplates = {
                         defaultValue: []
                     }
                 ]
-            },
-            createTenderContractClauseSection('consultancy', 'Consultancy Contract Clauses')
+            }
         ]
     }
 };
@@ -1766,50 +1631,57 @@ function getCreateTenderRequirementDefaultFields(profileId = 'works') {
         }, {});
 }
 
-function isCreateTenderLegacyDefaultClauseCards(value, control) {
-    if (!Array.isArray(value) || !control?.clauseDefinitions) return false;
-
-    const catalogEntries = Object.entries(control.clauseDefinitions);
-    if (value.length !== catalogEntries.length) return false;
-
-    return catalogEntries.every(([clauseTitle, defines], index) => {
-        const item = value[index] || {};
-        return String(item.clauseTitle || '') === clauseTitle
-            && String(item.defines || '') === defines
-            && (item.mandatory === true || item.mandatory === undefined)
-            && String(item.notes || '') === '';
-    });
-}
-
 function sanitizeCreateTenderRequirementFields(profileId = 'works', fields = {}) {
     const sanitizedFields = { ...(fields || {}) };
-    getCreateTenderRequirementTemplate(profileId).sections
-        .flatMap(section => section.controls || [])
-        .filter(control => control.clauseDefinitions)
-        .forEach(control => {
-            const value = sanitizedFields[control.id];
-            if (isCreateTenderLegacyDefaultClauseCards(value, control)) {
-                sanitizedFields[control.id] = [];
-                return;
+    createTenderLegacyContractClauseFieldIds.forEach(fieldId => delete sanitizedFields[fieldId]);
+
+    if (profileId === 'consultancy') {
+        createTenderLegacyConsultancyRequirementFieldIds.forEach(fieldId => delete sanitizedFields[fieldId]);
+        createTenderFixedConsultancyCardControlIds.forEach(controlId => {
+            if (!Array.isArray(sanitizedFields[controlId]) || !sanitizedFields[controlId].length) {
+                sanitizedFields[controlId] = getCreateTenderRequirementDefaultFields('consultancy')[controlId] || [{ id: `requirement-${controlId}-fixed` }];
             }
-            if (!Array.isArray(value)) return;
-            sanitizedFields[control.id] = value.map((item, index) => ({
-                id: String(item?.id || `requirement-${control.id}-${Date.now()}-${index}`),
-                clauseTitle: String(item?.clauseTitle || ''),
-                defines: String(item?.defines || '')
-            }));
         });
+
+        if (Array.isArray(sanitizedFields.consultancyEntityBackground)) {
+            sanitizedFields.consultancyEntityBackground = sanitizedFields.consultancyEntityBackground.map(item => {
+                const { procurementReferenceNo, projectName, ...rest } = item || {};
+                return rest;
+            });
+        }
+
+        if (sanitizedFields.consultancyAssignmentBoundaries && typeof sanitizedFields.consultancyAssignmentBoundaries === 'object') {
+            const { constraints, ...rest } = sanitizedFields.consultancyAssignmentBoundaries;
+            sanitizedFields.consultancyAssignmentBoundaries = rest;
+        }
+
+        if (Array.isArray(sanitizedFields.consultancySpecificObjectives)) {
+            sanitizedFields.consultancySpecificObjectives = sanitizedFields.consultancySpecificObjectives.map(item => {
+                const { mandatory, ...rest } = item || {};
+                return rest;
+            });
+        }
+
+        if (Array.isArray(sanitizedFields.consultancyAssignmentActivities)) {
+            sanitizedFields.consultancyAssignmentActivities = sanitizedFields.consultancyAssignmentActivities.map(item => {
+                const { mandatoryActivity, ...rest } = item || {};
+                return rest;
+            });
+        }
+    }
+
     return sanitizedFields;
 }
 
 function getCreateTenderRequirementDraft(profileId = 'works') {
     const mainDraft = getCreateTenderMainDraft();
     const requirements = mainDraft.requirements && typeof mainDraft.requirements === 'object' ? mainDraft.requirements : {};
+    const fields = sanitizeCreateTenderRequirementFields(profileId, {
+        ...getCreateTenderRequirementDefaultFields(profileId),
+        ...(requirements[profileId]?.fields || {})
+    });
     return {
-        fields: sanitizeCreateTenderRequirementFields(profileId, {
-            ...getCreateTenderRequirementDefaultFields(profileId),
-            ...(requirements[profileId]?.fields || {})
-        }),
+        fields,
         lists: { ...(requirements[profileId]?.lists || {}) }
     };
 }
@@ -1857,8 +1729,12 @@ function normalizeCreateTenderRequirementTableRows(rows = [], columns = [], cont
             id: String(row?.id || `requirement-${controlId}-${Date.now()}-${index}`)
         };
         columns.forEach(column => {
-            if (column.type === 'multiselect' || column.type === 'tag-select') {
+            if (column.type === 'multiselect' || column.type === 'tag-select' || column.type === 'repeatable-text') {
                 normalizedRow[column.id] = Array.isArray(row?.[column.id]) ? row[column.id].map(String) : [];
+                return;
+            }
+            if (column.type === 'repeatable-certification') {
+                normalizedRow[column.id] = normalizeCreateTenderCertificationItems(row?.[column.id]);
                 return;
             }
             if (column.type === 'toggle') {
@@ -1880,8 +1756,12 @@ function normalizeCreateTenderRequirementObjectRows(rows = [], fields = [], cont
             id: String(row?.id || `requirement-${controlId}-${Date.now()}-${index}`)
         };
         fields.forEach(field => {
-            if (field.type === 'multiselect' || field.type === 'tag-select') {
+            if (field.type === 'multiselect' || field.type === 'tag-select' || field.type === 'repeatable-text') {
                 normalizedRow[field.id] = Array.isArray(row?.[field.id]) ? row[field.id].map(String) : [];
+                return;
+            }
+            if (field.type === 'repeatable-certification') {
+                normalizedRow[field.id] = normalizeCreateTenderCertificationItems(row?.[field.id]);
                 return;
             }
             if (field.type === 'toggle') {
@@ -2008,6 +1888,8 @@ function renderCreateTenderRequirementTagSelect(field, value, attributes = '') {
     const availableOptions = (field.options || [])
         .map(getCreateTenderRequirementOptionValue)
         .filter(option => option && !selectedSet.has(option));
+    const emptyText = field.emptyText === undefined ? 'No evidence selected' : field.emptyText;
+    const placeholder = field.placeholder || 'Choose evidence';
 
     return `
         <div class="requirement-tag-select">
@@ -2019,12 +1901,84 @@ function renderCreateTenderRequirementTagSelect(field, value, attributes = '') {
                             <button type="button" data-requirement-tag-remove="${escapeCreateTenderHtml(option)}" aria-label="Remove ${escapeCreateTenderHtml(option)}">x</button>
                         </span>
                     `).join('')
-                    : '<span class="requirement-tag-empty">No evidence selected</span>'}
+                    : (emptyText ? `<span class="requirement-tag-empty">${escapeCreateTenderHtml(emptyText)}</span>` : '')}
             </div>
             <select class="form-input requirement-tag-picker" ${attributes}>
-                <option value="">Choose evidence</option>
+                <option value="">${escapeCreateTenderHtml(placeholder)}</option>
                 ${availableOptions.map(option => `<option value="${escapeCreateTenderHtml(option)}">${escapeCreateTenderHtml(option)}</option>`).join('')}
             </select>
+        </div>
+    `;
+}
+
+function normalizeCreateTenderCertificationItems(value = []) {
+    if (!Array.isArray(value)) return [];
+    return value
+        .map((item) => {
+            if (typeof item === 'string') {
+                return { name: item, mandatory: false };
+            }
+            return {
+                name: String(item?.name || item?.certification || '').trim(),
+                mandatory: Boolean(item?.mandatory)
+            };
+        })
+        .filter(item => item.name);
+}
+
+function renderCreateTenderRequirementRepeatableText(field, value) {
+    const selectedValues = Array.isArray(value) ? value.map(String).filter(Boolean) : [];
+    return `
+        <div class="requirement-tag-select requirement-repeatable-text" data-requirement-repeatable-field="${escapeCreateTenderHtml(field.id)}">
+            <div class="requirement-tag-list">
+                ${selectedValues.length
+                    ? selectedValues.map(option => `
+                        <span class="requirement-tag">
+                            ${escapeCreateTenderHtml(option)}
+                            <button type="button" data-requirement-repeatable-remove="${escapeCreateTenderHtml(option)}" aria-label="Remove ${escapeCreateTenderHtml(option)}">x</button>
+                        </span>
+                    `).join('')
+                    : '<span class="requirement-tag-empty">No certifications added</span>'}
+            </div>
+            <div class="requirement-repeatable-add-row">
+                <input class="form-input" type="text" data-requirement-repeatable-input placeholder="${escapeCreateTenderHtml(field.placeholder || 'Add item')}" aria-label="${escapeCreateTenderHtml(field.label)}">
+                <button class="btn btn-secondary" type="button" data-requirement-repeatable-add>Add</button>
+            </div>
+        </div>
+    `;
+}
+
+function renderCreateTenderRequirementRepeatableCertification(field, value) {
+    const selectedItems = normalizeCreateTenderCertificationItems(value);
+    return `
+        <div class="requirement-tag-select requirement-repeatable-certification" data-requirement-repeatable-field="${escapeCreateTenderHtml(field.id)}">
+            <div class="requirement-tag-list">
+                ${selectedItems.length
+                    ? selectedItems.map(item => {
+                        const itemKey = `${item.name}::${item.mandatory ? 'mandatory' : 'optional'}`;
+                        return `
+                            <span class="requirement-tag">
+                                ${escapeCreateTenderHtml(item.name)} - ${item.mandatory ? 'Mandatory' : 'Optional'}
+                                <button type="button" data-requirement-repeatable-remove="${escapeCreateTenderHtml(itemKey)}" aria-label="Remove ${escapeCreateTenderHtml(item.name)}">x</button>
+                            </span>
+                        `;
+                    }).join('')
+                    : '<span class="requirement-tag-empty">No certifications or registrations added</span>'}
+            </div>
+            <div class="requirement-repeatable-certification-row">
+                <select class="form-input" data-requirement-repeatable-input aria-label="${escapeCreateTenderHtml(field.label)}">
+                    <option value="">Select certification / registration</option>
+                    ${(field.options || []).map(option => `<option value="${escapeCreateTenderHtml(getCreateTenderRequirementOptionValue(option))}">${escapeCreateTenderHtml(getCreateTenderRequirementOptionValue(option))}</option>`).join('')}
+                </select>
+                <label class="requirement-toggle-cell">
+                    <span>Mandatory</span>
+                    <span class="requirement-toggle">
+                        <input type="checkbox" data-requirement-repeatable-mandatory>
+                        <span></span>
+                    </span>
+                </label>
+            </div>
+            <button class="btn btn-secondary scope-add" type="button" data-requirement-repeatable-add>Add Certification / Registration</button>
         </div>
     `;
 }
@@ -2116,6 +2070,12 @@ function renderCreateTenderRequirementField(field, value, attributes = '') {
     }
     if (field.type === 'tag-select') {
         return renderCreateTenderRequirementTagSelect(field, value, attributes);
+    }
+    if (field.type === 'repeatable-text') {
+        return renderCreateTenderRequirementRepeatableText(field, value);
+    }
+    if (field.type === 'repeatable-certification') {
+        return renderCreateTenderRequirementRepeatableCertification(field, value);
     }
     if (field.type === 'toggle') {
         return `
@@ -2397,13 +2357,13 @@ function renderCreateTenderRequirementCards(control, value, profileId = '') {
                 <article class="requirement-repeater-card" data-requirement-card-row="${escapeCreateTenderHtml(card.id)}" data-requirement-control="${escapeCreateTenderHtml(control.id)}">
                     <div class="requirement-card-heading">
                         <strong>${escapeCreateTenderHtml(getCreateTenderRequirementCardTitle(control, card, cardIndex, fields))}</strong>
-                        <button class="boq-row-action icon-delete-btn" type="button" data-requirement-control-delete="${escapeCreateTenderHtml(control.id)}" aria-label="Remove ${escapeCreateTenderHtml(control.label)}" title="Remove">${renderCreateTenderTrashIcon()}</button>
+                        ${control.hideDelete ? '' : `<button class="boq-row-action icon-delete-btn" type="button" data-requirement-control-delete="${escapeCreateTenderHtml(control.id)}" aria-label="Remove ${escapeCreateTenderHtml(control.label)}" title="Remove">${renderCreateTenderTrashIcon()}</button>`}
                     </div>
                     <div class="requirement-card-grid">
                         ${fields.map(field => {
                             const shouldShow = !field.showWhen || String(card[field.showWhen.field] || '') === String(field.showWhen.value);
                             return `
-                                <label class="requirement-card-field ${field.type === 'textarea' || field.type === 'richtext' ? 'requirement-control-wide' : ''}" ${shouldShow ? '' : 'hidden'}>
+                                <label class="requirement-card-field ${field.wide || field.type === 'textarea' || field.type === 'richtext' ? 'requirement-control-wide' : ''}" ${shouldShow ? '' : 'hidden'}>
                                     <span class="form-label">${escapeCreateTenderHtml(field.label)}</span>
                                     ${renderCreateTenderRequirementField(field, card[field.id], `data-requirement-card-field="${escapeCreateTenderHtml(field.id)}" aria-label="${escapeCreateTenderHtml(field.label)}"`)}
                                 </label>
@@ -2414,7 +2374,7 @@ function renderCreateTenderRequirementCards(control, value, profileId = '') {
             `).join('') : `<div class="scope-empty">${escapeCreateTenderHtml(control.emptyText || 'No items added yet.')}</div>`}
         </div>
         ${shouldDisableAdd ? `<span class="form-hint">${escapeCreateTenderHtml(control.sourceEmptyText || 'Add a source item first.')}</span>` : ''}
-        <button class="btn btn-secondary scope-add" type="button" data-requirement-control-add="${escapeCreateTenderHtml(control.id)}" ${shouldDisableAdd ? 'disabled' : ''}>${escapeCreateTenderHtml(control.addLabel || `Add ${control.label}`)}</button>
+        ${control.hideAdd ? '' : `<button class="btn btn-secondary scope-add" type="button" data-requirement-control-add="${escapeCreateTenderHtml(control.id)}" ${shouldDisableAdd ? 'disabled' : ''}>${escapeCreateTenderHtml(control.addLabel || `Add ${control.label}`)}</button>`}
     `;
 }
 
@@ -2425,7 +2385,9 @@ function renderCreateTenderRequirementAccordion(control, value = {}) {
             ${(control.panels || []).map((panel, index) => `
                 <details class="requirement-accordion-item" ${index === 0 ? 'open' : ''}>
                     <summary>${escapeCreateTenderHtml(panel.label)}</summary>
-                    <textarea class="form-input requirement-rich-input" rows="5" data-requirement-accordion-field="${escapeCreateTenderHtml(panel.id)}" aria-label="${escapeCreateTenderHtml(panel.label)}">${escapeCreateTenderHtml(values[panel.id] || '')}</textarea>
+                    ${panel.type === 'text'
+                        ? `<input class="form-input" value="${escapeCreateTenderHtml(values[panel.id] || '')}" data-requirement-accordion-field="${escapeCreateTenderHtml(panel.id)}" aria-label="${escapeCreateTenderHtml(panel.label)}">`
+                        : `<textarea class="form-input requirement-rich-input" rows="5" data-requirement-accordion-field="${escapeCreateTenderHtml(panel.id)}" aria-label="${escapeCreateTenderHtml(panel.label)}">${escapeCreateTenderHtml(values[panel.id] || '')}</textarea>`}
                 </details>
             `).join('')}
         </div>
@@ -2433,6 +2395,13 @@ function renderCreateTenderRequirementAccordion(control, value = {}) {
 }
 
 function renderCreateTenderRequirementControl(control, value, profileId = '') {
+    if (control.type === 'regulatory-licenses') {
+        return renderCreateTenderRegulatoryLicensePanel(getCreateTenderTypeProfile({ id: profileId }), {
+            title: control.title || 'Regulatory license requirements',
+            hint: 'Search and select the licenses required for consulting firms. The issuing body is filled automatically.'
+        });
+    }
+
     if (control.type === 'list') {
         return renderCreateTenderRequirementControlList(control, value);
     }
@@ -2454,7 +2423,6 @@ function renderCreateTenderRequirementControl(control, value, profileId = '') {
 
 function getCreateTenderPostLicenseRequirementSectionIds(profile = {}) {
     if (profile.id === 'goods') return ['eligibilityRequirements'];
-    if (profile.id === 'consultancy') return ['consultancyContractClauses'];
     return [];
 }
 
@@ -2470,8 +2438,8 @@ function renderCreateTenderRequirementSectionBlock(section, requirementDraft, pr
                     if (!control.showWhen) return true;
                     return isCreateTenderShowWhenMatched(control.showWhen, requirementDraft.fields);
                 }).map(control => `
-                    <div class="requirement-control ${['table', 'cards', 'accordion', 'textarea', 'richtext'].includes(control.type) ? 'requirement-control-wide' : ''}">
-                        <span class="form-label">${escapeCreateTenderHtml(control.label)}</span>
+                    <div class="requirement-control ${['table', 'cards', 'accordion', 'textarea', 'richtext', 'regulatory-licenses'].includes(control.type) ? 'requirement-control-wide' : ''}">
+                        ${control.label ? `<span class="form-label">${escapeCreateTenderHtml(control.label)}</span>` : ''}
                         ${renderCreateTenderRequirementControl(control, requirementDraft.fields?.[control.id], profileId)}
                         ${getCreateTenderRequirementHelperText(control, requirementDraft.fields?.[control.id])
                             ? `<span class="form-hint" data-requirement-helper="${escapeCreateTenderHtml(control.id)}">${escapeCreateTenderHtml(getCreateTenderRequirementHelperText(control, requirementDraft.fields?.[control.id]))}</span>`
@@ -2702,7 +2670,7 @@ function getCreateTenderDefaultEvaluationDraft(profileId = 'works') {
 }
 
 function normalizeCreateTenderEvaluationDraft(profileId = 'works', draft = {}) {
-    const mode = ['manual', 'assisted', 'auto'].includes(draft?.mode) ? draft.mode : 'manual';
+    const mode = ['manual', 'auto'].includes(draft?.mode) ? draft.mode : 'manual';
     const criteria = Array.isArray(draft?.criteria)
         ? draft.criteria.map((item, index) => normalizeCreateTenderEvaluationCriterion(item, index, profileId))
         : getCreateTenderDefaultEvaluationDraft(profileId).criteria;
@@ -3415,6 +3383,32 @@ function renderCreateTenderRegulatoryLicenseRows(items = []) {
     }).join('');
 }
 
+function renderCreateTenderRegulatoryLicensePanel(profile = getCreateTenderCurrentTypeProfile(), options = {}) {
+    const regulatoryLicenses = getCreateTenderRegulatoryLicenses(profile);
+    const title = options.title || 'Regulatory license requirements';
+    const hint = options.hint || 'Search and select the licenses suppliers must hold for this tender. The issuing body is filled automatically.';
+
+    return `
+        <div class="scope-list-panel license-requirements-panel" ${options.standalone ? 'data-standalone-license-panel' : ''}>
+            <div class="scope-list-heading">
+                <div>
+                    <h3>${escapeCreateTenderHtml(title)}</h3>
+                    <span class="form-hint">${escapeCreateTenderHtml(hint)}</span>
+                </div>
+                <span class="badge badge-info" data-license-count>${regulatoryLicenses.length}</span>
+            </div>
+            <div class="license-requirement-list" data-license-list>
+                ${renderCreateTenderRegulatoryLicenseRows(regulatoryLicenses)}
+            </div>
+            <button class="btn btn-secondary scope-add" type="button" data-license-add>Add License Requirement</button>
+            <div class="license-add-picker" data-license-add-picker hidden>
+                <input class="form-input" type="search" data-license-add-search autocomplete="off" placeholder="Search all licenses" aria-label="Search all regulatory licenses">
+                <div class="license-results" data-license-add-results role="listbox" aria-label="Available regulatory licenses"></div>
+            </div>
+        </div>
+    `;
+}
+
 function renderCreateTenderProfileCard(title, items = []) {
     if (!items.length) return '';
     return `
@@ -3494,26 +3488,51 @@ function renderCreateTenderEvaluationSelectedCriteria(profile, evaluationDraft =
         return '<div class="scope-empty">No evaluation criteria selected yet.</div>';
     }
 
-    return criteria.map(criterion => `
-        <article class="evaluation-criterion-card" data-evaluation-criterion="${escapeCreateTenderHtml(criterion.id)}">
-            <div class="evaluation-criterion-topline">
-                <label>
-                    <span class="form-label">Criterion name</span>
-                    <input class="form-input" value="${escapeCreateTenderHtml(criterion.name)}" data-evaluation-field="name" aria-label="Criterion name">
-                </label>
-                <label>
-                    <span class="form-label">Weight</span>
-                    <div class="requirement-input-affix">
-                        <input class="form-input evaluation-weight-input" type="number" min="0" max="100" step="0.01" value="${escapeCreateTenderHtml(criterion.weight)}" data-evaluation-field="weight" aria-label="Criterion weight">
-                        <span>%</span>
+    return criteria.map(criterion => {
+        const subcriteria = normalizeCreateTenderEvaluationSubcriteria(criterion.subcriteria);
+        return `
+            <article class="evaluation-selected-card" data-evaluation-criterion="${escapeCreateTenderHtml(criterion.id)}">
+                <div class="evaluation-selected-main">
+                    <div class="evaluation-selected-copy">
+                        <strong>${escapeCreateTenderHtml(criterion.name)}</strong>
+                        <div class="evaluation-subcriteria-preview">
+                            ${subcriteria.length
+                                ? subcriteria.map(item => `<span class="evaluation-subcriterion-chip">${escapeCreateTenderHtml(item)}</span>`).join('')
+                                : '<span class="requirement-tag-empty">No subcriteria selected</span>'}
+                        </div>
                     </div>
-                </label>
-                <button class="boq-row-action icon-delete-btn" type="button" data-evaluation-delete="${escapeCreateTenderHtml(criterion.id)}" aria-label="Delete criterion" title="Delete criterion">${renderCreateTenderTrashIcon()}</button>
-            </div>
-            ${renderCreateTenderEvaluationSubcriteriaControl(profile, criterion)}
-            <span class="form-hint">${escapeCreateTenderHtml(criterion.category)}${criterion.custom ? ' / Custom criterion' : ''}</span>
-        </article>
-    `).join('');
+                    <div class="evaluation-selected-actions">
+                        <div class="requirement-input-affix evaluation-weight-cell">
+                            <input class="form-input evaluation-weight-input" type="number" min="0" max="100" step="0.01" value="${escapeCreateTenderHtml(criterion.weight)}" data-evaluation-field="weight" aria-label="Criterion weight">
+                            <span>%</span>
+                        </div>
+                        <div class="evaluation-card-action-stack">
+                            <button class="btn btn-secondary" type="button" data-evaluation-edit>Edit</button>
+                            <button class="boq-row-action icon-delete-btn" type="button" data-evaluation-delete="${escapeCreateTenderHtml(criterion.id)}" aria-label="Delete criteria" title="Delete criteria">${renderCreateTenderTrashIcon()}</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="evaluation-edit-menu" data-evaluation-edit-menu hidden>
+                    <button class="boq-row-action evaluation-edit-close" type="button" data-evaluation-cancel-edit aria-label="Close edit menu" title="Close">x</button>
+                    <div class="evaluation-edit-grid">
+                        <label>
+                            <span class="form-label">Criterion name</span>
+                            <input class="form-input" value="${escapeCreateTenderHtml(criterion.name)}" data-evaluation-field="name" aria-label="Criterion name">
+                        </label>
+                        <label>
+                            <span class="form-label">Category</span>
+                            <input class="form-input" value="${escapeCreateTenderHtml(criterion.category)}" data-evaluation-field="category" aria-label="Criterion category">
+                        </label>
+                    </div>
+                    ${renderCreateTenderEvaluationSubcriteriaControl(profile, criterion)}
+                    <div class="evaluation-edit-actions">
+                        <button class="btn btn-secondary" type="button" data-evaluation-cancel-edit>Cancel</button>
+                        <button class="btn btn-primary" type="button" data-evaluation-save-edit>Save Changes</button>
+                    </div>
+                </div>
+            </article>
+        `;
+    }).join('');
 }
 
 function renderCreateTenderEvaluationSuggestions(profile, evaluationDraft = {}) {
@@ -3551,12 +3570,9 @@ function renderCreateTenderEvaluationBuilder(profile, mainDraft = getCreateTende
                     <span class="form-label">Balancing mode</span>
                     <select class="form-input" data-evaluation-mode>
                         <option value="manual" ${evaluationDraft.mode === 'manual' ? 'selected' : ''}>Manual</option>
-                        <option value="assisted" ${evaluationDraft.mode === 'assisted' ? 'selected' : ''}>Assisted</option>
                         <option value="auto" ${evaluationDraft.mode === 'auto' ? 'selected' : ''}>Auto-balance</option>
                     </select>
                 </label>
-                <button class="btn btn-secondary" type="button" data-evaluation-distribute>Distribute remaining evenly</button>
-                <button class="btn btn-secondary" type="button" data-evaluation-balance>Balance Now</button>
                 <button class="btn btn-primary" type="button" data-evaluation-add-custom>Add Custom Criterion</button>
             </div>
             <div class="evaluation-builder-grid">
@@ -3566,12 +3582,17 @@ function renderCreateTenderEvaluationBuilder(profile, mainDraft = getCreateTende
                             <h3>Selected criteria</h3>
                             <span class="form-hint">Buyer-controlled labels, weights, and selectable subcriteria.</span>
                         </div>
-                        <span class="badge badge-info">${escapeCreateTenderHtml(evaluationDraft.criteria.length)} criteria</span>
+                        <div class="evaluation-selected-heading-meta">
+                            <span>Weight</span>
+                            <span class="badge badge-info">${escapeCreateTenderHtml(evaluationDraft.criteria.length)} criteria</span>
+                        </div>
                     </div>
                     <div class="evaluation-criteria-list" data-evaluation-criteria-list>
                         ${renderCreateTenderEvaluationSelectedCriteria(profile, evaluationDraft)}
                     </div>
                 </section>
+            </div>
+            <div class="evaluation-suggestions-row">
                 <section class="evaluation-suggestions-panel">
                     <div class="scope-list-heading">
                         <div>
@@ -3661,6 +3682,15 @@ function renderCreateTenderReviewControl(control, value, profileId = 'works') {
             </div>
         `;
     }
+    if (control.type === 'regulatory-licenses') {
+        const licenses = getCreateTenderRegulatoryLicenses(getCreateTenderTypeProfile(profileId));
+        return licenses.length ? renderCreateTenderReviewObjectRows(licenses, [
+            { id: 'license', label: 'License' },
+            { id: 'body', label: 'Issuing body' },
+            { id: 'mandatory', label: 'Mandatory' },
+            { id: 'expiryRequired', label: 'Expiry validation' }
+        ]) : '<div class="scope-empty">No regulatory licenses selected.</div>';
+    }
     return renderCreateTenderReviewField(control.label, value);
 }
 
@@ -3724,27 +3754,6 @@ function renderCreateTenderReviewWorkspace(profile, mainDraft = getCreateTenderM
 
     return `
         <div class="tender-review-workspace">
-            <section class="tender-review-panel buyer-view-panel">
-                <div class="scope-list-heading">
-                    <div>
-                        <h3>Buyer view</h3>
-                        <span class="form-hint">Internal preview of the tender package before final publication.</span>
-                    </div>
-                    <span class="badge ${evaluationSummary.isBalanced ? 'badge-success' : 'badge-warning'}">${evaluationSummary.isBalanced ? 'Ready for final review' : 'Review gaps'}</span>
-                </div>
-                <div class="buyer-view-card">
-                    <span>${escapeCreateTenderHtml(selectedType.label)} / ${escapeCreateTenderHtml(method)}</span>
-                    <h3>${escapeCreateTenderHtml(mainDraft.title || 'Untitled tender')}</h3>
-                    <p>${escapeCreateTenderHtml(categories.join(', ') || 'No category selected')}</p>
-                    <div class="buyer-view-metrics">
-                        <div><span>Budget</span><strong>${formatCreateTenderMoney(getCreateTenderBoqTotal(boqItems))}</strong></div>
-                        <div><span>Closing</span><strong>${formatCreateTenderDate(milestones.find(item => item.id === 'milestone-closing')?.date || '')}</strong></div>
-                        <div><span>Evaluation</span><strong>${escapeCreateTenderHtml(evaluationSummary.total)}%</strong></div>
-                        <div><span>Licenses</span><strong>${licenses.length}</strong></div>
-                    </div>
-                </div>
-            </section>
-
             <section class="tender-review-panel">
                 <div class="scope-list-heading">
                     <div>
@@ -3776,20 +3785,22 @@ function renderCreateTenderReviewWorkspace(profile, mainDraft = getCreateTenderM
                 ${renderCreateTenderReviewRequirements(profile, mainDraft)}
             </section>
 
-            <section class="tender-review-panel">
-                <div class="scope-list-heading">
-                    <div>
-                        <h3>Regulatory license requirements</h3>
-                        <span class="form-hint">Licenses required for supplier eligibility.</span>
+            ${profile.id === 'consultancy' ? '' : `
+                <section class="tender-review-panel">
+                    <div class="scope-list-heading">
+                        <div>
+                            <h3>Regulatory license requirements</h3>
+                            <span class="form-hint">Licenses required for supplier eligibility.</span>
+                        </div>
                     </div>
-                </div>
-                ${licenses.length ? renderCreateTenderReviewObjectRows(licenses, [
-                    { id: 'license', label: 'License' },
-                    { id: 'body', label: 'Issuing body' },
-                    { id: 'mandatory', label: 'Mandatory' },
-                    { id: 'expiryRequired', label: 'Expiry validation' }
-                ]) : '<div class="scope-empty">No regulatory licenses selected.</div>'}
-            </section>
+                    ${licenses.length ? renderCreateTenderReviewObjectRows(licenses, [
+                        { id: 'license', label: 'License' },
+                        { id: 'body', label: 'Issuing body' },
+                        { id: 'mandatory', label: 'Mandatory' },
+                        { id: 'expiryRequired', label: 'Expiry validation' }
+                    ]) : '<div class="scope-empty">No regulatory licenses selected.</div>'}
+                </section>
+            `}
 
             <section class="tender-review-panel">
                 <div class="scope-list-heading">
@@ -3993,83 +4004,69 @@ function saveCreateTenderSystemEvaluation(profileId = 'works', result = {}) {
     return result;
 }
 
-function renderCreateTenderSystemEvaluationChecklist(checks = []) {
-    return `
-        <div class="system-evaluation-checklist">
-            ${checks.map(check => `
-                <div class="${check.passed ? 'passed' : 'pending'}">
-                    <strong>${check.passed ? 'Pass' : 'Needs work'}</strong>
-                    <span>${escapeCreateTenderHtml(check.label)}</span>
-                </div>
-            `).join('')}
-        </div>
-    `;
+function getCreateTenderEvaluationReturnMessages(result = {}) {
+    const informationChanges = (result.understandingChecks || [])
+        .filter(check => !check.passed)
+        .map(check => check.label);
+    const grammarChanges = Array.isArray(result.grammarIssues) ? result.grammarIssues : [];
+    const changes = [...informationChanges, ...grammarChanges];
+    return changes.length ? changes : ['Review the tender information, grammar, and formality before submitting again.'];
 }
 
 function renderCreateTenderSystemEvaluationPanel(profile, mainDraft = getCreateTenderMainDraft()) {
-    const savedEvaluation = getCreateTenderSavedSystemEvaluation(profile.id, mainDraft);
     const isCurrent = isCreateTenderSavedSystemEvaluationCurrent(profile, mainDraft);
-    const previewEvaluation = isCurrent ? savedEvaluation : getCreateTenderSystemEvaluation(profile, mainDraft);
-    const badgeClass = isCurrent ? 'badge-success' : 'badge-warning';
+    const badgeClass = isCurrent ? 'badge-success' : 'badge-info';
     return `
-        <div class="system-evaluation-workspace" data-system-evaluation-wrap>
-            <section class="system-evaluation-panel">
-                <div class="scope-list-heading">
+        <div class="system-evaluation-workspace system-evaluation-submit-flow" data-system-evaluation-wrap>
+            <section class="system-evaluation-submit-card">
+                <div class="system-evaluation-submit-header">
                     <div>
-                        <h3>System evaluation</h3>
-                        <span class="form-hint">Basic understanding and grammar review before marketplace publication.</span>
+                        <span class="section-kicker">Evaluation submission</span>
+                        <h3>Submit Tender for Evaluation</h3>
                     </div>
-                    <span class="badge ${badgeClass}" data-system-evaluation-status>${isCurrent ? 'Evaluation completed' : 'Evaluation required'}</span>
+                    <span class="badge ${badgeClass}" data-system-evaluation-status>${isCurrent ? 'Evaluation completed' : 'Ready to submit'}</span>
                 </div>
-                <div class="system-evaluation-score-grid">
-                    <article>
-                        <span>Overall</span>
-                        <strong data-system-score-overall>${escapeCreateTenderHtml(previewEvaluation.overallScore)}%</strong>
+                <div class="system-evaluation-description">
+                    <strong>Description</strong>
+                    <p>Your tender will be reviewed by the system evaluator for grammar, professionalism, clarity, and completeness before publication.</p>
+                </div>
+                <div class="system-evaluation-outcome-grid">
+                    <article class="system-evaluation-outcome-card outcome-pass">
+                        <h4>If the tender passes evaluation:</h4>
+                        <ul>
+                            <li>It will be published automatically to the marketplace.</li>
+                            <li>You will receive a success notification.</li>
+                        </ul>
                     </article>
-                    <article>
-                        <span>Understanding</span>
-                        <strong data-system-score-understanding>${escapeCreateTenderHtml(previewEvaluation.understandingScore)}%</strong>
-                    </article>
-                    <article>
-                        <span>Grammar</span>
-                        <strong data-system-score-grammar>${escapeCreateTenderHtml(previewEvaluation.grammarScore)}%</strong>
+                    <article class="system-evaluation-outcome-card outcome-return">
+                        <h4>If the tender does not pass:</h4>
+                        <ul>
+                            <li>It will return to your dashboard as a draft.</li>
+                            <li>You will receive comments and required changes from the evaluator.</li>
+                        </ul>
                     </article>
                 </div>
-                <button class="btn btn-secondary" type="button" data-run-system-evaluation>Run System Evaluation</button>
-            </section>
-
-            <section class="system-evaluation-panel">
-                <div class="scope-list-heading">
+                <div class="system-evaluation-confirmations">
+                    <label>
+                        <input type="checkbox" data-evaluation-confirmation>
+                        <span>I confirm the tender information is complete and accurate.</span>
+                    </label>
+                    <label>
+                        <input type="checkbox" data-evaluation-confirmation>
+                        <span>I understand the tender will be reviewed before publication.</span>
+                    </label>
+                    <label>
+                        <input type="checkbox" data-evaluation-confirmation>
+                        <span>I understand rejected tenders will return as draft with comments.</span>
+                    </label>
+                </div>
+                <div class="submit-strip buyer-review-submit system-evaluation-publish">
                     <div>
-                        <h3>Understanding checks</h3>
-                        <span class="form-hint">The system checks whether the tender has enough structure to publish.</span>
+                        <strong>Actions</strong>
+                        <span data-system-publish-note>Submit the tender to the evaluator. The creation wizard will close after submission.</span>
                     </div>
+                    <button class="btn btn-primary" type="button" data-run-system-evaluation disabled>Submit Tender for Evaluation</button>
                 </div>
-                <div data-system-understanding-checks>
-                    ${renderCreateTenderSystemEvaluationChecklist(previewEvaluation.understandingChecks)}
-                </div>
-            </section>
-
-            <section class="system-evaluation-panel">
-                <div class="scope-list-heading">
-                    <div>
-                        <h3>Basic grammar review</h3>
-                        <span class="form-hint">Simple grammar and readability issues detected from entered tender text.</span>
-                    </div>
-                </div>
-                <div data-system-grammar-issues>
-                    ${previewEvaluation.grammarIssues.length
-                        ? `<ul class="tender-review-bullet-list">${previewEvaluation.grammarIssues.map(issue => `<li>${escapeCreateTenderHtml(issue)}</li>`).join('')}</ul>`
-                        : '<div class="system-evaluation-pass-note">No basic grammar issues detected.</div>'}
-                </div>
-            </section>
-
-            <section class="submit-strip buyer-review-submit system-evaluation-publish">
-                <div>
-                    <strong>Publish to marketplace</strong>
-                    <span data-system-publish-note>${isCurrent ? 'System evaluation is complete. You can publish this tender.' : 'Run and pass system evaluation before publishing.'}</span>
-                </div>
-                <button class="btn btn-primary" type="button" data-publish-tender ${isCurrent ? '' : 'disabled'}>Publish to Marketplace</button>
             </section>
         </div>
     `;
@@ -4102,8 +4099,8 @@ function renderCreateTender() {
         ['02', 'Tender Planning', 'Type, category, method, invitations'],
         ['03', 'Tender Requirements', `${requirementSummary.title}, licenses`],
         ['04', 'Evaluation Criteria & Weights', 'Criteria, weights, pass marks'],
-        ['05', 'Review Tender', 'All entries and buyer view'],
-        ['06', 'System Evaluation', 'Understanding, grammar, publish']
+        ['05', 'Review Tender', 'All entries'],
+        ['06', 'Evaluation', 'Submit to evaluator']
     ];
 
     return `
@@ -4297,22 +4294,10 @@ function renderCreateTender() {
                                         excludeSectionIds: getCreateTenderPostLicenseRequirementSectionIds(selectedProfile)
                                     })}
                                 </div>
-                                <div class="scope-list-panel license-requirements-panel">
-                                    <div class="scope-list-heading">
-                                        <div>
-                                            <h3>Regulatory license requirements</h3>
-                                            <span class="form-hint">Search and select the licenses suppliers must hold for this tender. The issuing body is filled automatically.</span>
-                                        </div>
-                                        <span class="badge badge-info" data-license-count>${regulatoryLicenses.length}</span>
-                                    </div>
-                                    <div class="license-requirement-list" data-license-list>
-                                        ${renderCreateTenderRegulatoryLicenseRows(regulatoryLicenses)}
-                                    </div>
-                                    <button class="btn btn-secondary scope-add" type="button" data-license-add>Add License Requirement</button>
-                                    <div class="license-add-picker" data-license-add-picker hidden>
-                                        <input class="form-input" type="search" data-license-add-search autocomplete="off" placeholder="Search all licenses" aria-label="Search all regulatory licenses">
-                                        <div class="license-results" data-license-add-results role="listbox" aria-label="Available regulatory licenses"></div>
-                                    </div>
+                                <div data-license-panel-slot>
+                                    ${selectedProfile.id === 'consultancy'
+                                        ? ''
+                                        : renderCreateTenderRegulatoryLicensePanel(selectedProfile, { standalone: true })}
                                 </div>
                                 <div data-post-license-requirement-sections>
                                     ${renderCreateTenderRequirementSections(selectedProfile, mainDraft, {
@@ -4352,7 +4337,7 @@ function renderCreateTender() {
                                 <div class="panel-heading">
                                     <div>
                                         <span class="section-kicker">Step 6</span>
-                                        <h2>System Evaluation & Publish</h2>
+                                        <h2>Evaluation Submission</h2>
                                     </div>
                                     <span class="badge ${isCreateTenderSavedSystemEvaluationCurrent(selectedProfile, mainDraft) ? 'badge-success' : 'badge-warning'}" data-system-evaluation-header-badge>${isCreateTenderSavedSystemEvaluationCurrent(selectedProfile, mainDraft) ? 'Evaluation complete' : 'Evaluation required'}</span>
                                 </div>
@@ -4465,6 +4450,14 @@ function initializeCreateTenderWizard() {
         syncEvaluationStatus();
     };
 
+    const openEvaluationEditMenu = (criterionId) => {
+        const row = wizard.querySelector(`[data-evaluation-criterion="${CSS.escape(criterionId)}"]`);
+        const menu = row?.querySelector('[data-evaluation-edit-menu]');
+        if (!menu) return;
+        menu.hidden = false;
+        menu.querySelector('[data-evaluation-field="name"]')?.focus();
+    };
+
     const renderTenderReviewWorkspace = () => {
         const wrap = wizard.querySelector('[data-tender-review-wrap]');
         if (!wrap) return;
@@ -4484,6 +4477,14 @@ function initializeCreateTenderWizard() {
             headerBadge.classList.toggle('badge-success', isCurrent);
             headerBadge.classList.toggle('badge-warning', !isCurrent);
         }
+        syncSystemEvaluationSubmitState();
+    };
+
+    const syncSystemEvaluationSubmitState = () => {
+        const confirmations = Array.from(wizard.querySelectorAll('[data-evaluation-confirmation]'));
+        const submitButton = wizard.querySelector('[data-run-system-evaluation]');
+        if (!submitButton) return;
+        submitButton.disabled = !confirmations.length || confirmations.some(input => !input.checked);
     };
 
     const getSelectedProcurementType = () => {
@@ -4697,6 +4698,12 @@ function initializeCreateTenderWizard() {
                 showHeader: false
             });
         }
+        const licensePanelSlot = wizard.querySelector('[data-license-panel-slot]');
+        if (licensePanelSlot) {
+            licensePanelSlot.innerHTML = profile.id === 'consultancy'
+                ? ''
+                : renderCreateTenderRegulatoryLicensePanel(profile, { standalone: true });
+        }
 
         const evaluationRail = railSteps[3]?.querySelector('span');
         if (evaluationRail) evaluationRail.textContent = 'Evaluation Criteria & Weights';
@@ -4729,9 +4736,9 @@ function initializeCreateTenderWizard() {
         });
         renderBoqTable();
         renderScopeList('deliverables');
-        renderLicenseList();
         renderScopeList('attachments');
         refreshProfileText();
+        renderLicenseList();
     };
 
     const saveMainDetailsFromInputs = () => {
@@ -5121,17 +5128,6 @@ function initializeCreateTenderWizard() {
         return false;
     };
 
-    const validateSystemEvaluationBeforePublish = () => {
-        const profile = getSelectedProfile();
-        if (isCreateTenderSavedSystemEvaluationCurrent(profile)) return true;
-        if (activeStepIndex !== panels.length - 1) {
-            setActiveStep(panels.length - 1);
-        }
-        renderSystemEvaluationPanel();
-        alert('Run and pass system evaluation before publishing to the marketplace.');
-        return false;
-    };
-
     const setActiveStep = (index) => {
         const boundedIndex = Math.min(Math.max(index, 0), panels.length - 1);
         activeStepIndex = boundedIndex;
@@ -5253,7 +5249,7 @@ function initializeCreateTenderWizard() {
 
     const updateEvaluationMode = (select) => {
         const evaluationDraft = getSelectedEvaluationDraft();
-        evaluationDraft.mode = ['manual', 'assisted', 'auto'].includes(select.value) ? select.value : 'manual';
+        evaluationDraft.mode = ['manual', 'auto'].includes(select.value) ? select.value : 'manual';
         const nextDraft = evaluationDraft.mode === 'auto' ? balanceCreateTenderEvaluationWeights(evaluationDraft) : evaluationDraft;
         saveSelectedEvaluationDraft(nextDraft);
         renderEvaluationBuilder();
@@ -5505,12 +5501,8 @@ function initializeCreateTenderWizard() {
         } else {
             card[fieldId] = input.value;
         }
-        if (control.clauseDefinitions && fieldId === 'clauseTitle') {
-            card.defines = control.clauseDefinitions[input.value] || '';
-        }
-
         saveRequirementControlValue(controlId, cards);
-        if (fields.some(item => item.showWhen?.field === fieldId) || field.sourceControlId || field.type === 'tag-select' || (control.clauseDefinitions && fieldId === 'clauseTitle')) {
+        if (fields.some(item => item.showWhen?.field === fieldId) || field.sourceControlId || field.type === 'tag-select') {
             renderRequirementControl(controlId);
         }
     };
@@ -5652,6 +5644,9 @@ function initializeCreateTenderWizard() {
         }
         if (event.target?.matches('[data-evaluation-mode]')) {
             updateEvaluationMode(event.target);
+        }
+        if (event.target?.matches('[data-evaluation-confirmation]')) {
+            syncSystemEvaluationSubmitState();
         }
         if (event.target?.matches('[data-procurement-method]')) {
             syncTenderMethod();
@@ -5813,6 +5808,64 @@ function initializeCreateTenderWizard() {
             return;
         }
 
+        if (target.matches('[data-requirement-repeatable-add]')) {
+            const cardRow = target.closest('[data-requirement-card-row]');
+            const repeatable = target.closest('[data-requirement-repeatable-field]');
+            const input = repeatable?.querySelector('[data-requirement-repeatable-input]');
+            const controlId = cardRow?.dataset.requirementControl;
+            const field = repeatable?.dataset.requirementRepeatableField;
+            const nextValue = String(input?.value || '').trim();
+            if (!cardRow || !controlId || !field || !nextValue) return;
+
+            const profile = getSelectedProfile();
+            const control = getCreateTenderRequirementControl(profile.id, controlId);
+            const fields = resolveCreateTenderRequirementFields(control, profile.id);
+            const cards = normalizeCreateTenderRequirementObjectRows(getRequirementControlValue(controlId), fields, controlId);
+            const card = cards.find(entry => entry.id === cardRow.dataset.requirementCardRow);
+            if (!card) return;
+            const fieldDefinition = fields.find(item => item.id === field);
+            if (fieldDefinition?.type === 'repeatable-certification') {
+                const nextItem = {
+                    name: nextValue,
+                    mandatory: Boolean(repeatable.querySelector('[data-requirement-repeatable-mandatory]')?.checked)
+                };
+                const existing = normalizeCreateTenderCertificationItems(card[field]);
+                const exists = existing.some(item => item.name === nextItem.name && item.mandatory === nextItem.mandatory);
+                card[field] = exists ? existing : [...existing, nextItem];
+            } else {
+                card[field] = Array.from(new Set([...(Array.isArray(card[field]) ? card[field] : []), nextValue]));
+            }
+            saveRequirementControlValue(controlId, cards);
+            renderRequirementControl(controlId);
+            return;
+        }
+
+        if (target.matches('[data-requirement-repeatable-remove]')) {
+            const cardRow = target.closest('[data-requirement-card-row]');
+            const repeatable = target.closest('[data-requirement-repeatable-field]');
+            const controlId = cardRow?.dataset.requirementControl;
+            const field = repeatable?.dataset.requirementRepeatableField;
+            if (!cardRow || !controlId || !field) return;
+
+            const profile = getSelectedProfile();
+            const control = getCreateTenderRequirementControl(profile.id, controlId);
+            const fields = resolveCreateTenderRequirementFields(control, profile.id);
+            const cards = normalizeCreateTenderRequirementObjectRows(getRequirementControlValue(controlId), fields, controlId);
+            const card = cards.find(entry => entry.id === cardRow.dataset.requirementCardRow);
+            if (!card) return;
+            const fieldDefinition = fields.find(item => item.id === field);
+            if (fieldDefinition?.type === 'repeatable-certification') {
+                card[field] = normalizeCreateTenderCertificationItems(card[field])
+                    .filter(item => `${item.name}::${item.mandatory ? 'mandatory' : 'optional'}` !== target.dataset.requirementRepeatableRemove);
+            } else {
+                card[field] = (Array.isArray(card[field]) ? card[field] : [])
+                    .filter(item => item !== target.dataset.requirementRepeatableRemove);
+            }
+            saveRequirementControlValue(controlId, cards);
+            renderRequirementControl(controlId);
+            return;
+        }
+
         if (target.matches('[data-category-other]')) {
             selectOtherCategory();
             return;
@@ -5908,6 +5961,30 @@ function initializeCreateTenderWizard() {
             return;
         }
 
+        if (target.matches('[data-evaluation-edit]')) {
+            const row = target.closest('[data-evaluation-criterion]');
+            if (!row) return;
+            openEvaluationEditMenu(row.dataset.evaluationCriterion);
+            return;
+        }
+
+        if (target.matches('[data-evaluation-save-edit]')) {
+            const row = target.closest('[data-evaluation-criterion]');
+            const menu = row?.querySelector('[data-evaluation-edit-menu]');
+            if (!menu) return;
+            menu.hidden = true;
+            renderEvaluationBuilder();
+            return;
+        }
+
+        if (target.matches('[data-evaluation-cancel-edit]')) {
+            const row = target.closest('[data-evaluation-criterion]');
+            const menu = row?.querySelector('[data-evaluation-edit-menu]');
+            if (!menu) return;
+            menu.hidden = true;
+            return;
+        }
+
         if (target.matches('[data-evaluation-add-suggestion]')) {
             const profile = getSelectedProfile();
             const evaluationDraft = getSelectedEvaluationDraft();
@@ -5922,18 +5999,19 @@ function initializeCreateTenderWizard() {
 
         if (target.matches('[data-evaluation-add-custom]')) {
             const evaluationDraft = getSelectedEvaluationDraft();
-            evaluationDraft.criteria.push(normalizeCreateTenderEvaluationCriterion({
+            const criterion = normalizeCreateTenderEvaluationCriterion({
                 id: `evaluation-custom-${Date.now()}`,
                 name: 'Custom criterion',
                 category: 'Custom',
                 weight: 0,
                 subcriteria: [],
                 custom: true
-            }, evaluationDraft.criteria.length, getSelectedProfile().id));
+            }, evaluationDraft.criteria.length, getSelectedProfile().id);
+            evaluationDraft.criteria.push(criterion);
             const nextDraft = evaluationDraft.mode === 'auto' ? balanceCreateTenderEvaluationWeights(evaluationDraft) : evaluationDraft;
             saveSelectedEvaluationDraft(nextDraft);
             renderEvaluationBuilder();
-            wizard.querySelector('[data-evaluation-criteria-list] [data-evaluation-criterion]:last-child [data-evaluation-field="name"]')?.focus();
+            openEvaluationEditMenu(criterion.id);
             return;
         }
 
@@ -5959,13 +6037,32 @@ function initializeCreateTenderWizard() {
         }
 
         if (target.matches('[data-run-system-evaluation]')) {
+            const confirmations = Array.from(wizard.querySelectorAll('[data-evaluation-confirmation]'));
+            if (confirmations.some(input => !input.checked)) {
+                alert('Please complete all confirmation checks before submitting the tender for evaluation.');
+                syncSystemEvaluationSubmitState();
+                return;
+            }
+            saveMainDetailsFromInputs();
+            if (!validateEvaluationBeforeLeavingStep()) return;
             const profile = getSelectedProfile();
             const result = getCreateTenderSystemEvaluation(profile, getCreateTenderMainDraft());
             saveCreateTenderSystemEvaluation(profile.id, result);
-            renderSystemEvaluationPanel();
-            if (!result.completed) {
-                alert('System evaluation found issues. Improve the highlighted understanding or grammar items, then run evaluation again.');
+            if (result.completed) {
+                const publishedTender = publishCreateTenderToMarketplace(wizard);
+                if (publishedTender) {
+                    alert(`Tender passed evaluation and has been published to the marketplace.\n\nTender: ${publishedTender.title}`);
+                    window.app?.navigateTo('supplier-marketplace');
+                }
+                return;
             }
+
+            saveCreateTenderDraftFromWizard(wizard);
+            const changes = getCreateTenderEvaluationReturnMessages(result)
+                .map((item, index) => `${index + 1}. ${item}`)
+                .join('\n');
+            alert(`Tender did not pass evaluation and has been returned to your dashboard as a draft.\n\nRequired changes:\n${changes}`);
+            window.app?.navigateTo('workspace-dashboard');
             return;
         }
 
@@ -5979,15 +6076,6 @@ function initializeCreateTenderWizard() {
             if (activeStepIndex === 2 && !validateRequirementsBeforeLeavingStep()) return;
             if (activeStepIndex === 3 && !validateEvaluationBeforeLeavingStep()) return;
             setActiveStep(activeStepIndex + 1);
-            return;
-        }
-
-        if (target.matches('[data-publish-tender]')) {
-            saveMainDetailsFromInputs();
-            if (!validateEvaluationBeforeLeavingStep()) return;
-            if (!validateSystemEvaluationBeforePublish()) return;
-            const publishedTender = publishCreateTenderToMarketplace(wizard);
-            if (publishedTender) window.app?.navigateTo('supplier-marketplace');
             return;
         }
 

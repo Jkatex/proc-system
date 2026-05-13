@@ -2,6 +2,7 @@
 
 const bidWorkspaceDraftStoragePrefix = 'procurex.supplierBidDraft.v1.';
 const bidWorkspaceSubmittedStorageKey = 'procurex.supplierSubmittedBids.v1';
+const bidWorkspaceContractClauseFieldPattern = /contractclausecards$/i;
 
 function escapeBidWorkspaceHtml(value = '') {
     return String(value)
@@ -198,6 +199,7 @@ function getBidWorkspaceRequirementSet(tender = {}, profile = getBidWorkspacePro
 
     const fields = tender.requirements?.fields || {};
     Object.entries(fields).forEach(([key, value]) => {
+        if (bidWorkspaceContractClauseFieldPattern.test(key)) return;
         if (!isBidWorkspaceMeaningfulValue(value)) return;
 
         if (Array.isArray(value)) {
