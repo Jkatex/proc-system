@@ -4114,6 +4114,7 @@ function renderCreateTender() {
                 <ul class="sidebar-nav">
                     <li><a href="#" data-navigate="procurement-dashboard">Procurement Dashboard</a></li>
                     <li><a href="#" data-navigate="buyer-journey">Buyer Journey</a></li>
+                    <li><a href="#" data-navigate="communication-center">Communication Center</a></li>
                     <li><a href="#" data-navigate="supplier-marketplace">Marketplace</a></li>
                     <li><a href="#" data-navigate="records-history">Records & History</a></li>
                     <li><a href="#" data-navigate="welcome">Logout</a></li>
@@ -6051,6 +6052,47 @@ function initializeCreateTenderWizard() {
             if (result.completed) {
                 const publishedTender = publishCreateTenderToMarketplace(wizard);
                 if (publishedTender) {
+                    window.addProcurexCommunicationItem?.({
+                        kind: 'notification',
+                        category: 'Tender Publication',
+                        subject: 'Tender Published Successfully',
+                        body: `Your tender ${publishedTender.title} has passed evaluation and has been published to the marketplace.`,
+                        senderType: 'System',
+                        senderName: 'ProcureX System',
+                        recipientType: 'Buyer',
+                        recipientName: mockData.users?.buyer?.organization || 'Buyer organization',
+                        tenderId: publishedTender.id,
+                        tenderReference: publishedTender.id,
+                        tenderTitle: publishedTender.title,
+                        priority: 'Normal',
+                        status: 'Unread',
+                        read: false,
+                        actionLabel: 'View Tender',
+                        actionPage: 'tender-details',
+                        audience: ['buyer', 'all']
+                    });
+                    window.addProcurexCommunicationItem?.({
+                        kind: 'notification',
+                        category: publishedTender.method === createTenderClosedMethod ? 'Supplier Invitation' : 'Tender Publication',
+                        subject: publishedTender.method === createTenderClosedMethod ? 'New Tender Invitation' : 'New Tender Opportunity',
+                        body: publishedTender.method === createTenderClosedMethod
+                            ? `You have been invited to participate in tender ${publishedTender.id}: ${publishedTender.title}.`
+                            : `A new tender opportunity matching your profile is available: ${publishedTender.id}: ${publishedTender.title}.`,
+                        senderType: 'System',
+                        senderName: 'ProcureX System',
+                        recipientType: 'Supplier',
+                        recipientName: 'Eligible suppliers',
+                        tenderId: publishedTender.id,
+                        tenderReference: publishedTender.id,
+                        tenderTitle: publishedTender.title,
+                        priority: 'Normal',
+                        status: 'Unread',
+                        read: false,
+                        actionRequired: true,
+                        actionLabel: 'Start Submission',
+                        actionPage: 'bidding-workspace',
+                        audience: ['supplier', 'all']
+                    });
                     alert(`Tender passed evaluation and has been published to the marketplace.\n\nTender: ${publishedTender.title}`);
                     window.app?.navigateTo('supplier-marketplace');
                 }
@@ -6061,6 +6103,26 @@ function initializeCreateTenderWizard() {
             const changes = getCreateTenderEvaluationReturnMessages(result)
                 .map((item, index) => `${index + 1}. ${item}`)
                 .join('\n');
+            window.addProcurexCommunicationItem?.({
+                kind: 'alert',
+                category: 'Tender Rejection',
+                subject: 'Tender Returned for Correction',
+                body: `Your tender was reviewed and returned for correction. Required changes: ${changes.replace(/\n/g, ' ')}`,
+                senderType: 'Evaluator',
+                senderName: 'Evaluation Panel',
+                recipientType: 'Buyer',
+                recipientName: mockData.users?.buyer?.organization || 'Buyer organization',
+                tenderId: getCreateTenderMainDraft().id || 'Draft tender',
+                tenderReference: getCreateTenderMainDraft().id || 'Draft tender',
+                tenderTitle: getCreateTenderMainDraft().title || 'Untitled tender',
+                priority: 'High',
+                status: 'Action Required',
+                read: false,
+                actionRequired: true,
+                actionLabel: 'Edit Tender',
+                actionPage: 'create-tender',
+                audience: ['buyer', 'admin', 'all']
+            });
             alert(`Tender did not pass evaluation and has been returned to your dashboard as a draft.\n\nRequired changes:\n${changes}`);
             window.app?.navigateTo('workspace-dashboard');
             return;
@@ -6412,7 +6474,26 @@ function initializeCreateTenderWizard() {
     wizard.dataset.ready = 'true';
 
     document.querySelector('[data-save-tender-draft]')?.addEventListener('click', () => {
-        saveCreateTenderDraftFromWizard(wizard);
+        const draft = saveCreateTenderDraftFromWizard(wizard);
+        window.addProcurexCommunicationItem?.({
+            kind: 'notification',
+            category: 'System Notification',
+            subject: 'Tender Draft Saved',
+            body: `Tender draft ${draft.title || 'Untitled tender'} was saved and can be resumed from your dashboard.`,
+            senderType: 'System',
+            senderName: 'ProcureX System',
+            recipientType: 'Buyer',
+            recipientName: mockData.users?.buyer?.organization || 'Buyer organization',
+            tenderId: draft.id || 'Draft tender',
+            tenderReference: draft.id || 'Draft tender',
+            tenderTitle: draft.title || 'Untitled tender',
+            priority: 'Low',
+            status: 'Unread',
+            read: false,
+            actionLabel: 'Open Draft',
+            actionPage: 'create-tender',
+            audience: ['buyer', 'all']
+        });
         alert('Tender saved as draft.');
         window.app?.navigateTo('procurement-dashboard');
     });

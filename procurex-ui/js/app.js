@@ -144,6 +144,10 @@ class ProcureXApp {
                         <span class="app-menu-icon">${this.getAppMenuIcon('procurement')}</span>
                         <span><strong>Procurement</strong><em>Marketplace, create tender, bid</em></span>
                     </button>
+                    <button class="app-menu-card app-menu-communication" data-navigate="communication-center">
+                        <span class="app-menu-icon">${this.getAppMenuIcon('communication')}</span>
+                        <span><strong>Communication Center</strong><em>Messages, clarifications, alerts</em></span>
+                    </button>
                     <button class="app-menu-card app-menu-evaluation" data-navigate="bid-evaluation">
                         <span class="app-menu-icon">${this.getAppMenuIcon('evaluation')}</span>
                         <span><strong>Evaluation</strong><em>Bid opening, scoring, review</em></span>
@@ -173,6 +177,7 @@ class ProcureXApp {
             evaluation: '<path d="M9 11l2 2 4-4"/><path d="M8 4h8"/><path d="M8 20h8"/><path d="M5 7h14v10H5z"/>',
             awarding: '<circle cx="12" cy="8" r="4"/><path d="M8.5 11.5L7 21l5-3 5 3-1.5-9.5"/><path d="M10.5 8l1 1 2-2"/>',
             contracts: '<path d="M8 3h8l3 3v15H5V3z"/><path d="M15 3v4h4"/><path d="M8 12h8"/><path d="M8 16h6"/>',
+            communication: '<path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8"/><path d="M8 13h5"/>',
             insights: '<path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16v-5"/><path d="M12 16V8"/><path d="M16 16v-9"/>'
         };
 
@@ -193,6 +198,7 @@ class ProcureXApp {
             'supplier-journey': 'Procurement',
             'supplier-marketplace': 'Procurement',
             'supplier-tender-detail': 'Procurement',
+            'communication-center': 'Communication Center',
             'create-tender': 'Procurement',
             'tender-publication': 'Procurement',
             'tender-details': 'Procurement',
@@ -224,6 +230,7 @@ class ProcureXApp {
             'supplier-journey': 'workspace-dashboard',
             'supplier-marketplace': 'workspace-dashboard',
             'supplier-tender-detail': 'supplier-marketplace',
+            'communication-center': 'workspace-dashboard',
             'guest-marketplace': 'welcome',
             'create-tender': 'workspace-dashboard',
             'tender-publication': 'create-tender',
@@ -255,6 +262,7 @@ class ProcureXApp {
             'supplier-journey': 'Supplier Journey',
             'supplier-marketplace': 'Procurement Marketplace',
             'supplier-tender-detail': 'Tender Detail',
+            'communication-center': 'Communication Center',
             'guest-marketplace': 'ProcureX Marketplace',
             'create-tender': 'Create Tender',
             'tender-publication': 'Tender Draft Detail',
@@ -310,6 +318,9 @@ class ProcureXApp {
         }
         if (typeof window.initializeSupplierTenderDetail === 'function') {
             window.initializeSupplierTenderDetail();
+        }
+        if (typeof window.initializeCommunicationCenter === 'function') {
+            window.initializeCommunicationCenter();
         }
         this.initializeProcurementLiveFeed();
     }
@@ -1539,6 +1550,7 @@ class ProcureXApp {
             'supplier-journey',
             'supplier-marketplace',
             'supplier-tender-detail',
+            'communication-center',
             'create-tender',
             'tender-publication',
             'tender-details',
@@ -1606,6 +1618,7 @@ class ProcureXApp {
     renderGuestMarketplace() { return this.getLoadingSpinner('guest marketplace'); }
     renderSupplierMarketplace() { return this.getLoadingSpinner('supplier marketplace'); }
     renderSupplierTenderDetail() { return this.getLoadingSpinner('supplier tender detail'); }
+    renderCommunicationCenter() { return this.getLoadingSpinner('communication center'); }
     renderCreateTender() { return this.getLoadingSpinner('create tender'); }
     renderTenderPublication() { return this.getLoadingSpinner('tender publication'); }
     renderTenderDetails() { return this.getLoadingSpinner('tender details'); }

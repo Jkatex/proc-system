@@ -1,12 +1,33 @@
 // Tender Detail Page Component (Buyer View)
 
+function escapeTenderDetailsHtml(value = '') {
+    if (typeof escapeSupplierTenderDetailHtml === 'function') return escapeSupplierTenderDetailHtml(value);
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function getTenderDetailsClarificationStatusClass(status = '') {
+    const raw = String(status || '').toLowerCase();
+    if (raw.includes('amendment')) return 'badge-warning';
+    if (raw.includes('answered') || raw.includes('published')) return 'badge-success';
+    if (raw.includes('closed')) return 'badge-info';
+    return 'badge-warning';
+}
+
 function renderTenderDetails() {
     const tender = typeof getProcurexSelectedTender === 'function' ? getProcurexSelectedTender() : mockData.tenders[0];
-    const clarifications = tender.clarifications || [
+    const profile = typeof getCreateTenderTypeProfile === 'function'
+        ? getCreateTenderTypeProfile(tender)
+        : { commercialName: 'Pricing schedule', bidderPreparation: [], evaluationCriteria: [] };
+    const clarifications = typeof getSupplierTenderClarifications === 'function' ? getSupplierTenderClarifications(tender) : (tender.clarifications || [
         { title: 'Solar backup scope', question: 'Does each health center include solar backup wiring?', status: 'Open' },
         { title: 'Site visit schedule', question: 'Can suppliers attend one consolidated site visit?', status: 'Open' },
         { title: 'BOQ unit mismatch', question: 'Item 3.1 shows centers but description says buildings.', status: 'Amendment candidate' }
-    ];
+    ]);
     const amendments = tender.amendments || [
         { title: 'Amendment 01', status: 'Draft available', detail: 'Update BOQ item 3.1 unit label, notify all watchers, and retain the previous version in the audit log.' }
     ];
@@ -59,24 +80,11 @@ function renderTenderDetails() {
                         <div class="kpi-card"><div class="kpi-value">${isPast ? 'Closed' : `${daysToClose}d`}</div><div class="kpi-label">Time to close</div></div>
                     </section>
 
-                    <section class="journey-grid two-col">
-                        <div class="journey-panel">
-                            <div class="panel-heading">
-                                <div>
-                                    <span class="section-kicker">Tender list active</span>
-                                    <h2>Buyer Tender Detail</h2>
-                                </div>
-                                <span class="badge badge-success">${tender.status}</span>
-                            </div>
-                            <div class="record-summary">
-                                <div><span>Description</span><strong>${tender.description}</strong></div>
-                                <div><span>Budget</span><strong>TZS ${tender.budget.toLocaleString()}</strong></div>
-                                <div><span>Eligibility</span><strong>${tender.eligibility}</strong></div>
-                                <div><span>Location</span><strong>${tender.location || 'Not specified'}</strong></div>
-                                <div><span>Closing date</span><strong>${tender.closingDate}</strong></div>
-                            </div>
-                        </div>
+                    ${typeof renderProcurexTenderDetailFullSections === 'function'
+                        ? renderProcurexTenderDetailFullSections(tender, profile, { clarifications, amendments, interestedSuppliers, showActivity: false, showMarketplaceActivity: true, showSupplierInterest: true })
+                        : ''}
 
+                    <section class="journey-grid two-col">
                         <div class="journey-panel">
                             <div class="panel-heading">
                                 <div>
@@ -87,44 +95,36 @@ function renderTenderDetails() {
                             </div>
                             <div class="inbox-list">
                                 ${clarifications.map(item => `
-                                    <div class="inbox-item"><strong>${item.title}</strong><span>${item.question}</span><button class="btn btn-secondary">${item.status === 'Amendment candidate' ? 'Amend' : 'Answer'}</button></div>
+                                    <div class="inbox-item clarification-buyer-item">
+                                        <div>
+                                            <strong>${escapeTenderDetailsHtml(item.title || item.question || 'Clarification request')}</strong>
+                                            <span>${escapeTenderDetailsHtml(item.category || 'Technical')} / ${escapeTenderDetailsHtml(item.question || item.detail || item.answer || 'No question text captured')}</span>
+                                        </div>
+                                        <em class="badge ${getTenderDetailsClarificationStatusClass(item.status)}">${escapeTenderDetailsHtml(item.status || 'Pending')}</em>
+                                        <div class="inline-actions">
+                                            <button class="btn btn-secondary">Answer Only</button>
+                                            <button class="btn btn-primary">Issue Amendment</button>
+                                        </div>
+                                    </div>
                                 `).join('')}
                             </div>
                         </div>
-                    </section>
 
-                    <section class="journey-grid three-col">
                         <div class="journey-panel control-panel">
                             <span class="section-kicker">Amendment control</span>
                             <h2>${amendments[0]?.title || 'Create amendment'}</h2>
                             <p>${amendments[0]?.detail || 'Create amendment, notify all watchers, and retain the previous version in the audit log.'}</p>
                             <button class="btn btn-secondary">Create Amendment</button>
                         </div>
+                    </section>
 
+                    <section class="journey-grid two-col">
                         <div class="journey-panel control-panel">
                             <span class="section-kicker">Evaluation workspace</span>
                             <h2>Ready for Review</h2>
                             <p>Move to scoring, supplier questions, and award preparation when the tender reaches evaluation.</p>
                             <button class="btn btn-primary" data-navigate="bid-evaluation">Open Evaluation</button>
                         </div>
-                    </section>
-
-                    <section class="journey-grid two-col">
-                        <div class="journey-panel">
-                            <div class="panel-heading">
-                                <div>
-                                    <span class="section-kicker">Supplier interest</span>
-                                    <h2>Suppliers wanting this tender</h2>
-                                </div>
-                                <span class="badge badge-info">${interestedSuppliers.length} suppliers</span>
-                            </div>
-                            <div class="inbox-list">
-                                ${interestedSuppliers.map(supplier => `
-                                    <div class="inbox-item"><strong>${supplier.name}</strong><span>${supplier.status} / ${supplier.lastActivity}</span><button class="btn btn-secondary">View</button></div>
-                                `).join('')}
-                            </div>
-                        </div>
-
                         <div class="journey-panel">
                             <div class="panel-heading">
                                 <div>

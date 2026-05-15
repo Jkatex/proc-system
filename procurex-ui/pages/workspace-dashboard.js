@@ -48,6 +48,91 @@ function getDashboardGreeting() {
     return 'Good evening';
 }
 
+function escapeWorkspaceDashboardHtml(value = '') {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function getWorkspaceDashboardStoredObject(key, fallback = null) {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(key) || 'null');
+        return parsed && typeof parsed === 'object' ? parsed : fallback;
+    } catch (error) {
+        return fallback;
+    }
+}
+
+function formatWorkspaceDashboardDraftDate(value) {
+    if (!value) return 'Saved recently';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Saved recently';
+    return `Saved ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+}
+
+function getWorkspaceDashboardSavedTenderDraft() {
+    if (typeof getCreateTenderSavedDraft === 'function') return getCreateTenderSavedDraft();
+    const draft = getWorkspaceDashboardStoredObject('procurex.createTender.v2.savedDraft', null);
+    return draft?.status === 'Saved as draft' ? draft : null;
+}
+
+function getWorkspaceDashboardSavedBidDrafts() {
+    const prefix = 'procurex.supplierBidDraft.v1.';
+    const tenders = typeof getProcurexAllTenders === 'function' ? getProcurexAllTenders() : (mockData.tenders || []);
+    const drafts = [];
+
+    for (let index = 0; index < localStorage.length; index += 1) {
+        const key = localStorage.key(index);
+        if (!key || !key.startsWith(prefix)) continue;
+
+        const draft = getWorkspaceDashboardStoredObject(key, null);
+        if (!draft || !Object.keys(draft).length) continue;
+
+        const tenderId = key.slice(prefix.length);
+        const tender = tenders.find(item => item.id === tenderId);
+        drafts.push({
+            tenderId,
+            title: tender?.title || draft.title || 'Supplier bid draft',
+            detail: tender ? `${tender.organization || 'Marketplace tender'} / ${tender.type || 'Tender'}` : 'Supplier application',
+            savedAt: draft.savedAt,
+            nav: 'bidding-workspace'
+        });
+    }
+
+    return drafts.sort((a, b) => new Date(b.savedAt || 0) - new Date(a.savedAt || 0));
+}
+
+function getWorkspaceDashboardDrafts() {
+    const savedTenderDraft = getWorkspaceDashboardSavedTenderDraft();
+    const drafts = [];
+
+    if (savedTenderDraft) {
+        drafts.push({
+            type: 'Buyer tender',
+            title: savedTenderDraft.title || 'Untitled tender',
+            detail: savedTenderDraft.visibility || 'Visibility not set',
+            savedAt: savedTenderDraft.savedAt,
+            nav: 'create-tender'
+        });
+    }
+
+    getWorkspaceDashboardSavedBidDrafts().forEach(draft => {
+        drafts.push({
+            type: 'Supplier bid',
+            title: draft.title,
+            detail: draft.detail,
+            savedAt: draft.savedAt,
+            nav: draft.nav,
+            tenderId: draft.tenderId
+        });
+    });
+
+    return drafts;
+}
+
 function getDashboardAudience(user) {
     if (mockData.currentRole === 'buyer' || mockData.currentRole === 'supplier') return mockData.currentRole;
     if (user.entityType === 'company' || user.entityType === 'business') return 'supplier';
@@ -79,11 +164,11 @@ function buildUserDashboardModel() {
     const offset = user.seed % 5;
     const baseValue = 420000000 + (offset * 85000000);
     const activeTenders = 2 + offset;
-    const draftApplications = 1 + (user.seed % 3);
     const closingSoon = user.seed % 2;
     const completionRate = 68 + (user.seed % 22);
     const isSupplierContext = audience === 'supplier' || user.entityType === 'company' || user.entityType === 'business';
     const buyerActiveTenders = typeof getProcurexBuyerActiveTenders === 'function' ? getProcurexBuyerActiveTenders() : [];
+    const drafts = getWorkspaceDashboardDrafts();
     const urgentItems = (workspace.urgentItems || [])
         .filter(item => isRelevantDashboardItem(item, audience))
         .map((item, index) => ({
@@ -138,8 +223,9 @@ function buildUserDashboardModel() {
             ['Active procurements', activeTenders + buyerActiveTenders.length, 'Buyer and supplier workflows in motion'],
             ['Total spend', formatDashboardMoney((baseValue * activeTenders) + buyerActiveTenders.reduce((sum, tender) => sum + (tender.budget || 0), 0)), 'Procurement value connected to this account'],
             ['Supplier performance', `${supplierPerformance}%`, 'Delivery, quality, and communication health'],
-            [isSupplierContext ? 'Revenue pipeline' : 'Drafts', isSupplierContext ? formatDashboardMoney(revenue) : draftApplications, isSupplierContext ? 'Potential supplier revenue from active opportunities' : 'Incomplete tender or bid drafts for this user']
+            [isSupplierContext ? 'Revenue pipeline' : 'Drafts', isSupplierContext ? formatDashboardMoney(revenue) : drafts.length, isSupplierContext ? 'Potential supplier revenue from active opportunities' : 'Incomplete tender or bid drafts for this user']
         ],
+        drafts,
         urgentItems,
         workflows,
         quickActions,
@@ -250,6 +336,34 @@ function renderWorkspaceDashboard() {
                             `).join('')}
                         </div>
                     </aside>
+                </section>
+
+                <section class="dashboard-panel dashboard-drafts-panel">
+                    <div class="panel-heading">
+                        <div>
+                            <span class="section-kicker">Drafts</span>
+                            <h2>Saved work</h2>
+                        </div>
+                        <span class="badge ${dashboard.drafts.length ? 'badge-warning' : 'badge-info'}">${dashboard.drafts.length} ${dashboard.drafts.length === 1 ? 'draft' : 'drafts'}</span>
+                    </div>
+                    <div class="draft-list">
+                        ${dashboard.drafts.length ? dashboard.drafts.map(draft => `
+                            <button class="draft-item" type="button" ${draft.tenderId ? `data-select-tender="${escapeWorkspaceDashboardHtml(draft.tenderId)}"` : ''} data-navigate="${draft.nav}">
+                                <div>
+                                    <span>${escapeWorkspaceDashboardHtml(draft.type)}</span>
+                                    <strong>${escapeWorkspaceDashboardHtml(draft.title)}</strong>
+                                    <p>${escapeWorkspaceDashboardHtml(draft.detail)}</p>
+                                </div>
+                                <em>${formatWorkspaceDashboardDraftDate(draft.savedAt)}</em>
+                            </button>
+                        `).join('') : `
+                            <div class="draft-empty">
+                                <strong>No saved drafts yet</strong>
+                                <span>Saved tenders and bid applications will appear here.</span>
+                                <button class="btn btn-secondary" type="button" data-navigate="create-tender">Create Tender</button>
+                            </div>
+                        `}
+                    </div>
                 </section>
 
                 <section class="dashboard-grid-main">

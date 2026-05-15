@@ -80,7 +80,7 @@ function renderProcurementDashboard() {
             detail: 'Buyer received 3 supplier questions that should be answered before deadline.',
             meta: 'Response needed',
             tone: 'rose',
-            nav: 'tender-details'
+            nav: 'communication-center'
         }
     ];
 
@@ -97,6 +97,7 @@ function renderProcurementDashboard() {
                     <li><a href="#" data-navigate="supplier-marketplace">Marketplace</a></li>
                     <li><a href="#" data-navigate="buyer-journey">Buyer Path</a></li>
                     <li><a href="#" data-navigate="supplier-journey">Supplier Path</a></li>
+                    <li><a href="#" data-navigate="communication-center">Communication Center</a></li>
                     <li><a href="#" data-navigate="bidding-workspace">Draft Applications</a></li>
                     <li><a href="#" data-navigate="records-history">Records & History</a></li>
                     <li><a href="#" data-navigate="app-launcher">All Apps</a></li>

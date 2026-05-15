@@ -1,1 +1,1242 @@
-the edited f\\\ileojlklkujoujiouy uhgiyldtuedtuedtedtyd
+diff --git a/procurex-ui/js/data.js b/procurex-ui/js/data.js
+--- a/procurex-ui/js/data.js
++++ b/procurex-ui/js/data.js
+@@
+-    tenders: [
+-        {
+-            id: 'T001',
+-            title: 'Construction of Rural Health Centers',
+-            type: 'Works',
+-            status: 'Open',
+-            budget: 5000000000,
+-            closingDate: '2026-06-12',
+-            organization: 'Ministry of Health',
+-            description: 'Construction of 5 rural health centers in Dodoma region',
+-            eligibility: 'Registered contractors with Class G1 license',
+-            documents: ['BOQ.pdf', 'Drawings.pdf', 'Specifications.pdf']
+-        },
+-        {
+-            id: 'T002',
+-            title: 'Supply of Medical Equipment',
+-            type: 'Goods',
+-            status: 'Evaluation',
+-            budget: 1200000000,
+-            closingDate: '2026-04-30',
+-            organization: 'Muhimbili Hospital',
+-            description: 'Supply and installation of medical imaging equipment',
+-            eligibility: 'Licensed medical equipment suppliers',
+-            documents: ['Specs.pdf', 'Requirements.pdf']
+-        },
+-        {
+-            id: 'T003',
+-            title: 'IT Infrastructure Upgrade',
+-            type: 'Service',
+-            status: 'Awarded',
+-            budget: 800000000,
+-            closingDate: '2026-04-18',
+-            organization: 'Tanzania Revenue Authority',
+-            description: 'Network infrastructure and cybersecurity upgrade',
+-            eligibility: 'Certified IT service providers',
+-            documents: ['TOR.pdf', 'Network_Diagram.pdf']
+-        }
+-    ],
++    tenders: [
++        {
++            id: 'PX-GD-001',
++            title: 'Supply of Patient Monitoring Equipment',
++            type: 'Goods',
++            procurementTypeId: 'goods',
++            status: 'Open',
++            budget: 1850000000,
++            closingDate: '2026-06-22',
++            organization: 'Muhimbili National Hospital',
++            category: 'Emergency and field medical services products',
++            categories: ['Emergency and field medical services products', 'Cardiac supplies and Accessories'],
++            method: 'Open Tender',
++            visibility: 'Public marketplace',
++            visibilityNote: 'Visible to all eligible suppliers in the marketplace.',
++            location: 'Dar es Salaam',
++            description: 'Supply, installation, calibration, user training, and warranty support for ICU and emergency patient monitors.',
++            eligibility: 'Open Tender / TMDA registered medical device suppliers with manufacturer authorization and hospital installation experience.',
++            documents: ['Technical_Specifications.pdf', 'Quantity_Schedule.xlsx', 'Warranty_Terms.pdf', 'TMDA_Compliance_Form.pdf'],
++            commercialModel: 'Quantity Schedule',
++            commercialItems: [
++                { item: '1.1', description: 'Multiparameter ICU patient monitor with accessories', qty: 42, unit: 'Unit', rate: 28500000 },
++                { item: '1.2', description: 'Central monitoring station with display wall integration', qty: 4, unit: 'Set', rate: 88000000 },
++                { item: '1.3', description: 'Installation, calibration, and biomedical staff training', qty: 1, unit: 'Lot', rate: 160000000 }
++            ],
++            requirements: {
++                fields: {
++                    quantityScheduleRows: [
++                        { itemDescription: 'Multiparameter ICU patient monitor', unitOfMeasure: 'Unit', quantity: 42, unitPrice: 28500000, mandatory: true },
++                        { itemDescription: 'Central monitoring station', unitOfMeasure: 'Set', quantity: 4, unitPrice: 88000000, mandatory: true }
++                    ],
++                    specificationCards: [
++                        { productDescription: 'ICU monitor with ECG, SpO2, NIBP, temperature, respiration, and battery backup', standards: ['ISO', 'CE'], performanceSpecifications: 'Continuous monitoring, network connectivity, trend storage for at least 96 hours', warrantyRequirements: 'Minimum 36 months warranty', installationRequirements: 'Install and calibrate at user departments', mandatory: true, requiresUpload: true },
++                        { productDescription: 'Central station with bed overview, alarms, and local data export', standards: ['ISO', 'CE'], performanceSpecifications: 'Support at least 16 beds per station', warrantyRequirements: 'Minimum 36 months warranty', mandatory: true, requiresUpload: true }
++                    ],
++                    sampleRequirementRows: [
++                        { sampleRequired: true, numberOfSamples: 1, sampleDescription: 'Demonstration unit or validated catalog sample for technical verification', deliveryLocation: 'Biomedical Engineering Unit, Muhimbili', deliveryDeadline: '2026-06-12', mandatory: true, returnableSample: true }
++                    ],
++                    otherEligibilityRequirements: [
++                        { requirementName: 'TMDA medical device registration', mandatory: true, requiresUpload: true, notes: 'Submit current registration evidence for offered models.' },
++                        { requirementName: 'Manufacturer authorization', mandatory: true, requiresUpload: true, notes: 'Authorization must name the bidder and tender reference.' },
++                        { requirementName: 'Biomedical maintenance plan', mandatory: true, requiresUpload: true, notes: 'Include local spare parts and response time commitments.' }
++                    ]
++                },
++                lists: {
++                    mandatoryDeclarations: [
++                        { text: 'Confirm supplied models are new, unused, and supported locally.' },
++                        { text: 'Confirm installation will not interrupt active clinical services.' }
++                    ]
++                }
++            },
++            regulatoryLicenses: [
++                { group: 'Food, Drugs & Cosmetics', license: 'Medical Devices Registration Permit', body: 'Tanzania Medicines and Medical Devices Authority (TMDA)', mandatory: true },
++                { group: 'Specialized Services', license: 'Calibration Certificate', body: 'Weights and Measures Agency (WMA)', mandatory: true }
++            ],
++            evaluation: {
++                criteria: [
++                    { name: 'Technical compliance', weight: 35, subcriteria: ['Clinical specifications', 'Standards compliance', 'Interoperability'] },
++                    { name: 'Delivery and installation capacity', weight: 20, subcriteria: ['Lead time', 'Training plan', 'Warranty support'] },
++                    { name: 'Financial proposal', weight: 30, subcriteria: ['Unit rates', 'Lifecycle cost'] },
++                    { name: 'After-sales support', weight: 10, subcriteria: ['Spare parts', 'Response time'] },
++                    { name: 'Compliance documents', weight: 5, subcriteria: ['TMDA', 'Tax', 'Authorization'] }
++                ]
++            },
++            milestones: [
++                { name: 'Publication', date: '2026-05-18' },
++                { name: 'Clarification deadline', date: '2026-06-10' },
++                { name: 'Bid closing', date: '2026-06-22' },
++                { name: 'Bid opening', date: '2026-06-23' },
++                { name: 'Evaluation complete', date: '2026-07-07' },
++                { name: 'Award target', date: '2026-07-15' }
++            ],
++            deliverables: ['Delivered equipment', 'Installation certificates', 'User training reports', 'Warranty and maintenance schedule'],
++            clarifications: [
++                { title: 'Demo timing', question: 'Will the demonstration be scheduled before bid opening?', status: 'Open' }
++            ],
++            amendments: [
++                { title: 'No amendments published', status: 'Ready', detail: 'Create an amendment if quantities, specifications, or delivery dates change.' }
++            ],
++            interestedSuppliers: [
++                { name: 'MedTech Solutions Ltd', status: 'Downloaded documents', lastActivity: 'Today' },
++                { name: 'Afya Biomedical Supplies', status: 'Watching tender', lastActivity: '1 day ago' }
++            ]
++        },
++        {
++            id: 'PX-GD-002',
++            title: 'Supply and Delivery of School Science Laboratory Kits',
++            type: 'Goods',
++            procurementTypeId: 'goods',
++            status: 'Open',
++            budget: 740000000,
++            closingDate: '2026-06-28',
++            organization: 'Ministry of Education, Science and Technology',
++            category: 'Developmental and professional teaching aids and materials and accessories and supplies',
++            categories: ['Developmental and professional teaching aids and materials and accessories and supplies', 'Classroom and instructional furniture and accessories'],
++            method: 'Open Tender',
++            visibility: 'Public marketplace',
++            visibilityNote: 'Visible to all eligible suppliers in the marketplace.',
++            location: 'Dodoma, Morogoro, Singida',
++            description: 'Framework supply of secondary school chemistry, biology, and physics laboratory kits with teacher orientation materials.',
++            eligibility: 'Open Tender / suppliers with education materials experience, TBS compliance, and regional distribution capacity.',
++            documents: ['Laboratory_Kit_Specifications.pdf', 'Delivery_Locations.xlsx', 'Inspection_Checklist.pdf'],
++            commercialModel: 'Quantity Schedule',
++            commercialItems: [
++                { item: '1.1', description: 'Chemistry laboratory starter kit', qty: 120, unit: 'Set', rate: 2400000 },
++                { item: '1.2', description: 'Biology microscope and slide kit', qty: 180, unit: 'Set', rate: 1650000 },
++                { item: '1.3', description: 'Physics mechanics and electricity kit', qty: 120, unit: 'Set', rate: 2100000 },
++                { item: '1.4', description: 'Teacher guide and safety poster pack', qty: 420, unit: 'Set', rate: 180000 }
++            ],
++            requirements: {
++                fields: {
++                    quantityScheduleRows: [
++                        { itemDescription: 'Chemistry laboratory starter kit', unitOfMeasure: 'Set', quantity: 120, unitPrice: 2400000, mandatory: true },
++                        { itemDescription: 'Biology microscope and slide kit', unitOfMeasure: 'Set', quantity: 180, unitPrice: 1650000, mandatory: true },
++                        { itemDescription: 'Physics mechanics and electricity kit', unitOfMeasure: 'Set', quantity: 120, unitPrice: 2100000, mandatory: true }
++                    ],
++                    specificationCards: [
++                        { productDescription: 'School-safe laboratory consumables and apparatus', standards: ['TBS', 'Manufacturer certificate'], materialQuality: 'Certified', packagingRequirements: 'Packed per school with inventory sheet', warrantyRequirements: '12 months against defects', mandatory: true },
++                        { productDescription: 'Microscope kit with prepared slides and storage box', standards: ['Manufacturer certificate'], performanceSpecifications: 'Minimum 400x magnification', mandatory: true }
++                    ],
++                    sampleRequirementRows: [
++                        { sampleRequired: true, numberOfSamples: 1, sampleDescription: 'One sample kit for each subject category', deliveryLocation: 'Ministry stores, Dodoma', deliveryDeadline: '2026-06-18', mandatory: true, returnableSample: false }
++                    ],
++                    otherEligibilityRequirements: [
++                        { requirementName: 'Three similar education supply contracts', mandatory: true, requiresUpload: true, notes: 'Submit completion certificates or signed delivery notes.' },
++                        { requirementName: 'Regional delivery plan', mandatory: true, requiresUpload: true, notes: 'Show fleet, warehouse, or logistics partner arrangements.' }
++                    ]
++                },
++                lists: {
++                    mandatoryDeclarations: [
++                        { text: 'Confirm all kits include safety labels and storage instructions.' },
++                        { text: 'Confirm delivery will be grouped by school and district.' }
++                    ]
++                }
++            },
++            regulatoryLicenses: [
++                { group: 'Specialized Services', license: 'Weights and Measures Inspection Certificate', body: 'Weights and Measures Agency (WMA)', mandatory: false }
++            ],
++            evaluation: {
++                criteria: [
++                    { name: 'Specification compliance', weight: 35, subcriteria: ['Kit completeness', 'Safety labeling', 'Durability'] },
++                    { name: 'Delivery capacity', weight: 25, subcriteria: ['Regional distribution', 'Packaging', 'Inspection readiness'] },
++                    { name: 'Financial proposal', weight: 30, subcriteria: ['Unit price', 'Total evaluated cost'] },
++                    { name: 'Supplier experience', weight: 10, subcriteria: ['Education sector contracts'] }
++                ]
++            },
++            milestones: [
++                { name: 'Publication', date: '2026-05-20' },
++                { name: 'Sample submission', date: '2026-06-18' },
++                { name: 'Bid closing', date: '2026-06-28' },
++                { name: 'Evaluation complete', date: '2026-07-10' },
++                { name: 'Award target', date: '2026-07-18' }
++            ],
++            deliverables: ['Laboratory kits by school', 'Packing lists', 'Teacher guide packs', 'Inspection acceptance certificates'],
++            clarifications: [],
++            amendments: [
++                { title: 'No amendments published', status: 'Ready', detail: 'Create an amendment if delivery locations or kit composition changes.' }
++            ],
++            interestedSuppliers: [
++                { name: 'Shule Supplies Co Ltd', status: 'Downloaded documents', lastActivity: 'Today' }
++            ]
++        },
++        {
++            id: 'PX-GD-003',
++            title: 'Supply of Solar Street Lighting Systems',
++            type: 'Goods',
++            procurementTypeId: 'goods',
++            status: 'Open',
++            budget: 1320000000,
++            closingDate: '2026-07-04',
++            organization: 'Dodoma City Council',
++            category: 'Electrical equipment and components and supplies',
++            categories: ['Electrical equipment and components and supplies', 'Batteries and generators and kinetic power transmission'],
++            method: 'Open Tender',
++            visibility: 'Public marketplace',
++            visibilityNote: 'Visible to all eligible suppliers in the marketplace.',
++            location: 'Dodoma urban wards',
++            description: 'Supply, installation support, commissioning, and warranty for integrated solar street lighting systems in priority urban roads.',
++            eligibility: 'Open Tender / suppliers of solar lighting systems with TBS or equivalent certification and local technical support.',
++            documents: ['Solar_Lighting_Specifications.pdf', 'Road_Sections_Map.pdf', 'Commissioning_Checklist.pdf'],
++            commercialModel: 'Quantity Schedule',
++            commercialItems: [
++                { item: '1.1', description: 'Integrated solar street light 120W equivalent', qty: 520, unit: 'Unit', rate: 1850000 },
++                { item: '1.2', description: 'Galvanized pole and mounting accessories', qty: 520, unit: 'Set', rate: 620000 },
++                { item: '1.3', description: 'Commissioning tools, spares, and maintenance training', qty: 1, unit: 'Lot', rate: 76000000 }
++            ],
++            requirements: {
++                fields: {
++                    quantityScheduleRows: [
++                        { itemDescription: 'Integrated solar street light', unitOfMeasure: 'Unit', quantity: 520, unitPrice: 1850000, mandatory: true },
++                        { itemDescription: 'Galvanized pole and mounting accessories', unitOfMeasure: 'Set', quantity: 520, unitPrice: 620000, mandatory: true }
++                    ],
++                    specificationCards: [
++                        { productDescription: 'Solar LED street light with lithium battery and smart charge controller', standards: ['ISO', 'TBS', 'CE'], performanceSpecifications: 'Minimum 12 hours autonomy and IP65 housing', warrantyRequirements: 'Five-year warranty for luminaire and two-year battery warranty', mandatory: true, requiresUpload: true },
++                        { productDescription: 'Galvanized pole with wind-load rating', standards: ['TBS', 'Manufacturer certificate'], dimensions: 'Minimum 7 meters height', mandatory: true }
++                    ],
++                    otherEligibilityRequirements: [
++                        { requirementName: 'Solar product test reports', mandatory: true, requiresUpload: true, notes: 'Submit photometric and battery test reports.' },
++                        { requirementName: 'Local technician availability', mandatory: true, requiresUpload: false, notes: 'List technicians available for commissioning and warranty service.' }
++                    ]
++                },
++                lists: {
++                    mandatoryDeclarations: [
++                        { text: 'Confirm proposed lights are suitable for outdoor tropical conditions.' },
++                        { text: 'Confirm spare parts availability for at least five years.' }
++                    ]
++                }
++            },
++            regulatoryLicenses: [
++                { group: 'Energy & Water (EWURA)', license: 'Electricity Distribution and Supply License', body: 'Energy and Water Utilities Regulatory Authority (EWURA)', mandatory: false }
++            ],
++            evaluation: {
++                criteria: [
++                    { name: 'Technical compliance', weight: 40, subcriteria: ['Lighting output', 'Battery autonomy', 'Ingress protection'] },
++                    { name: 'Warranty and support', weight: 15, subcriteria: ['Local spares', 'Service response'] },
++                    { name: 'Delivery capacity', weight: 15, subcriteria: ['Stock availability', 'Commissioning plan'] },
++                    { name: 'Financial proposal', weight: 30, subcriteria: ['Unit price', 'Lifecycle cost'] }
++                ]
++            },
++            milestones: [
++                { name: 'Publication', date: '2026-05-22' },
++                { name: 'Clarification deadline', date: '2026-06-20' },
++                { name: 'Bid closing', date: '2026-07-04' },
++                { name: 'Evaluation complete', date: '2026-07-18' },
++                { name: 'Award target', date: '2026-07-26' }
++            ],
++            deliverables: ['Solar lighting units', 'Poles and accessories', 'Commissioning report', 'Warranty certificate'],
++            clarifications: [],
++            amendments: [
++                { title: 'No amendments published', status: 'Ready', detail: 'Create an amendment if road sections or quantities change.' }
++            ],
++            interestedSuppliers: [
++                { name: 'SunPower Tanzania Ltd', status: 'Watching tender', lastActivity: 'Today' },
++                { name: 'GreenGrid Energy', status: 'Downloaded documents', lastActivity: '2 days ago' }
++            ]
++        },
++        {
++            id: 'PX-GD-004',
++            title: 'Supply of Agricultural Seeds and Extension Starter Packs',
++            type: 'Goods',
++            procurementTypeId: 'goods',
++            status: 'Open',
++            budget: 965000000,
++            closingDate: '2026-07-11',
++            organization: 'Tanzania Agricultural Development Bank',
++            category: 'Seeds and Seedlings',
++            categories: ['Seeds and Seedlings', 'Fertilizers, Plants Nutrients and herbicides'],
++            method: 'Open Tender',
++            visibility: 'Public marketplace',
++            visibilityNote: 'Visible to all eligible suppliers in the marketplace.',
++            location: 'Mbeya, Njombe, Rukwa',
++            description: 'Supply of certified maize, sunflower, and horticulture seed packs with extension materials for farmer groups.',
++            eligibility: 'Open Tender / certified seed companies with official seed certification, batch traceability, and regional delivery capacity.',
++            documents: ['Seed_Pack_Specifications.pdf', 'District_Distribution_Plan.xlsx', 'Quality_Assurance_Form.pdf'],
++            commercialModel: 'Quantity Schedule',
++            commercialItems: [
++                { item: '1.1', description: 'Certified maize seed 10kg pack', qty: 18000, unit: 'Pcs', rate: 28500 },
++                { item: '1.2', description: 'Certified sunflower seed 5kg pack', qty: 9500, unit: 'Pcs', rate: 22000 },
++                { item: '1.3', description: 'Vegetable starter seed pack', qty: 12000, unit: 'Pcs', rate: 12500 },
++                { item: '1.4', description: 'Extension leaflet and farmer register pack', qty: 1, unit: 'Lot', rate: 42000000 }
++            ],
++            requirements: {
++                fields: {
++                    quantityScheduleRows: [
++                        { itemDescription: 'Certified maize seed 10kg pack', unitOfMeasure: 'Pcs', quantity: 18000, unitPrice: 28500, mandatory: true },
++                        { itemDescription: 'Certified sunflower seed 5kg pack', unitOfMeasure: 'Pcs', quantity: 9500, unitPrice: 22000, mandatory: true },
++                        { itemDescription: 'Vegetable starter seed pack', unitOfMeasure: 'Pcs', quantity: 12000, unitPrice: 12500, mandatory: true }
++                    ],
++                    specificationCards: [
++                        { productDescription: 'Certified seed with labeled germination rate, lot number, and expiry date', standards: ['TBS', 'Manufacturer certificate'], materialQuality: 'Certified', shelfLifeRequirements: 'At least 9 months remaining shelf life at delivery', packagingRequirements: 'Moisture-resistant labeled packs', mandatory: true, requiresUpload: true }
++                    ],
++                    sampleRequirementRows: [
++                        { sampleRequired: true, numberOfSamples: 3, sampleDescription: 'Representative seed packs for quality verification', deliveryLocation: 'TADB Procurement Unit, Dar es Salaam', deliveryDeadline: '2026-07-01', mandatory: true, returnableSample: false }
++                    ],
++                    otherEligibilityRequirements: [
++                        { requirementName: 'Official seed certification', mandatory: true, requiresUpload: true, notes: 'Submit valid certification for each offered seed variety.' },
++                        { requirementName: 'Batch traceability plan', mandatory: true, requiresUpload: true, notes: 'Include lot numbers, origin, and recall procedure.' }
++                    ]
++                },
++                lists: {
++                    mandatoryDeclarations: [
++                        { text: 'Confirm seeds will be transported and stored under appropriate conditions.' },
++                        { text: 'Confirm replacement of rejected batches within seven days.' }
++                    ]
++                }
++            },
++            regulatoryLicenses: [
++                { group: 'Specialized Services', license: 'Weights and Measures Inspection Certificate', body: 'Weights and Measures Agency (WMA)', mandatory: true }
++            ],
++            evaluation: {
++                criteria: [
++                    { name: 'Seed quality compliance', weight: 35, subcriteria: ['Certification', 'Germination rate', 'Shelf life'] },
++                    { name: 'Distribution capacity', weight: 25, subcriteria: ['Regional delivery', 'Storage controls'] },
++                    { name: 'Financial proposal', weight: 30, subcriteria: ['Pack price', 'Delivery cost'] },
++                    { name: 'After-delivery support', weight: 10, subcriteria: ['Replacement plan', 'Farmer guidance'] }
++                ]
++            },
++            milestones: [
++                { name: 'Publication', date: '2026-05-25' },
++                { name: 'Sample deadline', date: '2026-07-01' },
++                { name: 'Bid closing', date: '2026-07-11' },
++                { name: 'Evaluation complete', date: '2026-07-23' },
++                { name: 'Award target', date: '2026-07-31' }
++            ],
++            deliverables: ['Certified seed packs', 'Batch certificates', 'Distribution reports', 'Replacement support plan'],
++            clarifications: [],
++            amendments: [
++                { title: 'No amendments published', status: 'Ready', detail: 'Create an amendment if varieties, quantities, or districts change.' }
++            ],
++            interestedSuppliers: [
++                { name: 'Highland Seed Co', status: 'Downloaded documents', lastActivity: 'Today' }
++            ]
++        },
++        {
++            id: 'PX-WK-001',
++            title: 'Rehabilitation of Regional Water Supply Pipelines',
++            type: 'Works',
++            procurementTypeId: 'works',
++            status: 'Open',
++            budget: 6240000000,
++            closingDate: '2026-07-15',
++            organization: 'Rural Water Supply and Sanitation Agency',
++            category: 'Water and Sewer Treatment Equipment and consumables',
++            categories: ['Water and Sewer Treatment Equipment and consumables', 'Concrete and cement and plaster'],
++            method: 'Open Tender',
++            visibility: 'Public marketplace',
++            visibilityNote: 'Visible to all eligible suppliers in the marketplace.',
++            location: 'Manyara Region',
++            description: 'Rehabilitation of transmission pipelines, valve chambers, crossings, pressure testing, and reinstatement for rural water schemes.',
++            eligibility: 'Open Tender / CRB registered civil works contractors with water infrastructure experience and valid OSHA compliance.',
++            documents: ['Drawings.pdf', 'BOQ.xlsx', 'Site_Report.pdf', 'Environmental_Management_Requirements.pdf'],
++            commercialModel: 'BOQ',
++            commercialItems: [
++                { item: '1.1', description: 'Excavation and bedding for HDPE pipeline', qty: 28, unit: 'Km', rate: 68000000 },
++                { item: '1.2', description: 'Supply and install HDPE pipe and fittings', qty: 28, unit: 'Km', rate: 112000000 },
++                { item: '1.3', description: 'Valve chambers and washout structures', qty: 36, unit: 'Unit', rate: 14800000 },
++                { item: '1.4', description: 'Pressure testing, disinfection, and commissioning', qty: 1, unit: 'Lot', rate: 420000000 }
++            ],
++            requirements: {
++                fields: {
++                    projectName: 'Manyara regional pipeline rehabilitation',
++                    procuringEntity: 'Rural Water Supply and Sanitation Agency',
++                    location: 'Manyara Region',
++                    contractType: 'Unit Price Contract',
++                    completionPeriod: '10 months',
++                    fundingSource: 'Government of Tanzania',
++                    scopeSummary: 'Rehabilitate critical transmission lines, replace damaged valves, build chambers, test lines, and restore road crossings.',
++                    mainConstructionActivities: [
++                        { text: 'Site clearance and trench excavation' },
++                        { text: 'Pipe laying and fitting installation' },
++                        { text: 'Valve chamber construction' },
++                        { text: 'Pressure testing and commissioning' },
++                        { text: 'Environmental reinstatement' }
++                    ],
++                    technicalSpecificationDocuments: [
++                        { documentTitle: 'Material specifications', mandatory: true, requiresUpload: true },
++                        { documentTitle: 'Workmanship standards', mandatory: true, requiresUpload: true }
++                    ],
++                    drawingDesignRows: [
++                        { documentType: 'Structural drawings', mandatory: true },
++                        { documentType: 'Environmental report', mandatory: true }
++                    ],
++                    boqRows: [
++                        { workItem: 'Pipeline excavation and bedding', quantity: 28, unit: 'Km', laborCost: 420000000, materialCost: 1092000000, equipmentCost: 392000000, mandatory: true },
++                        { workItem: 'Valve chamber construction', quantity: 36, unit: 'Unit', laborCost: 126000000, materialCost: 288000000, equipmentCost: 118800000, mandatory: true }
++                    ],
++                    worksMilestoneRows: [
++                        { milestone: 'Mobilization and site handover', targetDate: '2026-08-10', liquidatedDamagesTrigger: false, mandatory: true },
++                        { milestone: 'Pipeline works 50 percent complete', targetDate: '2026-12-15', liquidatedDamagesTrigger: true, mandatory: true },
++                        { milestone: 'Commissioning and defects list', targetDate: '2027-05-15', liquidatedDamagesTrigger: true, mandatory: true }
++                    ],
++                    siteVisitRequirement: 'Mandatory',
++                    similarCompletedProjectsRequired: true,
++                    keyPersonnelCvsRequired: true,
++                    bankStatementsRequired: true,
++                    bankStatementPeriod: 'Submit bank statements for the last 12 months.'
++                },
++                lists: {
++                    mandatoryDeclarations: [
++                        { text: 'Attend the mandatory site visit and submit the signed attendance certificate.' },
++                        { text: 'Confirm works will maintain safe access for nearby communities.' }
++                    ]
++                }
++            },
++            regulatoryLicenses: [
++                { group: 'Construction & Real Estate', license: 'Contractor Registration Certificate', body: 'Contractors Registration Board (CRB) and Local Government Authorities', mandatory: true },
++                { group: 'Environmental & Safety', license: 'Occupational Safety and Health Compliance Certificate', body: 'Occupational Safety and Health Authority (OSHA)', mandatory: true }
++            ],
++            evaluation: {
++                criteria: [
++                    { name: 'Technical capacity', weight: 30, subcriteria: ['Water works experience', 'Plant and equipment', 'Key personnel'] },
++                    { name: 'Methodology and schedule', weight: 20, subcriteria: ['Traffic management', 'Testing plan', 'Realistic work program'] },
++                    { name: 'Financial proposal', weight: 30, subcriteria: ['Priced BOQ', 'Rate reasonableness'] },
++                    { name: 'ESG and safety', weight: 10, subcriteria: ['Community safety', 'Environmental reinstatement'] },
++                    { name: 'Compliance', weight: 10, subcriteria: ['CRB', 'OSHA', 'Tax'] }
++                ]
++            },
++            milestones: [
++                { name: 'Publication', date: '2026-05-26' },
++                { name: 'Site visit', date: '2026-06-18' },
++                { name: 'Clarification deadline', date: '2026-07-01' },
++                { name: 'Bid closing', date: '2026-07-15' },
++                { name: 'Evaluation complete', date: '2026-07-31' },
++                { name: 'Award target', date: '2026-08-07' }
++            ],
++            deliverables: ['Completed pipeline rehabilitation', 'Pressure test certificates', 'As-built drawings', 'Environmental reinstatement report'],
++            clarifications: [
++                { title: 'Site visit route', question: 'Will transport be provided between remote valve chambers?', status: 'Open' }
++            ],
++            amendments: [
++                { title: 'No amendments published', status: 'Ready', detail: 'Create an amendment if BOQ quantities, drawings, or site visit logistics change.' }
++            ],
++            interestedSuppliers: [
++                { name: 'ABC Construction Ltd', status: 'Downloaded documents', lastActivity: 'Today' },
++                { name: 'Maji Works Contractors', status: 'Asked clarification', lastActivity: 'Today' }
++            ]
++        },
++        {
++            id: 'PX-WK-002',
++            title: 'Construction of District Records and Archive Center',
++            type: 'Works',
++            procurementTypeId: 'works',
++            status: 'Open',
++            budget: 2850000000,
++            closingDate: '2026-06-30',
++            organization: 'President Office Regional Administration and Local Government',
++            category: 'Construction and maintenance support equipment',
++            categories: ['Construction and maintenance support equipment', 'Doors and windows and glass'],
++            method: 'Open Tender',
++            visibility: 'Public marketplace',
++            visibilityNote: 'Visible to all eligible suppliers in the marketplace.',
++            location: 'Kigoma District',
++            description: 'Construction of a district records center including archive rooms, fire protection, accessibility works, ICT ducts, and external drainage.',
++            eligibility: 'Open Tender / CRB registered building contractors with completed public building projects and valid tax clearance.',
++            documents: ['Architectural_Drawings.pdf', 'Structural_Drawings.pdf', 'BOQ.xlsx', 'Fire_Safety_Specifications.pdf'],
++            commercialModel: 'BOQ',
++            commercialItems: [
++                { item: '1.1', description: 'Substructure and foundation works', qty: 1, unit: 'Lot', rate: 520000000 },
++                { item: '1.2', description: 'Superstructure, roofing, and finishes', qty: 1, unit: 'Lot', rate: 1460000000 },
++                { item: '1.3', description: 'Electrical, ICT ducts, plumbing, and fire systems', qty: 1, unit: 'Lot', rate: 620000000 },
++                { item: '1.4', description: 'External drainage and paving', qty: 1, unit: 'Lot', rate: 250000000 }
++            ],
++            requirements: {
++                fields: {
++                    projectName: 'District records and archive center',
++                    procuringEntity: 'PO-RALG',
++                    location: 'Kigoma District',
++                    contractType: 'Lump Sum Contract',
++                    completionPeriod: '12 months',
++                    fundingSource: 'Government of Tanzania',
++                    scopeSummary: 'Construct archive storage, administration rooms, records handling areas, secure access, fire protection, ICT ducts, and external works.',
++                    mainConstructionActivities: [
++                        { text: 'Foundation and reinforced concrete works' },
++                        { text: 'Masonry, roofing, doors, and windows' },
++                        { text: 'Electrical, plumbing, and fire protection works' },
++                        { text: 'External drainage, access ramp, and paving' }
++                    ],
++                    technicalSpecificationDocuments: [
++                        { documentTitle: 'Applicable standards / codes', mandatory: true, requiresUpload: true },
++                        { documentTitle: 'Material specifications', mandatory: true, requiresUpload: true }
++                    ],
++                    drawingDesignRows: [
++                        { documentType: 'Architectural drawings', mandatory: true },
++                        { documentType: 'Structural drawings', mandatory: true },
++                        { documentType: 'Electrical drawings', mandatory: true }
++                    ],
++                    lumpSumPricingRows: [
++                        { section: 'A', description: 'Substructure', amount: 520000000, mandatory: true },
++                        { section: 'B', description: 'Superstructure and finishes', amount: 1460000000, mandatory: true },
++                        { section: 'C', description: 'MEP and fire systems', amount: 620000000, mandatory: true }
++                    ],
++                    worksMilestoneRows: [
++                        { milestone: 'Foundation complete', targetDate: '2026-10-15', liquidatedDamagesTrigger: true },
++                        { milestone: 'Roofing complete', targetDate: '2027-01-30', liquidatedDamagesTrigger: true },
++                        { milestone: 'Practical completion', targetDate: '2027-07-20', liquidatedDamagesTrigger: true }
++                    ],
++                    siteVisitRequirement: 'Mandatory',
++                    similarCompletedProjectsRequired: true,
++                    keyPersonnelCvsRequired: true,
++                    bankStatementsRequired: true,
++                    bankStatementPeriod: 'Submit audited financial statements and recent bank reference.'
++                },
++                lists: {
++                    mandatoryDeclarations: [
++                        { text: 'Confirm compliance with fire protection and archive humidity control requirements.' },
++                        { text: 'Confirm bidder has reviewed all drawings and BOQ sections.' }
++                    ]
++                }
++            },
++            regulatoryLicenses: [
++                { group: 'Construction & Real Estate', license: 'Contractor Registration Certificate', body: 'Contractors Registration Board (CRB) and Local Government Authorities', mandatory: true },
++                { group: 'Environmental & Safety', license: 'Environmental Compliance Certificate', body: 'National Environment Management Council (NEMC)', mandatory: false },
++                { group: 'Environmental & Safety', license: 'Occupational Safety and Health Compliance Certificate', body: 'Occupational Safety and Health Authority (OSHA)', mandatory: true }
++            ],
++            evaluation: {
++                criteria: [
++                    { name: 'Technical capacity', weight: 30, subcriteria: ['Building experience', 'Personnel', 'Equipment'] },
++                    { name: 'Construction methodology', weight: 25, subcriteria: ['Archive protection', 'Fire systems', 'Schedule'] },
++                    { name: 'Financial proposal', weight: 30, subcriteria: ['Lump sum price', 'Payment schedule'] },
++                    { name: 'Compliance and safety', weight: 15, subcriteria: ['CRB', 'OSHA', 'Site safety plan'] }
++                ]
++            },
++            milestones: [
++                { name: 'Publication', date: '2026-05-19' },
++                { name: 'Site visit', date: '2026-06-05' },
++                { name: 'Bid closing', date: '2026-06-30' },
++                { name: 'Evaluation complete', date: '2026-07-14' },
++                { name: 'Award target', date: '2026-07-22' }
++            ],
++            deliverables: ['Completed archive center', 'As-built drawings', 'Fire system commissioning certificates', 'Defects liability plan'],
++            clarifications: [],
++            amendments: [
++                { title: 'No amendments published', status: 'Ready', detail: 'Create an amendment if drawings, room schedules, or fire specifications change.' }
++            ],
++            interestedSuppliers: [
++                { name: 'BuildRight Ltd', status: 'Watching tender', lastActivity: 'Today' }
++            ]
++        },
++        {
++            id: 'PX-WK-003',
++            title: 'Upgrade of Municipal Market Drainage and Paving',
++            type: 'Works',
++            procurementTypeId: 'works',
++            status: 'Open',
++            budget: 1745000000,
++            closingDate: '2026-07-08',
++            organization: 'Arusha City Council',
++            category: 'Concrete and cement and plaster',
++            categories: ['Concrete and cement and plaster', 'Earth and stone (Mchanga, Vifusi na Kokoto)'],
++            method: 'Open Tender',
++            visibility: 'Public marketplace',
++            visibilityNote: 'Visible to all eligible suppliers in the marketplace.',
++            location: 'Arusha Central Market',
++            description: 'Upgrade stormwater drainage, concrete paving, stall access paths, and night work controls at an active municipal market.',
++            eligibility: 'Open Tender / CRB civil contractors with urban drainage experience and traffic or public access management capability.',
++            documents: ['Drainage_Drawings.pdf', 'Market_Phase_Plan.pdf', 'BOQ.xlsx', 'Public_Access_Rules.pdf'],
++            commercialModel: 'BOQ',
++            commercialItems: [
++                { item: '1.1', description: 'Demolition and removal of damaged paving', qty: 6200, unit: 'Sqm', rate: 18500 },
++                { item: '1.2', description: 'Construct lined stormwater drains', qty: 1250, unit: 'Meter', rate: 390000 },
++                { item: '1.3', description: 'Concrete paving and stall access ramps', qty: 6800, unit: 'Sqm', rate: 84500 },
++                { item: '1.4', description: 'Temporary market access and safety controls', qty: 1, unit: 'Lot', rate: 180000000 }
++            ],
++            requirements: {
++                fields: {
++                    projectName: 'Municipal market drainage and paving upgrade',
++                    procuringEntity: 'Arusha City Council',
++                    location: 'Arusha Central Market',
++                    contractType: 'Unit Price Contract',
++                    completionPeriod: '6 months',
++                    fundingSource: 'Own Source',
++                    scopeSummary: 'Complete drainage and paving works in phases while keeping trading areas operational and safe.',
++                    mainConstructionActivities: [
++                        { text: 'Phased demolition and site protection' },
++                        { text: 'Stormwater drain construction' },
++                        { text: 'Concrete paving and ramp works' },
++                        { text: 'Public access and night work controls' }
++                    ],
++                    technicalSpecificationDocuments: [
++                        { documentTitle: 'Workmanship standards', mandatory: true },
++                        { documentTitle: 'Material specifications', mandatory: true }
++                    ],
++                    boqRows: [
++                        { workItem: 'Lined stormwater drains', quantity: 1250, unit: 'Meter', laborCost: 105000000, materialCost: 290000000, equipmentCost: 92500000, mandatory: true },
++                        { workItem: 'Concrete paving', quantity: 6800, unit: 'Sqm', laborCost: 135000000, materialCost: 320000000, equipmentCost: 119600000, mandatory: true }
++                    ],
++                    worksMilestoneRows: [
++                        { milestone: 'Phase 1 market section complete', targetDate: '2026-09-20', liquidatedDamagesTrigger: true },
++                        { milestone: 'Main drains complete', targetDate: '2026-11-10', liquidatedDamagesTrigger: true },
++                        { milestone: 'Final paving and handover', targetDate: '2027-01-15', liquidatedDamagesTrigger: true }
++                    ],
++                    siteVisitRequirement: 'Mandatory',
++                    similarCompletedProjectsRequired: true,
++                    keyPersonnelCvsRequired: true,
++                    bankStatementsRequired: false
++                },
++                lists: {
++                    mandatoryDeclarations: [
++                        { text: 'Confirm ability to work in phases around active traders.' },
++                        { text: 'Submit a public safety and access plan.' }
++                    ]
++                }
++            },
++            regulatoryLicenses: [
++                { group: 'Construction & Real Estate', license: 'Contractor Registration Certificate', body: 'Contractors Registration Board (CRB) and Local Government Authorities', mandatory: true },
++                { group: 'Environmental & Safety', license: 'Occupational Safety and Health Compliance Certificate', body: 'Occupational Safety and Health Authority (OSHA)', mandatory: true }
++            ],
++            evaluation: {
++                criteria: [
++                    { name: 'Relevant experience', weight: 25, subcriteria: ['Urban works', 'Drainage projects'] },
++                    { name: 'Methodology', weight: 30, subcriteria: ['Phasing', 'Public safety', 'Quality controls'] },
++                    { name: 'Financial proposal', weight: 30, subcriteria: ['Unit rates', 'Provisional sums'] },
++                    { name: 'Compliance', weight: 15, subcriteria: ['CRB', 'OSHA', 'Tax'] }
++                ]
++            },
++            milestones: [
++                { name: 'Publication', date: '2026-05-24' },
++                { name: 'Site visit', date: '2026-06-16' },
++                { name: 'Bid closing', date: '2026-07-08' },
++                { name: 'Evaluation complete', date: '2026-07-21' },
++                { name: 'Award target', date: '2026-07-28' }
++            ],
++            deliverables: ['Constructed drains', 'Completed paving', 'Access and safety reports', 'As-built measurements'],
++            clarifications: [],
++            amendments: [
++                { title: 'No amendments published', status: 'Ready', detail: 'Create an amendment if phasing, BOQ, or site access rules change.' }
++            ],
++            interestedSuppliers: [
++                { name: 'Prime Contractors', status: 'Downloaded documents', lastActivity: '1 day ago' }
++            ]
++        },
++        {
++            id: 'PX-SV-001',
++            title: 'Managed Cybersecurity Monitoring Service',
++            type: 'Service',
++            procurementTypeId: 'services',
++            status: 'Open',
++            budget: 1180000000,
++            closingDate: '2026-06-26',
++            organization: 'Tanzania Revenue Authority',
++            category: 'IT Support',
++            categories: ['Computer Software', 'Components for information technology or broadcasting or telecommunications'],
++            method: 'Open Tender',
++            visibility: 'Public marketplace',
++            visibilityNote: 'Visible to all eligible suppliers in the marketplace.',
++            location: 'Dar es Salaam with remote coverage nationwide',
++            description: 'Twenty-four month managed security monitoring, incident response support, vulnerability reporting, and knowledge transfer.',
++            eligibility: 'Open Tender / ICT security firms with SOC capability, certified analysts, and public sector confidentiality controls.',
++            documents: ['Scope_of_Services.pdf', 'SLA_Schedule.pdf', 'Security_Requirements.pdf', 'Reporting_Template.xlsx'],
++            commercialModel: 'Service Schedule',
++            commercialItems: [
++                { item: '1.1', description: '24/7 security monitoring and alert triage', qty: 24, unit: 'Month', rate: 32000000 },
++                { item: '1.2', description: 'Monthly vulnerability assessment and reporting', qty: 24, unit: 'Month', rate: 8500000 },
++                { item: '1.3', description: 'Incident response retainer and tabletop exercises', qty: 4, unit: 'Unit', rate: 42000000 }
++            ],
++            requirements: {
++                fields: {
++                    scopeOfServices: 'Provide SOC monitoring, alert triage, incident response support, vulnerability scanning, monthly executive reports, and capacity building.',
++                    serviceLocations: [{ text: 'Primary data center - Dar es Salaam' }, { text: 'Disaster recovery site - Dodoma' }, { text: 'Remote branch connectivity' }],
++                    duration: '24 months',
++                    fundingSource: 'Own Source',
++                    financialRequirementRows: [
++                        { requirementType: 'Average Annual Turnover', minimumValue: 1500000000, currency: 'TZS', period: 'Last 3 Years', evidenceRequired: ['Audited accounts'], mandatory: true }
++                    ],
++                    personnelRequirementRows: [
++                        { position: 'SOC Manager', minimumEducation: 'Bachelor Degree', minimumYearsExperience: 8, cvRequired: true, mandatory: true },
++                        { position: 'Incident Response Lead', minimumEducation: 'Professional Qualification', minimumYearsExperience: 6, cvRequired: true, mandatory: true },
++                        { position: 'Security Analyst', minimumEducation: 'Bachelor Degree', minimumYearsExperience: 3, cvRequired: true, mandatory: true }
++                    ],
++                    serviceDeliverables: [{ text: 'Monthly security posture report' }, { text: 'Incident response playbooks' }, { text: 'Quarterly threat briefing' }],
++                    serviceMilestones: [{ text: 'Onboarding and baseline assessment' }, { text: 'First quarterly tabletop exercise' }, { text: 'Annual maturity review' }],
++                    reportingRequirements: 'Monthly technical reports and quarterly executive risk summaries.',
++                    slaRequirement: 'Critical alerts acknowledged within 15 minutes and escalated within 30 minutes.',
++                    uptimeRequirement: 'Monitoring platform availability not less than 99.5 percent monthly.',
++                    responseTime: 'Critical incident remote response within 30 minutes.',
++                    supportHours: '24/7/365 monitoring and escalation.',
++                    supportingDocumentRows: [
++                        { documentName: 'Information security policy', mandatory: true },
++                        { documentName: 'Analyst certifications', mandatory: true },
++                        { documentName: 'Non-disclosure undertaking', mandatory: true }
++                    ],
++                    esRequirementCards: [
++                        { category: 'Labor Compliance', description: 'Confirm analysts are contracted and trained under applicable labor requirements.', evidenceRequired: ['Policy document'], mandatory: true }
++                    ]
++                },
++                lists: {
++                    mandatoryDeclarations: [
++                        { text: 'Confirm all security data will be processed under confidentiality controls.' },
++                        { text: 'Confirm incident evidence will not be transferred outside approved environments without authorization.' }
++                    ]
++                }
++            },
++            regulatoryLicenses: [
++                { group: 'Communications & Transport', license: 'Application Services License', body: 'Tanzania Communications Regulatory Authority (TCRA)', mandatory: false }
++            ],
++            evaluation: {
++                criteria: [
++                    { name: 'Service methodology', weight: 30, subcriteria: ['SOC process', 'Incident handling', 'Reporting'] },
++                    { name: 'Team capability', weight: 25, subcriteria: ['Certifications', 'Experience', 'Availability'] },
++                    { name: 'SLA compliance plan', weight: 20, subcriteria: ['Response time', 'Escalation', 'Continuity'] },
++                    { name: 'Financial proposal', weight: 15, subcriteria: ['Monthly fee', 'Retainer value'] },
++                    { name: 'Compliance', weight: 10, subcriteria: ['Confidentiality', 'References'] }
++                ]
++            },
++            milestones: [
++                { name: 'Publication', date: '2026-05-18' },
++                { name: 'Clarification deadline', date: '2026-06-12' },
++                { name: 'Bid closing', date: '2026-06-26' },
++                { name: 'Evaluation complete', date: '2026-07-08' },
++                { name: 'Award target', date: '2026-07-16' }
++            ],
++            deliverables: ['Baseline security report', 'Monthly monitoring reports', 'Incident response playbooks', 'Knowledge transfer sessions'],
++            clarifications: [
++                { title: 'Tool integration', question: 'Will existing SIEM logs be exported through API access?', status: 'Open' }
++            ],
++            amendments: [
++                { title: 'No amendments published', status: 'Ready', detail: 'Create an amendment if SLA, scope, or confidentiality requirements change.' }
++            ],
++            interestedSuppliers: [
++                { name: 'SecureNet Africa', status: 'Downloaded documents', lastActivity: 'Today' },
++                { name: 'CyberShield Tanzania', status: 'Watching tender', lastActivity: 'Today' }
++            ]
++        },
++        {
++            id: 'PX-SV-002',
++            title: 'Facilities Cleaning and Waste Management Services',
++            type: 'Service',
++            procurementTypeId: 'services',
++            status: 'Open',
++            budget: 540000000,
++            closingDate: '2026-06-24',
++            organization: 'University of Dodoma',
++            category: 'Cleaning',
++            categories: ['Cleaning Equipment and Supplies', 'Waste Management'],
++            method: 'Open Tender',
++            visibility: 'Public marketplace',
++            visibilityNote: 'Visible to all eligible suppliers in the marketplace.',
++            location: 'Dodoma main campus',
++            description: 'Campus cleaning, sanitary services, grounds waste collection, recycling separation, and monthly performance reporting.',
++            eligibility: 'Open Tender / cleaning service providers with trained supervisors, equipment, labor compliance, and waste handling capacity.',
++            documents: ['Scope_of_Cleaning_Services.pdf', 'Campus_Areas.xlsx', 'SLA_KPI_Schedule.pdf'],
++            commercialModel: 'Service Schedule',
++            commercialItems: [
++                { item: '1.1', description: 'Daily building cleaning services', qty: 12, unit: 'Month', rate: 28500000 },
++                { item: '1.2', description: 'Sanitary consumables and washroom service', qty: 12, unit: 'Month', rate: 6800000 },
++                { item: '1.3', description: 'Waste segregation, collection, and reporting', qty: 12, unit: 'Month', rate: 5200000 },
++                { item: '1.4', description: 'Deep cleaning and special events support', qty: 6, unit: 'Unit', rate: 9400000 }
++            ],
++            requirements: {
++                fields: {
++                    scopeOfServices: 'Provide daily cleaning for academic buildings, hostels, administrative areas, washrooms, outdoor walkways, and event spaces.',
++                    serviceLocations: [{ text: 'College of Informatics' }, { text: 'Administrative block' }, { text: 'Library' }, { text: 'Student hostels' }],
++                    duration: '12 months renewable based on performance',
++                    fundingSource: 'Own Source',
++                    financialRequirementRows: [
++                        { requirementType: 'Minimum Annual Turnover', minimumValue: 600000000, currency: 'TZS', period: 'Last 3 Years', evidenceRequired: ['Audited accounts', 'Tax clearance'], mandatory: true }
++                    ],
++                    personnelRequirementRows: [
++                        { position: 'Contract Manager', minimumEducation: 'Diploma', minimumYearsExperience: 5, cvRequired: true, mandatory: true },
++                        { position: 'Site Supervisor', minimumEducation: 'Certificate', minimumYearsExperience: 3, cvRequired: true, mandatory: true }
++                    ],
++                    cleaningAreas: 'Lecture halls, offices, washrooms, corridors, library, hostels, and outdoor paved areas.',
++                    cleaningFrequency: 'Daily',
++                    cleaningMaterials: 'Biodegradable detergents, disinfectants, PPE, mops, scrubbers, trolleys, and waste bags.',
++                    wasteDisposalRequirements: 'Separate recyclable and general waste, maintain manifests, and use approved disposal points.',
++                    equipmentRequirementRows: [
++                        { equipmentName: 'Floor scrubber', quantity: 4, ownershipRequirement: 'Owned', technicalSpecification: 'Industrial grade with operator safety features', evidenceRequired: ['Photos', 'Purchase receipt'], mandatory: true, evaluationMethod: 'Compliance Review', supplierResponseType: 'Upload + Text' },
++                        { equipmentName: 'Waste collection trolleys', quantity: 20, ownershipRequirement: 'Either', technicalSpecification: 'Covered bins and wheeled trolleys', evidenceRequired: ['Photos'], mandatory: true, evaluationMethod: 'Compliance Review', supplierResponseType: 'Upload' }
++                    ],
++                    esRequirementCards: [
++                        { category: 'Worker Safety', description: 'Provide PPE, training, and incident reporting procedure.', evidenceRequired: ['Training records', 'Procedure manual'], mandatory: true },
++                        { category: 'Environmental Protection', description: 'Use approved disposal points and reduce chemical discharge.', evidenceRequired: ['Environmental plan'], mandatory: true }
++                    ],
++                    supportingDocumentRows: [
++                        { documentName: 'Cleaning methodology', mandatory: true },
++                        { documentName: 'Staff deployment plan', mandatory: true },
++                        { documentName: 'Labor compliance declaration', mandatory: true }
++                    ]
++                },
++                lists: {
++                    mandatoryDeclarations: [
++                        { text: 'Confirm cleaners will be paid in line with labor laws.' },
++                        { text: 'Confirm consumables are included in monthly rates.' }
++                    ]
++                }
++            },
++            regulatoryLicenses: [
++                { group: 'Environmental & Safety', license: 'Occupational Safety and Health Compliance Certificate', body: 'Occupational Safety and Health Authority (OSHA)', mandatory: true },
++                { group: 'Specialized Services', license: 'Hazardous Chemicals Handling Certificate', body: 'Government Chemist Laboratory Authority (GCLA)', mandatory: false }
++            ],
++            evaluation: {
++                criteria: [
++                    { name: 'Service methodology', weight: 30, subcriteria: ['Cleaning schedule', 'Quality controls', 'Waste handling'] },
++                    { name: 'Team capability', weight: 20, subcriteria: ['Supervision', 'Training', 'Staffing levels'] },
++                    { name: 'Equipment and materials', weight: 20, subcriteria: ['Equipment ownership', 'Consumables', 'PPE'] },
++                    { name: 'Financial proposal', weight: 20, subcriteria: ['Monthly rate', 'Consumables inclusion'] },
++                    { name: 'Compliance', weight: 10, subcriteria: ['OSHA', 'Labor', 'References'] }
++                ]
++            },
++            milestones: [
++                { name: 'Publication', date: '2026-05-17' },
++                { name: 'Site visit', date: '2026-06-03' },
++                { name: 'Bid closing', date: '2026-06-24' },
++                { name: 'Evaluation complete', date: '2026-07-06' },
++                { name: 'Award target', date: '2026-07-13' }
++            ],
++            deliverables: ['Monthly cleaning service', 'Waste reports', 'Quality inspection reports', 'Incident logs'],
++            clarifications: [],
++            amendments: [
++                { title: 'No amendments published', status: 'Ready', detail: 'Create an amendment if campus areas, staffing, or SLA requirements change.' }
++            ],
++            interestedSuppliers: [
++                { name: 'Bright Facility Services', status: 'Watching tender', lastActivity: 'Today' }
++            ]
++        },
++        {
++            id: 'PX-SV-003',
++            title: 'Regional Pharmaceutical Distribution and Cold Chain Logistics',
++            type: 'Service',
++            procurementTypeId: 'services',
++            status: 'Open',
++            budget: 1575000000,
++            closingDate: '2026-07-02',
++            organization: 'Medical Stores Department',
++            category: 'Transport / logistics',
++            categories: ['Transport / logistics', 'Clinical nutrition'],
++            method: 'Open Tender',
++            visibility: 'Public marketplace',
++            visibilityNote: 'Visible to all eligible suppliers in the marketplace.',
++            location: 'Lake Zone distribution routes',
++            description: 'Temperature-controlled distribution of medicines and medical commodities from zonal stores to district facilities.',
++            eligibility: 'Open Tender / logistics firms with cold chain vehicles, GPS tracking, trained drivers, insurance, and pharmaceutical handling SOPs.',
++            documents: ['Route_Coverage.xlsx', 'Cold_Chain_SLA.pdf', 'Vehicle_Requirements.pdf', 'Delivery_Reporting_Template.xlsx'],
++            commercialModel: 'Service Schedule',
++            commercialItems: [
++                { item: '1.1', description: 'Scheduled cold chain distribution routes', qty: 18, unit: 'Month', rate: 62000000 },
++                { item: '1.2', description: 'Emergency delivery call-out service', qty: 60, unit: 'Unit', rate: 4200000 },
++                { item: '1.3', description: 'GPS and temperature reporting dashboard', qty: 18, unit: 'Month', rate: 6800000 }
++            ],
++            requirements: {
++                fields: {
++                    scopeOfServices: 'Collect, transport, monitor, and deliver temperature-sensitive medicines with chain-of-custody and temperature logs.',
++                    serviceLocations: [{ text: 'Mwanza zonal store' }, { text: 'Geita district facilities' }, { text: 'Kagera district facilities' }, { text: 'Mara district facilities' }],
++                    duration: '18 months',
++                    fundingSource: 'Government of Tanzania',
++                    financialRequirementRows: [
++                        { requirementType: 'Access to Credit', minimumValue: 500000000, currency: 'TZS', period: 'Current', evidenceRequired: ['Bank letter', 'Credit facility letter'], mandatory: true }
++                    ],
++                    personnelRequirementRows: [
++                        { position: 'Logistics Coordinator', minimumEducation: 'Diploma', minimumYearsExperience: 6, cvRequired: true, mandatory: true },
++                        { position: 'Cold Chain Technician', minimumEducation: 'Certificate', minimumYearsExperience: 4, cvRequired: true, mandatory: true }
++                    ],
++                    transportRequirements: 'Provide refrigerated vehicles, route plans, driver schedules, GPS tracking, proof of delivery, and exception management.',
++                    fleetRequirements: 'At least eight validated refrigerated vehicles with active temperature monitoring and backup power.',
++                    driverLicenseRequirements: 'Drivers must hold valid licenses and documented pharmaceutical handling training.',
++                    routeCoverage: 'Lake Zone routes covering Mwanza, Geita, Kagera, Mara, Simiyu, and Shinyanga facilities.',
++                    equipmentRequirementRows: [
++                        { equipmentName: 'Refrigerated vehicle', quantity: 8, ownershipRequirement: 'Owned', technicalSpecification: '2-8 degrees Celsius validated cold chain capability', evidenceRequired: ['Logbook', 'Inspection certificate', 'Photos'], mandatory: true, evaluationMethod: 'Compliance Review', supplierResponseType: 'Upload + Text' },
++                        { equipmentName: 'Temperature data logger', quantity: 40, ownershipRequirement: 'Owned', technicalSpecification: 'Calibrated and downloadable reports', evidenceRequired: ['Calibration certificate'], mandatory: true, evaluationMethod: 'Compliance Review', supplierResponseType: 'Upload' }
++                    ],
++                    insuranceCovers: [{ text: 'Goods in transit insurance' }, { text: 'Vehicle comprehensive insurance' }, { text: 'Public liability insurance' }],
++                    riskAssessmentRequirement: 'Submit risk assessment for temperature excursions, road disruption, and security incidents.',
++                    safetyPlanRequirement: 'Submit driver safety and incident escalation plan.',
++                    ppeRequirements: 'Drivers and handlers must use PPE appropriate for pharmaceutical handling.',
++                    supportingDocumentRows: [
++                        { documentName: 'Cold chain SOP', mandatory: true },
++                        { documentName: 'Fleet ownership or lease proof', mandatory: true },
++                        { documentName: 'Insurance certificates', mandatory: true }
++                    ]
++                },
++                lists: {
++                    mandatoryDeclarations: [
++                        { text: 'Confirm temperature records will be submitted for every delivery.' },
++                        { text: 'Confirm replacement transport is available for vehicle breakdowns.' }
++                    ]
++                }
++            },
++            regulatoryLicenses: [
++                { group: 'Food, Drugs & Cosmetics', license: 'Pharmaceutical Business License', body: 'Tanzania Medicines and Medical Devices Authority (TMDA)', mandatory: false },
++                { group: 'Communications & Transport', license: 'Electronic Communications Service License', body: 'Tanzania Communications Regulatory Authority (TCRA)', mandatory: false }
++            ],
++            evaluation: {
++                criteria: [
++                    { name: 'Service methodology', weight: 25, subcriteria: ['Route planning', 'Exception handling', 'Reporting'] },
++                    { name: 'Fleet and equipment', weight: 30, subcriteria: ['Cold chain vehicles', 'Data loggers', 'GPS'] },
++                    { name: 'Team capability', weight: 15, subcriteria: ['Cold chain skills', 'Driver training'] },
++                    { name: 'Financial proposal', weight: 20, subcriteria: ['Route rates', 'Emergency costs'] },
++                    { name: 'Compliance and insurance', weight: 10, subcriteria: ['Insurance', 'SOPs', 'References'] }
++                ]
++            },
++            milestones: [
++                { name: 'Publication', date: '2026-05-21' },
++                { name: 'Clarification deadline', date: '2026-06-18' },
++                { name: 'Bid closing', date: '2026-07-02' },
++                { name: 'Evaluation complete', date: '2026-07-16' },
++                { name: 'Award target', date: '2026-07-24' }
++            ],
++            deliverables: ['Scheduled deliveries', 'Temperature logs', 'Proof of delivery reports', 'Monthly route performance dashboard'],
++            clarifications: [],
++            amendments: [
++                { title: 'No amendments published', status: 'Ready', detail: 'Create an amendment if routes, fleet requirements, or SLA metrics change.' }
++            ],
++            interestedSuppliers: [
++                { name: 'Lake Cold Chain Logistics', status: 'Downloaded documents', lastActivity: 'Today' }
++            ]
++        },
++        {
++            id: 'PX-SV-004',
++            title: 'Security Guarding Services for Port Facilities',
++            type: 'Service',
++            procurementTypeId: 'services',
++            status: 'Open',
++            budget: 2260000000,
++            closingDate: '2026-07-18',
++            organization: 'Tanzania Ports Authority',
++            category: 'Security',
++            categories: ['Security', 'Communications Devices and Accessories'],
++            method: 'Open Tender',
++            visibility: 'Public marketplace',
++            visibilityNote: 'Visible to all eligible suppliers in the marketplace.',
++            location: 'Dar es Salaam, Tanga, Mtwara ports',
++            description: 'Provision of trained guards, patrol supervision, access control support, radio communication, and incident reporting for port facilities.',
++            eligibility: 'Open Tender / licensed security companies with port or critical infrastructure experience, vetted guards, and insurance coverage.',
++            documents: ['Security_Scope.pdf', 'Guard_Post_Schedule.xlsx', 'Incident_Report_Template.pdf', 'Access_Control_Rules.pdf'],
++            commercialModel: 'Service Schedule',
++            commercialItems: [
++                { item: '1.1', description: 'Day and night security guard posts', qty: 36, unit: 'Month', rate: 48500000 },
++                { item: '1.2', description: 'Mobile patrol supervision teams', qty: 36, unit: 'Month', rate: 8700000 },
++                { item: '1.3', description: 'Radio communication and reporting equipment', qty: 1, unit: 'Lot', rate: 198000000 }
++            ],
++            requirements: {
++                fields: {
++                    scopeOfServices: 'Provide guards, supervisors, patrols, access support, visitor control, incident reporting, and emergency response coordination.',
++                    serviceLocations: [{ text: 'Dar es Salaam Port' }, { text: 'Tanga Port' }, { text: 'Mtwara Port' }],
++                    duration: '36 months',
++                    fundingSource: 'Own Source',
++                    financialRequirementRows: [
++                        { requirementType: 'Average Annual Turnover', minimumValue: 2500000000, currency: 'TZS', period: 'Last 3 Years', evidenceRequired: ['Audited accounts'], mandatory: true }
++                    ],
++                    personnelRequirementRows: [
++                        { position: 'Security Contract Manager', minimumEducation: 'Diploma', minimumYearsExperience: 8, cvRequired: true, mandatory: true },
++                        { position: 'Port Security Supervisor', minimumEducation: 'Certificate', minimumYearsExperience: 5, cvRequired: true, mandatory: true }
++                    ],
++                    numberOfGuards: 180,
++                    shiftSchedule: 'Two 12-hour shifts with relief guards and supervisors.',
++                    patrolFrequency: 'Daily',
++                    weaponRequirement: 'Non-firearm guarding unless authorized by buyer and regulator. Batons and radios required.',
++                    controlRoomRequirement: 'Provide control room liaison and daily incident log.',
++                    equipmentRequirementRows: [
++                        { equipmentName: 'Two-way radio handset', quantity: 85, ownershipRequirement: 'Owned', technicalSpecification: 'Port-compatible frequency and spare batteries', evidenceRequired: ['Photos', 'Purchase receipt'], mandatory: true, evaluationMethod: 'Compliance Review', supplierResponseType: 'Upload + Text' },
++                        { equipmentName: 'Patrol vehicle', quantity: 6, ownershipRequirement: 'Either', technicalSpecification: 'Operational vehicle for port patrol supervision', evidenceRequired: ['Logbook', 'Lease agreement'], mandatory: true, evaluationMethod: 'Compliance Review', supplierResponseType: 'Upload' }
++                    ],
++                    insuranceCovers: [{ text: 'Public liability insurance' }, { text: 'Employer liability insurance' }, { text: 'Professional indemnity insurance' }],
++                    riskAssessmentRequirement: 'Submit risk assessment for access control, cargo areas, night operations, and emergency evacuation.',
++                    safetyPlanRequirement: 'Submit guard welfare, fatigue management, and incident escalation plan.',
++                    supportingDocumentRows: [
++                        { documentName: 'Security company license', mandatory: true },
++                        { documentName: 'Guard vetting procedure', mandatory: true },
++                        { documentName: 'Insurance certificates', mandatory: true }
++                    ]
++                },
++                lists: {
++                    mandatoryDeclarations: [
++                        { text: 'Confirm guards assigned to port facilities will be vetted before deployment.' },
++                        { text: 'Confirm full replacement coverage for absenteeism and shift gaps.' }
++                    ]
++                }
++            },
++            regulatoryLicenses: [
++                { group: 'Environmental & Safety', license: 'Occupational Safety and Health Compliance Certificate', body: 'Occupational Safety and Health Authority (OSHA)', mandatory: true }
++            ],
++            evaluation: {
++                criteria: [
++                    { name: 'Security methodology', weight: 30, subcriteria: ['Post orders', 'Incident response', 'Supervision'] },
++                    { name: 'Team capability', weight: 25, subcriteria: ['Guard training', 'Vetting', 'Port experience'] },
++                    { name: 'Equipment readiness', weight: 15, subcriteria: ['Radios', 'Vehicles', 'PPE'] },
++                    { name: 'Financial proposal', weight: 20, subcriteria: ['Monthly guard rates', 'Equipment costs'] },
++                    { name: 'Compliance and insurance', weight: 10, subcriteria: ['License', 'Insurance', 'Labor compliance'] }
++                ]
++            },
++            milestones: [
++                { name: 'Publication', date: '2026-05-28' },
++                { name: 'Pre-bid meeting', date: '2026-06-20' },
++                { name: 'Bid closing', date: '2026-07-18' },
++                { name: 'Evaluation complete', date: '2026-08-01' },
++                { name: 'Award target', date: '2026-08-10' }
++            ],
++            deliverables: ['Guard deployment roster', 'Daily incident logs', 'Monthly security performance reports', 'Emergency drill records'],
++            clarifications: [],
++            amendments: [
++                { title: 'No amendments published', status: 'Ready', detail: 'Create an amendment if guard posts, shift rules, or equipment requirements change.' }
++            ],
++            interestedSuppliers: [
++                { name: 'Harbor Shield Security', status: 'Downloaded documents', lastActivity: 'Today' },
++                { name: 'Sentinel Guards Ltd', status: 'Watching tender', lastActivity: '1 day ago' }
++            ]
++        },
++        {
++            id: 'PX-CS-001',
++            title: 'Consultancy for National e-Procurement Adoption Assessment',
++            type: 'Consultancy',
++            procurementTypeId: 'consultancy',
++            status: 'Open',
++            budget: 680000000,
++            closingDate: '2026-06-27',
++            organization: 'Public Procurement Regulatory Authority',
++            category: 'Procurement Consultancy',
++            categories: ['Procurement Consultancy', 'Research and advisory services'],
++            method: 'Open Tender',
++            visibility: 'Public marketplace',
++            visibilityNote: 'Visible to all eligible suppliers in the marketplace.',
++            location: 'Nationwide with workshops in Dodoma and Dar es Salaam',
++            description: 'Consultancy to assess e-procurement adoption, buyer readiness, supplier barriers, workflow gaps, and regulatory implementation support.',
++            eligibility: 'Open Tender / consulting firms with procurement reform, digital government, survey research, and stakeholder facilitation experience.',
++            documents: ['Terms_of_Reference.pdf', 'Methodology_Template.docx', 'CV_Template.docx', 'Financial_Proposal_Template.xlsx'],
++            commercialModel: 'Financial Proposal',
++            commercialItems: [
++                { item: '1.1', description: 'Team leader and procurement reform specialist', qty: 75, unit: 'Day', rate: 950000 },
++                { item: '1.2', description: 'Digital systems analyst', qty: 55, unit: 'Day', rate: 820000 },
++                { item: '1.3', description: 'Field survey and regional consultations', qty: 1, unit: 'Lot', rate: 148000000 },
++                { item: '1.4', description: 'Validation workshops and final report production', qty: 1, unit: 'Lot', rate: 86000000 }
++            ],
++            requirements: {
++                fields: {
++                    consultancyEntityBackground: [
++                        { organizationBackground: 'The regulator oversees public procurement compliance and digital procurement policy implementation.', departmentUnit: 'Procurement Management Unit', fundingSource: 'Government of Tanzania', mandatory: true }
++                    ],
++                    consultancyProjectBackground: {
++                        projectName: 'National e-procurement adoption assessment',
++                        backgroundNarrative: 'The assignment will identify adoption barriers and recommend implementation support actions.',
++                        existingChallenges: 'Uneven buyer readiness, supplier onboarding gaps, and inconsistent workflow use.',
++                        currentSituation: 'Digital procurement is expanding across public entities.',
++                        relatedInitiatives: 'Capacity building, supplier registration, and marketplace visibility improvements.'
++                    },
++                    consultancyProblemStatement: {
++                        mainProblemDescription: 'Institutions need evidence on adoption gaps and interventions that improve end-to-end procurement digitization.',
++                        expectedImpact: 'Improved adoption strategy, targeted training, and better marketplace participation.'
++                    },
++                    consultancyGeneralObjective: 'Assess national e-procurement adoption and recommend practical, sequenced improvements.',
++                    consultancySpecificObjectives: [
++                        { objectiveTitle: 'Measure buyer readiness', objectiveDescription: 'Assess workflows, staffing, data quality, and approval practices.', priorityLevel: 'High' },
++                        { objectiveTitle: 'Identify supplier barriers', objectiveDescription: 'Evaluate registration, bidding, compliance, and training needs.', priorityLevel: 'High' },
++                        { objectiveTitle: 'Design implementation roadmap', objectiveDescription: 'Provide practical policy, system, and training recommendations.', priorityLevel: 'High' }
++                    ],
++                    consultancyAssignmentActivities: [
++                        { activityTitle: 'Desk review and inception', detailedDescription: 'Review laws, manuals, system data, and prior reports.', expectedOutput: 'Inception report', location: 'Dodoma', duration: 15, mandatory: true },
++                        { activityTitle: 'Field consultations and survey', detailedDescription: 'Collect data from buyers, suppliers, and oversight bodies.', expectedOutput: 'Survey dataset and consultation notes', location: 'Nationwide', duration: 45, mandatory: true },
++                        { activityTitle: 'Analysis and roadmap', detailedDescription: 'Analyze adoption gaps and produce recommendations.', expectedOutput: 'Draft and final assessment report', location: 'Dar es Salaam', duration: 30, mandatory: true }
++                    ],
++                    consultancyClientResponsibilities: [
++                        { responsibilityTitle: 'Data access', description: 'Provide access to procurement records, system statistics, and stakeholder contacts.', supportType: 'Data access' },
++                        { responsibilityTitle: 'Workshop coordination', description: 'Coordinate invitation letters and validation workshop logistics.', supportType: 'Meeting coordination' }
++                    ],
++                    consultancyConsultantResponsibilities: [
++                        { responsibility: 'Maintain confidentiality', description: 'Protect procurement data and anonymize stakeholder feedback.', reportingFrequency: 'Monthly' },
++                        { responsibility: 'Submit quality deliverables', description: 'Deliver reports, datasets, presentations, and implementation roadmap.', reportingFrequency: 'Monthly' }
++                    ],
++                    consultancyDeliverables: [
++                        { deliverableName: 'Inception report', description: 'Work plan, methodology, survey tools, and stakeholder map.', submissionTimeline: '2 weeks after contract start', formatRequired: 'PDF', reviewer: 'Project Manager', mandatory: true },
++                        { deliverableName: 'Draft assessment report', description: 'Findings, analysis, adoption barriers, and initial recommendations.', submissionTimeline: '10 weeks after contract start', formatRequired: 'Word', reviewer: 'Evaluation Committee', mandatory: true },
++                        { deliverableName: 'Final roadmap and presentation', description: 'Final report, roadmap, dashboard indicators, and presentation deck.', submissionTimeline: '14 weeks after contract start', formatRequired: 'PowerPoint', reviewer: 'Accounting Officer', mandatory: true }
++                    ],
++                    consultancyReportingRequirements: [
++                        { reportType: 'Inception report', frequency: 'Monthly', submissionFormat: 'PDF', submissionChannel: 'Procurement portal' },
++                        { reportType: 'Monthly report', frequency: 'Monthly', submissionFormat: 'PDF', submissionChannel: 'Email' }
++                    ],
++                    consultancyFirmExperience: [
++                        { minimumYearsExperience: 8, requiredSimilarAssignments: 4, sectorExperience: ['Public sector', 'ICT', 'Research'], requiredEvidence: 'Required', mandatory: true }
++                    ],
++                    consultancyKeyExperts: [
++                        { positionTitle: 'Team Leader / Procurement Reform Specialist', minimumQualification: 'Masters Degree', yearsOfExperience: 10, certifications: 'Procurement or public policy qualification', quantityRequired: 1, mandatory: true },
++                        { positionTitle: 'Digital Government Systems Analyst', minimumQualification: 'Bachelor Degree', yearsOfExperience: 8, certifications: 'ICT governance or systems analysis', quantityRequired: 1, mandatory: true },
++                        { positionTitle: 'Survey and Data Analyst', minimumQualification: 'Bachelor Degree', yearsOfExperience: 6, certifications: 'Research methods or statistics', quantityRequired: 1, mandatory: true }
++                    ],
++                    consultancyReportingStructure: [
++                        { consultantReportsTo: 'Project Manager', supervisingOfficer: 'Director', approvalAuthority: 'Tender Board', mandatory: true }
++                    ],
++                    consultancyExternalReferences: [
++                        { referenceName: 'Public procurement reform guidelines', url: 'https://example.test/procurement-guidelines', description: 'Reference material for methodology alignment.' }
++                    ]
++                },
++                lists: {
++                    mandatoryDeclarations: [
++                        { text: 'Submit technical and financial proposals separately where required.' },
++                        { text: 'Confirm all field data will be anonymized in public-facing deliverables.' }
++                    ]
++                }
++            },
++            regulatoryLicenses: [
++                { group: 'Finance & Banking', license: 'Investment Adviser License', body: 'Capital Markets and Securities Authority (CMSA)', mandatory: false }
++            ],
++            evaluation: {
++                criteria: [
++                    { name: 'Understanding of TOR', weight: 25, subcriteria: ['Problem framing', 'Stakeholder understanding'] },
++                    { name: 'Methodology and work plan', weight: 30, subcriteria: ['Survey design', 'Analysis approach', 'Feasibility'] },
++                    { name: 'Key expert qualifications', weight: 25, subcriteria: ['Procurement reform', 'Digital systems', 'Research'] },
++                    { name: 'Knowledge transfer', weight: 10, subcriteria: ['Workshops', 'Roadmap usability'] },
++                    { name: 'Financial proposal', weight: 10, subcriteria: ['Fee realism', 'Reimbursables'] }
++                ]
++            },
++            milestones: [
++                { name: 'Publication', date: '2026-05-19' },
++                { name: 'Clarification deadline', date: '2026-06-12' },
++                { name: 'Bid closing', date: '2026-06-27' },
++                { name: 'Technical evaluation complete', date: '2026-07-11' },
++                { name: 'Award target', date: '2026-07-22' }
++            ],
++            deliverables: ['Inception report', 'Survey tools and dataset', 'Draft assessment report', 'Final roadmap and presentation'],
++            clarifications: [],
++            amendments: [
++                { title: 'No amendments published', status: 'Ready', detail: 'Create an amendment if TOR, deliverables, or evaluation method changes.' }
++            ],
++            interestedSuppliers: [
++                { name: 'Procurement Advisory Partners', status: 'Downloaded documents', lastActivity: 'Today' },
++                { name: 'DigitalGov Consulting', status: 'Watching tender', lastActivity: '1 day ago' }
++            ]
++        },
++        {
++            id: 'PX-CS-002',
++            title: 'Environmental and Social Impact Assessment for Irrigation Scheme',
++            type: 'Consultancy',
++            procurementTypeId: 'consultancy',
++            status: 'Open',
++            budget: 420000000,
++            closingDate: '2026-07-06',
++            organization: 'National Irrigation Commission',
++            category: 'Environmental Consultancy',
++            categories: ['Environmental Consultancy', 'Agriculture'],
++            method: 'Open Tender',
++            visibility: 'Public marketplace',
++            visibilityNote: 'Visible to all eligible suppliers in the marketplace.',
++            location: 'Kilombero Valley',
++            description: 'ESIA consultancy for a proposed irrigation scheme including baseline studies, stakeholder consultations, mitigation plan, and NEMC submission support.',
++            eligibility: 'Open Tender / NEMC registered environmental experts or firms with irrigation, biodiversity, and resettlement screening experience.',
++            documents: ['Terms_of_Reference.pdf', 'Study_Area_Map.pdf', 'Consultation_Template.docx', 'Financial_Proposal_Template.xlsx'],
++            commercialModel: 'Financial Proposal',
++            commercialItems: [
++                { item: '1.1', description: 'Lead environmental expert', qty: 50, unit: 'Day', rate: 850000 },
++                { item: '1.2', description: 'Hydrology and biodiversity specialists', qty: 70, unit: 'Day', rate: 720000 },
++                { item: '1.3', description: 'Field surveys, lab analysis, and consultations', qty: 1, unit: 'Lot', rate: 145000000 },
++                { item: '1.4', description: 'NEMC submission and validation meetings', qty: 1, unit: 'Lot', rate: 48000000 }
++            ],
++            requirements: {
++                fields: {
++                    consultancyEntityBackground: [
++                        { organizationBackground: 'The commission develops irrigation infrastructure to improve agricultural productivity.', departmentUnit: 'Engineering', fundingSource: 'Development Partner', mandatory: true }
++                    ],
++                    consultancyProjectBackground: {
++                        projectName: 'Kilombero irrigation scheme ESIA',
++                        backgroundNarrative: 'The proposed scheme requires environmental and social assessment before works procurement.',
++                        existingChallenges: 'Sensitive wetlands, downstream users, farming livelihoods, and biodiversity concerns.',
++                        currentSituation: 'Feasibility concept and preliminary designs are available.',
++                        relatedInitiatives: 'Agricultural value chain development and climate resilience programs.'
++                    },
++                    consultancyProblemStatement: {
++                        mainProblemDescription: 'The buyer needs a compliant ESIA that identifies impacts and mitigation actions before implementation.',
++                        expectedImpact: 'Improved project design, compliance approval, and risk mitigation.'
++                    },
++                    consultancyGeneralObjective: 'Prepare a compliant ESIA and environmental management plan for the irrigation scheme.',
++                    consultancySpecificObjectives: [
++                        { objectiveTitle: 'Baseline assessment', objectiveDescription: 'Assess hydrology, biodiversity, land use, social context, and sensitive receptors.', priorityLevel: 'High' },
++                        { objectiveTitle: 'Impact analysis', objectiveDescription: 'Identify construction and operation impacts with mitigation measures.', priorityLevel: 'High' },
++                        { objectiveTitle: 'Regulatory submission', objectiveDescription: 'Support NEMC submission, review responses, and validation process.', priorityLevel: 'High' }
++                    ],
++                    consultancyAssignmentActivities: [
++                        { activityTitle: 'Scoping and baseline studies', detailedDescription: 'Conduct field visits, sampling, and stakeholder mapping.', expectedOutput: 'Scoping and baseline report', location: 'Kilombero', duration: 30, mandatory: true },
++                        { activityTitle: 'Impact assessment and ESMP', detailedDescription: 'Assess impacts and prepare mitigation and monitoring plan.', expectedOutput: 'Draft ESIA and ESMP', location: 'Kilombero and Dar es Salaam', duration: 35, mandatory: true },
++                        { activityTitle: 'Disclosure and finalization', detailedDescription: 'Conduct validation meetings and incorporate regulator comments.', expectedOutput: 'Final ESIA submission package', location: 'Dodoma', duration: 20, mandatory: true }
++                    ],
++                    consultancyDeliverables: [
++                        { deliverableName: 'Inception report', description: 'Methodology, work plan, and consultation plan.', submissionTimeline: '10 days after contract start', formatRequired: 'PDF', reviewer: 'Project Manager', mandatory: true },
++                        { deliverableName: 'Draft ESIA and ESMP', description: 'Baseline, impact assessment, mitigation plan, and monitoring framework.', submissionTimeline: '8 weeks after start', formatRequired: 'Word', reviewer: 'Supervising Officer', mandatory: true },
++                        { deliverableName: 'Final NEMC submission package', description: 'Final ESIA, annexes, consultation record, and response matrix.', submissionTimeline: '12 weeks after start', formatRequired: 'PDF', reviewer: 'Accounting Officer', mandatory: true }
++                    ],
++                    consultancyFirmExperience: [
++                        { minimumYearsExperience: 7, requiredSimilarAssignments: 5, sectorExperience: ['Environment', 'Agriculture', 'Water'], requiredEvidence: 'Required', mandatory: true }
++                    ],
++                    consultancyKeyExperts: [
++                        { positionTitle: 'Lead Environmental Expert', minimumQualification: 'Masters Degree', yearsOfExperience: 10, certifications: 'NEMC registration', quantityRequired: 1, mandatory: true },
++                        { positionTitle: 'Social Safeguards Specialist', minimumQualification: 'Bachelor Degree', yearsOfExperience: 7, certifications: 'Resettlement or social safeguards', quantityRequired: 1, mandatory: true },
++                        { positionTitle: 'Hydrologist', minimumQualification: 'Bachelor Degree', yearsOfExperience: 7, certifications: 'Water resources expertise', quantityRequired: 1, mandatory: true }
++                    ],
++                    consultancyRegulatoryLicenses: [
++                        { regulatoryBody: 'NEMC', registrationType: 'Registered environmental expert', mandatory: true, requiresUpload: true }
++                    ],
++                    consultancyReportingStructure: [
++                        { consultantReportsTo: 'Project Manager', supervisingOfficer: 'Head of Department', approvalAuthority: 'Accounting Officer', mandatory: true }
++                    ]
++                },
++                lists: {
++                    mandatoryDeclarations: [
++                        { text: 'Confirm consultations will include affected communities and district officials.' },
++                        { text: 'Confirm bidder holds or partners with NEMC registered experts.' }
++                    ]
++                }
++            },
++            regulatoryLicenses: [
++                { group: 'Environmental & Safety', license: 'Environmental Impact Assessment Certificate', body: 'National Environment Management Council (NEMC)', mandatory: true }
++            ],
++            evaluation: {
++                criteria: [
++                    { name: 'Understanding of TOR', weight: 20, subcriteria: ['Environmental risks', 'Stakeholders'] },
++                    { name: 'Methodology and work plan', weight: 35, subcriteria: ['Baseline methods', 'Consultation plan', 'Regulatory path'] },
++                    { name: 'Key expert qualifications', weight: 30, subcriteria: ['NEMC registration', 'Safeguards', 'Hydrology'] },
++                    { name: 'Knowledge transfer', weight: 5, subcriteria: ['Client training'] },
++                    { name: 'Financial proposal', weight: 10, subcriteria: ['Fee realism'] }
++                ]
++            },
++            milestones: [
++                { name: 'Publication', date: '2026-05-23' },
++                { name: 'Clarification deadline', date: '2026-06-22' },
++                { name: 'Bid closing', date: '2026-07-06' },
++                { name: 'Evaluation complete', date: '2026-07-20' },
++                { name: 'Award target', date: '2026-07-29' }
++            ],
++            deliverables: ['Inception report', 'Draft ESIA and ESMP', 'Consultation records', 'Final NEMC submission package'],
++            clarifications: [],
++            amendments: [
++                { title: 'No amendments published', status: 'Ready', detail: 'Create an amendment if study area, regulatory requirements, or deliverables change.' }
++            ],

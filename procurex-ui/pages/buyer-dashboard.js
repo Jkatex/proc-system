@@ -112,7 +112,7 @@ function renderBuyerDashboard() {
                                 ${savedTenderDraft ? `<button class="btn btn-secondary" data-navigate="create-tender">${savedTenderDraft.title || 'Untitled tender'} - saved as draft</button>` : ''}
                                 <button class="btn btn-secondary" data-navigate="buyer-journey">Continue Buyer Journey</button>
                                 <button class="btn btn-primary" data-navigate="create-tender">Create New Tender</button>
-                                <button class="btn btn-secondary" data-navigate="tender-details">Clarifications Inbox</button>
+                                <button class="btn btn-secondary" data-navigate="communication-center">Clarifications Inbox</button>
                                 <button class="btn btn-secondary" data-navigate="award-recommendation">Award Approval</button>
                             </div>
                         </div>
