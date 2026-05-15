@@ -36,6 +36,123 @@ function getCommunicationAudience() {
     return 'all';
 }
 
+function normalizeCommunicationMailboxId(value = '') {
+    return String(value || '').trim().toLowerCase();
+}
+
+function getCommunicationRoleFromType(type = '') {
+    const raw = String(type || '').toLowerCase();
+    if (raw.includes('supplier')) return 'supplier';
+    if (raw.includes('admin')) return 'admin';
+    if (raw.includes('buyer') || raw.includes('procuring')) return 'buyer';
+    if (raw.includes('evaluator')) return 'evaluator';
+    if (raw.includes('system')) return 'system';
+    return raw || 'user';
+}
+
+function getCommunicationDefaultMailboxId(type = '') {
+    const role = getCommunicationRoleFromType(type);
+    const ids = {
+        buyer: 'buyer-001',
+        supplier: 'supplier-001',
+        admin: 'admin-001',
+        evaluator: 'evaluator-001',
+        system: 'system'
+    };
+    return ids[role] || `${role || 'user'}-001`;
+}
+
+function getCommunicationMailboxProfiles() {
+    return [
+        {
+            id: 'buyer-001',
+            role: 'buyer',
+            type: 'Buyer',
+            name: mockData.users?.buyer?.organization || 'Ministry of Health'
+        },
+        {
+            id: 'supplier-001',
+            role: 'supplier',
+            type: 'Supplier',
+            name: mockData.users?.supplier?.organization || 'ABC Construction Ltd'
+        },
+        {
+            id: 'admin-001',
+            role: 'admin',
+            type: 'Admin',
+            name: mockData.users?.admin?.organization || 'ProcureX Platform'
+        },
+        {
+            id: 'evaluator-001',
+            role: 'evaluator',
+            type: 'Evaluator',
+            name: 'Evaluation Panel'
+        },
+        {
+            id: 'system',
+            role: 'system',
+            type: 'System',
+            name: 'ProcureX System'
+        }
+    ];
+}
+
+function getCommunicationMailboxById(mailboxId = '') {
+    const normalizedId = normalizeCommunicationMailboxId(mailboxId);
+    return getCommunicationMailboxProfiles().find(profile => profile.id === normalizedId) || null;
+}
+
+function inferCommunicationRoleFromUser() {
+    if (mockData.currentRole === 'buyer' || mockData.currentRole === 'supplier' || mockData.currentRole === 'admin') {
+        return mockData.currentRole;
+    }
+    if (mockData.pendingAccount?.role) return mockData.pendingAccount.role;
+    if (mockData.eKycProfile?.role) return mockData.eKycProfile.role;
+    const entityType = String(mockData.eKycProfile?.entityType || '').toLowerCase();
+    if (entityType === 'company' || entityType === 'business') return 'supplier';
+    if (mockData.pendingAccount?.accountType === 'admin') return 'admin';
+    return 'buyer';
+}
+
+function getCurrentCommunicationUser() {
+    const role = inferCommunicationRoleFromUser();
+    const account = mockData.pendingAccount || {};
+    const session = mockData.session || {};
+    const email = normalizeCommunicationMailboxId(session.email || account.email || '');
+    const roleMailbox = getCommunicationMailboxById(getCommunicationDefaultMailboxId(role));
+    const displayName = mockData.eKycProfile?.verifiedName
+        || account.displayName
+        || roleMailbox?.name
+        || email
+        || 'Current user';
+    const id = email || roleMailbox?.id || getCommunicationDefaultMailboxId(role);
+
+    return {
+        id: normalizeCommunicationMailboxId(id),
+        email,
+        role,
+        type: roleMailbox?.type || role,
+        name: displayName,
+        organization: roleMailbox?.name || displayName,
+        aliases: [
+            id,
+            email,
+            roleMailbox?.id,
+            getCommunicationDefaultMailboxId(role)
+        ].map(normalizeCommunicationMailboxId).filter(Boolean)
+    };
+}
+
+function getCommunicationParticipantId(item = {}, key = 'recipient') {
+    const explicitId = item[`${key}Id`] || item[`${key}Email`];
+    if (explicitId) return normalizeCommunicationMailboxId(explicitId);
+    return normalizeCommunicationMailboxId(getCommunicationDefaultMailboxId(item[`${key}Type`] || key));
+}
+
+function communicationTypeMatchesUser(type = '', user = getCurrentCommunicationUser()) {
+    return getCommunicationRoleFromType(type) === user.role;
+}
+
 function readCommunicationStoredItems() {
     try {
         const parsed = JSON.parse(localStorage.getItem(communicationCenterStorageKey) || '[]');
@@ -53,6 +170,8 @@ function saveCommunicationStoredItems(items = []) {
 function normalizeCommunicationItem(item = {}) {
     const createdAt = item.createdAt || new Date().toISOString();
     const kind = item.kind || item.type || 'message';
+    const senderId = getCommunicationParticipantId(item, 'sender');
+    const recipientId = getCommunicationParticipantId(item, 'recipient');
     return {
         id: item.id || `comm-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
         kind,
@@ -60,8 +179,10 @@ function normalizeCommunicationItem(item = {}) {
         category: item.category || (kind === 'alert' ? 'System Alert' : kind === 'notification' ? 'System Notification' : 'General Message'),
         subject: item.subject || item.title || 'Procurement message',
         body: item.body || item.message || '',
+        senderId,
         senderType: item.senderType || 'System',
         senderName: item.senderName || item.sender || 'ProcureX System',
+        recipientId,
         recipientType: item.recipientType || 'User',
         recipientName: item.recipientName || 'Current user',
         tenderId: item.tenderId || '',
@@ -91,7 +212,15 @@ function getCommunicationItems() {
 }
 
 function addProcurexCommunicationItem(item = {}) {
-    const nextItem = normalizeCommunicationItem(item);
+    const currentUser = getCurrentCommunicationUser();
+    const scopedItem = { ...item };
+    if (!scopedItem.senderId && communicationTypeMatchesUser(scopedItem.senderType, currentUser)) {
+        scopedItem.senderId = currentUser.id;
+    }
+    if (!scopedItem.recipientId && communicationTypeMatchesUser(scopedItem.recipientType, currentUser)) {
+        scopedItem.recipientId = currentUser.id;
+    }
+    const nextItem = normalizeCommunicationItem(scopedItem);
     const stored = readCommunicationStoredItems();
     saveCommunicationStoredItems([nextItem, ...stored.filter(existing => existing.id !== nextItem.id)]);
     return nextItem;
@@ -120,8 +249,14 @@ function getCommunicationBadgeClass(value = '') {
     return 'badge-info';
 }
 
-function isCommunicationAudienceItem(item, audience) {
-    return item.audience?.includes('all') || item.audience?.includes(audience);
+function communicationIdMatchesUser(participantId = '', user = getCurrentCommunicationUser()) {
+    const normalizedId = normalizeCommunicationMailboxId(participantId);
+    return Boolean(normalizedId && user.aliases.includes(normalizedId));
+}
+
+function isCommunicationUserItem(item, user = getCurrentCommunicationUser()) {
+    if (communicationIdMatchesUser(item.recipientId, user)) return true;
+    return item.folder === 'sent' && communicationIdMatchesUser(item.senderId, user);
 }
 
 function filterCommunicationItems(items, state) {
@@ -131,7 +266,9 @@ function filterCommunicationItems(items, state) {
         if (state.tab === 'Notifications' && item.kind !== 'notification') return false;
         if (state.tab === 'Alerts' && item.kind !== 'alert') return false;
         if (state.tab === 'Sent' && item.folder !== 'sent') return false;
+        if (state.tab === 'Drafts') return false;
         if (state.tab === 'Archived' && item.folder !== 'archived' && item.status !== 'Archived') return false;
+        if (state.tab === 'Trash' && item.status !== 'Deleted') return false;
         if (state.tab === 'Unread' && item.read) return false;
         if (state.tab === 'Inbox' && (item.folder === 'sent' || item.folder === 'archived' || item.status === 'Deleted')) return false;
         if (state.category !== 'All categories' && item.category !== state.category) return false;
@@ -306,7 +443,8 @@ function renderCommunicationDetail(item) {
 function renderCommunicationCompose(state) {
     if (!state.composeOpen) return '';
     const categories = mockData.communicationCenter?.categories || [];
-    const senderTypes = mockData.communicationCenter?.senderTypes || [];
+    const currentUser = getCurrentCommunicationUser();
+    const recipientProfiles = getCommunicationMailboxProfiles().filter(profile => !currentUser.aliases.includes(profile.id) && profile.id !== 'system');
     return `
         <form class="communication-compose-panel" data-communication-compose>
             <div class="panel-heading">
@@ -314,9 +452,14 @@ function renderCommunicationCompose(state) {
                 <button class="btn btn-secondary" type="button" data-communication-compose-close>Close</button>
             </div>
             <div class="communication-compose-grid">
-                <label><span>Sender type</span><select class="form-input" name="senderType">${renderCommunicationOptions(senderTypes, 'Buyer')}</select></label>
+                <label><span>From mailbox</span><input class="form-input" value="${escapeCommunicationHtml(currentUser.organization)}" readonly></label>
                 <label><span>Category</span><select class="form-input" name="category">${renderCommunicationOptions(categories, 'General Message')}</select></label>
-                <label><span>Recipient</span><input class="form-input" name="recipientName" value="${getCommunicationAudience() === 'supplier' ? 'Ministry of Health' : 'ABC Contractors Ltd'}"></label>
+                <label>
+                    <span>Recipient mailbox</span>
+                    <select class="form-input" name="recipientId">
+                        ${recipientProfiles.map(profile => `<option value="${escapeCommunicationHtml(profile.id)}">${escapeCommunicationHtml(profile.name)} (${escapeCommunicationHtml(profile.type)})</option>`).join('')}
+                    </select>
+                </label>
                 <label><span>Tender reference</span><input class="form-input" name="tenderReference" value="PX-WRK-2026-001"></label>
                 <label class="span-2"><span>Subject</span><input class="form-input" name="subject" placeholder="Subject"></label>
                 <label class="span-2"><span>Message</span><textarea class="form-input" name="body" rows="4" placeholder="Write your message"></textarea></label>
@@ -331,8 +474,8 @@ function renderCommunicationCompose(state) {
 
 function renderCommunicationCenterInner(root) {
     const state = getCommunicationState();
-    const audience = getCommunicationAudience();
-    const allItems = getCommunicationItems().filter(item => isCommunicationAudienceItem(item, audience));
+    const currentUser = getCurrentCommunicationUser();
+    const allItems = getCommunicationItems().filter(item => isCommunicationUserItem(item, currentUser));
     const counts = {
         inbox: allItems.filter(item => item.folder !== 'sent' && item.folder !== 'archived' && item.status !== 'Deleted').length,
         clarifications: allItems.filter(item => item.kind === 'clarification').length,
@@ -353,9 +496,9 @@ function renderCommunicationCenterInner(root) {
         <main class="communication-center-page">
             <section class="communication-hero">
                 <div>
-                    <span class="section-kicker">${escapeCommunicationHtml(audience === 'all' ? 'Unified user' : `${audience} view`)}</span>
+                    <span class="section-kicker">Personal mailbox</span>
                     <h1>Communication Center</h1>
-                    <p>Messages, clarifications, tender notifications, alerts, and system updates connected to procurement workflow events.</p>
+                    <p>${escapeCommunicationHtml(currentUser.organization)} only sees messages sent to this mailbox or messages sent from it.</p>
                 </div>
                 <div class="communication-summary">
                     <div><strong>${unreadCount}</strong><span>Unread</span></div>
@@ -456,7 +599,9 @@ function initializeCommunicationCenter() {
         }
 
         if (event.target.closest('[data-communication-mark-visible]')) {
-            filterCommunicationItems(getCommunicationItems(), state).forEach(item => patchCommunicationItem(item.id, { read: true, status: item.status === 'Unread' ? 'Read' : item.status }));
+            const currentUser = getCurrentCommunicationUser();
+            filterCommunicationItems(getCommunicationItems().filter(item => isCommunicationUserItem(item, currentUser)), state)
+                .forEach(item => patchCommunicationItem(item.id, { read: true, status: item.status === 'Unread' ? 'Read' : item.status }));
             render();
             return;
         }
@@ -492,20 +637,24 @@ function initializeCommunicationCenter() {
 
         if (composeForm) {
             const form = new FormData(composeForm);
+            const currentUser = getCurrentCommunicationUser();
+            const recipient = getCommunicationMailboxById(form.get('recipientId')) || getCommunicationMailboxProfiles()[1];
             const item = addProcurexCommunicationItem({
                 kind: 'message',
                 folder: 'sent',
                 category: form.get('category'),
                 subject: form.get('subject') || 'Procurement message',
                 body: form.get('body') || '',
-                senderType: form.get('senderType'),
-                senderName: mockData.users?.buyer?.organization || 'Current user',
-                recipientName: form.get('recipientName') || 'Recipient',
+                senderId: currentUser.id,
+                senderType: currentUser.type,
+                senderName: currentUser.organization,
+                recipientId: recipient.id,
+                recipientType: recipient.type,
+                recipientName: recipient.name,
                 tenderReference: form.get('tenderReference') || 'Not linked',
                 tenderTitle: form.get('tenderReference') || 'Tender communication',
                 status: 'Read',
-                read: true,
-                audience: ['all']
+                read: true
             });
             state.composeOpen = false;
             state.tab = 'Sent';
@@ -545,8 +694,10 @@ function initializeCommunicationCenter() {
                 category: 'Tender Clarification',
                 subject: `Re: ${item?.subject || 'Clarification response'}`,
                 body,
+                senderId: getCurrentCommunicationUser().id,
                 senderType: 'Buyer',
                 senderName: mockData.users?.buyer?.organization || 'Buyer',
+                recipientId: item?.senderId,
                 recipientType: 'Supplier',
                 recipientName: item?.senderName || 'Supplier',
                 tenderId: item?.tenderId,
@@ -556,8 +707,7 @@ function initializeCommunicationCenter() {
                 status: 'Unread',
                 read: false,
                 actionLabel: 'View Response',
-                actionPage: 'communication-center',
-                audience: ['supplier', 'all']
+                actionPage: 'communication-center'
             });
             render();
         }
