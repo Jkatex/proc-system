@@ -1,12 +1,19 @@
 // ProcureX SPA Application
 
 const PLATFORM_LOGO_SRC = 'assets/logo.svg';
+const PROCUREX_LOTTIE_SRC = 'assets/ProcureX.json';
 
 function renderPlatformLogo(className = 'platform-logo') {
     return `
         <span class="${className}">
             <img class="platform-logo-image" src="${PLATFORM_LOGO_SRC}" alt="ProcureX">
         </span>
+    `;
+}
+
+function renderProcureXLottie(className = 'procurex-lottie', label = 'ProcureX animation') {
+    return `
+        <dotlottie-player class="${className}" src="${PROCUREX_LOTTIE_SRC}" background="transparent" speed="1" loop autoplay aria-label="${label}"></dotlottie-player>
     `;
 }
 
@@ -279,6 +286,7 @@ class ProcureXApp {
 
     renderPage() {
         const pageContent = document.getElementById('page-content');
+        document.body.dataset.page = this.currentPage;
         this.clearProcurementFeedTimer();
         if (this.pages[this.currentPage]) {
             const pageHtml = this.pages[this.currentPage]();
@@ -310,6 +318,7 @@ class ProcureXApp {
         this.initializeAuthPage();
         this.initializeRegistrationPage();
         this.initializeEkycPage();
+        this.initializeIamProfilePage();
         if (typeof window.initializeCreateTenderWizard === 'function') {
             window.initializeCreateTenderWizard();
         }
@@ -837,6 +846,174 @@ class ProcureXApp {
         });
     }
 
+    initializeIamProfilePage() {
+        const form = document.querySelector('[data-iam-profile-form]');
+        if (!form || form.dataset.ready === 'true') return;
+
+        const profile = mockData.eKycProfile || {};
+        const entityType = profile.entityType || 'individual';
+
+        const syncEntityVisibility = () => {
+            const allowed = entityType === 'individual'
+                ? ['all', 'individual']
+                : ['all', 'organization', entityType];
+            form.querySelectorAll('[data-iam-field-wrap]').forEach((field) => {
+                const fieldEntity = field.dataset.iamEntity || 'all';
+                field.classList.toggle('iam-hidden', !allowed.includes(fieldEntity));
+            });
+        };
+
+        const syncCompletion = () => {
+            const completion = this.computeIamProfileCompletion(entityType, this.collectIamProfileData(form));
+            const percentOutput = form.querySelector('[data-iam-completion-percent]');
+            const fill = form.querySelector('[data-iam-completion-fill]');
+            const copy = form.querySelector('[data-iam-completion-copy]');
+            if (percentOutput) percentOutput.textContent = `${completion.percent}%`;
+            if (fill) fill.style.width = `${completion.percent}%`;
+            if (copy) copy.textContent = `${completion.completed} of ${completion.total} required entity fields complete`;
+            Object.entries(completion.sectionStatus).forEach(([section, status]) => {
+                const panel = form.querySelector(`[data-iam-panel="${section}"]`);
+                const badge = panel?.querySelector('.iam-section-heading > .badge');
+                if (!badge) return;
+                const done = status.total === 0 || status.completed >= status.total;
+                badge.className = `badge ${done ? 'badge-success' : 'badge-warning'}`;
+                badge.textContent = `${status.completed}/${status.total} required`;
+            });
+        };
+
+        form.querySelectorAll('[data-iam-tab]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const target = button.dataset.iamTab;
+                form.querySelectorAll('[data-iam-tab]').forEach(item => item.classList.toggle('active', item === button));
+                form.querySelectorAll('[data-iam-panel]').forEach(panel => panel.classList.toggle('active', panel.dataset.iamPanel === target));
+            });
+        });
+
+        form.querySelectorAll('[data-iam-upload-input]').forEach((input) => {
+            input.addEventListener('change', () => {
+                const fieldName = input.dataset.iamUploadInput;
+                const fileName = input.files?.[0]?.name || '';
+                const hidden = form.querySelector(`input[type="hidden"][name="${CSS.escape(fieldName)}"]`);
+                const output = form.querySelector(`[data-iam-upload-name="${CSS.escape(fieldName)}"]`);
+                if (hidden) hidden.value = fileName;
+                if (output) output.textContent = fileName ? `Selected: ${fileName}` : 'No file selected yet.';
+                syncCompletion();
+            });
+        });
+
+        form.querySelectorAll('[data-iam-field]').forEach((field) => {
+            field.addEventListener('input', syncCompletion);
+            field.addEventListener('change', syncCompletion);
+        });
+
+        form.querySelector('[data-iam-save-profile]')?.addEventListener('click', () => {
+            this.saveIamProfileData(form);
+            syncCompletion();
+            const saveStatus = form.querySelector('[data-iam-save-status]');
+            if (saveStatus) {
+                saveStatus.textContent = `Draft saved ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                saveStatus.classList.add('saved');
+                window.setTimeout(() => saveStatus.classList.remove('saved'), 2200);
+            }
+        });
+
+        syncEntityVisibility();
+        syncCompletion();
+        form.dataset.ready = 'true';
+    }
+
+    collectIamProfileData(form) {
+        const data = {};
+        form.querySelectorAll('[data-iam-field]').forEach((field) => {
+            const name = field.getAttribute('name');
+            if (!name) return;
+            if (field.type === 'checkbox' && field.closest('.iam-multi-list')) {
+                if (!Object.prototype.hasOwnProperty.call(data, name)) data[name] = [];
+                if (field.checked) data[name].push(field.value);
+            } else if (field.matches('select[multiple]')) {
+                data[name] = Array.from(field.selectedOptions).map(option => option.value).join(', ');
+            } else if (field.type === 'checkbox') {
+                data[name] = field.checked;
+            } else {
+                data[name] = field.value;
+            }
+        });
+        Object.keys(data).forEach((key) => {
+            if (Array.isArray(data[key])) data[key] = data[key].join(', ');
+        });
+        return data;
+    }
+
+    saveIamProfileData(form) {
+        const profile = mockData.eKycProfile || {};
+        mockData.eKycProfile = {
+            ...profile,
+            iamProfile: {
+                ...(profile.iamProfile || {}),
+                ...this.collectIamProfileData(form),
+                savedAt: new Date().toISOString()
+            }
+        };
+    }
+
+    computeIamProfileCompletion(entityType = 'individual', data = {}) {
+        const visibleEntities = entityType === 'individual'
+            ? ['all', 'individual']
+            : ['all', 'organization', entityType];
+        const requiredFields = [
+            ['account', 'fullName', 'all'],
+            ['account', 'emailAddress', 'all'],
+            ['account', 'phoneNumber', 'all'],
+            ['account', 'country', 'all'],
+            ['entity', 'individualDisplayName', 'individual'],
+            ['entity', 'companyName', 'organization'],
+            ['entity', 'companyType', 'organization'],
+            ['entity', 'registrationNumber', 'company'],
+            ['entity', 'tinNumber', 'all'],
+            ['entity', 'businessDescription', 'all'],
+            ['entity', 'physicalAddress', 'all'],
+            ['entity', 'entityCountry', 'all'],
+            ['entity', 'regionDistrict', 'all'],
+            ['classification', 'industry', 'all'],
+            ['classification', 'procurementCategories', 'all'],
+            ['classification', 'localInternational', 'all'],
+            ['contacts', 'contactPerson', 'all'],
+            ['contacts', 'officialEmail', 'all'],
+            ['contacts', 'officialPhone', 'all'],
+            ['documents', 'certificateOfIncorporation', 'company'],
+            ['documents', 'businessLicense', 'business'],
+            ['documents', 'tinCertificate', 'all']
+        ].filter(([, , fieldEntity]) => visibleEntities.includes(fieldEntity));
+
+        const sectionStatus = {};
+        requiredFields.forEach(([section, name]) => {
+            if (!sectionStatus[section]) sectionStatus[section] = { completed: 0, total: 0, percent: 0 };
+            sectionStatus[section].total += 1;
+            const value = data[name];
+            const complete = typeof value === 'boolean' ? value : String(value || '').trim().length > 0;
+            if (complete) sectionStatus[section].completed += 1;
+        });
+
+        ['account', 'entity', 'classification', 'contacts', 'documents', 'financial', 'capacity', 'settings'].forEach((section) => {
+            if (!sectionStatus[section]) sectionStatus[section] = { completed: 0, total: 0, percent: 100 };
+            const status = sectionStatus[section];
+            status.percent = status.total ? Math.round((status.completed / status.total) * 100) : 100;
+        });
+
+        const completed = requiredFields.reduce((count, [, name]) => {
+            const value = data[name];
+            const complete = typeof value === 'boolean' ? value : String(value || '').trim().length > 0;
+            return count + (complete ? 1 : 0);
+        }, 0);
+        const total = Math.max(requiredFields.length, 1);
+        return {
+            completed,
+            total,
+            percent: Math.round((completed / total) * 100),
+            sectionStatus
+        };
+    }
+
     handleFormAction(action, form) {
         switch (action) {
             case 'register-step1':
@@ -1086,6 +1263,7 @@ class ProcureXApp {
 
     saveEkycProfile(form, status) {
         const formData = new FormData(form);
+        const previousProfile = mockData.eKycProfile || {};
         const role = formData.get('role') || mockData.pendingAccount?.role || mockData.currentRole || mockData.eKycProfile?.role || null;
         const entityType = formData.get('entityType') || 'individual';
         const registryConfig = this.getEkycRegistryConfig(entityType, form);
@@ -1108,7 +1286,8 @@ class ProcureXApp {
             signatureName: formData.get('signatureName') || '',
             signatureTitle: formData.get('signatureTitle') || '',
             signatureConsent: formData.get('signatureConsent') === 'on',
-            signatureAnchor: 'pending_blockchain_anchor'
+            signatureAnchor: 'pending_blockchain_anchor',
+            iamProfile: previousProfile.iamProfile || {}
         };
     }
 
@@ -1586,9 +1765,7 @@ class ProcureXApp {
     renderComingSoon() {
         return `
             <div class="coming-soon">
-                <svg class="coming-soon-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                </svg>
+                ${renderProcureXLottie('procurex-lottie procurex-lottie-md', 'ProcureX page preparation animation')}
                 <h2 class="coming-soon-title">Coming Soon</h2>
                 <p class="coming-soon-text">This feature is currently under development and will be available soon.</p>
                 <button class="btn btn-primary" data-navigate="welcome">Back to Home</button>
@@ -1599,7 +1776,7 @@ class ProcureXApp {
     // Page render methods will be implemented in separate files
     getLoadingSpinner(pageName) {
         return `<div class="loading-container">
-            <div class="loading-spinner"></div>
+            ${renderProcureXLottie('procurex-lottie procurex-lottie-lg', `Loading ${pageName}`)}
             <p>Loading ${pageName}...</p>
         </div>`;
     }

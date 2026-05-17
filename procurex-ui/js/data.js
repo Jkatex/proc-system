@@ -2215,14 +2215,157 @@ const mockData = {
         validSubmissions: 4,
         priceOutliers: 0,
         evaluatorsActive: 3,
+        currentStage: 'technical',
+        minimumTechnicalPassMark: 70,
+        emptyStates: {
+            notStarted: 'No evaluation has started yet. Once the tender closes and submissions are opened, this workspace will display bidder responses for structured evaluation.',
+            noBids: 'No bids were received for this tender. You may prepare a no-submission report or follow the applicable procurement procedure for re-advertisement or cancellation.',
+            completed: 'Evaluation has been completed. The recommendation report is ready for review and approval.',
+            returned: 'The recommendation was returned for review. Address the approver comments before resubmitting.'
+        },
+        activeTender: {
+            title: 'Construction of Rural Health Centers',
+            reference: 'PX-WRK-2026-001',
+            category: 'Works',
+            closingDate: 'June 11, 2026, 16:00 EAT',
+            evaluationDeadline: 'June 28, 2026',
+            status: 'Technical Evaluation Ongoing',
+            stage: 'Technical Evaluation',
+            bidders: 4,
+            conflictStatus: '3 of 3 declared',
+            method: 'Lowest evaluated substantially responsive bid',
+            committee: ['Mary Komba', 'Joseph Mrema', 'Asha Msuya']
+        },
+        readyTenders: [
+            {
+                title: 'Construction of Rural Health Centers',
+                reference: 'PX-WRK-2026-001',
+                category: 'Works',
+                closingDate: 'June 11, 2026',
+                bidsReceived: 4,
+                status: 'Technical Evaluation Ongoing',
+                deadline: 'June 28, 2026',
+                evaluators: 'Mary Komba, Joseph Mrema, Asha Msuya',
+                conflictStatus: 'Complete',
+                draftStatus: 'Saved as draft',
+                progress: 58
+            },
+            {
+                title: 'Supply of Laboratory Equipment',
+                reference: 'PX-GDS-2026-002',
+                category: 'Goods',
+                closingDate: 'June 14, 2026',
+                bidsReceived: 6,
+                status: 'Opening Completed',
+                deadline: 'July 03, 2026',
+                evaluators: 'Procurement panel pending assignment',
+                conflictStatus: 'Pending',
+                draftStatus: 'Not started',
+                progress: 18
+            }
+        ],
+        stages: [
+            { id: 'overview', label: 'Overview', status: 'current' },
+            { id: 'opening', label: 'Bid Opening', status: 'done' },
+            { id: 'conflict', label: 'Conflict Declarations', status: 'done' },
+            { id: 'preliminary', label: 'Preliminary Evaluation', status: 'done' },
+            { id: 'eligibility', label: 'Eligibility Review', status: 'done' },
+            { id: 'technical', label: 'Technical Evaluation', status: 'current' },
+            { id: 'financial', label: 'Financial Evaluation', status: 'pending' },
+            { id: 'clarifications', label: 'Clarifications', status: 'pending' },
+            { id: 'comparison', label: 'Comparison Matrix', status: 'pending' },
+            { id: 'report', label: 'Evaluation Report', status: 'pending' },
+            { id: 'recommendation', label: 'Recommendation', status: 'pending' },
+            { id: 'audit', label: 'Audit Trail', status: 'active' }
+        ],
+        roles: [
+            { role: 'Evaluation Chairperson', access: 'Manage evaluation process, assign tasks, submit report' },
+            { role: 'Evaluator', access: 'Review bids, score, comment' },
+            { role: 'Procurement Officer', access: 'Monitor process, support documentation' },
+            { role: 'Approver', access: 'Review final report and approve or reject recommendation' },
+            { role: 'Observer / Auditor', access: 'Read-only access' },
+            { role: 'System Admin', access: 'Manage access, not change scores' }
+        ],
+        controls: [
+            { control: 'Bid lock after deadline', purpose: 'Prevent changes after submission deadline', status: 'Active' },
+            { control: 'Role-based access', purpose: 'Only authorized users can evaluate', status: 'Active' },
+            { control: 'Conflict declaration', purpose: 'Protect fairness', status: 'Complete' },
+            { control: 'Audit trail', purpose: 'Record every action', status: 'Recording' },
+            { control: 'Score locking', purpose: 'Prevent score manipulation after submission', status: 'Pending technical close' },
+            { control: 'Clarification tracking', purpose: 'Keep official communication', status: 'Available' }
+        ],
         openingReport: {
             openingTime: 'June 12, 2026, 10:00 EAT',
             authorizedBy: ['Mary Komba', 'Joseph Mrema'],
             envelope: 'Technical envelope',
             hashStatus: '4 of 4 verified',
             auditReference: 'AUD-BIDOPEN-2026-014',
-            disclosureStatus: 'Financial envelope locked until technical scores are finalized'
+            disclosureStatus: 'Financial envelope locked until technical scores are finalized',
+            message: 'This tender received 4 submissions before the deadline. All submissions are locked and ready for evaluation. Evaluators can now continue the structured review.',
+            submissions: [
+                { supplier: 'ABC Construction Ltd', time: 'June 11, 2026, 14:38 EAT', status: 'Submitted', documents: ['Technical proposal', 'Method statement', 'Tax clearance', 'Bid security'], technicalOffer: 'Yes', financialOffer: 'Yes', bidSecurity: 'Submitted', deadline: 'Before deadline', remarks: 'Complete opening record.' },
+                { supplier: 'XYZ Builders', time: 'June 11, 2026, 15:21 EAT', status: 'Submitted', documents: ['Technical proposal', 'Company registration', 'Financial offer'], technicalOffer: 'Yes', financialOffer: 'Yes', bidSecurity: 'Submitted', deadline: 'Before deadline', remarks: 'Minor document naming issue.' },
+                { supplier: 'BuildRight Ltd', time: 'June 10, 2026, 18:04 EAT', status: 'Submitted', documents: ['Technical proposal', 'Work program', 'BOQ', 'Bid security'], technicalOffer: 'Yes', financialOffer: 'Yes', bidSecurity: 'Submitted', deadline: 'Before deadline', remarks: 'Verified without exception.' },
+                { supplier: 'Prime Contractors', time: 'June 11, 2026, 13:17 EAT', status: 'Submitted', documents: ['Technical proposal', 'Financial offer', 'Tax clearance'], technicalOffer: 'Yes', financialOffer: 'Yes', bidSecurity: 'Submitted', deadline: 'Before deadline', remarks: 'Opening remarks captured.' }
+            ]
         },
+        conflictDeclarations: [
+            { evaluator: 'Mary Komba', role: 'Chairperson', declaration: 'No conflict of interest', supplier: 'None', action: 'May evaluate', submittedAt: 'June 12, 2026, 10:25 EAT', status: 'Cleared' },
+            { evaluator: 'Joseph Mrema', role: 'Evaluator', declaration: 'No conflict of interest', supplier: 'None', action: 'May evaluate', submittedAt: 'June 12, 2026, 10:27 EAT', status: 'Cleared' },
+            { evaluator: 'Asha Msuya', role: 'Evaluator', declaration: 'Potential conflict disclosed', supplier: 'Prime Contractors', action: 'Review by chairperson; exclude from Prime scoring', submittedAt: 'June 12, 2026, 10:32 EAT', status: 'Managed' }
+        ],
+        technicalCriteria: [
+            { id: 'experience', name: 'Relevant experience', maxScore: 20, description: 'Similar completed healthcare works contracts' },
+            { id: 'methodology', name: 'Methodology', maxScore: 30, description: 'Construction approach, sequencing, and quality of work plan' },
+            { id: 'personnel', name: 'Key personnel', maxScore: 25, description: 'Project manager, engineer, site supervisor qualifications' },
+            { id: 'workplan', name: 'Work plan', maxScore: 15, description: 'Realistic schedule and resource plan' },
+            { id: 'quality', name: 'Quality assurance', maxScore: 10, description: 'Inspection, health, safety, and environmental controls' }
+        ],
+        clarifications: [
+            { supplier: 'XYZ Builders', subject: 'Clarification on equipment evidence', requirement: 'Equipment capacity', message: 'Please confirm whether the attached lease agreement covers the required concrete mixer for the full contract period.', deadline: 'June 18, 2026, 15:00 EAT', attachment: 'equipment-query.pdf', status: 'Responded', evaluatorNote: 'Response confirms lease validity; no bid substance changed.' },
+            { supplier: 'Prime Contractors', subject: 'Key personnel certificate validity', requirement: 'Professional registration', message: 'Please confirm whether the attached professional registration certificate for the proposed site engineer is valid for the current year.', deadline: 'June 19, 2026, 12:00 EAT', attachment: 'personnel-certificate.pdf', status: 'Sent', evaluatorNote: 'Await response before final eligibility close.' }
+        ],
+        reportSections: [
+            'Tender information',
+            'Evaluation committee members',
+            'Conflict of interest declarations',
+            'List of bidders',
+            'Bid opening summary',
+            'Preliminary evaluation results',
+            'Technical evaluation results',
+            'Financial evaluation results',
+            'Clarifications issued',
+            'Evaluation comparison matrix',
+            'Recommended bidder',
+            'Reasons for recommendation',
+            'Dissenting opinions',
+            'Attachments reviewed',
+            'Approval section',
+            'Audit trail'
+        ],
+        recommendation: {
+            supplier: 'BuildRight Ltd',
+            amount: 4670000000,
+            currency: 'TZS',
+            method: 'Lowest evaluated substantially responsive bid',
+            contractDuration: '10 months',
+            conditions: 'Verify updated equipment lease and performance guarantee before contract signing.',
+            decision: 'Recommended',
+            reason: 'BuildRight Ltd passed the preliminary, eligibility, technical, and financial evaluation stages and submitted the lowest evaluated substantially responsive bid.',
+            summary: 'Four bids were opened. All were received before the deadline. Three bidders passed the technical threshold; BuildRight Ltd ranks first after corrected price review.'
+        },
+        approvals: [
+            { actor: 'Evaluation Chairperson', status: 'Draft report in progress', date: 'June 24, 2026', action: 'Complete report' },
+            { actor: 'Procurement Officer', status: 'Pending recommendation submission', date: 'June 25, 2026', action: 'Route to approver' },
+            { actor: 'Approver', status: 'Waiting', date: 'After submission', action: 'Approve or return for review' }
+        ],
+        auditTrail: [
+            { time: '2026-06-12 10:00', event: 'Bid opening authorized by two users', actor: 'Mary Komba, Joseph Mrema', ref: 'AUD-BIDOPEN-2026-014' },
+            { time: '2026-06-12 10:01', event: 'Four technical envelopes decrypted and hash verified', actor: 'System', ref: 'HASH-SET-9042' },
+            { time: '2026-06-12 10:32', event: 'Conflict declaration recorded for Prime Contractors', actor: 'Asha Msuya', ref: 'COI-2026-017' },
+            { time: '2026-06-18 09:15', event: 'Clarification sent to XYZ Builders', actor: 'Joseph Mrema', ref: 'CLAR-2026-022' },
+            { time: '2026-06-24 16:30', event: 'Consensus score report prepared for locking', actor: 'Evaluation Committee', ref: 'EVAL-LOCK-2026-014' }
+        ],
         benchmark: {
             buyerEstimate: 4800000000,
             marketMedian: 4860000000,
@@ -2249,35 +2392,123 @@ const mockData = {
         bids: [
             {
                 supplier: 'ABC Construction Ltd',
+                registrationNumber: 'BRELA-45821',
+                contactPerson: 'Neema Andrew',
+                submissionTime: 'June 11, 2026, 14:38 EAT',
+                documents: ['Business registration', 'Tax clearance', 'Method statement', 'Bid security', 'BOQ'],
+                preliminaryResult: 'Passed',
+                eligibilityResult: 'Eligible',
                 technicalScore: 85,
                 financialScore: 90,
                 totalScore: 87.5,
                 integrityHash: '0x1234567890abcdef',
-                price: 4800000000
+                price: 4800000000,
+                preliminaryChecks: [
+                    { requirement: 'Bid submitted before deadline', result: 'Pass', comment: 'Submitted before closing time.', document: 'Opening log' },
+                    { requirement: 'All mandatory forms submitted', result: 'Pass', comment: 'Forms complete.', document: 'Administrative forms' },
+                    { requirement: 'Bid security submitted', result: 'Pass', comment: 'Bank guarantee attached.', document: 'Bid security' },
+                    { requirement: 'Tax documents submitted', result: 'Pass', comment: 'Valid tax clearance.', document: 'Tax clearance' }
+                ],
+                eligibilityChecks: [
+                    { requirement: 'Company registration', result: 'Eligible', comment: 'BRELA certificate verified.' },
+                    { requirement: 'Professional registration', result: 'Eligible', comment: 'CRB registration valid.' },
+                    { requirement: 'Experience requirement', result: 'Eligible', comment: 'Three similar contracts submitted.' },
+                    { requirement: 'Financial capacity', result: 'Eligible', comment: 'Audited accounts meet threshold.' }
+                ],
+                technicalScores: { experience: 17, methodology: 25, personnel: 21, workplan: 13, quality: 9 },
+                technicalComment: 'Strong similar projects and acceptable health facility methodology.',
+                financial: { currency: 'TZS', taxesIncluded: 'Yes', discount: 'None', arithmeticCorrection: 12000000, correctedPrice: 4812000000, boqStatus: 'Corrected', pricingStatus: 'Fully priced', ranking: 3, correctionNote: 'Minor BOQ subtotal arithmetic corrected according to tender rules.' },
+                finalResult: 'Responsive'
             },
             {
                 supplier: 'XYZ Builders',
+                registrationNumber: 'BRELA-77109',
+                contactPerson: 'Peter Said',
+                submissionTime: 'June 11, 2026, 15:21 EAT',
+                documents: ['Business registration', 'Tax clearance', 'Technical proposal', 'Financial offer'],
+                preliminaryResult: 'Passed',
+                eligibilityResult: 'Requires Clarification',
                 technicalScore: 78,
                 financialScore: 95,
                 totalScore: 84.3,
                 integrityHash: '0xabcdef1234567890',
-                price: 4950000000
+                price: 4950000000,
+                preliminaryChecks: [
+                    { requirement: 'Bid submitted before deadline', result: 'Pass', comment: 'Submitted before closing time.', document: 'Opening log' },
+                    { requirement: 'All mandatory forms submitted', result: 'Pass', comment: 'Complete.', document: 'Administrative forms' },
+                    { requirement: 'Power of attorney submitted', result: 'Not Applicable', comment: 'Not required for this tender.', document: 'Instructions to bidders' },
+                    { requirement: 'Bid validity period acceptable', result: 'Pass', comment: 'Valid for required period.', document: 'Bid form' }
+                ],
+                eligibilityChecks: [
+                    { requirement: 'Company registration', result: 'Eligible', comment: 'Registration verified.' },
+                    { requirement: 'Equipment capacity', result: 'Requires Clarification', comment: 'Lease duration needs confirmation.' },
+                    { requirement: 'No debarment', result: 'Eligible', comment: 'No blacklist match.' },
+                    { requirement: 'Financial capacity', result: 'Eligible', comment: 'Bank statement attached.' }
+                ],
+                technicalScores: { experience: 15, methodology: 23, personnel: 19, workplan: 13, quality: 8 },
+                technicalComment: 'Technically acceptable, subject to equipment clarification closure.',
+                financial: { currency: 'TZS', taxesIncluded: 'Yes', discount: '1%', arithmeticCorrection: 0, correctedPrice: 4900500000, boqStatus: 'Fully priced', pricingStatus: 'Fully priced', ranking: 4, correctionNote: 'Discount applied as submitted; no arithmetic correction.' },
+                finalResult: 'Pending clarification'
             },
             {
                 supplier: 'BuildRight Ltd',
+                registrationNumber: 'BRELA-90342',
+                contactPerson: 'Grace Lema',
+                submissionTime: 'June 10, 2026, 18:04 EAT',
+                documents: ['Business registration', 'Tax clearance', 'Work program', 'BOQ', 'Bid security'],
+                preliminaryResult: 'Passed',
+                eligibilityResult: 'Eligible',
                 technicalScore: 92,
                 financialScore: 82,
                 totalScore: 88.4,
                 integrityHash: '0x9876543210fedcba',
-                price: 4650000000
+                price: 4650000000,
+                preliminaryChecks: [
+                    { requirement: 'Bid submitted before deadline', result: 'Pass', comment: 'Submitted one day before deadline.', document: 'Opening log' },
+                    { requirement: 'All mandatory forms submitted', result: 'Pass', comment: 'All forms present.', document: 'Administrative forms' },
+                    { requirement: 'Bid signed and stamped where required', result: 'Pass', comment: 'Signed by authorized person.', document: 'Bid form' },
+                    { requirement: 'No major document missing', result: 'Pass', comment: 'No omission noted.', document: 'Document checklist' }
+                ],
+                eligibilityChecks: [
+                    { requirement: 'Company registration', result: 'Eligible', comment: 'BRELA certificate verified.' },
+                    { requirement: 'Professional registration', result: 'Eligible', comment: 'CRB and key personnel registrations valid.' },
+                    { requirement: 'Experience requirement', result: 'Eligible', comment: 'Strong similar works record.' },
+                    { requirement: 'Key personnel', result: 'Eligible', comment: 'CVs and licenses acceptable.' }
+                ],
+                technicalScores: { experience: 19, methodology: 28, personnel: 23, workplan: 14, quality: 8 },
+                technicalComment: 'Best technical response with clear methodology and realistic work program.',
+                financial: { currency: 'TZS', taxesIncluded: 'Yes', discount: 'None', arithmeticCorrection: 20000000, correctedPrice: 4670000000, boqStatus: 'Corrected', pricingStatus: 'Fully priced', ranking: 1, correctionNote: 'One multiplication error corrected; correction logged for audit.' },
+                finalResult: 'Recommended'
             },
             {
                 supplier: 'Prime Contractors',
+                registrationNumber: 'BRELA-12044',
+                contactPerson: 'Hassan Omari',
+                submissionTime: 'June 11, 2026, 13:17 EAT',
+                documents: ['Technical proposal', 'Financial offer', 'Tax clearance'],
+                preliminaryResult: 'Passed',
+                eligibilityResult: 'Eligible',
                 technicalScore: 88,
                 financialScore: 88,
                 totalScore: 88.0,
                 integrityHash: '0xfedcba0987654321',
-                price: 4750000000
+                price: 4750000000,
+                preliminaryChecks: [
+                    { requirement: 'Bid submitted before deadline', result: 'Pass', comment: 'Submitted before closing time.', document: 'Opening log' },
+                    { requirement: 'All mandatory forms submitted', result: 'Pass', comment: 'Required forms available.', document: 'Administrative forms' },
+                    { requirement: 'Required licenses submitted', result: 'Pass', comment: 'Licenses attached.', document: 'License pack' },
+                    { requirement: 'Tax documents submitted', result: 'Pass', comment: 'Valid tax clearance.', document: 'Tax clearance' }
+                ],
+                eligibilityChecks: [
+                    { requirement: 'Company registration', result: 'Eligible', comment: 'Registration verified.' },
+                    { requirement: 'No debarment', result: 'Eligible', comment: 'No suspension found.' },
+                    { requirement: 'Key personnel', result: 'Requires Clarification', comment: 'Certificate validity requested.' },
+                    { requirement: 'Equipment capacity', result: 'Eligible', comment: 'Evidence acceptable.' }
+                ],
+                technicalScores: { experience: 18, methodology: 26, personnel: 22, workplan: 14, quality: 8 },
+                technicalComment: 'Strong technical offer with one key personnel confirmation pending.',
+                financial: { currency: 'TZS', taxesIncluded: 'Yes', discount: 'None', arithmeticCorrection: 0, correctedPrice: 4750000000, boqStatus: 'Fully priced', pricingStatus: 'Fully priced', ranking: 2, correctionNote: 'No arithmetic correction recorded.' },
+                finalResult: 'Responsive'
             }
         ]
     },

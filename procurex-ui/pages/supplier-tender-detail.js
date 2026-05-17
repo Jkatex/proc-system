@@ -2,7 +2,7 @@
 
 const supplierTenderSavedStorageKey = 'procurex.supplierSavedTenders.v1';
 const supplierTenderClarificationStorageKey = 'procurex.supplierClarifications.v1';
-const supplierTenderClarificationContextStorageKey = 'procurex.supplierClarificationContext.v1';
+const supplierTenderCommunicationDraftStorageKey = 'procurex.communicationCenter.v1.composeDraft';
 const supplierTenderClarificationCategories = ['Technical', 'Financial', 'Deliverables', 'Legal', 'Timeline', 'Commercial Schedule'];
 
 function escapeSupplierTenderDetailHtml(value = '') {
@@ -244,13 +244,61 @@ function renderProcurexTenderDetailLicenses(tender = {}) {
     `;
 }
 
-function renderProcurexTenderDetailDocuments(documents = []) {
-    if (!documents.length) return '<div class="scope-empty">No tender documents configured.</div>';
+function renderProcurexTenderDetailDocuments(documents = [], statusText = 'Available for review', emptyText = 'No tender documents configured.', options = {}) {
+    if (!documents.length) return `<div class="scope-empty">${escapeSupplierTenderDetailHtml(emptyText)}</div>`;
+    const tenderId = options.tenderId || '';
+    const showActions = options.showActions === true;
     return `
         <div class="attachment-grid tender-detail-attachment-grid">
-            ${documents.map(doc => `<div class="attachment-card"><strong>${escapeSupplierTenderDetailHtml(doc)}</strong><span>Available for review</span></div>`).join('')}
+            ${documents.map(doc => `
+                <div class="attachment-card">
+                    <strong>${escapeSupplierTenderDetailHtml(doc)}</strong>
+                    <span>${escapeSupplierTenderDetailHtml(statusText)}</span>
+                    ${showActions ? `
+                        <div class="attachment-actions">
+                            <button class="btn btn-secondary" type="button" data-tender-annex-action="view" data-tender-id="${escapeSupplierTenderDetailHtml(tenderId)}" data-annex-name="${escapeSupplierTenderDetailHtml(doc)}">View</button>
+                            <button class="btn btn-secondary" type="button" data-tender-annex-action="download" data-tender-id="${escapeSupplierTenderDetailHtml(tenderId)}" data-annex-name="${escapeSupplierTenderDetailHtml(doc)}">Download</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('')}
         </div>
     `;
+}
+
+function getProcurexTenderSubmissionDocuments(tender = {}, profile = {}) {
+    const seen = new Set();
+    return [
+        ...(profile.submissionDocuments || []),
+        ...(tender.requiredSubmissionDocuments || [])
+    ]
+        .map(item => typeof item === 'object' ? getProcurexTenderDetailValueTitle(item, '') : String(item || '').trim())
+        .filter(Boolean)
+        .filter(item => {
+            const key = item.toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+}
+
+function getProcurexTenderEligibilityComplianceItems(tender = {}, profile = {}) {
+    const seen = new Set();
+    return [
+        ...(tender.regulatoryLicenses || []).map(license => [
+            license.license || license.registrationType || license.regulatoryBody || 'Regulatory license',
+            license.body || license.group || ''
+        ].filter(Boolean).join(' - ')),
+        ...getProcurexTenderSubmissionDocuments(tender, profile)
+    ]
+        .map(item => String(item || '').trim())
+        .filter(Boolean)
+        .filter(item => {
+            const key = item.toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
 }
 
 function renderProcurexTenderDocumentSection(number, title, kicker, content, aside = '') {
@@ -277,6 +325,7 @@ function renderProcurexTenderDetailFullSections(tender = {}, profile = {}, optio
     const clarifications = options.clarifications || getSupplierTenderClarifications(tender);
     const amendments = options.amendments || tender.amendments || [];
     const interestedSuppliers = options.interestedSuppliers || tender.interestedSuppliers || [];
+    const eligibilityComplianceItems = getProcurexTenderEligibilityComplianceItems(tender, profile);
     const showActivity = options.showActivity !== false;
     const showMarketplaceActivity = options.showMarketplaceActivity === true;
     const showSupplierInterest = options.showSupplierInterest === true;
@@ -323,22 +372,18 @@ function renderProcurexTenderDetailFullSections(tender = {}, profile = {}, optio
             `)}
 
             ${renderProcurexTenderDocumentSection('2', 'Eligibility and Compliance Requirements', 'Supplier qualification', `
-                <div class="tender-document-two-column">
-                    <div>
-                        <h4>Regulatory licenses</h4>
-                        ${renderProcurexTenderDetailLicenses(tender)}
-                    </div>
-                    <div>
-                        <h4>Mandatory bid gate</h4>
-                        <div class="supplier-requirement-preview-list">
-                            ${renderSupplierTenderRequirementList(requirementSet.mandatory, 'No mandatory gate requirements were configured.')}
-                        </div>
-                    </div>
-                </div>
-            `, `<span class="badge badge-warning">${requirementSet.mandatory.length} required</span>`)}
+                ${renderProcurexTenderDetailDocuments(
+                    eligibilityComplianceItems,
+                    'Required for eligibility and compliance',
+                    'No eligibility and compliance items configured.'
+                )}
+            `, `<span class="badge badge-warning">${eligibilityComplianceItems.length} items</span>`)}
 
             ${renderProcurexTenderDocumentSection('3', 'Documents and Annexes', 'Tender pack', `
-                ${renderProcurexTenderDetailDocuments(documents)}
+                ${renderProcurexTenderDetailDocuments(documents, 'Available to view or download', 'No tender documents configured.', {
+                    showActions: true,
+                    tenderId: tender.id
+                })}
             `, `<span class="badge badge-info">${documents.length} files</span>`)}
 
             ${renderProcurexTenderDocumentSection('4', 'Evaluation Criteria and Submission Responses', 'Bid evaluation', `
@@ -347,10 +392,6 @@ function renderProcurexTenderDetailFullSections(tender = {}, profile = {}, optio
                         <thead><tr><th>Criterion</th><th>Weight</th><th>Supplier focus</th></tr></thead>
                         <tbody>${renderSupplierTenderEvaluationRows(tender, profile)}</tbody>
                     </table>
-                </div>
-                <h4>Additional response areas</h4>
-                <div class="supplier-requirement-preview-list">
-                    ${renderSupplierTenderRequirementList(requirementSet.optional, 'No additional dynamic requirements were configured.')}
                 </div>
                 ${renderSupplierTenderClarificationPrompt('Need clarification about evaluation criteria?', 'Technical')}
             `, '<span class="badge badge-success">Published</span>')}
@@ -417,11 +458,64 @@ function getSupplierTenderStoredClarifications(tenderId = '') {
     }
 }
 
+function readSupplierTenderCommunicationItems() {
+    const storedItems = (() => {
+        try {
+            const parsed = JSON.parse(localStorage.getItem('procurex.communicationCenter.v1.items') || '[]');
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+            return [];
+        }
+    })();
+    return [
+        ...(mockData.communicationCenter?.items || []),
+        ...storedItems
+    ];
+}
+
+function getSupplierTenderCommunicationClarifications(tender = {}) {
+    const tenderKeys = new Set([tender.id, tender.tenderReference].filter(Boolean).map(value => String(value).toLowerCase()));
+    if (!tenderKeys.size) return [];
+
+    return readSupplierTenderCommunicationItems()
+        .filter(item => String(item.kind || item.type || '').toLowerCase() === 'clarification')
+        .filter(item => tenderKeys.has(String(item.tenderId || item.tenderReference || '').toLowerCase()))
+        .map(item => {
+            const thread = Array.isArray(item.thread) && item.thread.length
+                ? item.thread
+                : [{ senderType: item.senderType, senderName: item.senderName, body: item.body, createdAt: item.createdAt }];
+            const supplierEntry = thread.find(entry => /supplier/i.test(`${entry.senderType || ''} ${entry.senderName || ''}`)) || thread[0] || {};
+            const buyerEntry = [...thread].reverse().find(entry => /buyer|procuring/i.test(`${entry.senderType || ''} ${entry.senderName || ''}`));
+            const answered = Boolean(buyerEntry?.body) || /answered|published|resolved|replied/i.test(item.status || '');
+            if (!answered) return null;
+
+            return {
+                title: item.subject || `${item.category || 'Tender'} clarification`,
+                category: item.category || 'Tender Clarification',
+                question: supplierEntry.body || item.body || item.subject || 'Clarification question',
+                answer: buyerEntry?.body || item.answer || item.detail || 'Buyer response published.',
+                detail: buyerEntry?.body || item.detail || item.body || '',
+                status: item.status || 'Answered',
+                context: item.tenderReference || tender.id,
+                createdAt: item.createdAt,
+                source: 'communication-center'
+            };
+        })
+        .filter(Boolean);
+}
+
 function getSupplierTenderClarifications(tender = {}) {
+    const seen = new Set();
     return [
         ...(tender.clarifications || []),
-        ...getSupplierTenderStoredClarifications(tender.id)
-    ];
+        ...getSupplierTenderStoredClarifications(tender.id),
+        ...getSupplierTenderCommunicationClarifications(tender)
+    ].filter(item => {
+        const key = `${item.category || ''}::${item.question || item.detail || item.title || ''}::${item.answer || ''}`.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
 }
 
 function getSupplierTenderClarificationDeadline(tender = {}) {
@@ -452,7 +546,7 @@ function formatSupplierTenderDate(date) {
 function getSupplierTenderClarificationStatusClass(status = '') {
     const raw = String(status || '').toLowerCase();
     if (raw.includes('amendment')) return 'badge-warning';
-    if (raw.includes('answered') || raw.includes('published')) return 'badge-success';
+    if (raw.includes('answered') || raw.includes('published') || raw.includes('resolved') || raw.includes('replied')) return 'badge-success';
     if (raw.includes('closed')) return 'badge-info';
     return 'badge-warning';
 }
@@ -495,6 +589,7 @@ function renderSupplierTenderPublicClarificationFeed(clarifications = []) {
                 </div>
                 <p><strong>Q:</strong> ${escapeSupplierTenderDetailHtml(question)}</p>
                 <p><strong>A:</strong> ${escapeSupplierTenderDetailHtml(answer)}</p>
+                ${item.source === 'communication-center' ? '<small>Buyer response from Communication Center</small>' : ''}
                 ${item.context ? `<small>Context: ${escapeSupplierTenderDetailHtml(item.context)}</small>` : ''}
             </article>
         `;
@@ -611,10 +706,16 @@ function renderSupplierTenderDetail() {
                             <h1>${escapeSupplierTenderDetailHtml(tender.title)}</h1>
                             <p>${escapeSupplierTenderDetailHtml(tender.organization)}. Review the full tender, save it for later, ask clarifications, then start the bid only when ready.</p>
                         </div>
-                        <div class="hero-action-stack">
-                            <button class="btn btn-secondary" type="button" data-supplier-save-tender>${saved ? 'Saved for Later' : 'Save for Later Review'}</button>
-                            <button class="btn btn-secondary" type="button" data-supplier-focus-clarification>Ask Clarification</button>
-                            <button class="btn btn-primary" data-navigate="bidding-workspace">Start Bid</button>
+                        <div class="hero-action-stack supplier-detail-actions">
+                            <button class="btn btn-primary supplier-detail-primary-action" data-navigate="bidding-workspace">Start Bid</button>
+                            <div class="supplier-detail-action-row">
+                                <button class="btn btn-secondary" type="button" data-tender-pdf="open" data-tender-id="${escapeSupplierTenderDetailHtml(tender.id)}" data-document-audience="supplier">Open PDF</button>
+                                <button class="btn btn-secondary" type="button" data-tender-pdf="download" data-tender-id="${escapeSupplierTenderDetailHtml(tender.id)}" data-document-audience="supplier">Download PDF</button>
+                            </div>
+                            <div class="supplier-detail-action-row">
+                                <button class="btn btn-secondary" type="button" data-supplier-save-tender>${saved ? 'Saved' : 'Save Tender'}</button>
+                                <button class="btn btn-secondary" type="button" data-supplier-focus-clarification>Ask Buyer</button>
+                            </div>
                         </div>
                     </section>
 
@@ -642,13 +743,12 @@ function renderSupplierTenderDetail() {
                             <strong>Pre-bid transparency rule</strong>
                             <span>Questions and buyer answers are public to all suppliers, with supplier identity hidden. After bid submission, evaluation-related clarifications are handled confidentially.</span>
                         </div>
-                        <div class="clarification-compose enhanced">
-                            <select class="form-input" data-clarification-category aria-label="Clarification category">
-                                ${renderSupplierTenderClarificationOptions()}
-                            </select>
-                            <textarea class="form-input" rows="3" data-clarification-text placeholder="Write your question here"></textarea>
-                            <button class="btn btn-secondary" type="button" data-clarification-attach>Attach File</button>
-                            <button class="btn btn-primary" type="button" data-submit-clarification ${clarificationDeadline.closed ? 'disabled' : ''}>Send Clarification Request</button>
+                        <div class="clarification-compose enhanced communication-center-cta">
+                            <div>
+                                <strong>Use Communication Center</strong>
+                                <span>Open a dedicated message thread with the buyer, attach files, and keep the tender communication history in one place.</span>
+                            </div>
+                            <button class="btn btn-primary" type="button" data-supplier-focus-clarification ${clarificationDeadline.closed ? 'disabled' : ''}>Open Communication Center</button>
                         </div>
                         <div class="public-clarification-feed" data-clarification-list>
                             <div class="public-clarification-heading">
@@ -670,24 +770,34 @@ function initializeSupplierTenderDetail() {
     const tenderId = root.dataset.tenderId;
     const tender = typeof getProcurexSelectedTender === 'function' ? getProcurexSelectedTender() : mockData.tenders.find(item => item.id === tenderId);
 
-    const focusClarificationComposer = (context = '', category = '') => {
-        const input = root.querySelector('[data-clarification-text]');
-        const categoryInput = root.querySelector('[data-clarification-category]');
-        if (categoryInput && category) categoryInput.value = category;
-        if (input && context && !input.value.trim()) input.value = `${context}\n\n`;
-        input?.focus();
-        root.querySelector('.supplier-clarification-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    };
+    const openClarificationInCommunicationCenter = (context = '', category = 'Technical') => {
+        const normalizedCategory = category || 'Technical';
+        const body = [
+            context ? `Context: ${context}` : '',
+            '',
+            'Question:'
+        ].join('\n').trim();
+        localStorage.setItem(supplierTenderCommunicationDraftStorageKey, JSON.stringify({
+            kind: 'clarification',
+            category: 'Tender Clarification',
+            recipientId: 'buyer-001',
+            tenderId,
+            tenderReference: tenderId,
+            tenderTitle: tender?.title || 'Tender clarification',
+            subject: `${normalizedCategory} clarification - ${tenderId}`,
+            body
+        }));
 
-    try {
-        const pendingContext = JSON.parse(localStorage.getItem(supplierTenderClarificationContextStorageKey) || 'null');
-        if (pendingContext?.tenderId === tenderId) {
-            setTimeout(() => focusClarificationComposer(pendingContext.context, pendingContext.category), 0);
-            localStorage.removeItem(supplierTenderClarificationContextStorageKey);
+        const url = new URL(window.location.href);
+        url.searchParams.set('page', 'communication-center');
+        url.searchParams.set('role', 'supplier');
+        url.hash = '';
+        const opened = window.open(url.toString(), '_blank');
+        if (!opened) {
+            window.app?.setRole?.('supplier');
+            window.app?.navigateTo?.('communication-center');
         }
-    } catch (error) {
-        localStorage.removeItem(supplierTenderClarificationContextStorageKey);
-    }
+    };
 
     root.addEventListener('click', (event) => {
         const saveButton = event.target.closest('[data-supplier-save-tender]');
@@ -695,10 +805,10 @@ function initializeSupplierTenderDetail() {
             const saved = new Set(getSupplierTenderSavedIds());
             if (saved.has(tenderId)) {
                 saved.delete(tenderId);
-                saveButton.textContent = 'Save for Later Review';
+                saveButton.textContent = 'Save Tender';
             } else {
                 saved.add(tenderId);
-                saveButton.textContent = 'Saved for Later';
+                saveButton.textContent = 'Saved';
             }
             localStorage.setItem(supplierTenderSavedStorageKey, JSON.stringify([...saved]));
             return;
@@ -706,92 +816,8 @@ function initializeSupplierTenderDetail() {
 
         const clarificationButton = event.target.closest('[data-supplier-focus-clarification]');
         if (clarificationButton) {
-            focusClarificationComposer(clarificationButton.dataset.clarificationContext || '', clarificationButton.dataset.clarificationCategory || '');
+            openClarificationInCommunicationCenter(clarificationButton.dataset.clarificationContext || '', clarificationButton.dataset.clarificationCategory || 'Technical');
             return;
-        }
-
-        if (event.target.closest('[data-clarification-attach]')) {
-            alert('Mock attachment noted. In the production workflow this would upload a file with the clarification request.');
-            return;
-        }
-
-        if (event.target.closest('[data-submit-clarification]')) {
-            const input = root.querySelector('[data-clarification-text]');
-            const categoryInput = root.querySelector('[data-clarification-category]');
-            const question = String(input?.value || '').trim();
-            const deadline = getSupplierTenderClarificationDeadlineState(tender || {});
-            if (deadline.closed) {
-                alert('Clarification period is closed for this tender.');
-                return;
-            }
-            if (!question) {
-                alert('Write a clarification question before sending.');
-                return;
-            }
-            const category = categoryInput?.value || 'Technical';
-            const stored = (() => {
-                try {
-                    const parsed = JSON.parse(localStorage.getItem(supplierTenderClarificationStorageKey) || '{}');
-                    return parsed && typeof parsed === 'object' ? parsed : {};
-                } catch (error) {
-                    return {};
-                }
-            })();
-            stored[tenderId] = [
-                { title: `${category} clarification`, category, question, detail: question, status: 'Pending', createdAt: new Date().toISOString() },
-                ...(stored[tenderId] || [])
-            ];
-            localStorage.setItem(supplierTenderClarificationStorageKey, JSON.stringify(stored));
-            window.addProcurexCommunicationItem?.({
-                kind: 'clarification',
-                category: category === 'Financial' || category === 'Commercial Schedule' ? 'BOQ / Pricing' : 'Tender Clarification',
-                subject: `${category} clarification`,
-                body: question,
-                senderType: 'Supplier',
-                senderName: mockData.users?.supplier?.organization || 'Supplier organization',
-                recipientType: 'Buyer',
-                recipientName: tender?.organization || 'Buyer organization',
-                tenderId,
-                tenderReference: tenderId,
-                tenderTitle: tender?.title || 'Tender',
-                priority: 'Normal',
-                status: 'Pending Buyer Response',
-                read: false,
-                visibility: 'Private',
-                thread: [
-                    {
-                        senderType: 'Supplier',
-                        senderName: mockData.users?.supplier?.organization || 'Supplier organization',
-                        body: question,
-                        createdAt: new Date().toISOString()
-                    }
-                ],
-                actionRequired: true,
-                actionLabel: 'Reply',
-                actionPage: 'communication-center',
-                audience: ['buyer', 'admin', 'all']
-            });
-            window.addProcurexCommunicationItem?.({
-                kind: 'notification',
-                category: 'Tender Clarification',
-                subject: 'Clarification Sent',
-                body: `Your clarification request for ${tenderId} was sent and is awaiting buyer response.`,
-                senderType: 'System',
-                senderName: 'ProcureX System',
-                recipientType: 'Supplier',
-                recipientName: mockData.users?.supplier?.organization || 'Supplier organization',
-                tenderId,
-                tenderReference: tenderId,
-                tenderTitle: tender?.title || 'Tender',
-                priority: 'Normal',
-                status: 'Unread',
-                read: false,
-                actionLabel: 'View Thread',
-                actionPage: 'communication-center',
-                audience: ['supplier', 'all']
-            });
-            if (input) input.value = '';
-            window.app?.renderPage();
         }
     });
 

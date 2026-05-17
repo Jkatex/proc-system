@@ -228,6 +228,30 @@ const createTenderWorksContractTypeDescriptions = {
     'Consultancy / Time-Based Contract': 'Payment is based on consultant time, milestones, or agreed service duration.'
 };
 
+function createTenderFinancialCapacitySection() {
+    return {
+        id: 'financialCapacity',
+        title: 'Financial Capacity Requirements',
+        hint: 'Structured financial rules used to verify whether bidders can sustain the contract.',
+        controls: [
+            {
+                id: 'financialRequirementRows',
+                label: 'Financial requirements',
+                type: 'table',
+                addLabel: 'Add Financial Requirement',
+                emptyText: 'No financial requirements added yet.',
+                columns: [
+                    { id: 'requirementType', label: 'Requirement type', type: 'select', options: createTenderRequirementOptions.financialRequirementTypes },
+                    { id: 'minimumValue', label: 'Minimum value', type: 'number' },
+                    { id: 'period', label: 'Period', type: 'select', options: createTenderRequirementOptions.financialPeriods },
+                    { id: 'evidenceRequired', label: 'Evidence required', type: 'tag-select', options: createTenderRequirementOptions.financialEvidence },
+                    { id: 'mandatory', label: 'Mandatory', type: 'toggle' }
+                ]
+            }
+        ]
+    };
+}
+
 const createTenderRequirementTemplates = {
     goods: {
         title: 'Goods Tender Requirements',
@@ -313,6 +337,7 @@ const createTenderRequirementTemplates = {
                     }
                 ]
             },
+            createTenderFinancialCapacitySection(),
             
             {
                 id: 'eligibilityRequirements',
@@ -521,7 +546,8 @@ const createTenderRequirementTemplates = {
                         showWhen: { field: 'bankStatementsRequired', value: true }
                     }
                 ]
-            }
+            },
+            createTenderFinancialCapacitySection()
         ]
     },
     services: {
@@ -538,28 +564,7 @@ const createTenderRequirementTemplates = {
                     { id: 'fundingSource', label: 'Funding source', type: 'text' }
                 ]
             },
-            {
-                id: 'financialCapacity',
-                title: 'Financial Capacity Requirements',
-                hint: 'Structured financial rules used to verify whether bidders can sustain the service contract.',
-                controls: [
-                    {
-                        id: 'financialRequirementRows',
-                        label: 'Financial requirements',
-                        type: 'table',
-                        addLabel: 'Add Financial Requirement',
-                        emptyText: 'No financial requirements added yet.',
-                        columns: [
-                            { id: 'requirementType', label: 'Requirement type', type: 'select', options: createTenderRequirementOptions.financialRequirementTypes },
-                            { id: 'minimumValue', label: 'Minimum value', type: 'number' },
-                            { id: 'currency', label: 'Currency', type: 'select', options: createTenderRequirementOptions.currencies },
-                            { id: 'period', label: 'Period', type: 'select', options: createTenderRequirementOptions.financialPeriods },
-                            { id: 'evidenceRequired', label: 'Evidence required', type: 'tag-select', options: createTenderRequirementOptions.financialEvidence },
-                            { id: 'mandatory', label: 'Mandatory', type: 'toggle' }
-                        ]
-                    }
-                ]
-            },
+            createTenderFinancialCapacitySection(),
             {
                 id: 'staffingRequirements',
                 title: 'Personnel Requirements',
@@ -976,6 +981,7 @@ const createTenderRequirementTemplates = {
                     }
                 ]
             },
+            createTenderFinancialCapacitySection(),
             {
                 id: 'consultancyInstitutionalArrangements',
                 title: '7. Institutional and Organizational Arrangements',
@@ -2914,6 +2920,80 @@ function saveCreateTenderMainDraft(details = {}) {
     return draft.mainDetails;
 }
 
+function hasCreateTenderMeaningfulPostSelectionValue(value) {
+    if (Array.isArray(value)) return value.some(item => hasCreateTenderMeaningfulPostSelectionValue(item));
+    if (value && typeof value === 'object') {
+        return Object.entries(value).some(([key, entryValue]) => {
+            if (['id', 'item', 'name', 'group', 'body'].includes(key)) return false;
+            return hasCreateTenderMeaningfulPostSelectionValue(entryValue);
+        });
+    }
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value !== 0;
+    return String(value ?? '').trim().length > 0;
+}
+
+function hasCreateTenderStoredArrayData(storageKey) {
+    return getCreateTenderStoredItems(storageKey).some(item => hasCreateTenderMeaningfulPostSelectionValue(item));
+}
+
+function hasCreateTenderPostSelectionData(typeId = getCreateTenderCurrentTypeProfile().id) {
+    const mainDraft = getCreateTenderMainDraft();
+    const normalizedTypeId = getCreateTenderTypeProfile(typeId).id;
+    const categories = getCreateTenderSelectedCategories(mainDraft);
+    if (categories.length) return true;
+    if (normalizeCreateTenderMethod(mainDraft.method) !== createTenderOpenMethod) return true;
+    if ((mainDraft.invitedUsers || []).length) return true;
+    if (hasCreateTenderMeaningfulPostSelectionValue(mainDraft.requirements?.[normalizedTypeId])) return true;
+    if (hasCreateTenderMeaningfulPostSelectionValue(mainDraft.evaluation?.[normalizedTypeId])) return true;
+    if (hasCreateTenderMeaningfulPostSelectionValue(mainDraft.systemEvaluation?.[normalizedTypeId])) return true;
+
+    if (localStorage.getItem(createTenderCommercialTypeStorageKey) === normalizedTypeId && hasCreateTenderStoredArrayData(createTenderBoqStorageKey)) return true;
+    if (localStorage.getItem(createTenderDeliverableTypeStorageKey) === normalizedTypeId && hasCreateTenderStoredArrayData(createTenderDeliverableStorageKey)) return true;
+    if (localStorage.getItem(createTenderAttachmentTypeStorageKey) === normalizedTypeId && hasCreateTenderStoredArrayData(createTenderAttachmentStorageKey)) return true;
+    if (localStorage.getItem(createTenderLicenseTypeStorageKey) === normalizedTypeId && hasCreateTenderStoredArrayData(createTenderLicenseStorageKey)) return true;
+    return getCreateTenderStoredItems(createTenderMilestoneStorageKey).some(item => String(item.date || '').trim());
+}
+
+function resetCreateTenderPostSelectionData(nextTypeId) {
+    const draft = ensureCreateTenderDraft();
+    draft.invitedUsers = [];
+    delete draft.boqItems;
+    delete draft.commercialType;
+    delete draft.milestones;
+    delete draft.deliverables;
+    delete draft.deliverableType;
+    delete draft.requiredAttachments;
+    delete draft.attachmentType;
+    delete draft.regulatoryLicenses;
+    delete draft.regulatoryLicenseType;
+
+    [
+        createTenderBoqStorageKey,
+        createTenderCommercialTypeStorageKey,
+        createTenderMilestoneStorageKey,
+        createTenderDeliverableStorageKey,
+        createTenderDeliverableTypeStorageKey,
+        createTenderLicenseStorageKey,
+        createTenderLicenseTypeStorageKey,
+        createTenderAttachmentStorageKey,
+        createTenderAttachmentTypeStorageKey
+    ].forEach(key => localStorage.removeItem(key));
+
+    saveCreateTenderMainDraft({
+        procurementTypeId: nextTypeId,
+        method: createTenderOpenMethod,
+        category: '',
+        categories: [],
+        visibility: getCreateTenderVisibilityForMethod(createTenderOpenMethod),
+        visibilityNote: getCreateTenderVisibilityNoteForMethod(createTenderOpenMethod, 0),
+        invitedUsers: [],
+        evaluation: {},
+        systemEvaluation: {},
+        requirements: {}
+    });
+}
+
 function getCreateTenderInvitedUsers() {
     const draft = ensureCreateTenderDraft();
     const mainDetails = getCreateTenderMainDraft();
@@ -3200,7 +3280,8 @@ function publishCreateTenderToMarketplace(wizard) {
     const requirementSummary = getCreateTenderRequirementSummary(profile, getCreateTenderMainDraft());
     const boqItems = getCreateTenderBoqItems(profile);
     const budget = getCreateTenderBoqTotal(boqItems);
-    const documents = getCreateTenderRequiredAttachments(profile).map(item => item.text).filter(Boolean);
+    const requiredSubmissionDocuments = getCreateTenderRequiredAttachments(profile).map(item => item.text).filter(Boolean);
+    const documents = profile.documentLabels || [];
     const now = new Date();
     const tenderId = `TP-${now.getFullYear()}-${String(now.getTime()).slice(-6)}`;
     const publishedTender = {
@@ -3217,6 +3298,7 @@ function publishCreateTenderToMarketplace(wizard) {
             : 'Structured tender requirements pending.',
         eligibility: `${method} / ${category}`,
         documents,
+        requiredSubmissionDocuments,
         requirements: getCreateTenderRequirementDraft(profile.id),
         evaluation: evaluationDraft,
         systemEvaluation,
@@ -3253,6 +3335,68 @@ function publishCreateTenderToMarketplace(wizard) {
     delete ensureCreateTenderDraft().mainDetails;
     selectProcurexTender(publishedTender.id);
     return publishedTender;
+}
+
+function buildCreateTenderDocumentPreview(wizard) {
+    const setup = getCreateTenderSetup();
+    const selectedTypeId = wizard.querySelector('input[name="procurementType"]:checked')?.value || setup.defaultType.id;
+    const selectedType = setup.types.find(type => type.id === selectedTypeId) || setup.defaultType;
+    const title = wizard.querySelector('[data-tender-title]')?.value.trim() || getCreateTenderMainDraft().title || 'Draft tender';
+    const method = normalizeCreateTenderMethod(wizard.querySelector('[data-procurement-method]')?.value || getCreateTenderMainDraft().method);
+    const categories = getCreateTenderWizardCategories(wizard);
+    const category = categories.join(', ') || getCreateTenderMainDraft().category || selectedType.label;
+    const invitedUsers = getCreateTenderInvitedUsers();
+    const visibility = getCreateTenderVisibilityForMethod(method);
+    const visibilityNote = getCreateTenderVisibilityNoteForMethod(method, invitedUsers.length);
+    const contact = getCreateTenderContactDetails();
+    const milestones = getCreateTenderMilestones();
+    const closingDate = milestones.find(item => item.id === 'milestone-closing')?.date || milestones[milestones.length - 1]?.date || '';
+    const profile = getCreateTenderTypeProfile(selectedType);
+    const requirementSummary = getCreateTenderRequirementSummary(profile, getCreateTenderMainDraft());
+    const boqItems = getCreateTenderBoqItems(profile);
+
+    return {
+        id: 'DRAFT-TENDER',
+        title,
+        type: selectedType.label,
+        procurementTypeId: profile.id,
+        status: 'Draft',
+        budget: getCreateTenderBoqTotal(boqItems),
+        closingDate,
+        organization: mockData.users?.buyer?.organization || 'Buyer organization',
+        description: requirementSummary.filledControls
+            ? `${requirementSummary.filledControls} structured requirement fields configured.`
+            : 'Structured tender requirements pending.',
+        eligibility: `${method} / ${category}`,
+        documents: profile.documentLabels || [],
+        requiredSubmissionDocuments: getCreateTenderRequiredAttachments(profile).map(item => item.text).filter(Boolean),
+        requirements: getCreateTenderRequirementDraft(profile.id),
+        evaluation: getCreateTenderEvaluationDraft(profile.id),
+        systemEvaluation: getCreateTenderSavedSystemEvaluation(profile.id),
+        regulatoryLicenses: getCreateTenderRegulatoryLicenses(profile),
+        category,
+        categories,
+        method,
+        visibility,
+        visibilityNote,
+        invitedUsers,
+        location: contact.tenderLocation,
+        contactName: contact.contactName,
+        contactPhone: contact.phone,
+        contactEmail: contact.email,
+        createdByCurrentUser: true,
+        publishedAt: '',
+        boqItems,
+        commercialItems: boqItems,
+        commercialModel: profile.commercialName,
+        commercialLabel: profile.reviewLabel,
+        contractType: getCreateTenderEffectiveContractType(profile.id),
+        deliverables: getCreateTenderDeliverables(profile).map(item => item.text).filter(Boolean),
+        milestones,
+        amendments: [],
+        clarifications: [],
+        interestedSuppliers: []
+    };
 }
 
 function saveCreateTenderDraftFromWizard(wizard) {
@@ -4065,7 +4209,10 @@ function renderCreateTenderSystemEvaluationPanel(profile, mainDraft = getCreateT
                         <strong style="color: #ffffff !important;">Actions</strong>
                         <span data-system-publish-note style="color: rgba(255, 255, 255, 0.78) !important;">Submit the tender to the evaluator. The creation wizard will close after submission.</span>
                     </div>
-                    <button class="btn btn-primary" type="button" data-run-system-evaluation disabled>Submit Tender for Evaluation</button>
+                    <div class="system-evaluation-action-buttons">
+                        <button class="btn btn-secondary" type="button" data-download-draft-tender-pdf>Download Tender PDF</button>
+                        <button class="btn btn-primary" type="button" data-run-system-evaluation disabled>Submit Tender for Evaluation</button>
+                    </div>
                 </div>
             </section>
         </div>
@@ -4135,6 +4282,15 @@ function renderCreateTender() {
                     </section>
 
                     <div class="wizard-shell" data-create-tender-wizard>
+                        <nav class="wizard-step-progress" aria-label="Create tender progress">
+                            ${steps.map((step, index) => `
+                                <button type="button" class="wizard-progress-step ${index === 0 ? 'active' : ''}" data-wizard-step-index="${index}">
+                                    <strong>${step[0]}</strong>
+                                    <span>${step[1]}</span>
+                                </button>
+                            `).join('')}
+                        </nav>
+
                         <aside class="wizard-rail">
                             ${steps.map((step, index) => `
                                 <a href="#wizard-step-${index + 1}" class="wizard-rail-step ${index === 0 ? 'active' : ''}" data-wizard-step-index="${index}">
@@ -4163,17 +4319,17 @@ function renderCreateTender() {
                                         <input class="form-input" value="${escapeCreateTenderHtml(contactDetails.contactName)}" data-contact-field="contactName" aria-label="Contact person or department">
                                     </div>
                                     <div class="form-group contact-verify-field">
-                                        <label class="form-label">Department number</label>
+                                        <label class="form-label">Contact phone number</label>
                                         <div class="contact-verify-row">
-                                            <input class="form-input" value="${escapeCreateTenderHtml(contactDetails.phone)}" data-contact-field="phone" aria-label="Department number">
+                                            <input class="form-input" value="${escapeCreateTenderHtml(contactDetails.phone)}" data-contact-field="phone" aria-label="Contact phone number">
                                             <button class="btn btn-secondary" type="button" data-contact-verify="phone">Verify</button>
                                         </div>
                                         <span class="form-hint" data-contact-status="phone">${contactDetails.phoneVerified && contactSummary.phoneValid ? 'Phone verified' : contactSummary.phoneValid ? 'Phone ready to verify' : 'Enter a valid phone number'}</span>
                                     </div>
                                     <div class="form-group contact-verify-field">
-                                        <label class="form-label">Department email</label>
+                                        <label class="form-label">Contact email</label>
                                         <div class="contact-verify-row">
-                                            <input class="form-input" type="email" value="${escapeCreateTenderHtml(contactDetails.email)}" data-contact-field="email" aria-label="Department email">
+                                            <input class="form-input" type="email" value="${escapeCreateTenderHtml(contactDetails.email)}" data-contact-field="email" aria-label="Contact email">
                                             <button class="btn btn-secondary" type="button" data-contact-verify="email">Verify</button>
                                         </div>
                                         <span class="form-hint" data-contact-status="email">${contactDetails.emailVerified && contactSummary.emailValid ? 'Email verified' : contactSummary.emailValid ? 'Email ready to verify' : 'Enter a valid email address'}</span>
@@ -4719,12 +4875,21 @@ function initializeCreateTenderWizard() {
         if (stepTitleOutput) stepTitleOutput.textContent = railSteps[activeStepIndex]?.querySelector('span')?.textContent || '';
     };
 
-    const syncProcurementType = (typeId) => {
+    const syncProcurementTypeCards = (typeId) => {
         const selectedType = setup.types.find(type => type.id === typeId) || setup.defaultType;
         wizard.querySelectorAll('[data-procurement-type-card]').forEach(card => {
             const input = card.querySelector('input[name="procurementType"]');
             card.classList.toggle('selected', input?.value === selectedType.id);
         });
+    };
+
+    const syncProcurementType = (typeId, options = {}) => {
+        const selectedType = setup.types.find(type => type.id === typeId) || setup.defaultType;
+        syncProcurementTypeCards(selectedType.id);
+        if (options.resetPostSelection) {
+            resetCreateTenderPostSelectionData(selectedType.id);
+            if (methodSelect) methodSelect.value = createTenderOpenMethod;
+        }
         renderOptions(methodSelect, setup.methods, getCurrentMethod());
         renderSelectedCategories([]);
         if (customCategoryInput) customCategoryInput.value = '';
@@ -4740,6 +4905,7 @@ function initializeCreateTenderWizard() {
         renderScopeList('attachments');
         refreshProfileText();
         renderLicenseList();
+        syncTenderMethod();
     };
 
     const saveMainDetailsFromInputs = () => {
@@ -5139,16 +5305,19 @@ function initializeCreateTenderWizard() {
             panel.setAttribute('aria-hidden', isActive ? 'false' : 'true');
         });
 
-        railSteps.forEach((step, stepIndex) => {
+        railSteps.forEach((step) => {
+            const stepIndex = Number(step.dataset.wizardStepIndex);
             const isActive = stepIndex === activeStepIndex;
             step.classList.toggle('active', isActive);
+            step.classList.toggle('completed', stepIndex < activeStepIndex);
             step.setAttribute('aria-current', isActive ? 'step' : 'false');
         });
+        wizard.style.setProperty('--wizard-progress-ratio', panels.length > 1 ? String(activeStepIndex / (panels.length - 1)) : '1');
 
         if (previousButton) previousButton.disabled = activeStepIndex === 0;
         if (nextButton) nextButton.hidden = activeStepIndex === panels.length - 1;
         if (progressOutput) progressOutput.textContent = `Step ${activeStepIndex + 1} of ${panels.length}`;
-        if (stepTitleOutput) stepTitleOutput.textContent = railSteps[activeStepIndex]?.querySelector('span')?.textContent || '';
+        if (stepTitleOutput) stepTitleOutput.textContent = railSteps.find(step => Number(step.dataset.wizardStepIndex) === activeStepIndex)?.querySelector('span')?.textContent || '';
 
         if (activeStepIndex === 3) syncEvaluationStatus();
         if (activeStepIndex === 4) renderTenderReviewWorkspace();
@@ -5604,7 +5773,25 @@ function initializeCreateTenderWizard() {
 
     wizard.addEventListener('change', (event) => {
         if (event.target?.matches('input[name="procurementType"]')) {
-            syncProcurementType(event.target.value);
+            const nextTypeId = event.target.value;
+            const currentTypeId = getCreateTenderMainDraft().procurementTypeId || setup.defaultType.id;
+            if (nextTypeId !== currentTypeId && hasCreateTenderPostSelectionData(currentTypeId)) {
+                const currentType = setup.types.find(type => type.id === currentTypeId) || setup.defaultType;
+                const nextType = setup.types.find(type => type.id === nextTypeId) || setup.defaultType;
+                const confirmed = window.confirm(
+                    `Changing tender type from ${currentType.label} to ${nextType.label} will clear the tender category, method/invitations, requirements, commercial items, deliverables, attachments, licenses, milestones, and evaluation setup already filled after type selection.\n\nDo you want to continue and start those sections again?`
+                );
+                if (!confirmed) {
+                    const previousInput = wizard.querySelector(`input[name="procurementType"][value="${CSS.escape(currentTypeId)}"]`);
+                    if (previousInput) previousInput.checked = true;
+                    syncProcurementTypeCards(currentTypeId);
+                    return;
+                }
+                syncProcurementType(nextTypeId, { resetPostSelection: true });
+                refreshTenderReview();
+                return;
+            }
+            syncProcurementType(nextTypeId);
             refreshTenderReview();
         }
         if (event.target?.matches('[data-contact-field]')) {
@@ -6125,6 +6312,17 @@ function initializeCreateTenderWizard() {
             });
             alert(`Tender did not pass evaluation and has been returned to your dashboard as a draft.\n\nRequired changes:\n${changes}`);
             window.app?.navigateTo('workspace-dashboard');
+            return;
+        }
+
+        if (target.matches('[data-download-draft-tender-pdf]')) {
+            saveMainDetailsFromInputs();
+            const previewTender = buildCreateTenderDocumentPreview(wizard);
+            if (typeof window.downloadProcurexTenderPdfPreview === 'function') {
+                window.downloadProcurexTenderPdfPreview(previewTender, { audience: 'buyer' });
+            } else {
+                alert('Tender PDF generator is still loading. Please try again in a moment.');
+            }
             return;
         }
 

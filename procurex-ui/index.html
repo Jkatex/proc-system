@@ -6,17 +6,20 @@
     <title>ProcureX - Digitizing Tanzanian Procurement Excellence</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@700&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <script async src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="styles/main.css">
-    <link rel="stylesheet" href="styles/components.css">
-    <link rel="stylesheet" href="styles/pages.css">
-    <link rel="stylesheet" href="styles/registration-new.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+    <script type="module" src="https://unpkg.com/@dotlottie/player-component@latest/dist/dotlottie-player.mjs"></script>
     <link rel="stylesheet" href="styles/design-system.css">
 </head>
 <body>
     <div id="app">
-        <div id="page-content"></div>
+        <div id="page-content">
+            <div class="app-boot-loader" aria-label="Loading ProcureX">
+                <dotlottie-player class="procurex-lottie procurex-lottie-lg" src="assets/ProcureX.json" background="transparent" speed="1" loop autoplay></dotlottie-player>
+                <span>Loading ProcureX...</span>
+            </div>
+        </div>
     </div>
     <script src="js/data.js"></script>
     <script src="js/charts.js"></script>
@@ -42,6 +45,7 @@
     <script src="pages/create-tender.js"></script>
     <script src="pages/tender-publication.js"></script>
     <script src="pages/tender-details.js"></script>
+    <script src="pages/tender-document.js"></script>
     <script src="pages/records-history.js"></script>
     <script src="pages/bidding-workspace.js"></script>
     <script src="pages/bid-evaluation.js"></script>

@@ -1518,6 +1518,210 @@
     width: 100%;
 }
 
+/* Tender PDF document */
+.procurex-pdf-render-root {
+    position: fixed;
+    top: 0;
+    left: -12000px;
+    z-index: -1;
+    width: 794px;
+    min-height: 1123px;
+    background: #ffffff;
+}
+
+.procurex-tender-pdf {
+    width: 794px;
+    min-height: 1123px;
+    padding: 34px 42px;
+    background: #ffffff;
+    color: #111827;
+    font-family: Inter, Arial, sans-serif;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.procurex-pdf-cover {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 150px;
+    gap: 28px;
+    align-items: start;
+    padding-bottom: 22px;
+    margin-bottom: 18px;
+    border-bottom: 2px solid #111827;
+}
+
+.procurex-pdf-kicker {
+    display: block;
+    margin-bottom: 9px;
+    color: #4b5563;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+.procurex-pdf-cover h1 {
+    margin: 0;
+    color: #111827;
+    font-size: 27px;
+    line-height: 1.18;
+}
+
+.procurex-pdf-cover p {
+    margin: 10px 0 0;
+    color: #374151;
+    font-size: 13px;
+}
+
+.procurex-pdf-stamp {
+    display: grid;
+    gap: 5px;
+    padding: 14px;
+    border: 2px solid #111827;
+    border-radius: 4px;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.procurex-pdf-stamp strong {
+    color: #111827;
+    font-size: 15px;
+}
+
+.procurex-pdf-stamp span {
+    color: #4b5563;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.procurex-pdf-info-table,
+.procurex-pdf-table {
+    width: 100%;
+    margin: 0 0 18px;
+    border-collapse: collapse;
+    table-layout: fixed;
+    page-break-inside: avoid;
+}
+
+.procurex-pdf-info-table th,
+.procurex-pdf-info-table td,
+.procurex-pdf-table th,
+.procurex-pdf-table td {
+    padding: 8px 9px;
+    border: 1px solid #d1d5db;
+    color: #111827;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+}
+
+.procurex-pdf-info-table th,
+.procurex-pdf-table th {
+    width: 30%;
+    background: #f3f4f6;
+    color: #374151;
+    font-size: 10px;
+    font-weight: 800;
+    text-align: left;
+    text-transform: uppercase;
+}
+
+.procurex-pdf-table th {
+    width: auto;
+}
+
+.procurex-pdf-section {
+    padding: 18px 0 20px;
+    border-top: 1px solid #d1d5db;
+    page-break-inside: avoid;
+}
+
+.procurex-pdf-section-title {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: 11px;
+    align-items: start;
+    margin-bottom: 12px;
+}
+
+.procurex-pdf-section-title span {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid #111827;
+    border-radius: 4px;
+    color: #111827;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.procurex-pdf-section-title h2 {
+    margin: 2px 0 0;
+    color: #111827;
+    font-size: 17px;
+    line-height: 1.25;
+}
+
+.procurex-pdf-section-body {
+    display: grid;
+    gap: 10px;
+    padding-left: 43px;
+}
+
+.procurex-pdf-section-body h3 {
+    margin: 8px 0 0;
+    color: #111827;
+    font-size: 13px;
+}
+
+.procurex-pdf-section-body p {
+    margin: 0;
+    color: #374151;
+}
+
+.procurex-pdf-list {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.procurex-pdf-list li {
+    margin: 0 0 4px;
+    color: #111827;
+}
+
+.procurex-pdf-muted,
+.procurex-pdf-empty {
+    color: #6b7280;
+}
+
+.procurex-pdf-print-window {
+    margin: 0;
+    background: #ffffff;
+}
+
+.procurex-pdf-print-window .procurex-tender-pdf {
+    margin: 0 auto;
+}
+
+@media print {
+    body.procurex-pdf-print-window {
+        background: #ffffff;
+    }
+
+    body.procurex-pdf-print-window .procurex-tender-pdf {
+        width: auto;
+        min-height: auto;
+        padding: 0;
+        box-shadow: none;
+    }
+
+    .procurex-pdf-section,
+    .procurex-pdf-table,
+    .procurex-pdf-info-table {
+        break-inside: avoid;
+    }
+}
+
 /* Communication Center */
 .communication-center-page {
     display: grid;
@@ -3127,6 +3331,13 @@
     justify-self: start;
 }
 
+.system-evaluation-action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
 .timeline-grid,
 .attachment-grid {
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -3177,6 +3388,35 @@
 .supplier-tender-detail-page {
     display: grid;
     gap: 24px;
+}
+
+.supplier-tender-detail-page .journey-hero.compact {
+    align-items: stretch;
+}
+
+.supplier-detail-actions {
+    display: grid;
+    align-content: start;
+    gap: 10px;
+    width: min(100%, 360px);
+    min-width: 300px;
+}
+
+.supplier-detail-action-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.supplier-detail-actions .btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 42px;
+    white-space: normal;
+}
+
+.supplier-detail-primary-action {
+    min-height: 48px;
 }
 
 .supplier-requirement-preview-list,
@@ -3378,6 +3618,19 @@
     background: #ffffff;
 }
 
+.attachment-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.attachment-actions .btn {
+    min-height: 36px;
+    padding: 8px 10px;
+    justify-content: center;
+}
+
 .tender-document-view .contextual-clarification-prompt {
     border-style: solid;
     background: #f9fafb;
@@ -3497,6 +3750,55 @@
     font-size: 13px;
 }
 
+.supplier-tender-detail-page .tender-document-view {
+    width: min(100%, 900px);
+}
+
+.supplier-tender-detail-page .tender-document-cover,
+.supplier-tender-detail-page .tender-document-meta-table .record-summary,
+.supplier-tender-detail-page .tender-detail-summary,
+.supplier-tender-detail-page .tender-document-section-heading,
+.supplier-tender-detail-page .tender-document-two-column,
+.supplier-tender-detail-page .tender-detail-field-grid,
+.supplier-tender-detail-page .tender-detail-attachment-grid {
+    grid-template-columns: 1fr;
+}
+
+.supplier-tender-detail-page .tender-document-cover {
+    gap: 18px;
+}
+
+.supplier-tender-detail-page .tender-document-stamp {
+    justify-self: start;
+    min-width: 170px;
+}
+
+.supplier-tender-detail-page .tender-document-section-heading {
+    gap: 10px;
+}
+
+.supplier-tender-detail-page .tender-document-section-heading > span {
+    width: 38px;
+    height: 38px;
+}
+
+.supplier-tender-detail-page .tender-document-section-body {
+    padding-left: 0;
+}
+
+.supplier-tender-detail-page .tender-document-view .tender-detail-field-grid,
+.supplier-tender-detail-page .tender-document-view .supplier-requirement-preview-list,
+.supplier-tender-detail-page .tender-document-view .tender-detail-card-list,
+.supplier-tender-detail-page .tender-document-view .supplier-timeline-list,
+.supplier-tender-detail-page .tender-detail-list-groups {
+    grid-template-columns: 1fr;
+}
+
+.supplier-tender-detail-page .tender-detail-table table {
+    min-width: 0;
+    width: 100%;
+}
+
 .supplier-requirement-preview,
 .bid-requirement-card,
 .bid-requirement-summary-card,
@@ -3548,6 +3850,41 @@
     grid-template-columns: minmax(180px, 0.35fr) minmax(280px, 1fr) auto auto;
 }
 
+.communication-center-cta {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: center;
+    margin: 0 0 18px;
+    padding: 18px;
+    border: 1px solid rgba(0, 134, 132, 0.22);
+    border-radius: var(--radius-xl);
+    background: linear-gradient(180deg, rgba(0, 134, 132, 0.08), rgba(0, 134, 132, 0.03));
+}
+
+.communication-center-cta > div {
+    display: grid;
+    gap: 5px;
+    max-width: 720px;
+}
+
+.communication-center-cta strong {
+    color: var(--text-primary);
+    font-size: 16px;
+    line-height: 1.25;
+}
+
+.communication-center-cta span {
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.communication-center-cta .btn {
+    min-width: 230px;
+    justify-content: center;
+}
+
 .clarification-deadline-card {
     display: grid;
     gap: 4px;
@@ -3570,6 +3907,14 @@
 
 .supplier-clarification-panel {
     scroll-margin-top: 90px;
+}
+
+.supplier-clarification-panel .panel-heading {
+    margin-bottom: 18px;
+}
+
+.supplier-clarification-panel .clarification-deadline-card {
+    margin-bottom: 12px;
 }
 
 .clarification-deadline-card strong {
@@ -3609,9 +3954,14 @@
 }
 
 .public-clarification-heading {
-    display: grid;
-    gap: 4px;
-    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 2px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-soft);
+    flex-wrap: wrap;
 }
 
 .public-clarification-heading strong {
@@ -3634,6 +3984,15 @@
 
 .public-clarification-item small {
     color: var(--text-secondary);
+}
+
+.public-clarification-feed > .scope-empty {
+    padding: 22px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface-soft);
+    color: var(--text-secondary);
+    text-align: center;
 }
 
 .public-clarification-topline,
@@ -6071,6 +6430,28 @@
     .tender-document-section-heading > span {
         width: 36px;
         height: 36px;
+    }
+
+    .supplier-detail-actions {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .supplier-detail-action-row {
+        grid-template-columns: 1fr;
+    }
+
+    .attachment-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .communication-center-cta {
+        grid-template-columns: 1fr;
+    }
+
+    .communication-center-cta .btn {
+        width: 100%;
+        min-width: 0;
     }
 
     .metric-grid,

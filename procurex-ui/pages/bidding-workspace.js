@@ -1847,6 +1847,15 @@ function renderBiddingWorkspace() {
                     ${renderBidWorkspaceAssistancePanel(documents)}
 
                     <div class="wizard-shell" data-bid-wizard data-bid-tender-id="${escapeBidWorkspaceHtml(tenderId)}">
+                        <nav class="wizard-step-progress bid-step-progress" aria-label="Bid submission progress">
+                            ${steps.map((step, index) => `
+                                <button type="button" class="wizard-progress-step ${index === 0 ? 'active' : ''}" data-bid-step-index="${index}">
+                                    <strong>${escapeBidWorkspaceHtml(step[0])}</strong>
+                                    <span>${escapeBidWorkspaceHtml(step[1])}</span>
+                                </button>
+                            `).join('')}
+                        </nav>
+
                         <aside class="wizard-rail">
                             ${steps.map((step, index) => `
                                 <a href="#bid-step-${index + 1}" class="wizard-rail-step ${index === 0 ? 'active' : ''}" data-bid-step-index="${index}">
@@ -2444,18 +2453,21 @@ function initializeBiddingWorkspace() {
             panel.classList.toggle('active', active);
             panel.setAttribute('aria-hidden', active ? 'false' : 'true');
         });
-        railSteps.forEach((step, stepIndex) => {
+        railSteps.forEach((step) => {
+            const stepIndex = Number(step.dataset.bidStepIndex);
             const active = stepIndex === activeStepIndex;
             step.classList.toggle('active', active);
+            step.classList.toggle('completed', stepIndex < activeStepIndex);
             step.setAttribute('aria-current', active ? 'step' : 'false');
         });
+        wizard.style.setProperty('--wizard-progress-ratio', panels.length > 1 ? String(activeStepIndex / (panels.length - 1)) : '1');
         if (previousButton) previousButton.disabled = activeStepIndex === 0;
         if (nextButton) {
             nextButton.hidden = activeStepIndex === panels.length - 1;
             nextButton.disabled = activeStepIndex === 0 && !validateMandatoryGate(false);
         }
         if (progressOutput) progressOutput.textContent = `Step ${activeStepIndex + 1} of ${panels.length}`;
-        if (stepTitleOutput) stepTitleOutput.textContent = railSteps[activeStepIndex]?.querySelector('span')?.textContent || '';
+        if (stepTitleOutput) stepTitleOutput.textContent = railSteps.find(step => Number(step.dataset.bidStepIndex) === activeStepIndex)?.querySelector('span')?.textContent || '';
         saveDraft();
     };
 

@@ -2,90 +2,78 @@
 
 function renderGuestMarketplace() {
     const tenders = typeof getProcurexMarketplaceTenders === 'function' ? getProcurexMarketplaceTenders() : mockData.tenders;
+    const openCount = tenders.filter(tender => tender.status === 'Open').length;
 
     return `
-        <div class="app-container">
-            <!-- Header -->
-            <div class="header" style="position: sticky; top: 0; z-index: 10;">
-                <div style="display: flex; align-items: center; gap: 16px;">
-                    <h1>ProcureX Marketplace</h1>
-                    <button class="btn btn-primary" data-navigate="sign-in">Sign In to Bid</button>
+        <div class="guest-marketplace-v2">
+            <header class="app-topbar-public">
+                <div class="app-topbar-public-inner">
+                    <a class="brand" href="#" data-navigate="welcome" aria-label="ProcureX home">
+                        ${renderPlatformLogo()}
+                        <span class="brand-text">ProcureX</span>
+                    </a>
+                    <button class="btn btn-primary" type="button" data-navigate="sign-in">Sign In to Bid</button>
                 </div>
-            </div>
+            </header>
 
-            <!-- Hero Section -->
-            <div class="marketplace-hero">
-                <h2>Discover Procurement Opportunities</h2>
-                <p>Browse active tenders and government contracts</p>
-
-                <!-- Search Bar -->
-                <div class="marketplace-search-wrap">
-                    <div class="marketplace-search">
-                        <input type="text" placeholder="Search tenders...">
-                        <button class="btn btn-secondary">Search</button>
+            <main class="guest-market-shell-v2">
+                <section class="marketplace-hero">
+                    <div>
+                        <span class="section-kicker">Public marketplace</span>
+                        <h2>Discover procurement opportunities.</h2>
+                        <p>Browse active tenders, compare buyer needs, and sign in when you are ready to submit a secure bid.</p>
                     </div>
-                </div>
-            </div>
+                </section>
 
-            <!-- Filters and Content -->
-            <div class="marketplace-grid">
-                <!-- Sidebar Filters -->
-                <div class="marketplace-sidebar">
-                    <h3 style="margin-bottom: 16px;">Filters</h3>
-
-                    <div style="margin-bottom: 20px;">
-                        <label style="display: block; font-weight: 500; margin-bottom: 8px;">Sector</label>
-                        <select class="form-input">
-                            <option>All Sectors</option>
-                            <option>Health</option>
-                            <option>Education</option>
-                            <option>Infrastructure</option>
-                            <option>ICT</option>
-                        </select>
+                <section class="guest-search-panel-v2">
+                    <div class="market-search-field">
+                        <input type="text" placeholder="Search tenders, buyer, sector, or category">
                     </div>
+                    <select class="form-input">
+                        <option>All sectors</option>
+                        <option>Health</option>
+                        <option>Education</option>
+                        <option>Infrastructure</option>
+                        <option>ICT</option>
+                    </select>
+                    <select class="form-input">
+                        <option>All tender types</option>
+                        <option>Goods</option>
+                        <option>Works</option>
+                        <option>Service</option>
+                        <option>Consultancy</option>
+                    </select>
+                    <select class="form-input">
+                        <option>All budgets</option>
+                        <option>Under 1M TZS</option>
+                        <option>1M - 10M TZS</option>
+                        <option>10M - 50M TZS</option>
+                        <option>Over 50M TZS</option>
+                    </select>
+                    <button class="btn btn-primary" type="button">Search</button>
+                </section>
 
-                    <div style="margin-bottom: 20px;">
-                        <label style="display: block; font-weight: 500; margin-bottom: 8px;">Tender Type</label>
-                        <select class="form-input">
-                            <option>All Types</option>
-                            <option>Goods</option>
-                            <option>Works</option>
-                            <option>Service</option>
-                            <option>Consultancy</option>
-                        </select>
-                    </div>
+                <section class="procurement-market-summary">
+                    <div class="kpi-card"><div class="kpi-value">${openCount}</div><div class="kpi-label">Open tenders</div></div>
+                    <div class="kpi-card"><div class="kpi-value">${tenders.length}</div><div class="kpi-label">Listed opportunities</div></div>
+                    <div class="kpi-card"><div class="kpi-value">${Math.min(mockData.kpis.supplier.closing48h, openCount)}</div><div class="kpi-label">Closing soon</div></div>
+                </section>
 
-                    <div style="margin-bottom: 20px;">
-                        <label style="display: block; font-weight: 500; margin-bottom: 8px;">Budget Range</label>
-                        <select class="form-input">
-                            <option>All Ranges</option>
-                            <option>Under 1M TZS</option>
-                            <option>1M - 10M TZS</option>
-                            <option>10M - 50M TZS</option>
-                            <option>Over 50M TZS</option>
-                        </select>
-                    </div>
-
-                    <button class="btn btn-primary" style="width: 100%;">Apply Filters</button>
-                </div>
-
-                <!-- Main Content -->
-                <div class="marketplace-content">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                        <h3>Latest Opportunities</h3>
-                        <div style="display: flex; gap: 8px;">
-                            <button class="btn btn-secondary">Sort by Date</button>
-                            <button class="btn btn-secondary">Sort by Budget</button>
+                <section class="procurement-list-panel">
+                    <div class="panel-heading">
+                        <div>
+                            <span class="section-kicker">Tender list</span>
+                            <h2>Latest opportunities</h2>
                         </div>
+                        <span class="badge badge-success">${openCount} open</span>
                     </div>
 
-                    <!-- Tender Cards Grid -->
-                    <div class="tenders-grid">
+                    <div class="guest-tender-grid-v2">
                         ${tenders.map(tender => `
-                            <div class="tender-card">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <article class="tender-card guest-tender-card-v2">
+                                <div class="flex justify-between items-center gap-4">
                                     <span class="badge badge-${tender.status === 'Open' ? 'success' : tender.status === 'Evaluation' ? 'warning' : 'info'}">${tender.status}</span>
-                                    <span style="font-size: 12px; color: var(--text-secondary);">${tender.type}</span>
+                                    <span class="text-sm text-secondary">${tender.type}</span>
                                 </div>
                                 <h4 class="tender-title">${tender.title}</h4>
                                 <div class="tender-meta">
@@ -94,33 +82,33 @@ function renderGuestMarketplace() {
                                     <div>Closes: ${tender.closingDate}</div>
                                 </div>
                                 <p class="tender-description">${tender.description}</p>
-                                <div style="margin-top: 16px;">
-                                    <button class="btn btn-primary" style="width: 100%;" data-navigate="sign-in">Sign In to Bid</button>
-                                </div>
-                            </div>
+                                <button class="btn btn-primary" type="button" data-navigate="sign-in">Sign In to Bid</button>
+                            </article>
                         `).join('')}
                     </div>
+                </section>
 
-                    <!-- Value Proposition -->
-                    <div style="background: var(--primary-blue-light); padding: 40px; border-radius: 12px; text-align: center; margin-top: 40px;">
-                        <h3 style="margin-bottom: 16px;">Why Choose ProcureX?</h3>
-                        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; margin-top: 24px;">
-                            <div>
-                                <h4>Transparent Process</h4>
-                                <p>Every bid and evaluation is recorded on blockchain for complete transparency</p>
-                            </div>
-                            <div>
-                                <h4>SME Friendly</h4>
-                                <p>Smart matching algorithms ensure fair opportunities for small businesses</p>
-                            </div>
-                            <div>
-                                <h4>Secure & Compliant</h4>
-                                <p>Bank-grade security with full regulatory compliance</p>
-                            </div>
-                        </div>
+                <section class="guest-value-panel-v2">
+                    <div>
+                        <span class="section-kicker">Why ProcureX</span>
+                        <h2>Fair discovery, secure bidding, better records.</h2>
                     </div>
-                </div>
-            </div>
+                    <div class="guest-value-grid-v2">
+                            <article>
+                                <h3>Transparent Process</h3>
+                                <p>Every bid and evaluation is recorded on blockchain for complete transparency</p>
+                            </article>
+                            <article>
+                                <h3>SME Friendly</h3>
+                                <p>Smart matching algorithms ensure fair opportunities for small businesses</p>
+                            </article>
+                            <article>
+                                <h3>Secure & Compliant</h3>
+                                <p>Bank-grade security with full regulatory compliance</p>
+                            </article>
+                    </div>
+                </section>
+            </main>
         </div>
     `;
 }

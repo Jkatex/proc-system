@@ -284,6 +284,9 @@ function renderWorkspaceDashboard() {
                         </div>
                     </div>
                     <div class="dashboard-welcome-visual" aria-hidden="true">
+                        <div class="dashboard-brand-animation">
+                            ${typeof renderProcureXLottie === 'function' ? renderProcureXLottie('procurex-lottie procurex-lottie-sm', 'ProcureX dashboard animation') : ''}
+                        </div>
                         <div class="dashboard-user-avatar">${userInitials}</div>
                         <div class="dashboard-welcome-profile">
                             <span class="badge ${iam.badgeClass}">${dashboard.user.iamStatus}</span>

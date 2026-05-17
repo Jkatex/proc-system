@@ -2,53 +2,60 @@
 
 function renderRoleSelection() {
     return `
-        <div class="app-container">
-            <div style="max-width: 800px; margin: 80px auto; text-align: center;">
-                <h1 style="margin-bottom: 16px;">Start ProcureX Onboarding</h1>
-                <p style="color: var(--text-secondary); margin-bottom: 40px;">Create an account or sign in to continue with eKYC verification.</p>
+        <div class="role-page-v2">
+            <main class="role-shell-v2">
+                <section class="role-hero-v2">
+                    <div>
+                        <span class="section-kicker">Secure onboarding</span>
+                        <h1>Start ProcureX onboarding.</h1>
+                        <p>Create an account or sign in to continue with identity verification, profile review, and workspace access.</p>
+                    </div>
+                </section>
 
-                <div class="step-indicator">
-                    <div class="step active">
-                        <div class="step-circle">1</div>
+                <section class="role-flow-v2" aria-label="Onboarding steps">
+                    <div>
+                        <strong>01</strong>
                         <span>Account</span>
                     </div>
-                    <div class="step-line"></div>
-                    <div class="step">
-                        <div class="step-circle">2</div>
+                    <div>
+                        <strong>02</strong>
                         <span>eKYC</span>
                     </div>
-                    <div class="step-line"></div>
-                    <div class="step">
-                        <div class="step-circle">3</div>
-                        <span>Verification Review</span>
+                    <div>
+                        <strong>03</strong>
+                        <span>Verification review</span>
                     </div>
-                </div>
+                </section>
 
-                <div class="role-cards">
-                    <div class="role-card" data-navigate="register">
-                        <svg class="role-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 21v-2a4 4 0 00-8 0v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                        </svg>
+                <section class="role-card-grid-v2">
+                    <button class="role-card-v2" type="button" data-navigate="register">
+                        <span class="role-icon-v2">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 21v-2a4 4 0 00-8 0v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </span>
                         <h3>Create Account</h3>
                         <p>Register your login credentials before completing eKYC.</p>
-                    </div>
+                    </button>
 
-                    <div class="role-card" data-navigate="sign-in">
-                        <svg class="role-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 17l5-5-5-5"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H3"></path>
-                        </svg>
+                    <button class="role-card-v2" type="button" data-navigate="sign-in">
+                        <span class="role-icon-v2">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 17l5-5-5-5"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H3"></path>
+                            </svg>
+                        </span>
                         <h3>Sign In</h3>
                         <p>Continue to eKYC or enter the platform with an existing account.</p>
-                    </div>
-                </div>
+                    </button>
+                </section>
 
-                <div style="margin-top: 40px;">
+                <div>
                     <button class="btn btn-secondary" data-navigate="welcome">Back</button>
                 </div>
-            </div>
+            </main>
         </div>
     `;
 }

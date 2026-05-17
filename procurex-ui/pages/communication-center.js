@@ -1,6 +1,7 @@
 // Communication Center Page Component
 
 const communicationCenterStorageKey = 'procurex.communicationCenter.v1.items';
+const communicationCenterComposeDraftStorageKey = 'procurex.communicationCenter.v1.composeDraft';
 
 function escapeCommunicationHtml(value = '') {
     return String(value)
@@ -21,7 +22,8 @@ function getCommunicationState() {
             category: 'All categories',
             priority: 'All priorities',
             sort: 'newest',
-            composeOpen: false
+            composeOpen: false,
+            composeDraft: null
         };
     }
     return mockData.communicationCenterState;
@@ -167,6 +169,17 @@ function saveCommunicationStoredItems(items = []) {
     localStorage.setItem(communicationCenterStorageKey, JSON.stringify(items));
 }
 
+function consumeCommunicationComposeDraft() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(communicationCenterComposeDraftStorageKey) || 'null');
+        localStorage.removeItem(communicationCenterComposeDraftStorageKey);
+        return parsed && typeof parsed === 'object' ? parsed : null;
+    } catch (error) {
+        localStorage.removeItem(communicationCenterComposeDraftStorageKey);
+        return null;
+    }
+}
+
 function normalizeCommunicationItem(item = {}) {
     const createdAt = item.createdAt || new Date().toISOString();
     const kind = item.kind || item.type || 'message';
@@ -255,8 +268,8 @@ function communicationIdMatchesUser(participantId = '', user = getCurrentCommuni
 }
 
 function isCommunicationUserItem(item, user = getCurrentCommunicationUser()) {
-    if (communicationIdMatchesUser(item.recipientId, user)) return true;
-    return item.folder === 'sent' && communicationIdMatchesUser(item.senderId, user);
+    if (item.folder === 'sent') return communicationIdMatchesUser(item.senderId, user);
+    return communicationIdMatchesUser(item.recipientId, user);
 }
 
 function filterCommunicationItems(items, state) {
@@ -445,6 +458,9 @@ function renderCommunicationCompose(state) {
     const categories = mockData.communicationCenter?.categories || [];
     const currentUser = getCurrentCommunicationUser();
     const recipientProfiles = getCommunicationMailboxProfiles().filter(profile => !currentUser.aliases.includes(profile.id) && profile.id !== 'system');
+    const draft = state.composeDraft || {};
+    const selectedCategory = draft.category || 'General Message';
+    const selectedRecipientId = draft.recipientId || recipientProfiles[0]?.id || '';
     return `
         <form class="communication-compose-panel" data-communication-compose>
             <div class="panel-heading">
@@ -453,16 +469,19 @@ function renderCommunicationCompose(state) {
             </div>
             <div class="communication-compose-grid">
                 <label><span>From mailbox</span><input class="form-input" value="${escapeCommunicationHtml(currentUser.organization)}" readonly></label>
-                <label><span>Category</span><select class="form-input" name="category">${renderCommunicationOptions(categories, 'General Message')}</select></label>
+                <label><span>Category</span><select class="form-input" name="category">${renderCommunicationOptions(categories, selectedCategory)}</select></label>
                 <label>
                     <span>Recipient mailbox</span>
                     <select class="form-input" name="recipientId">
-                        ${recipientProfiles.map(profile => `<option value="${escapeCommunicationHtml(profile.id)}">${escapeCommunicationHtml(profile.name)} (${escapeCommunicationHtml(profile.type)})</option>`).join('')}
+                        ${recipientProfiles.map(profile => `<option value="${escapeCommunicationHtml(profile.id)}" ${profile.id === selectedRecipientId ? 'selected' : ''}>${escapeCommunicationHtml(profile.name)} (${escapeCommunicationHtml(profile.type)})</option>`).join('')}
                     </select>
                 </label>
-                <label><span>Tender reference</span><input class="form-input" name="tenderReference" value="PX-WRK-2026-001"></label>
-                <label class="span-2"><span>Subject</span><input class="form-input" name="subject" placeholder="Subject"></label>
-                <label class="span-2"><span>Message</span><textarea class="form-input" name="body" rows="4" placeholder="Write your message"></textarea></label>
+                <label><span>Tender reference</span><input class="form-input" name="tenderReference" value="${escapeCommunicationHtml(draft.tenderReference || draft.tenderId || 'PX-WRK-2026-001')}"></label>
+                <input type="hidden" name="tenderId" value="${escapeCommunicationHtml(draft.tenderId || '')}">
+                <input type="hidden" name="tenderTitle" value="${escapeCommunicationHtml(draft.tenderTitle || '')}">
+                <input type="hidden" name="kind" value="${escapeCommunicationHtml(draft.kind || '')}">
+                <label class="span-2"><span>Subject</span><input class="form-input" name="subject" placeholder="Subject" value="${escapeCommunicationHtml(draft.subject || '')}"></label>
+                <label class="span-2"><span>Message</span><textarea class="form-input" name="body" rows="4" placeholder="Write your message">${escapeCommunicationHtml(draft.body || '')}</textarea></label>
             </div>
             <div class="inline-actions">
                 <button class="btn btn-secondary" type="button">Attach File</button>
@@ -550,6 +569,16 @@ function renderCommunicationCenter() {
 function initializeCommunicationCenter() {
     const root = document.querySelector('[data-communication-center]');
     if (!root || root.dataset.ready === 'true') return;
+    const state = getCommunicationState();
+    const pendingDraft = consumeCommunicationComposeDraft();
+    if (pendingDraft) {
+        state.composeDraft = pendingDraft;
+        state.composeOpen = true;
+        state.tab = pendingDraft.tab || 'Inbox';
+        state.folder = state.tab;
+        state.category = pendingDraft.filterCategory || state.category;
+        state.priority = 'All priorities';
+    }
 
     const render = () => renderCommunicationCenterInner(root);
     render();
@@ -574,12 +603,14 @@ function initializeCommunicationCenter() {
 
         if (event.target.closest('[data-communication-compose-open]')) {
             state.composeOpen = true;
+            state.composeDraft = null;
             render();
             return;
         }
 
         if (event.target.closest('[data-communication-compose-close]')) {
             state.composeOpen = false;
+            state.composeDraft = null;
             render();
             return;
         }
@@ -639,10 +670,13 @@ function initializeCommunicationCenter() {
             const form = new FormData(composeForm);
             const currentUser = getCurrentCommunicationUser();
             const recipient = getCommunicationMailboxById(form.get('recipientId')) || getCommunicationMailboxProfiles()[1];
-            const item = addProcurexCommunicationItem({
-                kind: 'message',
-                folder: 'sent',
-                category: form.get('category'),
+            const category = String(form.get('category') || 'General Message');
+            const kind = String(form.get('kind') || '').trim() || (/clarification/i.test(category) ? 'clarification' : 'message');
+            const tenderReference = form.get('tenderReference') || 'Not linked';
+            const tenderTitle = form.get('tenderTitle') || tenderReference || 'Tender communication';
+            const baseMessage = {
+                kind,
+                category,
                 subject: form.get('subject') || 'Procurement message',
                 body: form.get('body') || '',
                 senderId: currentUser.id,
@@ -651,12 +685,28 @@ function initializeCommunicationCenter() {
                 recipientId: recipient.id,
                 recipientType: recipient.type,
                 recipientName: recipient.name,
-                tenderReference: form.get('tenderReference') || 'Not linked',
-                tenderTitle: form.get('tenderReference') || 'Tender communication',
-                status: 'Read',
+                tenderId: form.get('tenderId') || tenderReference,
+                tenderReference,
+                tenderTitle,
+                status: kind === 'clarification' ? 'Pending Buyer Response' : 'Read',
+                priority: 'Normal'
+            };
+            addProcurexCommunicationItem({
+                ...baseMessage,
+                folder: 'inbox',
+                status: kind === 'clarification' ? 'Pending Buyer Response' : 'Unread',
+                read: false,
+                actionRequired: kind === 'clarification',
+                actionLabel: kind === 'clarification' ? 'Reply' : 'Open',
+                actionPage: 'communication-center'
+            });
+            const item = addProcurexCommunicationItem({
+                ...baseMessage,
+                folder: 'sent',
                 read: true
             });
             state.composeOpen = false;
+            state.composeDraft = null;
             state.tab = 'Sent';
             state.selectedId = item.id;
             render();
