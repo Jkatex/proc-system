@@ -1143,18 +1143,30 @@ function formatBidWorkspaceReviewValue(value) {
 function renderBidWorkspaceResponseReviewPlaceholder() {
     return `
         <div class="bid-response-document">
+            <div class="bid-response-document-masthead">
+                <div class="bid-response-document-mark">PX</div>
+                <div>
+                    <span>ProcureX e-Procurement</span>
+                    <strong>Bid Response Document</strong>
+                </div>
+                <em>Generated PDF preview</em>
+            </div>
             <header class="bid-response-document-cover">
                 <div>
-                    <span class="section-kicker">Bid response document</span>
-                    <h3>Responses entered so far</h3>
-                    <p>Responses will be compiled here as a bid document before submission.</p>
+                    <span class="section-kicker">Official bid package preview</span>
+                    <h3>Submitted response document</h3>
+                    <p>Bidder responses are compiled here for evaluator review against the tender requirements.</p>
                 </div>
-                <div class="bid-response-document-stamp">
-                    <strong>Draft</strong>
-                    <span>Live preview</span>
+                <div class="bid-response-document-status">
+                    <span class="bid-status-chip review">Evaluation review</span>
+                    <span class="bid-status-chip submitted">Bid package</span>
                 </div>
             </header>
-            <div class="scope-empty">Responses will appear here after the bidder completes earlier sections.</div>
+            <div class="scope-empty">Captured bidder responses will appear here as a formal evaluation document.</div>
+            <footer class="bid-response-document-footer">
+                <span>System generated bid response preview</span>
+                <strong>ProcureX</strong>
+            </footer>
         </div>
     `;
 }
@@ -2360,17 +2372,19 @@ function renderBiddingWorkspace() {
                                     <div><span class="section-kicker">Step ${hasGoodsSamples ? '5' : '4'}</span><h2>Review & Validate</h2></div>
                                     <span class="badge badge-info" data-bid-review-total>${formatBidWorkspaceMoney(bidAmount)}</span>
                                 </div>
-                                <div class="record-summary">
+                                <div class="record-summary evaluation-dashboard">
                                     <div><span>Bidder</span><strong>${escapeBidWorkspaceHtml(mockData.users?.supplier?.organization || 'Supplier organization')}</strong></div>
-                                    <div><span>Eligibility gate</span><strong data-bid-gate-summary>Pending validation</strong></div>
-                                    <div><span>Product specification response</span><strong>${normalizeBidWorkspaceProductSpecificationTemplate(tender).rows.length} required rows</strong></div>
+                                    <div><span>Eligibility status</span><strong data-bid-gate-summary>Pending validation</strong></div>
+                                    <div><span>Product specification status</span><strong>${normalizeBidWorkspaceProductSpecificationTemplate(tender).rows.length} required rows</strong></div>
                                     <div><span>Quantity schedule</span><strong>${getGoodsBidQuantityRows(tender).length} priced lines</strong></div>
                                     <div class="${hasGoodsSamples ? '' : 'not-required'}"><span>Samples</span><strong>${hasGoodsSamples ? `${getGoodsBidSampleRows(tender).length} required` : 'Not required'}</strong></div>
                                     <div><span>Deadline</span><strong>${escapeBidWorkspaceHtml(tender.closingDate)}</strong></div>
+                                    <div class="bid-value-summary"><span>Bid value</span><strong>${formatBidWorkspaceMoney(bidAmount)}</strong></div>
+                                    <div class="evaluation-state"><span>Evaluation status</span><strong>Ready for review</strong></div>
                                 </div>
                                 <div class="bid-step-intro">
-                                    <strong>System validation</strong>
-                                    <span>The system checks missing documents, required compliance responses, missing prices, and mandatory sample evidence before allowing final submission.</span>
+                                    <strong>Evaluation dashboard</strong>
+                                    <span>Review the submitted bid package, confirm captured responses, and assess the bidder against the tender requirements.</span>
                                 </div>
                                 <section class="bid-response-review" data-bid-response-review>
                                     ${renderBidWorkspaceResponseReviewPlaceholder()}
@@ -2465,19 +2479,21 @@ function renderBiddingWorkspace() {
                                     <div><span class="section-kicker">Step 5</span><h2>Review & Validation</h2></div>
                                     <span class="badge badge-info" data-bid-review-total>${formatBidWorkspaceMoney(bidAmount)}</span>
                                 </div>
-                                <div class="record-summary">
+                                <div class="record-summary evaluation-dashboard">
                                     <div><span>Bidder</span><strong>${escapeBidWorkspaceHtml(mockData.users?.supplier?.organization || 'Supplier organization')}</strong></div>
-                                    <div><span>Eligibility gate</span><strong data-bid-gate-summary>Pending validation</strong></div>
+                                    <div><span>Eligibility status</span><strong data-bid-gate-summary>Pending validation</strong></div>
                                     <div><span>Experience evidence</span><strong>${normalizeBidWorkspaceFlag(tender.requirements?.fields?.similarCompletedProjectsRequired) ? 'Required' : 'Optional'}</strong></div>
                                     <div><span>Personnel profiles</span><strong>${getWorksBidPersonnelRoles(tender).length} roles</strong></div>
                                     <div><span>Equipment capacity</span><strong>${getWorksBidEquipmentRows(tender).length} items</strong></div>
                                     <div><span>BOQ lines</span><strong>${getWorksBidBoqRows(tender).length} priced lines</strong></div>
                                     <div><span>Milestones</span><strong>${getWorksBidMilestoneRows(tender).length} schedule items</strong></div>
                                     <div><span>Deadline</span><strong>${escapeBidWorkspaceHtml(tender.closingDate)}</strong></div>
+                                    <div class="bid-value-summary"><span>Bid value</span><strong>${formatBidWorkspaceMoney(bidAmount)}</strong></div>
+                                    <div class="evaluation-state"><span>Evaluation status</span><strong>Ready for review</strong></div>
                                 </div>
                                 <div class="bid-step-intro">
-                                    <strong>System validation</strong>
-                                    <span>The system checks missing legal uploads, capacity evidence, methodology narratives, milestone responses, BOQ pricing, commercial confirmations, and final declarations before submission.</span>
+                                    <strong>Evaluation dashboard</strong>
+                                    <span>Review the submitted bid package, confirm captured responses, and assess the bidder against the tender requirements.</span>
                                 </div>
                                 <section class="bid-response-review" data-bid-response-review>
                                     ${renderBidWorkspaceResponseReviewPlaceholder()}
@@ -2593,19 +2609,21 @@ function renderBiddingWorkspace() {
                                     <div><span class="section-kicker">Step 7</span><h2>Review, Declaration & Submit</h2></div>
                                     <span class="badge badge-info" data-bid-review-total>${formatBidWorkspaceMoney(bidAmount)}</span>
                                 </div>
-                                <div class="record-summary">
+                                <div class="record-summary evaluation-dashboard">
                                     <div><span>Bidder</span><strong>${escapeBidWorkspaceHtml(mockData.users?.supplier?.organization || 'Supplier organization')}</strong></div>
-                                    <div><span>Eligibility gate</span><strong data-bid-gate-summary>Pending validation</strong></div>
+                                    <div><span>Eligibility status</span><strong data-bid-gate-summary>Pending validation</strong></div>
                                     <div><span>Staffing roles</span><strong>${getServiceBidPersonnelRows(tender).length} roles</strong></div>
                                     <div><span>Service locations</span><strong>${getServiceBidLocationRows(tender).length || 1} covered</strong></div>
                                     <div><span>SLA / KPI controls</span><strong>${(tender.evaluation?.criteria || []).find(item => /sla|performance/i.test(item.name || ''))?.subcriteria?.length || 4} metrics</strong></div>
                                     <div><span>Supporting documents</span><strong>${getServiceBidDocumentRows(tender).length} uploads</strong></div>
                                     <div><span>Pricing lines</span><strong>${getServiceBidCommercialRows(tender, profile).length} service lines</strong></div>
                                     <div><span>Deadline</span><strong>${escapeBidWorkspaceHtml(tender.closingDate)}</strong></div>
+                                    <div class="bid-value-summary"><span>Bid value</span><strong>${formatBidWorkspaceMoney(bidAmount)}</strong></div>
+                                    <div class="evaluation-state"><span>Evaluation status</span><strong>Ready for review</strong></div>
                                 </div>
                                 <div class="bid-step-intro">
-                                    <strong>System validation</strong>
-                                    <span>The system checks service methodology, schedule, staff CVs, SLA commitments, ESG documents, supporting uploads, pricing, and final declarations before submission.</span>
+                                    <strong>Evaluation dashboard</strong>
+                                    <span>Review the submitted bid package, confirm captured responses, and assess the bidder against the tender requirements.</span>
                                 </div>
                                 <section class="bid-response-review" data-bid-response-review>
                                     ${renderBidWorkspaceResponseReviewPlaceholder()}
@@ -2664,11 +2682,13 @@ function renderBiddingWorkspace() {
                                     <div><span class="section-kicker">Step 4</span><h2>Review & Submit</h2></div>
                                     <span class="badge badge-info" data-bid-review-total>${formatBidWorkspaceMoney(bidAmount)}</span>
                                 </div>
-                                <div class="record-summary">
+                                <div class="record-summary evaluation-dashboard">
                                     <div><span>Bidder</span><strong>${escapeBidWorkspaceHtml(mockData.users?.supplier?.organization || 'Supplier organization')}</strong></div>
                                     <div><span>Mandatory requirements</span><strong data-bid-gate-summary>Pending validation</strong></div>
                                     <div><span>Additional responses</span><strong>${dynamicRequirements.filter(isBidWorkspaceResponseRequirement).length} required / ${dynamicRequirements.length} tender items</strong></div>
                                     <div><span>Deadline</span><strong>${escapeBidWorkspaceHtml(tender.closingDate)}</strong></div>
+                                    <div class="bid-value-summary"><span>Bid value</span><strong>${formatBidWorkspaceMoney(bidAmount)}</strong></div>
+                                    <div class="evaluation-state"><span>Evaluation status</span><strong>Ready for review</strong></div>
                                 </div>
                                 <section class="bid-response-review" data-bid-response-review>
                                     ${renderBidWorkspaceResponseReviewPlaceholder()}
@@ -3063,24 +3083,32 @@ function initializeBiddingWorkspace() {
                     : profile.responseTitle || 'Bid Offer';
         return `
             <div class="bid-response-document">
+                <div class="bid-response-document-masthead">
+                    <div class="bid-response-document-mark">PX</div>
+                    <div>
+                        <span>ProcureX e-Procurement</span>
+                        <strong>Bid Response Document</strong>
+                    </div>
+                    <em>Generated PDF preview</em>
+                </div>
                 <header class="bid-response-document-cover">
                     <div>
-                        <span class="section-kicker">Official bid submission preview</span>
+                        <span class="section-kicker">Official submitted bid package</span>
                         <h3>${escapeBidWorkspaceHtml(tender.title || 'Tender bid response')}</h3>
-                        <p>Generated from the bidder's completed response sections for validation before declaration and submission.</p>
+                        <p>Evaluator review copy generated from the bidder's submitted eligibility, technical, commercial, and supporting response sections.</p>
                     </div>
                     <div class="bid-response-document-status">
-                        <span class="bid-status-chip draft">Draft</span>
+                        <span class="bid-status-chip review">Evaluation review</span>
                         <span class="bid-status-chip offer">${escapeBidWorkspaceHtml(offerLabel)}</span>
                     </div>
                 </header>
                 <div class="bid-response-document-meta">
-                    <article><span>Tender ID</span><strong>${escapeBidWorkspaceHtml(tenderId)}</strong><em>Reference</em></article>
-                    <article><span>Bidder</span><strong>${escapeBidWorkspaceHtml(submittedBidder)}</strong><em>Supplier</em></article>
-                    <article><span>Closing date</span><strong>${escapeBidWorkspaceHtml(tender.closingDate || 'Not set')}</strong><em>Deadline</em></article>
-                    <article class="bid-value-card"><span>Bid value</span><strong>${escapeBidWorkspaceHtml(reviewTotal || 'Pending')}</strong><em>Current offer</em></article>
-                    <article><span>Responses captured</span><strong>${totalRows}</strong><em>Validation scope</em></article>
-                    <article><span>Prepared on</span><strong>${escapeBidWorkspaceHtml(new Date().toISOString().slice(0, 10))}</strong><em>System date</em></article>
+                    <article><span>Tender ID</span><strong>${escapeBidWorkspaceHtml(tenderId)}</strong><em>Tender reference</em></article>
+                    <article><span>Bidder</span><strong>${escapeBidWorkspaceHtml(submittedBidder)}</strong><em>Registered supplier</em></article>
+                    <article><span>Closing date</span><strong>${escapeBidWorkspaceHtml(tender.closingDate || 'Not set')}</strong><em>Submission deadline</em></article>
+                    <article class="bid-value-card"><span>Bid value</span><strong>${escapeBidWorkspaceHtml(reviewTotal || 'Pending')}</strong><em>Financial offer</em></article>
+                    <article><span>Responses captured</span><strong>${totalRows}</strong><em>Evaluation scope</em></article>
+                    <article><span>Prepared date</span><strong>${escapeBidWorkspaceHtml(new Date().toISOString().slice(0, 10))}</strong><em>System generated</em></article>
                 </div>
                 ${sections.length ? `
                     <div class="bid-response-document-sections">
@@ -3095,19 +3123,19 @@ function initializeBiddingWorkspace() {
                                         <h4>${escapeBidWorkspaceHtml(section.title)}</h4>
                                         <small>${section.rows.length} item${section.rows.length === 1 ? '' : 's'} reviewed</small>
                                     </div>
-                                    <em class="bid-section-status ${complete ? 'complete' : 'draft'}">${complete ? 'Complete' : `${pendingCount} pending`}</em>
+                                    <em class="bid-section-status ${complete ? 'complete' : 'review'}">${complete ? 'Complete' : `${pendingCount} review item${pendingCount === 1 ? '' : 's'}`}</em>
                                 </div>
                                 <div class="bid-response-document-table">
                                     <table>
                                         <thead>
-                                            <tr><th>Bid content</th><th>Bidder response</th><th>Status</th></tr>
+                                            <tr><th>Tender requirement / bid content</th><th>Bidder response</th><th>Evaluation status</th></tr>
                                         </thead>
                                         <tbody>
                                             ${section.rows.map(row => `
                                                 <tr class="${row.pending ? 'pending' : ''}">
                                                     <td>${escapeBidWorkspaceHtml(row.label)}</td>
                                                     <td>${escapeBidWorkspaceHtml(row.value)}</td>
-                                                    <td><span class="bid-table-status ${row.pending ? 'draft' : 'captured'}">${row.pending ? 'Draft' : 'Captured'}</span></td>
+                                                    <td><span class="bid-table-status ${row.pending ? 'review' : 'captured'}">${row.pending ? 'Review' : 'Captured'}</span></td>
                                                 </tr>
                                             `).join('')}
                                         </tbody>
@@ -3117,6 +3145,10 @@ function initializeBiddingWorkspace() {
                         `; }).join('')}
                     </div>
                 ` : '<div class="scope-empty">No bidder responses have been entered yet.</div>'}
+                <footer class="bid-response-document-footer">
+                    <span>System generated bid response preview</span>
+                    <strong>ProcureX</strong>
+                </footer>
             </div>
         `;
     };
