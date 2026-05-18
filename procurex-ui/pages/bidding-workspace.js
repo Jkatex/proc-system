@@ -1159,6 +1159,7 @@ function renderBidWorkspaceResponseReviewPlaceholder() {
                 </div>
                 <div class="bid-response-document-status">
                     <span class="bid-status-chip review">Evaluation review</span>
+                    <span class="bid-status-chip editable">Corrections enabled</span>
                     <span class="bid-status-chip submitted">Bid package</span>
                 </div>
             </header>
@@ -2771,6 +2772,7 @@ function initializeBiddingWorkspace() {
     const sessionUploadUrls = {};
     let uploadedFiles = { ...(existingDraft.uploadedFiles || {}) };
     let activeStepIndex = Number(existingDraft.step || 0);
+    let bidReviewSourceSequence = 0;
 
     const getRequiredInputsByPriority = () => {
         const groups = { licenses: [], evidence: [], confirmations: [] };
@@ -2930,6 +2932,35 @@ function initializeBiddingWorkspace() {
         (uploadInput || input)?.focus?.();
     };
 
+    const getBidReviewSourceId = (input) => {
+        if (!input) return '';
+        if (!input.dataset.bidReviewSourceId) {
+            bidReviewSourceSequence += 1;
+            input.dataset.bidReviewSourceId = `bid-review-source-${bidReviewSourceSequence}`;
+        }
+        return input.dataset.bidReviewSourceId;
+    };
+
+    const openBidReviewSource = (sourceId) => {
+        const input = wizard.querySelector(`[data-bid-review-source-id="${sourceId}"]`);
+        if (!input) return;
+        const targetPanelIndex = panels.findIndex(panel => panel.contains(input));
+        if (targetPanelIndex > -1) setActiveStep(targetPanelIndex, true);
+        const container = input.closest('[data-bid-upload-control], [data-bid-requirement-card], [data-bid-product-spec-row], .form-group, .bid-response-check, .goods-compliance-card, .goods-offer-row, .goods-sample-card, .works-capacity-card, .works-person-card, .works-accordion-card, .works-boq-row, .works-drawing-card, .service-accordion-card, .service-sla-card, .service-staff-card, .service-pricing-row, .service-document-card, .service-kpi-card') || input;
+        container.classList.add('bid-review-edit-target');
+        window.setTimeout(() => container.classList.remove('bid-review-edit-target'), 2200);
+        window.setTimeout(() => {
+            container.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+            const uploadInput = input.closest('[data-bid-upload-control]')?.querySelector('[data-bid-file-input]');
+            if (uploadInput) {
+                uploadInput.focus?.();
+                uploadInput.click?.();
+            } else {
+                focusBidWorkspaceInput(input);
+            }
+        }, 80);
+    };
+
     const validateMandatoryGate = (show = false) => {
         const requiredInputs = Array.from(wizard.querySelectorAll('[data-bid-required-response]'));
         const completeInputs = requiredInputs.filter(isResponseComplete);
@@ -3062,7 +3093,10 @@ function initializeBiddingWorkspace() {
                     return {
                         label: getBidReviewInputLabel(input),
                         value: formatBidWorkspaceReviewValue(getBidReviewInputValue(input)),
-                        pending: !isResponseComplete(input)
+                        pending: !isResponseComplete(input),
+                        sourceId: getBidReviewSourceId(input),
+                        editable: true,
+                        upload: Boolean(input.closest('[data-bid-upload-control]'))
                     };
                 })
                 .filter(Boolean);
@@ -3099,6 +3133,7 @@ function initializeBiddingWorkspace() {
                     </div>
                     <div class="bid-response-document-status">
                         <span class="bid-status-chip review">Evaluation review</span>
+                        <span class="bid-status-chip editable">Corrections enabled</span>
                         <span class="bid-status-chip offer">${escapeBidWorkspaceHtml(offerLabel)}</span>
                     </div>
                 </header>
@@ -3128,7 +3163,7 @@ function initializeBiddingWorkspace() {
                                 <div class="bid-response-document-table">
                                     <table>
                                         <thead>
-                                            <tr><th>Tender requirement / bid content</th><th>Bidder response</th><th>Evaluation status</th></tr>
+                                            <tr><th>Tender requirement / bid content</th><th>Bidder response</th><th>Evaluation status</th><th>Correction</th></tr>
                                         </thead>
                                         <tbody>
                                             ${section.rows.map(row => `
@@ -3136,6 +3171,11 @@ function initializeBiddingWorkspace() {
                                                     <td>${escapeBidWorkspaceHtml(row.label)}</td>
                                                     <td>${escapeBidWorkspaceHtml(row.value)}</td>
                                                     <td><span class="bid-table-status ${row.pending ? 'review' : 'captured'}">${row.pending ? 'Review' : 'Captured'}</span></td>
+                                                    <td>
+                                                        <button class="bid-review-edit-button" type="button" data-bid-review-edit="${escapeBidWorkspaceHtml(row.sourceId)}">
+                                                            ${row.upload ? 'Replace file' : 'Change'}
+                                                        </button>
+                                                    </td>
                                                 </tr>
                                             `).join('')}
                                         </tbody>
@@ -3336,6 +3376,15 @@ function initializeBiddingWorkspace() {
 
         if (target.matches('[data-bid-delete-upload]')) {
             clearBidUpload(target.closest('[data-bid-upload-control]'));
+            validateMandatoryGate(false);
+            validateWorkflowResponses(false);
+            refreshBidResponseReviews();
+            saveDraft();
+            return;
+        }
+
+        if (target.matches('[data-bid-review-edit]')) {
+            openBidReviewSource(target.dataset.bidReviewEdit || '');
             return;
         }
 
