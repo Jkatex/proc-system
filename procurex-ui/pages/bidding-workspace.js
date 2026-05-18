@@ -1082,6 +1082,27 @@ function downloadBidWorkspaceCsv(rows = [], filename = 'template.csv') {
     URL.revokeObjectURL(url);
 }
 
+function downloadBidWorkspaceBlob(content = '', filename = 'download.html', type = 'text/html;charset=utf-8') {
+    const blob = new Blob([content], { type });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+}
+
+function getBidWorkspaceSafeFilename(value = 'bid-response-document') {
+    return String(value || 'bid-response-document')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 80) || 'bid-response-document';
+}
+
 function downloadBidWorkspaceProductSpecificationCsv(tender = {}) {
     const template = normalizeBidWorkspaceProductSpecificationTemplate(tender);
     const rows = [
@@ -1142,6 +1163,17 @@ function formatBidWorkspaceReviewValue(value) {
 
 function renderBidWorkspaceResponseReviewPlaceholder() {
     return `
+        <div class="bid-response-download-panel">
+            <div>
+                <span class="section-kicker">Document download</span>
+                <strong>Bid response preview</strong>
+                <p>Download or print the current generated document preview after corrections are captured.</p>
+            </div>
+            <div class="bid-response-download-actions">
+                <button class="btn btn-secondary" type="button" data-bid-download-review-document>Download HTML</button>
+                <button class="btn btn-primary" type="button" data-bid-print-review-document>Print / Save PDF</button>
+            </div>
+        </div>
         <div class="bid-response-document">
             <div class="bid-response-document-masthead">
                 <div class="bid-response-document-mark">PX</div>
@@ -3116,6 +3148,17 @@ function initializeBiddingWorkspace() {
                     ? 'Service Offer'
                     : profile.responseTitle || 'Bid Offer';
         return `
+            <div class="bid-response-download-panel">
+                <div>
+                    <span class="section-kicker">Document download</span>
+                    <strong>Bid response preview</strong>
+                    <p>Download or print the current generated document preview after corrections are captured.</p>
+                </div>
+                <div class="bid-response-download-actions">
+                    <button class="btn btn-secondary" type="button" data-bid-download-review-document>Download HTML</button>
+                    <button class="btn btn-primary" type="button" data-bid-print-review-document>Print / Save PDF</button>
+                </div>
+            </div>
             <div class="bid-response-document">
                 <div class="bid-response-document-masthead">
                     <div class="bid-response-document-mark">PX</div>
@@ -3191,6 +3234,93 @@ function initializeBiddingWorkspace() {
                 </footer>
             </div>
         `;
+    };
+
+    const getExportableBidResponseDocument = (trigger) => {
+        const review = trigger?.closest('[data-bid-response-review]');
+        const documentNode = review?.querySelector('.bid-response-document');
+        if (!documentNode) return '';
+        const clone = documentNode.cloneNode(true);
+        clone.querySelectorAll('.bid-status-chip.editable').forEach(node => node.remove());
+        clone.querySelectorAll('.bid-review-edit-button').forEach(button => {
+            const cell = button.closest('td');
+            if (cell) cell.remove();
+            else button.remove();
+        });
+        clone.querySelectorAll('.bid-response-document-table table').forEach(table => {
+            const headers = Array.from(table.querySelectorAll('thead th'));
+            const correctionIndex = headers.findIndex(header => /correction/i.test(header.textContent || ''));
+            if (correctionIndex < 0) return;
+            headers[correctionIndex]?.remove();
+            table.querySelectorAll('tbody tr').forEach(row => row.children[correctionIndex]?.remove());
+        });
+        return clone.outerHTML;
+    };
+
+    const buildBidResponseDocumentExportHtml = (documentHtml = '') => {
+        const title = `${tender.title || 'Bid Response Document'} - ${tenderId}`;
+        return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>${escapeBidWorkspaceHtml(title)}</title>
+<style>
+body { margin: 0; padding: 32px; background: #eef2f7; color: #0f172a; font-family: Arial, Helvetica, sans-serif; }
+.bid-response-document { max-width: 980px; margin: 0 auto; padding: 46px 52px 34px; border: 1px solid #cbd5e1; background: #fff; box-shadow: 0 24px 60px rgba(15, 23, 42, 0.14); }
+.bid-response-document-masthead { display: grid; grid-template-columns: 48px 1fr auto; align-items: center; gap: 14px; padding-bottom: 18px; border-bottom: 2px solid #071a33; }
+.bid-response-document-mark { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 4px; background: #071a33; color: #fff; font-weight: 900; }
+.bid-response-document-masthead span, .section-kicker, .bid-response-document-meta span { color: #64748b; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.bid-response-document-masthead strong { display: block; color: #071a33; font-size: 18px; }
+.bid-response-document-masthead em { justify-self: end; color: #475569; font-size: 11px; font-style: normal; font-weight: 800; text-transform: uppercase; }
+.bid-response-document-cover { display: flex; justify-content: space-between; gap: 22px; padding: 24px 0 20px; border-bottom: 1px solid #cbd5e1; }
+.bid-response-document-cover h3 { margin: 0; color: #071a33; font-size: 28px; line-height: 1.16; }
+.bid-response-document-cover p { margin: 8px 0 0; color: #475569; line-height: 1.5; }
+.bid-response-document-status { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.bid-status-chip, .bid-section-status, .bid-table-status { display: inline-flex; align-items: center; width: max-content; min-height: 24px; padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+.bid-status-chip.review, .bid-section-status.review, .bid-table-status.review { background: #dbeafe; color: #1e40af; }
+.bid-status-chip.offer { background: #e0f2fe; color: #075985; }
+.bid-section-status.complete, .bid-table-status.captured { background: #dcfce7; color: #166534; }
+.bid-response-document-meta { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid #cbd5e1; margin: 24px 0; }
+.bid-response-document-meta article { padding: 15px 16px; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
+.bid-response-document-meta strong { display: block; margin-top: 6px; color: #071a33; font-size: 16px; }
+.bid-response-document-meta em { display: block; margin-top: 4px; color: #94a3b8; font-size: 12px; font-style: normal; }
+.bid-response-document-sections { display: grid; gap: 22px; }
+.bid-response-document-section-heading { display: grid; grid-template-columns: 36px 1fr auto; gap: 12px; align-items: center; padding-bottom: 10px; border-bottom: 1px solid #cbd5e1; }
+.bid-response-document-section-heading > span { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 4px; background: #071a33; color: #fff; font-size: 12px; font-weight: 900; }
+.bid-response-document-section-heading h4 { margin: 0; color: #071a33; font-size: 17px; }
+.bid-response-document-section-heading small { color: #64748b; font-size: 12px; }
+.bid-response-document-table { overflow-x: auto; margin-top: 14px; border: 1px solid #e2e8f0; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 13px 14px; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: top; font-size: 14px; line-height: 1.4; }
+th { background: #f1f5f9; color: #334155; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+.bid-response-document-footer { display: flex; justify-content: space-between; margin-top: 28px; padding-top: 14px; border-top: 1px solid #cbd5e1; color: #64748b; font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+@media print { body { padding: 0; background: #fff; } .bid-response-document { box-shadow: none; border: 0; } }
+</style>
+</head>
+<body>${documentHtml}</body>
+</html>`;
+    };
+
+    const downloadBidResponseDocument = (trigger) => {
+        const documentHtml = getExportableBidResponseDocument(trigger);
+        if (!documentHtml) return;
+        const filename = `${getBidWorkspaceSafeFilename(`${tenderId}-${tender.title || 'bid-response-document'}`)}.html`;
+        downloadBidWorkspaceBlob(buildBidResponseDocumentExportHtml(documentHtml), filename);
+    };
+
+    const printBidResponseDocument = (trigger) => {
+        const documentHtml = getExportableBidResponseDocument(trigger);
+        if (!documentHtml) return;
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            alert('Allow pop-ups to print or save the bid response document as PDF.');
+            return;
+        }
+        printWindow.document.open();
+        printWindow.document.write(buildBidResponseDocumentExportHtml(documentHtml));
+        printWindow.document.close();
+        printWindow.focus();
+        window.setTimeout(() => printWindow.print(), 250);
     };
 
     const refreshBidResponseReviews = () => {
@@ -3385,6 +3515,16 @@ function initializeBiddingWorkspace() {
 
         if (target.matches('[data-bid-review-edit]')) {
             openBidReviewSource(target.dataset.bidReviewEdit || '');
+            return;
+        }
+
+        if (target.matches('[data-bid-download-review-document]')) {
+            downloadBidResponseDocument(target);
+            return;
+        }
+
+        if (target.matches('[data-bid-print-review-document]')) {
+            printBidResponseDocument(target);
             return;
         }
 
