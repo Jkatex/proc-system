@@ -3155,73 +3155,166 @@ textarea.form-input {
     margin: 18px 0;
 }
 
-.bid-response-review-heading {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-}
-
-.bid-response-review-heading h3 {
-    margin: 0;
-    color: var(--text-primary);
-    font-size: 18px;
-}
-
-.bid-response-review-sections {
+.bid-response-document {
     display: grid;
-    gap: 14px;
-}
-
-.bid-response-review-section {
-    display: grid;
-    gap: 12px;
-    padding: 14px;
+    gap: 18px;
+    padding: 22px;
     border: 1px solid var(--border-soft);
     border-radius: 8px;
     background: var(--card-bg);
 }
 
-.bid-response-review-section h4 {
-    margin: 0;
-    color: var(--text-primary);
-    font-size: 15px;
+.bid-response-document-cover {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border-soft);
 }
 
-.bid-response-review-grid {
+.bid-response-document-cover h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 24px;
+    line-height: 1.2;
+}
+
+.bid-response-document-cover p {
+    max-width: 760px;
+    margin: 8px 0 0;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.bid-response-document-stamp {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 3px;
+    min-width: 132px;
+    padding: 12px 14px;
+    border: 1px solid var(--teal-primary);
+    border-radius: 8px;
+    color: var(--teal-dark);
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.bid-response-document-stamp strong {
+    font-size: 18px;
+}
+
+.bid-response-document-stamp span {
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.bid-response-document-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
     gap: 10px;
 }
 
-.bid-response-review-grid div {
+.bid-response-document-meta article {
     display: grid;
     gap: 5px;
     min-width: 0;
     padding: 11px 12px;
+    border: 1px solid var(--border-soft);
     border-radius: 8px;
     background: var(--surface-soft);
 }
 
-.bid-response-review-grid div.pending {
-    border: 1px solid rgba(245, 158, 11, 0.34);
-    background: rgba(255, 251, 235, 0.82);
+.bid-response-document-meta span {
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
 }
 
-.bid-response-review-grid span {
+.bid-response-document-meta strong {
+    min-width: 0;
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+}
+
+.bid-response-document-sections {
+    display: grid;
+    gap: 18px;
+}
+
+.bid-response-document-section {
+    display: grid;
+    gap: 12px;
+}
+
+.bid-response-document-section-heading {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+}
+
+.bid-response-document-section-heading span {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--teal-primary);
+    color: white;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.bid-response-document-section-heading h4 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 17px;
+}
+
+.bid-response-document-table {
+    overflow-x: auto;
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+}
+
+.bid-response-document-table table {
+    width: 100%;
+    min-width: 680px;
+    border-collapse: collapse;
+}
+
+.bid-response-document-table th,
+.bid-response-document-table td {
+    padding: 12px;
+    border-bottom: 1px solid var(--border-soft);
+    text-align: left;
+    vertical-align: top;
+}
+
+.bid-response-document-table th {
+    background: var(--surface-soft);
     color: var(--text-secondary);
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 800;
+    text-transform: uppercase;
 }
 
-.bid-response-review-grid strong {
-    min-width: 0;
+.bid-response-document-table td {
     color: var(--text-primary);
     font-size: 14px;
     line-height: 1.4;
     overflow-wrap: anywhere;
     white-space: pre-wrap;
+}
+
+.bid-response-document-table tr.pending td {
+    background: rgba(255, 251, 235, 0.72);
+}
+
+.bid-response-document-table tr:last-child td {
+    border-bottom: 0;
 }
 
 .metric-grid,

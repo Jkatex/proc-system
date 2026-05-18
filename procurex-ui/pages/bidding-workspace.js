@@ -1142,14 +1142,20 @@ function formatBidWorkspaceReviewValue(value) {
 
 function renderBidWorkspaceResponseReviewPlaceholder() {
     return `
-        <div class="bid-response-review-heading">
-            <div>
-                <span class="section-kicker">Bidder response review</span>
-                <h3>Responses entered so far</h3>
-            </div>
-            <span class="badge badge-info">Updates as you fill the bid</span>
+        <div class="bid-response-document">
+            <header class="bid-response-document-cover">
+                <div>
+                    <span class="section-kicker">Bid response document</span>
+                    <h3>Responses entered so far</h3>
+                    <p>Responses will be compiled here as a bid document before submission.</p>
+                </div>
+                <div class="bid-response-document-stamp">
+                    <strong>Draft</strong>
+                    <span>Live preview</span>
+                </div>
+            </header>
+            <div class="scope-empty">Responses will appear here after the bidder completes earlier sections.</div>
         </div>
-        <div class="scope-empty">Responses will appear here after the bidder completes earlier sections.</div>
     `;
 }
 
@@ -2750,6 +2756,7 @@ function initializeBiddingWorkspace() {
     const pageRoot = wizard.closest('.bid-flow-page') || wizard;
     const tenderId = wizard.dataset.bidTenderId || 'selected';
     const tender = getBidWorkspaceTender();
+    const profile = getBidWorkspaceProfile(tender);
     const panels = Array.from(wizard.querySelectorAll('.wizard-workspace > .journey-panel'));
     const railSteps = Array.from(wizard.querySelectorAll('[data-bid-step-index]'));
     const previousButton = wizard.querySelector('[data-bid-prev]');
@@ -3032,9 +3039,12 @@ function initializeBiddingWorkspace() {
 
     const shouldIncludeBidReviewInput = (input) => {
         if (input.closest('[data-bid-response-review]')) return false;
+        if (input.closest('[data-bid-declaration], .confirm-action')) return false;
         const required = input.matches('[data-bid-required-response], [data-bid-workflow-required-response]');
-        if (input.type === 'checkbox') return input.checked || required;
-        return String(input.value || '').trim().length > 0 || required;
+        const uploadControl = input.closest('[data-bid-upload-control]');
+        if (input.type === 'hidden' && !uploadControl) return String(input.value || '').trim().length > 0;
+        if (input.type === 'checkbox') return input.checked || required || Boolean(getBidReviewInputLabel(input));
+        return Boolean(uploadControl) || Boolean(getBidReviewInputLabel(input)) || String(input.value || '').trim().length > 0 || required;
     };
 
     const collectBidReviewSections = (reviewPanel) => {
@@ -3063,31 +3073,58 @@ function initializeBiddingWorkspace() {
 
     const renderBidReviewSections = (sections = []) => {
         const totalRows = sections.reduce((total, section) => total + section.rows.length, 0);
+        const submittedBidder = mockData.users?.supplier?.organization || 'Supplier organization';
+        const reviewTotal = wizard.querySelector('[data-bid-review-total]')?.textContent || wizard.querySelector('[data-bid-total]')?.textContent || '';
         return `
-            <div class="bid-response-review-heading">
-                <div>
-                    <span class="section-kicker">Bidder response review</span>
-                    <h3>Responses entered so far</h3>
+            <div class="bid-response-document">
+                <header class="bid-response-document-cover">
+                    <div>
+                        <span class="section-kicker">Bid response document</span>
+                        <h3>${escapeBidWorkspaceHtml(tender.title || 'Tender bid response')}</h3>
+                        <p>Compiled from the bidder's responses in the previous bid workflow sections.</p>
+                    </div>
+                    <div class="bid-response-document-stamp">
+                        <strong>Draft</strong>
+                        <span>${escapeBidWorkspaceHtml(profile.responseTitle || 'Bid response')}</span>
+                    </div>
+                </header>
+                <div class="bid-response-document-meta">
+                    <article><span>Tender ID</span><strong>${escapeBidWorkspaceHtml(tenderId)}</strong></article>
+                    <article><span>Bidder</span><strong>${escapeBidWorkspaceHtml(submittedBidder)}</strong></article>
+                    <article><span>Closing date</span><strong>${escapeBidWorkspaceHtml(tender.closingDate || 'Not set')}</strong></article>
+                    <article><span>Bid value</span><strong>${escapeBidWorkspaceHtml(reviewTotal || 'Pending')}</strong></article>
+                    <article><span>Responses captured</span><strong>${totalRows}</strong></article>
+                    <article><span>Prepared on</span><strong>${escapeBidWorkspaceHtml(new Date().toISOString().slice(0, 10))}</strong></article>
                 </div>
-                <span class="badge badge-info">${totalRows} response${totalRows === 1 ? '' : 's'}</span>
+                ${sections.length ? `
+                    <div class="bid-response-document-sections">
+                        ${sections.map((section, sectionIndex) => `
+                            <article class="bid-response-document-section">
+                                <div class="bid-response-document-section-heading">
+                                    <span>${String(sectionIndex + 1).padStart(2, '0')}</span>
+                                    <h4>${escapeBidWorkspaceHtml(section.title)}</h4>
+                                </div>
+                                <div class="bid-response-document-table">
+                                    <table>
+                                        <thead>
+                                            <tr><th>Bid content</th><th>Bidder response</th><th>Status</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            ${section.rows.map(row => `
+                                                <tr class="${row.pending ? 'pending' : ''}">
+                                                    <td>${escapeBidWorkspaceHtml(row.label)}</td>
+                                                    <td>${escapeBidWorkspaceHtml(row.value)}</td>
+                                                    <td>${row.pending ? 'Pending' : 'Captured'}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </article>
+                        `).join('')}
+                    </div>
+                ` : '<div class="scope-empty">No bidder responses have been entered yet.</div>'}
             </div>
-            ${sections.length ? `
-                <div class="bid-response-review-sections">
-                    ${sections.map(section => `
-                        <article class="bid-response-review-section">
-                            <h4>${escapeBidWorkspaceHtml(section.title)}</h4>
-                            <div class="bid-response-review-grid">
-                                ${section.rows.map(row => `
-                                    <div class="${row.pending ? 'pending' : ''}">
-                                        <span>${escapeBidWorkspaceHtml(row.label)}</span>
-                                        <strong>${escapeBidWorkspaceHtml(row.value)}</strong>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </article>
-                    `).join('')}
-                </div>
-            ` : '<div class="scope-empty">No bidder responses have been entered yet.</div>'}
         `;
     };
 
