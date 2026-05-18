@@ -1133,6 +1133,55 @@ function downloadBidWorkspaceTendererTechnicalResponseCsv(tender = {}) {
     downloadBidWorkspaceCsv([columns, ...rows], 'tenderer-technical-response-template.csv');
 }
 
+function getBidWorkspaceFinancialRequirements(tender = {}) {
+    if (typeof normalizeProcurexTenderFinancialRequirements === 'function') {
+        return normalizeProcurexTenderFinancialRequirements(tender);
+    }
+    const source = tender.financial_requirements || tender.requirements?.fields?.financial_requirements || {};
+    return source && typeof source === 'object' && !Array.isArray(source) ? source : {};
+}
+
+function hasBidWorkspaceFinancialRequirements(tender = {}) {
+    if (typeof hasProcurexTenderFinancialRequirements === 'function') {
+        return hasProcurexTenderFinancialRequirements(tender);
+    }
+    const requirements = getBidWorkspaceFinancialRequirements(tender);
+    return Object.values(requirements).some(value => Array.isArray(value) ? value.length : String(value || '').trim());
+}
+
+function renderBidWorkspaceFinancialRequirementsReadonly(tender = {}) {
+    if (!hasBidWorkspaceFinancialRequirements(tender)) return '';
+    const body = typeof renderProcurexTenderFinancialRequirementsReadonly === 'function'
+        ? renderProcurexTenderFinancialRequirementsReadonly(tender)
+        : '<div class="scope-empty">Financial requirements are configured for this tender.</div>';
+    return `
+        <section class="bid-dynamic-group bid-financial-requirements-readonly">
+            <div class="bid-dynamic-group-heading">
+                <div>
+                    <h3>Financial Requirements</h3>
+                    <p>Review the buyer's payment and commercial conditions before completing your offer.</p>
+                </div>
+                <span class="badge badge-warning">Read-only</span>
+            </div>
+            ${body}
+        </section>
+    `;
+}
+
+function renderBidWorkspacePaymentTermsAcceptance(tender = {}, draft = {}) {
+    if (!hasBidWorkspaceFinancialRequirements(tender)) return '';
+    const requirements = getBidWorkspaceFinancialRequirements(tender);
+    if (requirements.payment_terms_acceptance_required === false) return '';
+    const accepted = getBidWorkspaceSavedResponse(draft, 'payment_terms_accepted') === true
+        || getBidWorkspaceSavedResponse(draft, 'payment_terms_accepted') === 'true';
+    return `
+        <label class="bid-response-check bid-payment-terms-acceptance">
+            <input type="checkbox" data-bid-response="payment_terms_accepted" data-bid-workflow-required-response="true" ${accepted ? 'checked' : ''}>
+            <span>I have read, understood, and accepted the payment terms stated in this tender.</span>
+        </label>
+    `;
+}
+
 function renderGoodsBidProductDetailResponse(tender = {}, draft = {}) {
     const rows = getGoodsBidQuantityRows(tender);
     if (!rows.length) {
@@ -2300,6 +2349,7 @@ function renderBiddingWorkspace() {
                                     <strong>Editable supplier pricing table</strong>
                                     <span>For each requested item, confirm whether you bid and complete the commercial price, tax, and discount details.</span>
                                 </div>
+                                ${renderBidWorkspaceFinancialRequirementsReadonly(tender)}
                                 <div class="data-table goods-offer-table">
                                     <table>
                                         <thead><tr><th>Item</th><th>Requested Item</th><th>Qty</th><th>Unit</th><th>Status</th><th>Unit Price</th><th>Tax Included?</th><th>Discount</th><th>Total</th></tr></thead>
@@ -2359,6 +2409,7 @@ function renderBiddingWorkspace() {
                                     <div class="form-group"><label class="form-label">Position / Title</label><input class="form-input" data-bid-response="goods-declaration-position" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'goods-declaration-position'))}"></div>
                                     <label class="bid-response-check"><input type="checkbox" data-bid-response="goods-declaration-final" data-bid-workflow-required-response="true" ${getBidWorkspaceSavedResponse(draft, 'goods-declaration-final') === true || getBidWorkspaceSavedResponse(draft, 'goods-declaration-final') === 'true' ? 'checked' : ''}><span>I confirm this goods bid is complete, accurate, and authorized.</span></label>
                                     <label class="bid-response-check"><input type="checkbox" data-bid-response="goods-declaration-anti-corruption" data-bid-workflow-required-response="true" ${getBidWorkspaceSavedResponse(draft, 'goods-declaration-anti-corruption') === true || getBidWorkspaceSavedResponse(draft, 'goods-declaration-anti-corruption') === 'true' ? 'checked' : ''}><span>I accept the anti-corruption and conflict of interest declarations.</span></label>
+                                    ${renderBidWorkspacePaymentTermsAcceptance(tender, draft)}
                                 </div>
                                 <div class="review-summary-grid" style="margin-top: 18px;">
                                     <article class="review-card">
@@ -2421,6 +2472,7 @@ function renderBiddingWorkspace() {
                                     <strong>Editable construction pricing grid</strong>
                                     <span>Price labor, materials, equipment, overheads, and margin for each work item. The unit rate and total are recalculated automatically.</span>
                                 </div>
+                                ${renderBidWorkspaceFinancialRequirementsReadonly(tender)}
                                 <div class="data-table works-boq-table">
                                     <table>
                                         <thead><tr><th>Code</th><th>Work Item</th><th>Qty</th><th>Unit</th><th>Status</th><th>Unit Rate</th><th>Total</th></tr></thead>
@@ -2464,6 +2516,7 @@ function renderBiddingWorkspace() {
                             <section class="journey-panel" id="bid-step-6">
                                 <div class="panel-heading"><div><span class="section-kicker">Step 6</span><h2>Declaration & Submission</h2></div><span class="badge badge-success">Final step</span></div>
                                 ${renderWorksBidDeclaration(draft)}
+                                ${renderBidWorkspacePaymentTermsAcceptance(tender, draft)}
                                 <div class="review-summary-grid" style="margin-top: 18px;">
                                     <article class="review-card">
                                         <span>Receipt hash</span>
@@ -2551,6 +2604,7 @@ function renderBiddingWorkspace() {
                                     <strong>Service pricing calculator</strong>
                                     <span>Price the schedule using monthly retainers, unit rates, lump sums, hybrid pricing, or SLA-based assumptions.</span>
                                 </div>
+                                ${renderBidWorkspaceFinancialRequirementsReadonly(tender)}
                                 <div class="data-table service-pricing-table">
                                     <table>
                                         <thead><tr><th>Code</th><th>Service Line</th><th>Qty</th><th>Unit</th><th>Pricing Model</th><th>Unit Rate</th><th>Discount</th><th>Total</th></tr></thead>
@@ -2590,6 +2644,7 @@ function renderBiddingWorkspace() {
                                     <span>The system checks service methodology, schedule, staff CVs, SLA commitments, ESG documents, supporting uploads, pricing, and final declarations before submission.</span>
                                 </div>
                                 ${renderServiceBidDeclaration(draft)}
+                                ${renderBidWorkspacePaymentTermsAcceptance(tender, draft)}
                                 <div class="review-summary-grid" style="margin-top: 18px;">
                                     <article class="review-card">
                                         <span>Receipt hash</span>
@@ -2634,6 +2689,7 @@ function renderBiddingWorkspace() {
                                     <div><span class="section-kicker">Step 3</span><h2>${escapeBidWorkspaceHtml(profile.commercialTitle || 'Financial Offer')}</h2></div>
                                     <span class="badge badge-info" data-bid-total>${formatBidWorkspaceMoney(bidAmount)}</span>
                                 </div>
+                                ${renderBidWorkspaceFinancialRequirementsReadonly(tender)}
                                 <div class="data-table">
                                     <table>
                                         <thead><tr><th>Code</th><th>Requirement</th><th>Qty / Duration</th><th>Bid rate / fee</th><th>Amount</th></tr></thead>
@@ -2664,6 +2720,7 @@ function renderBiddingWorkspace() {
                                     </button>
                                     <p class="confirm-action-note" data-confirm-note>Confirm that this sealed bid is complete, accurate, and authorized for submission.</p>
                                 </div>
+                                ${renderBidWorkspacePaymentTermsAcceptance(tender, draft)}
                                 <div class="submit-strip">
                                     <div>
                                         <strong>Ready to seal</strong>
@@ -3031,11 +3088,15 @@ function initializeBiddingWorkspace() {
             }
         })();
         const hash = `0x${Date.now().toString(16)}${Math.random().toString(16).slice(2, 10)}`;
+        const draftSnapshot = collectDraft();
+        const paymentTermsAccepted = Boolean(draftSnapshot.responses?.payment_terms_accepted);
         const bid = {
             tenderId,
             submittedAt: new Date().toISOString(),
+            payment_terms_accepted: paymentTermsAccepted,
+            payment_terms_accepted_at: paymentTermsAccepted ? new Date().toISOString() : null,
             receiptHash: hash,
-            draft: collectDraft()
+            draft: draftSnapshot
         };
         localStorage.setItem(bidWorkspaceSubmittedStorageKey, JSON.stringify([bid, ...submitted.filter(item => item.tenderId !== tenderId)]));
         if (receiptHash) receiptHash.textContent = hash;

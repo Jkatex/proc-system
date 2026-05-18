@@ -319,6 +319,89 @@ function renderProcurexTenderDocumentSection(number, title, kicker, content, asi
     `;
 }
 
+function normalizeProcurexTenderFinancialRequirements(tender = {}) {
+    const source = tender.financial_requirements
+        || tender.requirements?.fields?.financial_requirements
+        || {};
+    const financialRequirements = source && typeof source === 'object' && !Array.isArray(source) ? source : {};
+    const normalizeBoolean = (rawValue) => rawValue === true || String(rawValue).toLowerCase() === 'true';
+    return {
+        currency: String(financialRequirements.currency || ''),
+        pricing_model: String(financialRequirements.pricing_model || ''),
+        tax_inclusion: String(financialRequirements.tax_inclusion || ''),
+        payment_method: String(financialRequirements.payment_method || ''),
+        payment_schedule: String(financialRequirements.payment_schedule || ''),
+        payment_period: String(financialRequirements.payment_period || ''),
+        invoice_requirements: Array.isArray(financialRequirements.invoice_requirements) ? financialRequirements.invoice_requirements.filter(Boolean) : [],
+        advance_payment_allowed: normalizeBoolean(financialRequirements.advance_payment_allowed),
+        advance_payment_percentage: financialRequirements.advance_payment_percentage ?? null,
+        retention_required: normalizeBoolean(financialRequirements.retention_required),
+        retention_percentage: financialRequirements.retention_percentage ?? null,
+        payment_terms_acceptance_required: financialRequirements.payment_terms_acceptance_required !== false,
+        additional_financial_notes: String(financialRequirements.additional_financial_notes || '')
+    };
+}
+
+function hasProcurexTenderFinancialRequirements(tender = {}) {
+    const requirements = normalizeProcurexTenderFinancialRequirements(tender);
+    return [
+        requirements.currency,
+        requirements.pricing_model,
+        requirements.tax_inclusion,
+        requirements.payment_method,
+        requirements.payment_schedule,
+        requirements.payment_period,
+        requirements.additional_financial_notes,
+        ...requirements.invoice_requirements
+    ].some(value => String(value || '').trim())
+        || requirements.advance_payment_allowed
+        || requirements.retention_required;
+}
+
+function formatProcurexTenderFinancialRequirementValue(value = '') {
+    if (value === 'inclusive') return 'Prices inclusive of tax';
+    if (value === 'exclusive') return 'Prices exclusive of tax';
+    return value || 'Not specified';
+}
+
+function renderProcurexTenderFinancialRequirementsReadonly(tender = {}) {
+    if (!hasProcurexTenderFinancialRequirements(tender)) {
+        return '<div class="scope-empty">No financial requirements configured.</div>';
+    }
+    const requirements = normalizeProcurexTenderFinancialRequirements(tender);
+    const rows = [
+        ['Currency', requirements.currency],
+        ['Pricing Model', requirements.pricing_model],
+        ['Tax Inclusion', formatProcurexTenderFinancialRequirementValue(requirements.tax_inclusion)],
+        ['Payment Method', requirements.payment_method],
+        ['Payment Schedule', requirements.payment_schedule],
+        ['Payment Period', requirements.payment_period],
+        ['Invoice Requirements', requirements.invoice_requirements.join(', ')],
+        ['Advance Payment', requirements.advance_payment_allowed ? `Allowed${requirements.advance_payment_percentage ? ` - ${requirements.advance_payment_percentage}%` : ''}` : 'No advance payment'],
+        ['Retention', requirements.retention_required ? `Required${requirements.retention_percentage ? ` - ${requirements.retention_percentage}%` : ''}` : 'No retention'],
+        ['Supplier Acceptance Required', requirements.payment_terms_acceptance_required ? 'Yes' : 'No']
+    ];
+
+    return `
+        <div class="financial-requirements-readonly">
+            <div class="financial-requirements-readonly-grid">
+                ${rows.map(([label, value]) => `
+                    <article>
+                        <span>${escapeSupplierTenderDetailHtml(label)}</span>
+                        <strong>${escapeSupplierTenderDetailHtml(value || 'Not specified')}</strong>
+                    </article>
+                `).join('')}
+            </div>
+            ${requirements.additional_financial_notes ? `
+                <div class="financial-requirements-notes">
+                    <span>Additional Financial Notes</span>
+                    <p>${escapeSupplierTenderDetailHtml(requirements.additional_financial_notes)}</p>
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
 function renderProcurexTenderDetailFullSections(tender = {}, profile = {}, options = {}) {
     const documents = tender.documents?.length ? tender.documents : profile.documentLabels || ['Tender document'];
     const requirementSet = options.requirementSet || getSupplierTenderRequirementSet(tender, profile);
@@ -386,7 +469,12 @@ function renderProcurexTenderDetailFullSections(tender = {}, profile = {}, optio
                 })}
             `, `<span class="badge badge-info">${documents.length} files</span>`)}
 
-            ${renderProcurexTenderDocumentSection('4', 'Evaluation Criteria and Submission Responses', 'Bid evaluation', `
+            ${renderProcurexTenderDocumentSection('4', 'Financial Requirements', 'Commercial terms', `
+                ${renderProcurexTenderFinancialRequirementsReadonly(tender)}
+                ${renderSupplierTenderClarificationPrompt('Need clarification about payment terms or commercial conditions?', 'Financial')}
+            `, hasProcurexTenderFinancialRequirements(tender) ? '<span class="badge badge-warning">Supplier acceptance</span>' : '<span class="badge badge-info">Not configured</span>')}
+
+            ${renderProcurexTenderDocumentSection('5', 'Evaluation Criteria and Submission Responses', 'Bid evaluation', `
                 <div class="data-table tender-detail-table">
                     <table>
                         <thead><tr><th>Criterion</th><th>Weight</th><th>Supplier focus</th></tr></thead>
@@ -396,7 +484,7 @@ function renderProcurexTenderDetailFullSections(tender = {}, profile = {}, optio
                 ${renderSupplierTenderClarificationPrompt('Need clarification about evaluation criteria?', 'Technical')}
             `, '<span class="badge badge-success">Published</span>')}
 
-            ${renderProcurexTenderDocumentSection('5', 'Programme and Key Dates', 'Tender timeline', `
+            ${renderProcurexTenderDocumentSection('6', 'Programme and Key Dates', 'Tender timeline', `
                 <div class="supplier-timeline-list">
                     ${renderSupplierTenderTimeline(tender)}
                 </div>
@@ -404,7 +492,7 @@ function renderProcurexTenderDetailFullSections(tender = {}, profile = {}, optio
             `, `<span class="badge badge-info">${(tender.milestones || []).length || 4} milestones</span>`)}
 
           
-            ${renderProcurexTenderDocumentSection('6', 'Deliverables and Required Outputs', 'Contract outputs', `
+            ${renderProcurexTenderDocumentSection('7', 'Deliverables and Required Outputs', 'Contract outputs', `
                 ${renderProcurexTenderDetailValue(tender.deliverables || [])}
                 ${renderSupplierTenderClarificationPrompt('Need clarification about deliverables?', 'Deliverables')}
             `, `<span class="badge badge-info">${(tender.deliverables || []).length} listed</span>`)}

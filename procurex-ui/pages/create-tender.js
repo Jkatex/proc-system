@@ -221,6 +221,72 @@ const createTenderRequirementOptions = {
     yesNo: ['Yes', 'No']
 };
 
+const createTenderFinancialRequirementOptions = {
+    currencies: ['TZS', 'USD', 'EUR', 'GBP'],
+    pricingModels: ['Fixed Price', 'Unit Rate', 'Milestone-Based', 'Time and Materials'],
+    taxInclusion: [
+        { value: 'inclusive', label: 'Prices inclusive of tax' },
+        { value: 'exclusive', label: 'Prices exclusive of tax' }
+    ],
+    paymentMethods: ['Bank Transfer', 'Mobile Money', 'Cheque', 'Other'],
+    paymentSchedules: ['After Delivery', 'Milestone-Based Payment', 'Monthly Payment', 'Advance and Final Payment', 'Upon Completion'],
+    paymentPeriods: [
+        'Within 7 days after invoice approval',
+        'Within 14 days after invoice approval',
+        'Within 30 days after invoice approval',
+        'Within 60 days after invoice approval'
+    ],
+    invoiceRequirements: ['Tax Invoice', 'Delivery Note', 'Acceptance Certificate', 'Purchase Order Reference', 'Signed Contract']
+};
+
+function getDefaultCreateTenderFinancialRequirements() {
+    return {
+        currency: '',
+        pricing_model: '',
+        tax_inclusion: '',
+        payment_method: '',
+        payment_schedule: '',
+        payment_period: '',
+        invoice_requirements: [],
+        advance_payment_allowed: false,
+        advance_payment_percentage: null,
+        retention_required: false,
+        retention_percentage: null,
+        payment_terms_acceptance_required: true,
+        additional_financial_notes: ''
+    };
+}
+
+function normalizeCreateTenderFinancialRequirements(value = {}) {
+    const defaults = getDefaultCreateTenderFinancialRequirements();
+    const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    const normalizeBoolean = (rawValue) => rawValue === true || String(rawValue).toLowerCase() === 'true';
+    const normalizePercent = (rawValue) => {
+        const parsed = Number(rawValue);
+        return Number.isFinite(parsed) ? Math.min(Math.max(parsed, 1), 100) : null;
+    };
+    const advanceAllowed = normalizeBoolean(source.advance_payment_allowed);
+    const retentionRequired = normalizeBoolean(source.retention_required);
+
+    return {
+        ...defaults,
+        ...source,
+        currency: String(source.currency || defaults.currency),
+        pricing_model: String(source.pricing_model || defaults.pricing_model),
+        tax_inclusion: String(source.tax_inclusion || defaults.tax_inclusion),
+        payment_method: String(source.payment_method || defaults.payment_method),
+        payment_schedule: String(source.payment_schedule || defaults.payment_schedule),
+        payment_period: String(source.payment_period || defaults.payment_period),
+        invoice_requirements: Array.isArray(source.invoice_requirements) ? source.invoice_requirements.filter(Boolean) : [],
+        advance_payment_allowed: advanceAllowed,
+        advance_payment_percentage: advanceAllowed ? normalizePercent(source.advance_payment_percentage) : null,
+        retention_required: retentionRequired,
+        retention_percentage: retentionRequired ? normalizePercent(source.retention_percentage) : null,
+        payment_terms_acceptance_required: source.payment_terms_acceptance_required !== false,
+        additional_financial_notes: String(source.additional_financial_notes || '')
+    };
+}
+
 const createTenderWorksContractTypeDescriptions = {
     'Lump Sum Contract': 'A single total price is agreed for the whole work or project.',
     'Unit Price Contract': 'Payment is based on measured quantities completed.',
@@ -248,6 +314,23 @@ function createTenderFinancialCapacitySection() {
                     { id: 'evidenceRequired', label: 'Evidence required', type: 'tag-select', options: createTenderRequirementOptions.financialEvidence },
                     { id: 'mandatory', label: 'Mandatory', type: 'toggle' }
                 ]
+            }
+        ]
+    };
+}
+
+function createTenderFinancialRequirementsSection() {
+    return {
+        id: 'financialRequirements',
+        title: 'Financial Requirements',
+        hint: 'Define financial and commercial conditions suppliers must accept before submitting a bid.',
+        controls: [
+            {
+                id: 'financial_requirements',
+                label: '',
+                type: 'financial-requirements',
+                required: true,
+                defaultValue: getDefaultCreateTenderFinancialRequirements()
             }
         ]
     };
@@ -321,6 +404,7 @@ const createTenderRequirementTemplates = {
                 ]
             },
             createTenderFinancialCapacitySection(),
+            createTenderFinancialRequirementsSection(),
             
             {
                 id: 'eligibilityRequirements',
@@ -529,7 +613,8 @@ const createTenderRequirementTemplates = {
                     }
                 ]
             },
-            createTenderFinancialCapacitySection()
+            createTenderFinancialCapacitySection(),
+            createTenderFinancialRequirementsSection()
         ]
     },
     services: {
@@ -546,6 +631,7 @@ const createTenderRequirementTemplates = {
                 ]
             },
             createTenderFinancialCapacitySection(),
+            createTenderFinancialRequirementsSection(),
             {
                 id: 'staffingRequirements',
                 title: 'Personnel Requirements',
@@ -962,6 +1048,7 @@ const createTenderRequirementTemplates = {
                 ]
             },
             createTenderFinancialCapacitySection(),
+            createTenderFinancialRequirementsSection(),
             {
                 id: 'consultancyInstitutionalArrangements',
                 title: '7. Institutional and Organizational Arrangements',
@@ -1612,7 +1699,9 @@ function getCreateTenderRequirementDefaultFields(profileId = 'works') {
             if (control.defaultValue !== undefined) {
                 defaults[control.id] = Array.isArray(control.defaultValue)
                     ? control.defaultValue.map(item => ({ ...item }))
-                    : control.defaultValue;
+                    : control.defaultValue && typeof control.defaultValue === 'object'
+                        ? { ...control.defaultValue }
+                        : control.defaultValue;
             }
             return defaults;
         }, {});
@@ -1691,6 +1780,10 @@ function getCreateTenderRequirementDraft(profileId = 'works') {
         fields,
         lists: { ...(requirements[profileId]?.lists || {}) }
     };
+}
+
+function getCreateTenderFinancialRequirements(profileId = 'works') {
+    return normalizeCreateTenderFinancialRequirements(getCreateTenderRequirementDraft(profileId).fields?.financial_requirements);
 }
 
 function saveCreateTenderRequirementDraft(profileId, requirementDraft) {
@@ -2631,6 +2724,135 @@ function renderCreateTenderRequirementAccordion(control, value = {}) {
     `;
 }
 
+function renderCreateTenderFinancialRequirementsControl(control, value = {}) {
+    const requirements = normalizeCreateTenderFinancialRequirements(value);
+    const renderSelect = (field, options, selectedValue, label) => `
+        <select class="form-input" data-financial-requirement-field="${escapeCreateTenderHtml(field)}" aria-label="${escapeCreateTenderHtml(label)}" required>
+            ${renderCreateTenderRequirementSelectOptions(options, selectedValue)}
+        </select>
+    `;
+    const renderRadioGroup = (field, options, selectedValue) => `
+        <div class="requirement-choice-group" role="radiogroup">
+            ${options.map(option => `
+                <label class="requirement-choice-option">
+                    <input type="radio" name="financial-${escapeCreateTenderHtml(field)}" value="${escapeCreateTenderHtml(option.value)}" data-financial-requirement-field="${escapeCreateTenderHtml(field)}" ${selectedValue === option.value ? 'checked' : ''} required>
+                    <span>${escapeCreateTenderHtml(option.label)}</span>
+                </label>
+            `).join('')}
+        </div>
+    `;
+    const selectedInvoiceRequirements = new Set(requirements.invoice_requirements || []);
+    const needsInvoiceSelection = selectedInvoiceRequirements.size === 0;
+
+    return `
+        <div class="financial-requirements-builder" data-financial-requirements-builder data-requirement-input="${escapeCreateTenderHtml(control.id)}">
+            <section class="financial-requirement-card">
+                <div class="financial-requirement-card-heading">
+                    <span class="section-kicker">Pricing</span>
+                    <h5>Pricing conditions</h5>
+                </div>
+                <div class="form-grid two">
+                    <label class="form-group">
+                        <span class="form-label">Currency</span>
+                        ${renderSelect('currency', createTenderFinancialRequirementOptions.currencies, requirements.currency, 'Currency')}
+                    </label>
+                    <label class="form-group">
+                        <span class="form-label">Pricing Model</span>
+                        ${renderSelect('pricing_model', createTenderFinancialRequirementOptions.pricingModels, requirements.pricing_model, 'Pricing Model')}
+                    </label>
+                    <div class="form-group wide">
+                        <span class="form-label">Tax Inclusion</span>
+                        ${renderRadioGroup('tax_inclusion', createTenderFinancialRequirementOptions.taxInclusion, requirements.tax_inclusion)}
+                    </div>
+                </div>
+            </section>
+
+            <section class="financial-requirement-card">
+                <div class="financial-requirement-card-heading">
+                    <span class="section-kicker">Payment</span>
+                    <h5>Payment method and timing</h5>
+                </div>
+                <div class="form-grid two">
+                    <label class="form-group">
+                        <span class="form-label">Payment Method</span>
+                        ${renderSelect('payment_method', createTenderFinancialRequirementOptions.paymentMethods, requirements.payment_method, 'Payment Method')}
+                    </label>
+                    <label class="form-group">
+                        <span class="form-label">Payment Schedule</span>
+                        ${renderSelect('payment_schedule', createTenderFinancialRequirementOptions.paymentSchedules, requirements.payment_schedule, 'Payment Schedule')}
+                    </label>
+                    <label class="form-group wide">
+                        <span class="form-label">Payment Period</span>
+                        ${renderSelect('payment_period', createTenderFinancialRequirementOptions.paymentPeriods, requirements.payment_period, 'Payment Period')}
+                    </label>
+                </div>
+            </section>
+
+            <section class="financial-requirement-card">
+                <div class="financial-requirement-card-heading">
+                    <span class="section-kicker">Invoicing</span>
+                    <h5>Invoice requirements</h5>
+                </div>
+                <div class="requirement-multiselect financial-invoice-options">
+                    ${createTenderFinancialRequirementOptions.invoiceRequirements.map((option, index) => `
+                        <label>
+                            <input type="checkbox" value="${escapeCreateTenderHtml(option)}" data-financial-requirement-invoice ${index === 0 && needsInvoiceSelection ? 'required' : ''} ${selectedInvoiceRequirements.has(option) ? 'checked' : ''}>
+                            <span>${escapeCreateTenderHtml(option)}</span>
+                        </label>
+                    `).join('')}
+                </div>
+                <span class="form-hint">Select at least one invoice requirement.</span>
+            </section>
+
+            <section class="financial-requirement-card">
+                <div class="financial-requirement-card-heading">
+                    <span class="section-kicker">Adjustments</span>
+                    <h5>Advance payment and retention</h5>
+                </div>
+                <div class="form-grid two">
+                    <div class="form-group">
+                        <span class="form-label">Advance Payment</span>
+                        ${renderRadioGroup('advance_payment_allowed', [
+                            { value: 'false', label: 'No advance payment' },
+                            { value: 'true', label: 'Advance payment allowed' }
+                        ], String(Boolean(requirements.advance_payment_allowed)))}
+                    </div>
+                    <label class="form-group" ${requirements.advance_payment_allowed ? '' : 'hidden'}>
+                        <span class="form-label">Advance Payment Percentage</span>
+                        <input class="form-input" type="number" min="1" max="100" value="${escapeCreateTenderHtml(requirements.advance_payment_percentage || '')}" data-financial-requirement-field="advance_payment_percentage" ${requirements.advance_payment_allowed ? 'required' : ''}>
+                    </label>
+                    <div class="form-group">
+                        <span class="form-label">Retention</span>
+                        ${renderRadioGroup('retention_required', [
+                            { value: 'false', label: 'No retention' },
+                            { value: 'true', label: 'Retention required' }
+                        ], String(Boolean(requirements.retention_required)))}
+                    </div>
+                    <label class="form-group" ${requirements.retention_required ? '' : 'hidden'}>
+                        <span class="form-label">Retention Percentage</span>
+                        <input class="form-input" type="number" min="1" max="100" value="${escapeCreateTenderHtml(requirements.retention_percentage || '')}" data-financial-requirement-field="retention_percentage" ${requirements.retention_required ? 'required' : ''}>
+                    </label>
+                </div>
+            </section>
+
+            <section class="financial-requirement-card">
+                <div class="financial-requirement-card-heading">
+                    <span class="section-kicker">Supplier acceptance</span>
+                    <h5>Bid submission condition</h5>
+                </div>
+                <label class="bid-response-check financial-acceptance-setting">
+                    <input type="checkbox" data-financial-requirement-field="payment_terms_acceptance_required" ${requirements.payment_terms_acceptance_required ? 'checked' : ''}>
+                    <span>Suppliers must accept the payment terms before submitting their bid.</span>
+                </label>
+                <label class="form-group wide">
+                    <span class="form-label">Additional Financial Notes</span>
+                    <textarea class="form-input" rows="4" data-financial-requirement-field="additional_financial_notes" placeholder="Enter any additional financial instructions, payment conditions, or commercial notes.">${escapeCreateTenderHtml(requirements.additional_financial_notes)}</textarea>
+                </label>
+            </section>
+        </div>
+    `;
+}
+
 function renderCreateTenderRequirementControl(control, value, profileId = '') {
     if (control.type === 'regulatory-licenses') {
         return renderCreateTenderRegulatoryLicensePanel(getCreateTenderTypeProfile({ id: profileId }), {
@@ -2659,6 +2881,10 @@ function renderCreateTenderRequirementControl(control, value, profileId = '') {
         return renderCreateTenderRequirementAccordion(control, value);
     }
 
+    if (control.type === 'financial-requirements') {
+        return renderCreateTenderFinancialRequirementsControl(control, value);
+    }
+
     return renderCreateTenderRequirementField(control, value, `id="requirement-${escapeCreateTenderHtml(control.id)}" data-requirement-input="${escapeCreateTenderHtml(control.id)}"`);
 }
 
@@ -2679,7 +2905,7 @@ function renderCreateTenderRequirementSectionBlock(section, requirementDraft, pr
                     if (!control.showWhen) return true;
                     return isCreateTenderShowWhenMatched(control.showWhen, requirementDraft.fields);
                 }).map(control => `
-                    <div class="requirement-control ${['table', 'cards', 'accordion', 'textarea', 'richtext', 'regulatory-licenses', 'product-spec-builder'].includes(control.type) ? 'requirement-control-wide' : ''}">
+                    <div class="requirement-control ${['table', 'cards', 'accordion', 'textarea', 'richtext', 'regulatory-licenses', 'product-spec-builder', 'financial-requirements'].includes(control.type) ? 'requirement-control-wide' : ''}">
                         ${control.label ? `<span class="form-label">${escapeCreateTenderHtml(control.label)}</span>` : ''}
                         ${renderCreateTenderRequirementControl(control, requirementDraft.fields?.[control.id], profileId)}
                         ${getCreateTenderRequirementHelperText(control, requirementDraft.fields?.[control.id])
@@ -2767,6 +2993,24 @@ function getCreateTenderRequirementOptionValue(option) {
 }
 
 function isCreateTenderRequirementControlValid(control = {}, value = '') {
+    if (control.type === 'financial-requirements') {
+        const requirements = normalizeCreateTenderFinancialRequirements(value);
+        const hasCoreFields = [
+            requirements.currency,
+            requirements.pricing_model,
+            requirements.tax_inclusion,
+            requirements.payment_method,
+            requirements.payment_schedule,
+            requirements.payment_period
+        ].every(item => String(item || '').trim());
+        const hasInvoiceRequirement = requirements.invoice_requirements.length > 0;
+        const hasAdvancePercentage = !requirements.advance_payment_allowed || Boolean(requirements.advance_payment_percentage);
+        const hasRetentionPercentage = !requirements.retention_required || Boolean(requirements.retention_percentage);
+        return hasCoreFields
+            && hasInvoiceRequirement
+            && hasAdvancePercentage
+            && hasRetentionPercentage;
+    }
     if (!isCreateTenderRequirementValueFilled(value)) return false;
     if (control.type === 'select-custom-prompt') return !['Other', 'Others'].includes(String(value || '').trim());
     if (control.type !== 'select') return true;
@@ -3521,6 +3765,7 @@ function publishCreateTenderToMarketplace(wizard) {
     if (!evaluationSummary.isBalanced) return null;
     const systemEvaluation = getCreateTenderSavedSystemEvaluation(profile.id);
     if (!isCreateTenderSavedSystemEvaluationCurrent(profile)) return null;
+    const financialRequirements = getCreateTenderFinancialRequirements(profile.id);
     const requirementSummary = getCreateTenderRequirementSummary(profile, getCreateTenderMainDraft());
     const boqItems = getCreateTenderBoqItems(profile);
     const budget = getCreateTenderBoqTotal(boqItems);
@@ -3544,6 +3789,7 @@ function publishCreateTenderToMarketplace(wizard) {
         documents,
         requiredSubmissionDocuments,
         requirements: getCreateTenderRequirementDraft(profile.id),
+        financial_requirements: financialRequirements,
         evaluation: evaluationDraft,
         systemEvaluation,
         regulatoryLicenses: getCreateTenderRegulatoryLicenses(profile),
@@ -3600,6 +3846,7 @@ function buildCreateTenderDocumentPreview(wizard) {
     const profile = getCreateTenderTypeProfile(selectedType);
     const requirementSummary = getCreateTenderRequirementSummary(profile, getCreateTenderMainDraft());
     const boqItems = getCreateTenderBoqItems(profile);
+    const financialRequirements = getCreateTenderFinancialRequirements(profile.id);
 
     return {
         id: 'DRAFT-TENDER',
@@ -3617,6 +3864,7 @@ function buildCreateTenderDocumentPreview(wizard) {
         documents: profile.documentLabels || [],
         requiredSubmissionDocuments: getCreateTenderRequiredAttachments(profile).map(item => item.text).filter(Boolean),
         requirements: getCreateTenderRequirementDraft(profile.id),
+        financial_requirements: financialRequirements,
         evaluation: getCreateTenderEvaluationDraft(profile.id),
         systemEvaluation: getCreateTenderSavedSystemEvaluation(profile.id),
         regulatoryLicenses: getCreateTenderRegulatoryLicenses(profile),
@@ -5629,8 +5877,11 @@ function initializeCreateTenderWizard() {
 
         const field = wizard.querySelector(`[data-requirement-input="${CSS.escape(firstMissingControl.id)}"]`);
         field?.classList.add('error');
-        field?.reportValidity();
-        field?.focus();
+        const invalidField = field?.matches?.('[required]') && !field.checkValidity()
+            ? field
+            : field?.querySelector?.('[required]:invalid');
+        invalidField?.reportValidity?.();
+        (invalidField || field)?.focus?.();
         return false;
     };
 
@@ -6066,6 +6317,18 @@ function initializeCreateTenderWizard() {
             return;
         }
 
+        if (control.type === 'financial-requirements') {
+            const builder = wizard.querySelector(`[data-financial-requirements-builder][data-requirement-input="${CSS.escape(controlId)}"]`);
+            const controlNode = builder?.closest('.requirement-control');
+            if (controlNode) {
+                controlNode.innerHTML = `
+                    ${control.label ? `<span class="form-label">${escapeCreateTenderHtml(control.label)}</span>` : ''}
+                    ${renderCreateTenderFinancialRequirementsControl(control, getRequirementControlValue(controlId))}
+                `;
+            }
+            return;
+        }
+
         const inputNode = wizard.querySelector(`[data-requirement-input="${CSS.escape(controlId)}"]`);
         const controlNode = inputNode?.closest('.requirement-control');
         if (controlNode) {
@@ -6094,6 +6357,45 @@ function initializeCreateTenderWizard() {
         if (shouldRefreshContractTypeControl || controlId === 'serviceCategory' || controlId === 'requireSamples' || controlId === 'siteVisitRequirement' || controlId === 'bankStatementsRequired') {
             refreshProfileText();
             wizard.querySelector(`[data-requirement-input="${CSS.escape(controlId)}"]`)?.focus();
+        }
+    };
+
+    const syncFinancialRequirementInvoiceValidity = (builder) => {
+        const checkboxes = Array.from(builder?.querySelectorAll('[data-financial-requirement-invoice]') || []);
+        const selectedCount = checkboxes.filter(input => input.checked).length;
+        checkboxes.forEach((input, index) => {
+            input.required = index === 0 && selectedCount === 0;
+            input.classList.toggle('error', selectedCount === 0);
+        });
+    };
+
+    const updateFinancialRequirementField = (input) => {
+        const builder = input.closest('[data-financial-requirements-builder]');
+        const controlId = builder?.dataset.requirementInput || 'financial_requirements';
+        const currentValue = normalizeCreateTenderFinancialRequirements(getRequirementControlValue(controlId));
+
+        if (input.matches('[data-financial-requirement-invoice]')) {
+            currentValue.invoice_requirements = Array.from(builder.querySelectorAll('[data-financial-requirement-invoice]:checked')).map(item => item.value);
+        } else {
+            const field = input.dataset.financialRequirementField;
+            if (!field) return;
+            if (field === 'advance_payment_allowed' || field === 'retention_required') {
+                currentValue[field] = input.value === 'true';
+            } else if (field === 'payment_terms_acceptance_required') {
+                currentValue[field] = input.checked;
+            } else if (field === 'advance_payment_percentage' || field === 'retention_percentage') {
+                currentValue[field] = input.value ? Number(input.value) : null;
+            } else {
+                currentValue[field] = input.value;
+            }
+        }
+
+        const normalizedValue = normalizeCreateTenderFinancialRequirements(currentValue);
+        saveRequirementControlValue(controlId, normalizedValue);
+        syncFinancialRequirementInvoiceValidity(builder);
+
+        if (['advance_payment_allowed', 'retention_required'].includes(input.dataset.financialRequirementField || '')) {
+            renderRequirementControl(controlId);
         }
     };
 
@@ -6372,6 +6674,9 @@ function initializeCreateTenderWizard() {
         if (event.target?.matches('[data-requirement-input]')) {
             updateRequirementInput(event.target);
         }
+        if (event.target?.matches('[data-financial-requirement-field], [data-financial-requirement-invoice]')) {
+            updateFinancialRequirementField(event.target);
+        }
         if (event.target?.matches('[data-requirement-list-input]')) {
             updateRequirementListItem(event.target);
         }
@@ -6450,6 +6755,9 @@ function initializeCreateTenderWizard() {
         }
         if (event.target?.matches('[data-requirement-input]')) {
             updateRequirementInput(event.target);
+        }
+        if (event.target?.matches('[data-financial-requirement-field], [data-financial-requirement-invoice]')) {
+            updateFinancialRequirementField(event.target);
         }
         if (event.target?.matches('[data-requirement-list-input]')) {
             updateRequirementListItem(event.target);
