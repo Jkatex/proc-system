@@ -1034,9 +1034,52 @@ function renderGoodsBidProductSpecificationResponse(tender = {}, draft = {}) {
     `;
 }
 
+function getBidWorkspaceTendererCsvTemplateStats(tender = {}) {
+    const template = normalizeBidWorkspaceProductSpecificationTemplate(tender);
+    const quantityRows = getGoodsBidQuantityRows(tender);
+    return {
+        hasBuyerSpecificationRows: template.rows.length > 0,
+        rowCount: template.rows.length || quantityRows.length
+    };
+}
+
+function renderBidWorkspaceTendererCsvTemplatePanel(tender = {}) {
+    const stats = getBidWorkspaceTendererCsvTemplateStats(tender);
+    const description = stats.hasBuyerSpecificationRows
+        ? 'Download the supplier response CSV with the buyer specification lines already prepared.'
+        : 'Download a supplier response CSV using the goods line items while no buyer specification table is configured.';
+
+    return `
+        <section class="tenderer-template-download">
+            <div>
+                <span class="section-kicker">Tenderer template</span>
+                <h3>Download CSV response template</h3>
+                <p>${description}</p>
+            </div>
+            <div class="tenderer-template-actions">
+                <span class="badge badge-info">${stats.rowCount} template row${stats.rowCount === 1 ? '' : 's'}</span>
+                <button class="btn btn-secondary" type="button" data-bid-download-tenderer-csv-template>Download CSV Template</button>
+            </div>
+        </section>
+    `;
+}
+
 function formatBidWorkspaceCsvCell(value = '') {
     const text = String(value ?? '');
     return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function downloadBidWorkspaceCsv(rows = [], filename = 'template.csv') {
+    const csv = `\uFEFF${rows.map(row => row.map(formatBidWorkspaceCsvCell).join(',')).join('\r\n')}\r\n`;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
 }
 
 function downloadBidWorkspaceProductSpecificationCsv(tender = {}) {
@@ -1045,16 +1088,49 @@ function downloadBidWorkspaceProductSpecificationCsv(tender = {}) {
         template.columns.map(column => column.label),
         ...template.rows.map(row => template.columns.map(column => row.values?.[column.id] || ''))
     ];
-    const csv = `\uFEFF${rows.map(row => row.map(formatBidWorkspaceCsvCell).join(',')).join('\r\n')}\r\n`;
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.href = url;
-    link.download = 'buyer-product-specification-template.csv';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+    downloadBidWorkspaceCsv(rows, 'buyer-product-specification-template.csv');
+}
+
+function downloadBidWorkspaceTendererTechnicalResponseCsv(tender = {}) {
+    const template = normalizeBidWorkspaceProductSpecificationTemplate(tender);
+    const columns = [
+        'Item No',
+        'Requested Product',
+        'Quantity',
+        'Unit',
+        'Buyer Specification',
+        'Buyer Requirement',
+        'Compliance Status',
+        'Supplier Offered Specification',
+        'Supporting Evidence File',
+        'Remarks'
+    ];
+    const rows = template.rows.length
+        ? template.rows.map(row => ([
+            row.values?.itemNo || '',
+            row.values?.productName || '',
+            row.values?.quantity || '',
+            row.values?.unit || '',
+            row.values?.specificationName || '',
+            row.values?.acceptableRequirement || '',
+            '',
+            '',
+            '',
+            ''
+        ]))
+        : getGoodsBidQuantityRows(tender).map((item, index) => ([
+            item.itemNumber || item.item || String(index + 1),
+            getGoodsBidItemDescription(item, index),
+            item.quantity || item.qty || '',
+            item.unitOfMeasure || item.unit || '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            ''
+        ]));
+    downloadBidWorkspaceCsv([columns, ...rows], 'tenderer-technical-response-template.csv');
 }
 
 function renderGoodsBidProductDetailResponse(tender = {}, draft = {}) {
@@ -2209,7 +2285,8 @@ function renderBiddingWorkspace() {
                                 <div class="bid-step-intro">
                                     <strong>Complete the buyer's specification table</strong>
                                     <span>Fill in your offered product specification against the buyer's required format. Do not change buyer columns, required rows, or the template structure.</span>
-                                </div>Technical Response
+                                </div>
+                                ${renderBidWorkspaceTendererCsvTemplatePanel(tender)}
                                 ${renderBidWorkspaceClarificationPrompt('Need clarification about product specifications?', 'Technical', 'Question about goods product specifications or compliance')}
                                 ${renderGoodsBidProductSpecificationResponse(tender, draft)}
                             </section>
@@ -3060,6 +3137,11 @@ function initializeBiddingWorkspace() {
 
         if (target.matches('[data-bid-download-product-spec-template]')) {
             downloadBidWorkspaceProductSpecificationCsv(tender);
+            return;
+        }
+
+        if (target.matches('[data-bid-download-tenderer-csv-template]')) {
+            downloadBidWorkspaceTendererTechnicalResponseCsv(tender);
             return;
         }
 

@@ -4968,6 +4968,40 @@ textarea.form-input {
     gap: 10px;
 }
 
+.tenderer-template-download {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 18px;
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    background: var(--surface-muted);
+}
+
+.tenderer-template-download h3 {
+    margin: 4px 0 6px;
+    color: var(--text-primary);
+    font-size: 18px;
+}
+
+.tenderer-template-download p {
+    max-width: 680px;
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.tenderer-template-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
 .product-spec-sheet-wrap,
 .product-spec-response-table-wrap {
     overflow-x: auto;
