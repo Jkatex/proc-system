@@ -3022,6 +3022,785 @@ const mockData = {
             interestedSuppliers: [
                 { name: 'Quality Catering Services', status: 'Downloaded', lastActivity: 'Today' }
             ]
+        },
+        {
+            id: 'PX-GDS-2026-009',
+            title: 'Supply of Printer Paper 1000 Reams',
+            type: 'Goods',
+            procurementTypeId: 'goods',
+            status: 'Open',
+            budget: 3600000,
+            closingDate: '2026-06-15',
+            organization: 'District Office',
+            description: 'Supply of A4 printer paper 80gsm 1000 reams.',
+            eligibility: 'Local stationery supplier.',
+            category: 'Office Supplies',
+            categories: ['Office Supplies'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'District Office',
+            commercialModel: 'Quantity Schedule',
+            documents: [],
+            regulatoryLicenses: [],
+            requirements: {
+                fields: {
+                    quantityScheduleRows: [
+                        { itemDescription: 'A4 paper 80gsm 500 sheets', unitOfMeasure: 'Ream', quantity: 1000, unitPrice: 3600, totalPrice: 3600000, mandatory: true }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Price', weight: 100, subcriteria: [] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-05-28' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-15' },
+                { id: 'milestone-award', name: 'Award', date: '2026-06-22' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'A4 paper 80gsm', qty: 1000, unit: 'Ream', rate: 3600 }
+            ],
+            deliverables: ['Paper delivered'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: [
+                { name: 'Local Stationery Shop', status: 'Watching', lastActivity: 'Today' }
+            ]
+        },
+        {
+            id: 'PX-GDS-2026-010',
+            title: 'Supply of Cleaning Supplies - 3 Months Stock',
+            type: 'Goods',
+            procurementTypeId: 'goods',
+            status: 'Open',
+            budget: 4800000,
+            closingDate: '2026-06-18',
+            organization: 'Small Health Center',
+            description: 'Cleaning detergent, disinfectant, mops, brooms for 3-month supply.',
+            eligibility: 'Local cleaning supplier.',
+            category: 'Cleaning Equipment and Supplies',
+            categories: ['Cleaning Equipment and Supplies'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Health Center Store',
+            commercialModel: 'Quantity Schedule',
+            documents: [],
+            regulatoryLicenses: [],
+            requirements: {
+                fields: {
+                    quantityScheduleRows: [
+                        { itemDescription: 'Detergent floor cleaner 20L', unitOfMeasure: 'Drum', quantity: 4, unitPrice: 450000, totalPrice: 1800000, mandatory: true },
+                        { itemDescription: 'Disinfectant spray 500ml', unitOfMeasure: 'Bottle', quantity: 24, unitPrice: 60000, totalPrice: 1440000, mandatory: true },
+                        { itemDescription: 'Mops and broom set', unitOfMeasure: 'Set', quantity: 3, unitPrice: 520000, totalPrice: 1560000, mandatory: true }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Price', weight: 80, subcriteria: ['Total cost'] },
+                    { name: 'Quality', weight: 20, subcriteria: ['Product grade'] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-05-30' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-18' },
+                { id: 'milestone-award', name: 'Award', date: '2026-06-25' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Cleaning supplies package', qty: 1, unit: 'Package', rate: 4800000 }
+            ],
+            deliverables: ['Supplies delivered'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: []
+        },
+        {
+            id: 'PX-GDS-2026-011',
+            title: 'Supply of 50 School Desks',
+            type: 'Goods',
+            procurementTypeId: 'goods',
+            status: 'Open',
+            budget: 7500000,
+            closingDate: '2026-06-20',
+            organization: 'Primary School',
+            description: 'Supply of 50 school desks with attached chairs.',
+            eligibility: 'School furniture supplier.',
+            category: 'Classroom and instructional furniture',
+            categories: ['Classroom and instructional furniture'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Primary School',
+            commercialModel: 'Quantity Schedule',
+            documents: [],
+            regulatoryLicenses: [],
+            requirements: {
+                fields: {
+                    quantityScheduleRows: [
+                        { itemDescription: 'School desk with attached chair', unitOfMeasure: 'Unit', quantity: 50, unitPrice: 150000, totalPrice: 7500000, mandatory: true }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Price', weight: 70, subcriteria: [] },
+                    { name: 'Quality', weight: 30, subcriteria: [] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-05-31' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-20' },
+                { id: 'milestone-award', name: 'Award', date: '2026-06-27' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'School desk with chair', qty: 50, unit: 'Unit', rate: 150000 }
+            ],
+            deliverables: ['Desks delivered and functional'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: [
+                { name: 'School Furniture Ltd', status: 'Downloaded', lastActivity: 'Today' }
+            ]
+        },
+        {
+            id: 'PX-GDS-2026-012',
+            title: 'Supply of Basic First Aid Kits',
+            type: 'Goods',
+            procurementTypeId: 'goods',
+            status: 'Open',
+            budget: 2400000,
+            closingDate: '2026-06-17',
+            organization: 'Community Center',
+            description: 'Supply of 20 basic first aid kits for community centers.',
+            eligibility: 'Medical supplies vendor.',
+            category: 'Medical supplies',
+            categories: ['Laboratory and scientific equipment'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Community Centers',
+            commercialModel: 'Quantity Schedule',
+            documents: [],
+            regulatoryLicenses: [],
+            requirements: {
+                fields: {
+                    quantityScheduleRows: [
+                        { itemDescription: 'Basic first aid kit', unitOfMeasure: 'Kit', quantity: 20, unitPrice: 120000, totalPrice: 2400000, mandatory: true }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Price', weight: 100, subcriteria: [] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-06-01' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-17' },
+                { id: 'milestone-award', name: 'Award', date: '2026-06-24' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'First aid kit', qty: 20, unit: 'Kit', rate: 120000 }
+            ],
+            deliverables: ['Kits delivered'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: []
+        },
+        {
+            id: 'PX-GDS-2026-013',
+            title: 'Supply of LED Light Bulbs 500 Units',
+            type: 'Goods',
+            procurementTypeId: 'goods',
+            status: 'Open',
+            budget: 5750000,
+            closingDate: '2026-06-22',
+            organization: 'Municipal Office',
+            description: 'Supply of 500 LED light bulbs for office lighting replacement.',
+            eligibility: 'Electrical supplies vendor.',
+            category: 'Lighting Fixtures and Accessories',
+            categories: ['Lighting Fixtures and Accessories'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Municipal Office',
+            commercialModel: 'Quantity Schedule',
+            documents: [],
+            regulatoryLicenses: [],
+            requirements: {
+                fields: {
+                    quantityScheduleRows: [
+                        { itemDescription: 'LED bulb 9W Cool White', unitOfMeasure: 'Unit', quantity: 500, unitPrice: 11500, totalPrice: 5750000, mandatory: true }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Price', weight: 60, subcriteria: [] },
+                    { name: 'Quality', weight: 40, subcriteria: [] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-06-03' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-22' },
+                { id: 'milestone-award', name: 'Award', date: '2026-06-29' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'LED bulb 9W', qty: 500, unit: 'Unit', rate: 11500 }
+            ],
+            deliverables: ['Bulbs delivered'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: []
+        },
+        {
+            id: 'PX-GDS-2026-014',
+            title: 'Supply of Mattresses 40 Units',
+            type: 'Goods',
+            procurementTypeId: 'goods',
+            status: 'Open',
+            budget: 12000000,
+            closingDate: '2026-06-25',
+            organization: 'Student Hostel',
+            description: 'Supply of 40 single bed foam mattresses for student hostel.',
+            eligibility: 'Furniture supplier.',
+            category: 'Bedding and Furniture',
+            categories: ['Accommodation and Office furniture'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Student Hostel',
+            commercialModel: 'Quantity Schedule',
+            documents: [],
+            regulatoryLicenses: [],
+            requirements: {
+                fields: {
+                    quantityScheduleRows: [
+                        { itemDescription: 'Single foam mattress 6 inch', unitOfMeasure: 'Unit', quantity: 40, unitPrice: 300000, totalPrice: 12000000, mandatory: true }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Price', weight: 50, subcriteria: [] },
+                    { name: 'Comfort and durability', weight: 50, subcriteria: [] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-06-04' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-25' },
+                { id: 'milestone-award', name: 'Award', date: '2026-07-02' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Foam mattress', qty: 40, unit: 'Unit', rate: 300000 }
+            ],
+            deliverables: ['Mattresses delivered'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: []
+        },
+        {
+            id: 'PX-GDS-2026-015',
+            title: 'Supply of Traffic Cones 100 Units',
+            type: 'Goods',
+            procurementTypeId: 'goods',
+            status: 'Open',
+            budget: 2500000,
+            closingDate: '2026-06-19',
+            organization: 'Public Works Department',
+            description: 'Supply of 100 orange traffic cones 75cm height.',
+            eligibility: 'Safety equipment vendor.',
+            category: 'Fire Fighting Equipment',
+            categories: ['Fire Fighting Equipment'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Public Works Depot',
+            commercialModel: 'Quantity Schedule',
+            documents: [],
+            regulatoryLicenses: [],
+            requirements: {
+                fields: {
+                    quantityScheduleRows: [
+                        { itemDescription: 'Traffic cone 75cm orange', unitOfMeasure: 'Unit', quantity: 100, unitPrice: 25000, totalPrice: 2500000, mandatory: true }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Price', weight: 100, subcriteria: [] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-06-02' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-19' },
+                { id: 'milestone-award', name: 'Award', date: '2026-06-26' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Traffic cone', qty: 100, unit: 'Unit', rate: 25000 }
+            ],
+            deliverables: ['Cones delivered'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: []
+        },
+        {
+            id: 'PX-WRK-2026-010',
+            title: 'Minor Repairs to Water Tap System',
+            type: 'Works',
+            procurementTypeId: 'works',
+            status: 'Open',
+            budget: 1800000,
+            closingDate: '2026-06-17',
+            organization: 'Village Water Kiosk',
+            description: 'Repair water tap leakage and valve replacement at village water kiosk.',
+            eligibility: 'Local plumber.',
+            category: 'Water infrastructure',
+            categories: ['Water Pumps and Spare Parts'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Village Water Kiosk',
+            commercialModel: 'BOQ',
+            contractType: 'Unit Price Contract',
+            documents: [],
+            regulatoryLicenses: [],
+            requirements: {
+                fields: {
+                    boqRows: [
+                        { workItem: 'Tap repair and valve replacement', quantity: 1, unit: 'Lot', laborCost: 600000, materialCost: 900000, equipmentCost: 300000, totalCost: 1800000, mandatory: true }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Price', weight: 100, subcriteria: [] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-05-31' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-17' },
+                { id: 'milestone-award', name: 'Award', date: '2026-06-24' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Water tap repair', qty: 1, unit: 'Lot', rate: 1800000 }
+            ],
+            deliverables: ['Repaired water tap system'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: []
+        },
+        {
+            id: 'PX-WRK-2026-011',
+            title: 'Paint Classroom Walls',
+            type: 'Works',
+            procurementTypeId: 'works',
+            status: 'Open',
+            budget: 3200000,
+            closingDate: '2026-06-20',
+            organization: 'Primary School',
+            description: 'Interior repainting of 2 classrooms (approx. 150 sqm).',
+            eligibility: 'Painter.',
+            category: 'Building maintenance',
+            categories: ['Exterior finishing materials'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Primary School',
+            commercialModel: 'BOQ',
+            contractType: 'Unit Price Contract',
+            documents: [],
+            regulatoryLicenses: [],
+            requirements: {
+                fields: {
+                    boqRows: [
+                        { workItem: 'Wall preparation, priming and painting', quantity: 150, unit: 'Sqm', laborCost: 1200000, materialCost: 1600000, equipmentCost: 400000, totalCost: 3200000, mandatory: true }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Price', weight: 80, subcriteria: [] },
+                    { name: 'Quality finish', weight: 20, subcriteria: [] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-06-03' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-20' },
+                { id: 'milestone-award', name: 'Award', date: '2026-06-27' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Wall painting', qty: 150, unit: 'Sqm', rate: 21333 }
+            ],
+            deliverables: ['Painted classrooms'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: []
+        },
+        {
+            id: 'PX-WRK-2026-012',
+            title: 'Fixing Window Panes 20 Units',
+            type: 'Works',
+            procurementTypeId: 'works',
+            status: 'Open',
+            budget: 4200000,
+            closingDate: '2026-06-18',
+            organization: 'School Building',
+            description: 'Replace broken window panes and fix frames in school building (20 windows).',
+            eligibility: 'Glass worker.',
+            category: 'Building maintenance',
+            categories: ['Doors and windows and glass'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'School Building',
+            commercialModel: 'BOQ',
+            contractType: 'Unit Price Contract',
+            documents: [],
+            regulatoryLicenses: [],
+            requirements: {
+                fields: {
+                    boqRows: [
+                        { workItem: 'Window pane replacement with frame fixing', quantity: 20, unit: 'Unit', laborCost: 800000, materialCost: 2800000, equipmentCost: 600000, totalCost: 4200000, mandatory: true }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Price', weight: 100, subcriteria: [] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-06-02' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-18' },
+                { id: 'milestone-award', name: 'Award', date: '2026-06-25' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Window pane replacement', qty: 20, unit: 'Unit', rate: 210000 }
+            ],
+            deliverables: ['Fixed windows'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: []
+        },
+        {
+            id: 'PX-WRK-2026-013',
+            title: 'Install Door Handles 30 Units',
+            type: 'Works',
+            procurementTypeId: 'works',
+            status: 'Open',
+            budget: 3000000,
+            closingDate: '2026-06-21',
+            organization: 'Office Building',
+            description: 'Supply and installation of 30 door handles in office building.',
+            eligibility: 'Hardware installer.',
+            category: 'Building maintenance',
+            categories: ['Doors and windows and glass'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Office Building',
+            commercialModel: 'BOQ',
+            contractType: 'Unit Price Contract',
+            documents: [],
+            regulatoryLicenses: [],
+            requirements: {
+                fields: {
+                    boqRows: [
+                        { workItem: 'Door handle supply and installation', quantity: 30, unit: 'Unit', laborCost: 600000, materialCost: 2100000, equipmentCost: 300000, totalCost: 3000000, mandatory: true }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Price', weight: 100, subcriteria: [] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-06-05' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-21' },
+                { id: 'milestone-award', name: 'Award', date: '2026-06-28' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Door handle installation', qty: 30, unit: 'Unit', rate: 100000 }
+            ],
+            deliverables: ['Installed door handles'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: []
+        },
+        {
+            id: 'PX-WRK-2026-014',
+            title: 'Gutter Cleaning and Repair',
+            type: 'Works',
+            procurementTypeId: 'works',
+            status: 'Open',
+            budget: 2400000,
+            closingDate: '2026-06-19',
+            organization: 'Community Hall',
+            description: 'Cleaning, repair, and maintenance of roof gutters.',
+            eligibility: 'Maintenance worker.',
+            category: 'Building maintenance',
+            categories: ['Construction and maintenance support equipment'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Community Hall',
+            commercialModel: 'BOQ',
+            contractType: 'Unit Price Contract',
+            documents: [],
+            regulatoryLicenses: [],
+            requirements: {
+                fields: {
+                    boqRows: [
+                        { workItem: 'Gutter cleaning and minor repairs', quantity: 1, unit: 'Lot', laborCost: 1000000, materialCost: 800000, equipmentCost: 600000, totalCost: 2400000, mandatory: true }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Price', weight: 100, subcriteria: [] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-06-01' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-19' },
+                { id: 'milestone-award', name: 'Award', date: '2026-06-26' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Gutter maintenance', qty: 1, unit: 'Lot', rate: 2400000 }
+            ],
+            deliverables: ['Clean and repaired gutters'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: []
+        },
+        {
+            id: 'PX-SRV-2026-009',
+            title: 'Office Messenger Service - 6 Months',
+            type: 'Service',
+            procurementTypeId: 'services',
+            status: 'Open',
+            budget: 3000000,
+            closingDate: '2026-06-17',
+            organization: 'Small Office',
+            description: 'Daily office messenger/runner service for document delivery.',
+            eligibility: 'Individual or small service provider.',
+            category: 'Office Services',
+            categories: ['Transport and logistics'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Office Building',
+            commercialModel: 'Service Schedule',
+            documents: [],
+            regulatoryLicenses: [],
+            requirements: {
+                fields: {
+                    serviceCategory: 'Messenger',
+                    duration: '6 months',
+                    supportHours: '7 AM - 5 PM weekdays',
+                    commercialItems: [
+                        { item: '1.1', description: 'Daily messenger service', qty: 6, unit: 'Month', rate: 500000 }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Monthly cost', weight: 100, subcriteria: [] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-05-31' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-17' },
+                { id: 'milestone-award', name: 'Award', date: '2026-06-24' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Messenger service', qty: 6, unit: 'Month', rate: 500000 }
+            ],
+            deliverables: ['Daily document delivery service'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: []
+        },
+        {
+            id: 'PX-SRV-2026-010',
+            title: 'Gardening and Lawn Maintenance - Monthly',
+            type: 'Service',
+            procurementTypeId: 'services',
+            status: 'Open',
+            budget: 4500000,
+            closingDate: '2026-06-20',
+            organization: 'Residential Office',
+            description: 'Monthly lawn mowing, weeding, and basic gardening maintenance.',
+            eligibility: 'Gardener or landscaping worker.',
+            category: 'Maintenance',
+            categories: ['Construction and maintenance support equipment'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Office Grounds',
+            commercialModel: 'Service Schedule',
+            documents: [],
+            regulatoryLicenses: [],
+            requirements: {
+                fields: {
+                    serviceCategory: 'Gardening',
+                    duration: '12 months',
+                    supportHours: 'Weekdays 8 AM - 4 PM',
+                    commercialItems: [
+                        { item: '1.1', description: 'Monthly lawn maintenance', qty: 12, unit: 'Month', rate: 375000 }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Monthly rate', weight: 100, subcriteria: [] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-06-03' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-20' },
+                { id: 'milestone-award', name: 'Award', date: '2026-06-27' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Lawn maintenance', qty: 12, unit: 'Month', rate: 375000 }
+            ],
+            deliverables: ['Well-maintained lawn and garden'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: []
+        },
+        {
+            id: 'PX-SRV-2026-011',
+            title: 'Watchman Service - 3 Months',
+            type: 'Service',
+            procurementTypeId: 'services',
+            status: 'Open',
+            budget: 4200000,
+            closingDate: '2026-06-18',
+            organization: 'Small Storage Facility',
+            description: 'Nighttime security watchman for 3-month period.',
+            eligibility: 'Security personnel.',
+            category: 'Security',
+            categories: ['Security services'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Storage Facility',
+            commercialModel: 'Service Schedule',
+            documents: [],
+            regulatoryLicenses: [],
+            requirements: {
+                fields: {
+                    serviceCategory: 'Security',
+                    duration: '3 months',
+                    supportHours: '6 PM - 6 AM',
+                    commercialItems: [
+                        { item: '1.1', description: 'Watchman service', qty: 3, unit: 'Month', rate: 1400000 }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Monthly cost', weight: 100, subcriteria: [] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-06-02' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-18' },
+                { id: 'milestone-award', name: 'Award', date: '2026-06-25' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Watchman service', qty: 3, unit: 'Month', rate: 1400000 }
+            ],
+            deliverables: ['24/7 facility security'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: []
+        },
+        {
+            id: 'PX-SRV-2026-012',
+            title: 'Computer Technical Support - Per Month',
+            type: 'Service',
+            procurementTypeId: 'services',
+            status: 'Open',
+            budget: 5400000,
+            closingDate: '2026-06-22',
+            organization: 'Small Business',
+            description: 'On-demand computer troubleshooting and maintenance support for 12 months.',
+            eligibility: 'IT technician.',
+            category: 'IT Support',
+            categories: ['Computer Equipment and Accessories'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Business Office',
+            commercialModel: 'Service Schedule',
+            documents: [],
+            regulatoryLicenses: [],
+            requirements: {
+                fields: {
+                    serviceCategory: 'IT Support',
+                    duration: '12 months',
+                    supportHours: '8 AM - 6 PM weekdays',
+                    commercialItems: [
+                        { item: '1.1', description: 'Monthly IT support', qty: 12, unit: 'Month', rate: 450000 }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Monthly support cost', weight: 100, subcriteria: [] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-06-04' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-22' },
+                { id: 'milestone-award', name: 'Award', date: '2026-06-29' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'IT support service', qty: 12, unit: 'Month', rate: 450000 }
+            ],
+            deliverables: ['Technical support and maintenance'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: []
+        },
+        {
+            id: 'PX-SRV-2026-013',
+            title: 'Car Wash Service - Weekly',
+            type: 'Service',
+            procurementTypeId: 'services',
+            status: 'Open',
+            budget: 2880000,
+            closingDate: '2026-06-16',
+            organization: 'Vehicle Owner',
+            description: 'Weekly car washing and polishing service for 12 months (2 vehicles).',
+            eligibility: 'Auto wash service provider.',
+            category: 'Vehicle maintenance',
+            categories: ['Motor Vehicles'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Office Parking',
+            commercialModel: 'Service Schedule',
+            documents: [],
+            regulatoryLicenses: [],
+            requirements: {
+                fields: {
+                    serviceCategory: 'Vehicle maintenance',
+                    duration: '12 months',
+                    supportHours: 'Weekdays 7 AM - 4 PM',
+                    commercialItems: [
+                        { item: '1.1', description: 'Weekly car wash (2 vehicles)', qty: 52, unit: 'Week', rate: 55000 }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Weekly rate', weight: 100, subcriteria: [] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-05-30' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-16' },
+                { id: 'milestone-award', name: 'Award', date: '2026-06-23' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Weekly car wash', qty: 52, unit: 'Week', rate: 55000 }
+            ],
+            deliverables: ['Clean vehicles'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: []
         }
     ],
 
