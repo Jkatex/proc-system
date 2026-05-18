@@ -38,7 +38,7 @@ const chartConfigs = {
         }
     },
 
-    // Buyer Dashboard - Monthly Procurement Spend
+    // Dashboard - Monthly Procurement Spend
     buyerSpend: {
         type: 'line',
         data: {

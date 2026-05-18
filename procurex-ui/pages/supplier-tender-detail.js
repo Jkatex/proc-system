@@ -686,10 +686,10 @@ function renderSupplierTenderDetail() {
                     <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Supplier view</div>
                 </div>
                 <ul class="sidebar-nav">
-                    <li><a href="#" data-navigate="supplier-marketplace">Marketplace</a></li>
+                    <li><a href="#" data-navigate="marketplace">Marketplace</a></li>
                     <li><a href="#" data-navigate="communication-center">Communication Center</a></li>
                     <li><a href="#" data-navigate="bidding-workspace">Start Bid</a></li>
-                    <li><a href="#" data-navigate="supplier-journey">Supplier Journey</a></li>
+                    <li><a href="#" data-navigate="procurement-guide">Procurement Process Guide</a></li>
                     <li><a href="#" data-navigate="welcome">Logout</a></li>
                 </ul>
             </div>

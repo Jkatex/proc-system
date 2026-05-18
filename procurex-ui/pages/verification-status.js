@@ -1,4 +1,4 @@
-// IAM registration, eKYC review, and entity-specific profile editor.
+// IAM registration, identity verification review, and entity-specific profile editor.
 
 function escapeIamProfileHtml(value = '') {
     return String(value ?? '')
@@ -182,12 +182,12 @@ function renderVerificationStatus() {
                 <form class="iam-profile-page" data-iam-profile-form>
                     <section class="iam-profile-hero">
                         <div>
-                            <span class="badge ${isComplete ? 'badge-success' : 'badge-warning'}">${isComplete ? 'eKYC verified' : 'eKYC pending'}</span>
-                            <h1>IAM Profile Workspace</h1>
+                            <span class="badge ${isComplete ? 'badge-success' : 'badge-warning'}">${isComplete ? 'Identity verified' : 'Identity verification pending'}</span>
+                            <h1>Account Profile Workspace</h1>
                             <p>${entityLabel} profile details can be completed over time. ProcureX keeps verification data read-only while allowing account, classification, documents, financial, capacity, and procurement settings to be updated as needed.</p>
                             <div class="iam-hero-actions">
                                 <button class="btn btn-primary" type="button" data-iam-save-profile>Save Draft</button>
-                                <button class="btn btn-secondary" type="button" data-navigate="iam-verification">Update eKYC</button>
+                                <button class="btn btn-secondary" type="button" data-navigate="identity-verification">Update Identity Verification</button>
                             </div>
                             <small class="iam-save-status" data-iam-save-status>Draft changes stay available during this ProcureX session.</small>
                         </div>
@@ -201,7 +201,7 @@ function renderVerificationStatus() {
                         </div>
                     </section>
 
-                    <nav class="iam-profile-tabs" aria-label="IAM profile sections">
+                    <nav class="iam-profile-tabs" aria-label="account profile sections">
                         ${[
                             ['overview', 'Overview'],
                             ['account', 'Account'],
@@ -218,7 +218,7 @@ function renderVerificationStatus() {
 
                     <section class="iam-profile-section active" data-iam-panel="overview">
                         <div class="iam-section-heading">
-                            <div><span class="section-kicker">Overview</span><h2>${entityLabel} IAM record</h2></div>
+                            <div><span class="section-kicker">Overview</span><h2>${entityLabel} verification record</h2></div>
                             <span class="badge badge-info">${entityType}</span>
                         </div>
                         <div class="iam-overview-grid">
@@ -234,7 +234,7 @@ function renderVerificationStatus() {
                     </section>
 
                     <section class="iam-profile-section" data-iam-panel="account">
-                        <div class="iam-section-heading"><div><span class="section-kicker">Login owner</span><h2>Account Information</h2></div>${sectionBadge('account')}</div>
+                        <div class="iam-section-heading"><div><span class="section-kicker">Account Holder</span><h2>Account Information</h2></div>${sectionBadge('account')}</div>
                         <div class="iam-form-grid">
                             ${renderIamField(iamData, { section: 'account', name: 'fullName', label: 'Full Name', required: true })}
                             ${renderIamField(iamData, { section: 'account', name: 'emailAddress', label: 'Email Address', type: 'email', required: true })}
@@ -271,7 +271,7 @@ function renderVerificationStatus() {
                     </section>
 
                     <section class="iam-profile-section" data-iam-panel="classification">
-                        <div class="iam-section-heading"><div><span class="section-kicker">Tender matching</span><h2>Business Classification</h2></div>${sectionBadge('classification')}</div>
+                        <div class="iam-section-heading"><div><span class="section-kicker">Procurement Categories</span><h2>Business Classification</h2></div>${sectionBadge('classification')}</div>
                         <div class="iam-form-grid">
                             ${renderIamField(iamData, { section: 'classification', name: 'industry', label: 'Industry', type: 'select', options: industries, required: true })}
                             ${renderIamField(iamData, { section: 'classification', name: 'procurementCategories', label: 'Procurement Categories', type: 'multiselect', options: categories, required: true })}
@@ -313,7 +313,7 @@ function renderVerificationStatus() {
                     </section>
 
                     <section class="iam-profile-section" data-iam-panel="financial">
-                        <div class="iam-section-heading"><div><span class="section-kicker">Evaluation support</span><h2>Financial Information</h2></div>${sectionBadge('financial')}</div>
+                        <div class="iam-section-heading"><div><span class="section-kicker">Financial Qualification</span><h2>Financial Information</h2></div>${sectionBadge('financial')}</div>
                         <div class="iam-form-grid">
                             ${renderIamField(iamData, { section: 'financial', name: 'bankName', label: 'Bank Name' })}
                             ${renderIamField(iamData, { section: 'financial', name: 'accountName', label: 'Account Name' })}
@@ -325,7 +325,7 @@ function renderVerificationStatus() {
                     </section>
 
                     <section class="iam-profile-section" data-iam-panel="capacity">
-                        <div class="iam-section-heading"><div><span class="section-kicker">Bid qualification</span><h2>Experience & Technical Capacity</h2></div>${sectionBadge('capacity')}</div>
+                        <div class="iam-section-heading"><div><span class="section-kicker">Experience & Capacity</span><h2>Experience & Technical Capacity</h2></div>${sectionBadge('capacity')}</div>
                         <div class="iam-form-grid">
                             ${renderIamField(iamData, { section: 'capacity', name: 'yearsOfExperience', label: 'Years of Experience', type: 'number' })}
                             ${renderIamField(iamData, { section: 'capacity', name: 'pastProjects', label: 'Past Projects', type: 'repeater', wide: true, hint: 'One project per line.' })}
@@ -338,7 +338,7 @@ function renderVerificationStatus() {
                     </section>
 
                     <section class="iam-profile-section" data-iam-panel="settings">
-                        <div class="iam-section-heading"><div><span class="section-kicker">Platform behavior</span><h2>Procurement Operation Settings</h2></div>${sectionBadge('settings')}</div>
+                        <div class="iam-section-heading"><div><span class="section-kicker">Notification Preferences</span><h2>Procurement Operation Settings</h2></div>${sectionBadge('settings')}</div>
                         <div class="iam-form-grid">
                             ${renderIamField(iamData, { section: 'settings', name: 'canCreateTender', label: 'Can Create Tender', type: 'toggle', entity: 'organization' })}
                             ${renderIamField(iamData, { section: 'settings', name: 'canSubmitBid', label: 'Can Submit Bid', type: 'toggle' })}
@@ -350,15 +350,15 @@ function renderVerificationStatus() {
                     </section>
 
                     <section class="iam-profile-section" data-iam-panel="system">
-                        <div class="iam-section-heading"><div><span class="section-kicker">Read-only trust data</span><h2>Verification & System Information</h2></div><span class="badge badge-info">System generated</span></div>
+                        <div class="iam-section-heading"><div><span class="section-kicker">System Verification Record</span><h2>Verification & System Information</h2></div><span class="badge badge-info">System generated</span></div>
                         <div class="iam-overview-grid">
                             ${renderIamReadonlyRows([
                                 ['Verification Status', isComplete ? 'Verified' : 'Pending'],
                                 ['KYC Status', profile.status || 'not_started'],
                                 ['Verification Score', `${completion.percent}/100 profile score`],
-                                ['Verified Badge', isComplete ? 'Eligible' : 'Pending eKYC'],
-                                ['Verification Notes', isComplete ? 'Registry details and signature confirmed.' : 'Complete eKYC first.'],
-                                ['Company ID', profile.companyId || `IAM-${String(account.email || 'demo').replace(/[^a-z0-9]/gi, '').slice(0, 8).toUpperCase() || 'DEMO'}`],
+                                ['Verified Badge', isComplete ? 'Eligible' : 'Pending identity verification'],
+                                ['Verification Notes', isComplete ? 'Registry details and signature confirmed.' : 'Complete Identity Verification first.'],
+                                ['Company ID', profile.companyId || `VER-${String(account.email || 'demo').replace(/[^a-z0-9]/gi, '').slice(0, 8).toUpperCase() || 'DEMO'}`],
                                 ['User ID', profile.userId || `USR-${String(mockData.session?.email || account.email || 'demo').replace(/[^a-z0-9]/gi, '').slice(0, 8).toUpperCase()}`],
                                 ['Registration Date', profile.registrationDate || new Date().toISOString().slice(0, 10)],
                                 ['Tender History', 'Tracked by procurement modules'],

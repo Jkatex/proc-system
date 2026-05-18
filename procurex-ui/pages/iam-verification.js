@@ -1,4 +1,4 @@
-// eKYC onboarding page shown after first sign-in for new accounts.
+// identity verification page shown after first sign-in for new accounts.
 
 function renderIamRegistrySummary(registryRecord = {}, profile = {}) {
     const rows = Array.isArray(registryRecord.summaryRows) && registryRecord.summaryRows.length
@@ -30,7 +30,7 @@ function renderIamVerification() {
     const signatureName = profile.signatureName || '';
     const signatureTitle = profile.signatureTitle || '';
     const completeSummaryCopy = isUpdateMode
-        ? 'Review the updated IAM record before saving. Only changed registry or signature details need to be verified again.'
+        ? 'Review the updated verification record before saving. Only changed registry or signature details need to be verified again.'
         : 'The onboarding record is ready. Completing this demo will mark the account as verified and open the ProcureX app launcher.';
     const registrySummary = hasRegistryRecord ? renderIamRegistrySummary(registryRecord, profile) : '';
     const registryKicker = registryRecord.source === 'TRA' ? 'TRA Information (Fetched)' : 'Fetched information';
@@ -43,13 +43,13 @@ function renderIamVerification() {
                         ${renderPlatformLogo()}
                         <div>
                             <strong>ProcureX</strong>
-                            <span>Secure onboarding</span>
+                            <span>Registration</span>
                         </div>
                     </div>
 
                     <div class="ekyc-side-status">
-                        <span class="badge ${isUpdateMode ? 'badge-info' : 'badge-warning'}">${isUpdateMode ? 'IAM update' : 'eKYC required'}</span>
-                        <h2>${isUpdateMode ? 'Update saved IAM information.' : 'Verify the account before dashboard access.'}</h2>
+                        <span class="badge ${isUpdateMode ? 'badge-info' : 'badge-warning'}">${isUpdateMode ? 'Verification update' : 'Identity verification required'}</span>
+                        <h2>${isUpdateMode ? 'Update saved verification information.' : 'Verify the account before dashboard access.'}</h2>
                         <p>${isUpdateMode ? 'Edit only the fields that changed. TIN, BRELA, and digital signature changes must be matched and confirmed before saving.' : 'New users choose whether they are an individual, company, or business, verify registry information, and create a digital signature before opening the app launcher.'}</p>
                     </div>
 
@@ -64,8 +64,8 @@ function renderIamVerification() {
                 <main class="ekyc-main">
                     <div class="ekyc-header">
                         <div>
-                            <span class="section-kicker">${isUpdateMode ? 'IAM profile update' : 'Account onboarding'}</span>
-                            <h1>${isUpdateMode ? 'Update IAM details' : 'eKYC verification flow'}</h1>
+                            <span class="section-kicker">${isUpdateMode ? 'Account profile update' : 'Account registration'}</span>
+                            <h1>${isUpdateMode ? 'Update verification details' : 'Identity verification flow'}</h1>
                             <p>${accountEmail ? `Signed in as ${accountEmail}. ` : ''}${isUpdateMode ? 'Your verified profile is already loaded. Update the changed fields, fetch matching registry details when TIN or BRELA changes, confirm the signature, and save.' : 'Start with applicant type, fetch TRA or BRELA details for review, create a digital signature, then continue to the app launcher.'}</p>
                         </div>
                         <span class="badge badge-info">${isUpdateMode ? 'Edit mode' : 'Demo flow'}</span>
@@ -77,7 +77,7 @@ function renderIamVerification() {
                                 <span class="ekyc-step-badge">1</span>
                                 <div>
                                     <h2>${isUpdateMode ? 'Confirm applicant type' : 'Select applicant type'}</h2>
-                                    <p>${isUpdateMode ? 'The existing applicant type is loaded. Change it only if the IAM record must move to a different verification path.' : 'Choose the card that matches how this account should be verified.'}</p>
+                                    <p>${isUpdateMode ? 'The existing applicant type is loaded. Change it only if the verification record must move to a different verification path.' : 'Choose the card that matches how this account should be verified.'}</p>
                                 </div>
                             </div>
 
@@ -275,7 +275,7 @@ function renderIamVerification() {
                             <div class="ekyc-complete">
                                 <span class="ekyc-complete-icon">OK</span>
                                 <span class="section-kicker">${isUpdateMode ? 'Ready to save' : 'Ready for dashboard'}</span>
-                                <h2>${isUpdateMode ? 'IAM update ready' : 'eKYC flow complete'}</h2>
+                                <h2>${isUpdateMode ? 'Verification update ready' : 'Identity verification complete'}</h2>
                                 <p>${completeSummaryCopy}</p>
 
                                 <div class="registry-summary complete-summary" data-ekyc-complete-summary>
@@ -288,7 +288,7 @@ function renderIamVerification() {
 
                             <div class="ekyc-step-actions split">
                                 <button type="button" class="btn btn-secondary" data-ekyc-prev>Back</button>
-                                <button type="submit" class="btn btn-primary">${isUpdateMode ? 'Save IAM updates' : 'Complete and open apps'}</button>
+                                <button type="submit" class="btn btn-primary">${isUpdateMode ? 'Save Verification updates' : 'Complete and open apps'}</button>
                             </div>
                         </section>
                     </form>

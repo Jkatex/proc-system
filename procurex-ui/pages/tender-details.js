@@ -51,8 +51,8 @@ function renderTenderDetails() {
                 </div>
 
                 <ul class="sidebar-nav">
-                    <li><a href="#" data-navigate="supplier-marketplace">Marketplace</a></li>
-                    <li><a href="#" data-navigate="buyer-journey">Buyer Journey</a></li>
+                    <li><a href="#" data-navigate="marketplace">Marketplace</a></li>
+                    <li><a href="#" data-navigate="procurement-guide">Procurement Process Guide</a></li>
                     <li><a href="#" data-navigate="bid-evaluation">Bid Opening</a></li>
                     <li><a href="#" data-navigate="award-recommendation">Award</a></li>
                     <li><a href="#" data-navigate="records-history">Records & History</a></li>
@@ -113,7 +113,7 @@ function renderTenderDetails() {
                         </div>
 
                         <div class="journey-panel control-panel">
-                            <span class="section-kicker">Amendment control</span>
+                            <span class="section-kicker">Tender Addenda</span>
                             <h2>${amendments[0]?.title || 'Create amendment'}</h2>
                             <p>${amendments[0]?.detail || 'Create amendment, notify all watchers, and retain the previous version in the audit log.'}</p>
                             <button class="btn btn-secondary">Create Amendment</button>
@@ -122,15 +122,15 @@ function renderTenderDetails() {
 
                     <section class="journey-grid two-col">
                         <div class="journey-panel control-panel">
-                            <span class="section-kicker">Evaluation workspace</span>
+                            <span class="section-kicker">Bid Evaluation</span>
                             <h2>Ready for Review</h2>
-                            <p>Move to scoring, supplier questions, and award preparation when the tender reaches evaluation.</p>
+                            <p>Move to scoring, tenderer questions, and award preparation when the tender reaches evaluation.</p>
                             <button class="btn btn-primary" data-navigate="bid-evaluation">Open Evaluation</button>
                         </div>
                         <div class="journey-panel">
                             <div class="panel-heading">
                                 <div>
-                                    <span class="section-kicker">Records path</span>
+                                    <span class="section-kicker">Audit Trail</span>
                                     <h2>Lifecycle archive</h2>
                                 </div>
                                 <span class="badge ${isPast ? 'badge-info' : 'badge-success'}">${isPast ? 'In records' : 'Active'}</span>

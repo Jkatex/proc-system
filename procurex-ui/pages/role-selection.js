@@ -6,7 +6,7 @@ function renderRoleSelection() {
             <main class="role-shell-v2">
                 <section class="role-hero-v2">
                     <div>
-                        <span class="section-kicker">Secure onboarding</span>
+                        <span class="section-kicker">Registration</span>
                         <h1>Start ProcureX onboarding.</h1>
                         <p>Create an account or sign in to continue with identity verification, profile review, and workspace access.</p>
                     </div>
@@ -19,7 +19,7 @@ function renderRoleSelection() {
                     </div>
                     <div>
                         <strong>02</strong>
-                        <span>eKYC</span>
+                        <span>Identity Verification</span>
                     </div>
                     <div>
                         <strong>03</strong>
@@ -36,7 +36,7 @@ function renderRoleSelection() {
                             </svg>
                         </span>
                         <h3>Create Account</h3>
-                        <p>Register your login credentials before completing eKYC.</p>
+                        <p>Register your login credentials before completing identity verification.</p>
                     </button>
 
                     <button class="role-card-v2" type="button" data-navigate="sign-in">
@@ -48,7 +48,7 @@ function renderRoleSelection() {
                             </svg>
                         </span>
                         <h3>Sign In</h3>
-                        <p>Continue to eKYC or enter the platform with an existing account.</p>
+                        <p>Continue to identity verification or enter the platform with an existing account.</p>
                     </button>
                 </section>
 

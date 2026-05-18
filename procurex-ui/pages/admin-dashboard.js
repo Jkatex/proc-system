@@ -6,7 +6,7 @@ function renderAdminDashboard() {
 
     const permissionSets = [
         ['Evaluator', 'evaluation:*', 'COI declaration, assigned evaluations, bid package viewer, scoring, lock submission, consensus, report'],
-        ['Approver', 'approval:*', 'Approvals inbox, approval detail, approve, reject, request changes'],
+        ['Approver', 'approval:*', 'Approval Queue, approval detail, approve, reject, request changes'],
         ['Finance', 'invoice:* + payment:*', 'Invoice review, 3-way match, approve or block, payments, transaction record'],
         ['Compliance Officer', 'audit:* + compliance:*', 'Collusion alerts, audit explorer, timeline reconstruction, violations, sanctions, appeals'],
         ['Platform Admin', 'admin:* + rbac:*', 'Verification queue, RBAC console, SoD rules, delegation management'],
@@ -24,9 +24,9 @@ function renderAdminDashboard() {
 
                 <ul class="sidebar-nav">
                     <li><a href="#" data-navigate="admin-dashboard" class="active">Admin Workspace</a></li>
-                    <li><a href="#" data-navigate="verification-status">IAM / Verification</a></li>
-                    <li><a href="#" data-navigate="buyer-journey">Buyer Journey</a></li>
-                    <li><a href="#" data-navigate="supplier-journey">Supplier Journey</a></li>
+                    <li><a href="#" data-navigate="account-profile">Registration & Verification</a></li>
+                    <li><a href="#" data-navigate="procurement-guide">Procurement Process Guide</a></li>
+                    <li><a href="#" data-navigate="procurement-guide">Procurement Process Guide</a></li>
                     <li><a href="#" data-navigate="welcome">Logout</a></li>
                 </ul>
             </div>
@@ -37,7 +37,7 @@ function renderAdminDashboard() {
                         <div>
                             <span class="badge badge-info">Single entry point</span>
                             <h1>Admin Workspace</h1>
-                            <p>Evaluator, Approver, Finance, Compliance Officer, and Platform Admin are not separate portals. They are permission-scoped views rendered inside this shared Admin dashboard after IAM login.</p>
+                            <p>Evaluator, Approver, Finance, Compliance Officer, and Platform Admin are not separate portals. They are permission-scoped views rendered inside this shared Admin dashboard after account verification.</p>
                         </div>
                         <div class="journey-scorecard">
                             <div><strong>${kpis.activeUsers}</strong><span>Active users</span></div>
@@ -53,7 +53,7 @@ function renderAdminDashboard() {
                                 <span class="section-kicker">How it works</span>
                                 <h2>Login -> Admin Dashboard -> RBAC-rendered features</h2>
                             </div>
-                            <span class="badge badge-success">IAM controlled</span>
+                            <span class="badge badge-success">Verification controlled</span>
                         </div>
                         <div class="permission-grid">
                             ${permissionSets.map(item => `
@@ -112,13 +112,13 @@ function renderAdminDashboard() {
                                     <div class="panel-heading">
                                         <div>
                                             <span class="section-kicker">approval:* permissions</span>
-                                            <h2>Approvals Inbox</h2>
+                                            <h2>Approval Queue</h2>
                                         </div>
                                         <span class="badge badge-warning">4 pending</span>
                                     </div>
                                     <div class="inbox-list">
                                         <div class="inbox-item"><strong>Tender Draft Approval</strong><span>Construction of Rural Health Centers.</span><button class="btn btn-secondary">Open Detail</button></div>
-                                        <div class="inbox-item"><strong>Award Recommendation</strong><span>Recommended supplier: ABC Construction Ltd.</span><button class="btn btn-secondary">Review</button></div>
+                                        <div class="inbox-item"><strong>Award Recommendation</strong><span>Recommended tenderer: ABC Construction Ltd.</span><button class="btn btn-secondary">Review</button></div>
                                         <div class="inbox-item"><strong>Contract Change Request</strong><span>Payment term update requested.</span><button class="btn btn-secondary">Review</button></div>
                                     </div>
                                 </div>
@@ -204,7 +204,7 @@ function renderAdminDashboard() {
                                 <div class="journey-panel control-panel">
                                     <span class="section-kicker">Verification queue</span>
                                     <h2>KYB Reviews</h2>
-                                    <p>Review buyer and supplier onboarding evidence submitted through IAM.</p>
+                                    <p>Review account verification evidence submitted through registration and verification.</p>
                                     <button class="btn btn-secondary">Open Queue</button>
                                 </div>
                                 <div class="journey-panel control-panel">
@@ -234,7 +234,7 @@ function renderAdminDashboard() {
                                     </div>
                                     <div class="metric-grid">
                                         <div><span>Liquidity index</span><strong>${ops.marketIntelligence.liquidityIndex}/100</strong></div>
-                                        <div><span>Supplier coverage</span><strong>${ops.marketIntelligence.supplierCoverage}</strong></div>
+                                        <div><span>Tenderer coverage</span><strong>${ops.marketIntelligence.supplierCoverage}</strong></div>
                                         <div><span>Avg bids / tender</span><strong>${ops.marketIntelligence.avgBidsPerTender}</strong></div>
                                         <div><span>Price trend</span><strong>${ops.marketIntelligence.priceTrend}</strong></div>
                                     </div>

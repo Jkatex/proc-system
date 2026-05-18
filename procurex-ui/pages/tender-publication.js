@@ -11,7 +11,7 @@ function renderTenderPublication() {
 
                 <ul class="sidebar-nav">
                     <li><a href="#" data-navigate="create-tender">Back to Create</a></li>
-                    <li><a href="#" data-navigate="buyer-journey">Buyer Journey</a></li>
+                    <li><a href="#" data-navigate="procurement-guide">Procurement Process Guide</a></li>
                     <li><a href="#" data-navigate="procurement-dashboard">Procurement Dashboard</a></li>
                     <li><a href="#" data-navigate="welcome">Logout</a></li>
                 </ul>
@@ -64,7 +64,7 @@ function renderTenderPublication() {
                         <div class="journey-panel">
                             <div class="panel-heading">
                                 <div>
-                                    <span class="section-kicker">Approvals inbox</span>
+                                    <span class="section-kicker">Approval Queue</span>
                                     <h2>Routing Status</h2>
                                 </div>
                                 <span class="badge badge-warning">2 pending</span>
@@ -79,14 +79,14 @@ function renderTenderPublication() {
 
                     <section class="journey-grid three-col">
                         <div class="journey-panel control-panel">
-                            <span class="section-kicker">Visibility model</span>
+                            <span class="section-kicker">Publication Settings</span>
                             <h2>Public Tender</h2>
                             <p>Approved suppliers can discover this tender in the active marketplace list after publication.</p>
                             <button class="btn btn-secondary" data-navigate="tender-details">Buyer View</button>
                         </div>
 
                         <div class="journey-panel control-panel">
-                            <span class="section-kicker">Quality flags</span>
+                            <span class="section-kicker">Pre-Publication Review</span>
                             <h2>Risk Check</h2>
                             <div class="risk-list">
                                 <div class="risk-item success"><strong>Budget linked</strong><span>Funds reserved.</span></div>

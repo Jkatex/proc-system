@@ -1,11 +1,11 @@
-// Buyer Journey Page Component
+// Procurement Process Guide Page Component
 
 function renderBuyerJourney() {
     const journeyStages = [
-        ['Onboarding', 'Approved buyer account', 'Register, verify OTP, sign in, upload KYB documents, receive approval.', 'verification-status', 'Approved'],
-        ['Tender Design', 'Tender ready to publish', 'Create the tender, scope, attachments, BOQ, evaluation criteria, timeline, and buyer review.', 'create-tender', 'In progress'],
-        ['Publication', 'Active tender detail', 'Reviewed tender goes live in the marketplace with buyer-side detail controls.', 'supplier-marketplace', 'Next'],
-        ['Clarifications', 'Supplier Q&A handled', 'Review inbox, answer questions, create amendments, and update tender documents.', 'tender-details', '3 open'],
+        ['Onboarding', 'Approved procurement account', 'Register, verify OTP, sign in, upload verification documents, receive approval.', 'verification-status', 'Approved'],
+        ['Tender Design', 'Tender ready to publish', 'Create the tender, scope, attachments, BOQ, evaluation criteria, timeline, and procuring entity review.', 'create-tender', 'In progress'],
+        ['Publication', 'Active tender detail', 'Reviewed tender goes live in the marketplace with procuring entity detail controls.', 'marketplace', 'Next'],
+        ['Clarifications', 'Tenderer Q&A handled', 'Review inbox, answer questions, create amendments, and update tender documents.', 'tender-details', '3 open'],
         ['Evaluation', 'Oversight dashboard', 'Monitor evaluator progress, score variance, conflicts, and bid ranking intelligence.', 'bid-evaluation', '72%'],
         ['Award Approval', 'Approved recommendation', 'Submit award recommendation, route approvals, and notify successful bidder.', 'award-recommendation', 'Pending'],
         ['Standstill', 'No unresolved challenge', 'Run standstill period, review challenges, resolve outcomes, and continue contracting.', 'award-recommendation', '14 days'],
@@ -18,13 +18,13 @@ function renderBuyerJourney() {
         <div class="main-layout">
             <div class="sidebar">
                 <div style="padding: 0 16px 20px;">
-                    <h3>Buyer Journey</h3>
+                    <h3>Procurement Process Guide</h3>
                     <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Start to contract completion</div>
                 </div>
 
                 <ul class="sidebar-nav">
                     <li><a href="#" data-navigate="procurement-dashboard">Procurement Dashboard</a></li>
-                    <li><a href="#" data-navigate="buyer-journey" class="active">Journey</a></li>
+                    <li><a href="#" data-navigate="procurement-guide" class="active">Journey</a></li>
                     <li><a href="#" data-navigate="create-tender">Create Tender</a></li>
                     <li><a href="#" data-navigate="bid-evaluation">Evaluation</a></li>
                     <li><a href="#" data-navigate="contract-negotiation">Contract</a></li>
@@ -36,8 +36,8 @@ function renderBuyerJourney() {
                 <div class="journey-page">
                     <section class="journey-hero">
                         <div>
-                            <span class="badge badge-info">Buyer command center</span>
-                            <h1>Buyer Journey: Start to Contract Completion</h1>
+                            <span class="badge badge-info">Procurement process guide</span>
+                            <h1>Procurement Process: Start to Contract Completion</h1>
                             <p>A single operational workspace for the procurement officer to move from onboarding through tender design, publication, evaluation, award, contracting, execution, payment, and closure.</p>
                         </div>
                         <div class="journey-scorecard">
@@ -77,11 +77,11 @@ function renderBuyerJourney() {
                                 <div><span>Tender</span><strong>Construction of Rural Health Centers</strong></div>
                                 <div><span>Procurement type</span><strong>Works / Healthcare infrastructure</strong></div>
                                 <div><span>Publication path</span><strong>Submit and publish to marketplace</strong></div>
-                                <div><span>Buyer review</span><strong>Ready before publication</strong></div>
+                                <div><span>Procuring entity review</span><strong>Ready before publication</strong></div>
                             </div>
                             <div class="inline-actions">
                                 <button class="btn btn-primary" data-navigate="create-tender">Continue Wizard</button>
-                                <button class="btn btn-secondary" data-navigate="supplier-marketplace">Open Marketplace</button>
+                                <button class="btn btn-secondary" data-navigate="marketplace">Open Marketplace</button>
                             </div>
                         </div>
 
@@ -94,7 +94,7 @@ function renderBuyerJourney() {
                                 <span class="badge badge-warning">3 open</span>
                             </div>
                             <div class="inbox-list">
-                                <div class="inbox-item"><strong>Scope boundary question</strong><span>Supplier asks whether solar backup is included.</span><button class="btn btn-secondary">Answer</button></div>
+                                <div class="inbox-item"><strong>Scope boundary question</strong><span>Tenderer asks whether solar backup is included.</span><button class="btn btn-secondary">Answer</button></div>
                                 <div class="inbox-item"><strong>Site visit logistics</strong><span>Request for coordinated visit windows.</span><button class="btn btn-secondary">Answer</button></div>
                                 <div class="inbox-item"><strong>BOQ unit mismatch</strong><span>Potential amendment for item 3.1 unit label.</span><button class="btn btn-secondary">Amend</button></div>
                             </div>
@@ -116,9 +116,9 @@ function renderBuyerJourney() {
 
                         <div class="journey-panel control-panel">
                             <span class="section-kicker">Award approval</span>
-                            <h2>Approvals Inbox</h2>
+                            <h2>Approval Queue</h2>
                             <div class="record-summary compact">
-                                <div><span>Recommended supplier</span><strong>ABC Construction Ltd</strong></div>
+                                <div><span>Recommended tenderer</span><strong>ABC Construction Ltd</strong></div>
                                 <div><span>Approval status</span><strong>Department head pending</strong></div>
                             </div>
                             <button class="btn btn-primary" data-navigate="award-recommendation">Review</button>
@@ -152,7 +152,7 @@ function renderBuyerJourney() {
                             </div>
                             <div class="execution-lane">
                                 <div><strong>Delivery submission</strong><span>Milestone 2 under review</span></div>
-                                <div><strong>Delivery acceptance (GRN)</strong><span>GRN-2026-002 awaiting buyer acceptance</span></div>
+                                <div><strong>Delivery acceptance (GRN)</strong><span>GRN-2026-002 awaiting procuring entity acceptance</span></div>
                                 <div><strong>Invoice review</strong><span>3-way match: PO, GRN, invoice</span></div>
                                 <div><strong>Payment</strong><span>Finance release after match approval</span></div>
                                 <div><strong>Performance review</strong><span>Complete scorecard before close</span></div>

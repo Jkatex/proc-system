@@ -72,6 +72,61 @@ function renderEvaluationStatusBadge(value) {
     return `<span class="badge ${getEvaluationBadgeClass(value)}">${escapeEvaluationHtml(value)}</span>`;
 }
 
+function getEvaluationSubmittedBidForSupplier(tender = {}, bid = {}, bidderIndex = 0) {
+    if (typeof getProcurexSubmittedBidsForTender !== 'function') return null;
+    const submitted = getProcurexSubmittedBidsForTender(tender);
+    if (!submitted.length) return null;
+    const supplierName = String(bid.supplier || '').toLowerCase();
+    return submitted.find(item => String(item.supplier || item.draft?.supplier || item.draft?.supplierName || '').toLowerCase() === supplierName)
+        || submitted[bidderIndex]
+        || (bidderIndex === 0 ? submitted[0] : null);
+}
+
+function renderEvaluationSupplierBidDocument(tender = {}, bid = {}, bidderIndex = 0, criteria = []) {
+    if (typeof renderProcurexBidPackageDocument !== 'function') {
+        return '<div class="scope-empty">Bid document renderer is unavailable.</div>';
+    }
+    const sourceTender = tender.sourceTender || tender;
+    const submittedBid = getEvaluationSubmittedBidForSupplier(sourceTender, bid, bidderIndex);
+    const sections = submittedBid && typeof createProcurexBidPackageSectionsFromDraft === 'function'
+        ? createProcurexBidPackageSectionsFromDraft(submittedBid.draft || {})
+        : (typeof createProcurexBidPackageSectionsFromEvaluationBid === 'function'
+            ? createProcurexBidPackageSectionsFromEvaluationBid(bid, criteria)
+            : []);
+    const supplier = submittedBid
+        ? {
+            name: bid.supplier || submittedBid.supplier || mockData.users?.supplier?.organization || 'Supplier organization',
+            registrationNumber: bid.registrationNumber,
+            contactPerson: bid.contactPerson,
+            submittedAt: submittedBid.submittedAt ? new Date(submittedBid.submittedAt).toLocaleString() : '',
+            receiptHash: submittedBid.receiptHash,
+            total: submittedBid.draft?.total || bid.price,
+            status: 'Submitted bid'
+        }
+        : {
+            name: bid.supplier || 'Supplier',
+            registrationNumber: bid.registrationNumber,
+            contactPerson: bid.contactPerson,
+            submittedAt: bid.submissionTime,
+            receiptHash: bid.integrityHash,
+            total: bid.financial?.correctedPrice ? formatEvaluationMoney(bid.financial.correctedPrice, bid.financial?.currency || 'TZS') : formatEvaluationMoney(bid.price, bid.financial?.currency || 'TZS'),
+            status: bid.finalResult || bid.preliminaryResult || 'Evaluation review'
+        };
+
+    return renderProcurexBidPackageDocument({
+        tender: sourceTender,
+        sections,
+        supplier,
+        editable: false,
+        includeActions: false,
+        documentLabel: submittedBid ? 'Submitted supplier bid' : 'Evaluation fallback record',
+        offerLabel: tender.category || sourceTender.type || 'Bid Offer',
+        description: submittedBid
+            ? 'This evaluator copy is generated from the supplier submission saved during bid submission.'
+            : 'This evaluator copy is generated from the available evaluation record because no submitted bid package was found in this browser.'
+    });
+}
+
 function renderEvaluationChecklist(items = []) {
     return `
         <div class="evaluation-checklist">
@@ -332,7 +387,7 @@ function renderEvaluationTenderSelection(evaluation) {
         <div class="main-layout procurement-layout evaluation-app-layout">
             <aside class="sidebar evaluation-sidebar">
                 <div class="evaluation-sidebar-head">
-                    <h3>Tender Evaluation Workspace</h3>
+                    <h3>Bid Evaluation</h3>
                     <span>Select tender</span>
                 </div>
                 <ul class="sidebar-nav">
@@ -359,7 +414,7 @@ function renderEvaluationTenderSelection(evaluation) {
                     <div class="panel-heading">
                         <div>
                             <span class="section-kicker">Tenders ready for evaluation</span>
-                            <h2>Start by opening the correct evaluation workspace</h2>
+                            <h2>Start by opening the correct bid evaluation</h2>
                         </div>
                     </div>
                     <div class="evaluation-ready-grid">
@@ -534,7 +589,7 @@ function renderBidEvaluation() {
                 <div class="evaluation-summary-grid">
                     <div><span>Buyer estimate</span><strong>${formatEvaluationMoney(benchmark.buyerEstimate)}</strong></div>
                     <div><span>Market median</span><strong>${formatEvaluationMoney(benchmark.marketMedian)}</strong></div>
-                    <div><span>CEC winner</span><strong>${formatEvaluationMoney(benchmark.comparableEconomicCost)}</strong></div>
+                    <div><span>Best Evaluated Bid</span><strong>${formatEvaluationMoney(benchmark.comparableEconomicCost)}</strong></div>
                     <div><span>Variance band</span><strong>${escapeEvaluationHtml(benchmark.varianceBand || '-')}</strong></div>
                 </div>
                 <div class="evaluation-note-list">
@@ -725,6 +780,7 @@ function renderBidEvaluation() {
             sum + bids.filter(candidate => savedDraft?.scores?.[candidate.supplier]?.[item.id]?.result).length
         ), 0);
         const totalItems = Math.max(1, criteria.length * bids.length);
+        const bidDocument = renderEvaluationSupplierBidDocument(tender, bid, currentBidderIndex, criteria);
 
         return `
             <section class="procurement-panel evaluation-panel">
@@ -736,6 +792,9 @@ function renderBidEvaluation() {
                     ${renderEvaluationStatusBadge(`${completedCount} of ${totalItems} items recorded`)}
                 </div>
                 <div class="evaluation-notice success">This evaluation follows the criteria defined by the buyer when this tender was created. Complete each bidder against each criterion, save draft as needed, then generate the report.</div>
+                <div class="evaluation-bid-document-review">
+                    ${bidDocument}
+                </div>
                 <div class="evaluation-step-grid" data-evaluation-step-panel data-current-criterion-index="${currentCriterionIndex}" data-current-bidder-index="${currentBidderIndex}" data-total-items="${totalItems}">
                     <aside class="evaluation-step-rail">
                         <span class="section-kicker">Criteria from tender</span>
@@ -943,7 +1002,7 @@ function renderBidEvaluation() {
                 ${renderEvaluationStatusBadge(recommended.decision || 'Draft')}
             </div>
             <div class="evaluation-form-grid recommendation-form">
-                <label>Recommended supplier <input class="form-input" value="${escapeEvaluationHtml(savedDraft?.recommendation?.supplier || topBid)}"></label>
+                <label>Recommended tenderer <input class="form-input" value="${escapeEvaluationHtml(savedDraft?.recommendation?.supplier || topBid)}"></label>
                 <label>Evaluation method used <input class="form-input" value="${escapeEvaluationHtml(tender.method || recommended.method)}"></label>
                 <label>Recommended amount <input class="form-input" value="${formatEvaluationMoney(savedDraft?.recommendation?.amount || topBidRecord.financial?.correctedPrice || topBidRecord.price || recommended.amount, recommended.currency)}"></label>
                 <label>Buyer evaluator decision <input class="form-input" value="${escapeEvaluationHtml(recommended.decision)}"></label>
@@ -1005,7 +1064,7 @@ function renderBidEvaluation() {
         <div class="main-layout procurement-layout evaluation-app-layout">
             <aside class="sidebar evaluation-sidebar">
                 <div class="evaluation-sidebar-head">
-                    <h3>Tender Evaluation Workspace</h3>
+                    <h3>Bid Evaluation</h3>
                     <span>${escapeEvaluationHtml(tender.reference || '')}</span>
                 </div>
                 <ul class="sidebar-nav">

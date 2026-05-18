@@ -14,7 +14,7 @@ function renderPostAwardTracking() {
                 <ul class="sidebar-nav">
                     <li><a href="#" data-navigate="contract-negotiation">Back to Negotiation</a></li>
                     <li><a href="#" data-navigate="procurement-dashboard">Procurement Dashboard</a></li>
-                    <li><a href="#" data-navigate="supplier-marketplace">Marketplace</a></li>
+                    <li><a href="#" data-navigate="marketplace">Marketplace</a></li>
                     <li><a href="#" data-navigate="welcome">Logout</a></li>
                 </ul>
             </div>
@@ -35,7 +35,7 @@ function renderPostAwardTracking() {
                             <div class="card">
                                 <div class="panel-heading">
                                     <div>
-                                        <span class="section-kicker">Logic 15 performance memory</span>
+                                        <span class="section-kicker">Contract Performance History</span>
                                         <h3>Delivery Fulfillment Progress</h3>
                                     </div>
                                     <span class="badge badge-success">${tracking.progress}% complete</span>
@@ -68,7 +68,7 @@ function renderPostAwardTracking() {
                             <div class="card">
                                 <div class="panel-heading">
                                     <div>
-                                        <span class="section-kicker">Logic 15 and Logic 19</span>
+                                        <span class="section-kicker">Delivery & Invoice Verification</span>
                                         <h3>Goods Receipt Notes & Acceptance</h3>
                                     </div>
                                     <span class="badge badge-warning">1 review pending</span>
@@ -125,7 +125,7 @@ function renderPostAwardTracking() {
                                 <div class="journey-panel">
                                     <div class="panel-heading">
                                         <div>
-                                            <span class="section-kicker">Logic 19 invoice validation</span>
+                                            <span class="section-kicker">Three-Way Invoice Matching</span>
                                             <h2>Three-Way Matching</h2>
                                         </div>
                                         <span class="badge badge-warning">Finance review</span>
@@ -189,7 +189,7 @@ function renderPostAwardTracking() {
                                     </div>
                                     <div class="inline-actions" style="margin-top: 16px;">
                                         <button class="btn btn-primary">Approve Payment</button>
-                                        <button class="btn btn-secondary">Return to Supplier</button>
+                                        <button class="btn btn-secondary">Return to Tenderer</button>
                                         <button class="btn btn-secondary">Escalate</button>
                                     </div>
                                 </div>
@@ -201,7 +201,7 @@ function renderPostAwardTracking() {
                                 <div class="journey-panel">
                                     <div class="panel-heading">
                                         <div>
-                                            <span class="section-kicker">Logic 20 exception handling</span>
+                                            <span class="section-kicker">Exception Management</span>
                                             <h2>Dispute Case File</h2>
                                         </div>
                                         <span class="badge badge-warning">${tracking.disputes.length} case</span>
@@ -224,7 +224,7 @@ function renderPostAwardTracking() {
                                         <div class="record-summary">
                                             <div><span>Evidence</span><strong>${dispute.evidence.join(', ')}</strong></div>
                                             <div><span>Outcome</span><strong>${dispute.outcome}</strong></div>
-                                            <div><span>Performance impact</span><strong>Supplier memory updated</strong></div>
+                                            <div><span>Performance impact</span><strong>Contract performance record updated</strong></div>
                                         </div>
                                     `).join('')}
                                     <div class="inline-actions">
@@ -238,7 +238,7 @@ function renderPostAwardTracking() {
 
                     <div class="tracking-sidebar">
                         <div class="card" style="margin-bottom: 24px;">
-                            <h4 style="margin-bottom: 16px;">Supplier Performance</h4>
+                            <h4 style="margin-bottom: 16px;">Tenderer Performance</h4>
                             ${[
                                 ['Delivery', tracking.supplierPerformance.delivery],
                                 ['Quality', tracking.supplierPerformance.quality],
@@ -261,16 +261,16 @@ function renderPostAwardTracking() {
                         </div>
 
                         <div class="card" style="margin-bottom: 24px;">
-                            <h4 style="margin-bottom: 16px;">Supplier Health Card</h4>
+                            <h4 style="margin-bottom: 16px;">Tenderer Performance Card</h4>
                             <div class="record-summary compact">
-                                <div><span>Trust Score</span><strong>${tracking.supplierHealth.trustScore}/100</strong></div>
+                                <div><span>Performance Rating</span><strong>${tracking.supplierHealth.trustScore}/100</strong></div>
                                 <div><span>Risk Level</span><strong>${tracking.supplierHealth.riskLevel}</strong></div>
                                 <div><span>Last Audit</span><strong>${tracking.supplierHealth.lastAudit}</strong></div>
                             </div>
                         </div>
 
                         <div class="card">
-                            <h4 style="margin-bottom: 16px;">Institutional Memory</h4>
+                            <h4 style="margin-bottom: 16px;">Contract History</h4>
                             <div class="execution-lane">
                                 <div><strong>July 01, 2026</strong><span>Contract signed</span></div>
                                 <div><strong>July 18, 2026</strong><span>Milestone 1 accepted</span></div>

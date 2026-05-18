@@ -4847,7 +4847,7 @@ const mockData = {
                 read: false,
                 actionRequired: true,
                 actionLabel: 'View Tender',
-                actionPage: 'supplier-tender-detail',
+                actionPage: 'tender-detail',
                 createdAt: '2026-05-15T14:00:00',
                 updatedAt: '2026-05-15T14:00:00',
                 audience: ['supplier', 'all']
@@ -4867,7 +4867,7 @@ const mockData = {
         }
     },
 
-    // User dashboard operating data. The dashboard filters, sorts, and counts this per active account.
+    // Procurement Dashboard operating data. The dashboard filters, sorts, and counts this per active account.
     userWorkspace: {
         urgentItems: [
             { type: 'Pending approvals', count: 3, urgency: 92, due: 'Today', nav: 'award-recommendation', audience: ['buyer', 'all'] },
@@ -4887,24 +4887,24 @@ const mockData = {
             { title: 'Evaluate new bids', detail: 'Open technical and financial review', nav: 'bid-evaluation', audience: ['buyer', 'all'], signal: 'bids' },
             { title: 'Sign contract', detail: 'Complete digital signature workflow', nav: 'contract-negotiation', audience: ['buyer', 'supplier', 'all'], signal: 'contracts' },
             { title: 'Reply to messages', detail: 'Clarifications, alerts, and tender workflow messages', nav: 'communication-center', audience: ['buyer', 'supplier', 'all'], signal: 'messages' },
-            { title: 'Find opportunities', detail: 'Open matching tenders and tenders near close', nav: 'supplier-marketplace', audience: ['supplier', 'all'], signal: 'opportunities' },
+            { title: 'Find tenders', detail: 'Open matching tenders and tenders near closing date', nav: 'marketplace', audience: ['supplier', 'all'], signal: 'tenders' },
             { title: 'Create tender', detail: 'Start a new buyer procurement', nav: 'create-tender', audience: ['buyer', 'all'], signal: 'drafts' }
         ],
         appShortcuts: [
-            { app: 'Procurement', detail: 'Marketplace, create tender, bid', usage: 96, nav: 'supplier-marketplace', audience: ['buyer', 'supplier', 'all'] },
+            { app: 'Procurement', detail: 'Marketplace, create tender, bid', usage: 96, nav: 'marketplace', audience: ['buyer', 'supplier', 'all'] },
             { app: 'Communication Center', detail: 'Inbox, clarifications, notifications, alerts', usage: 95, nav: 'communication-center', audience: ['buyer', 'supplier', 'all'] },
             { app: 'Evaluation', detail: 'Bid opening, scoring, review', usage: 94, nav: 'bid-evaluation', audience: ['buyer', 'all'] },
             { app: 'Awarding and Contract', detail: 'Awards, approvals, signatures', usage: 92, nav: 'award-recommendation', audience: ['buyer', 'supplier', 'all'] },
             { app: 'Records & History', detail: 'Past tenders, bids, awards, cancellations', usage: 90, nav: 'records-history', audience: ['buyer', 'supplier', 'all'] },
-            { app: 'IAM', detail: 'Registration and eKYC review', usage: 88, nav: 'verification-status', audience: ['buyer', 'supplier', 'all'] },
+            { app: 'Registration & Verification', detail: 'Registration and identity verification', usage: 88, nav: 'account-profile', audience: ['buyer', 'supplier', 'all'] },
             { app: 'Dashboard', detail: 'Your work, spend, and insights', usage: 84, nav: 'workspace-dashboard', audience: ['buyer', 'supplier', 'all'] }
         ],
         insights: [
-            { type: 'Suggested supplier', title: '3 suppliers match Office IT Procurement', detail: 'Two have low risk and recent delivery capacity.', urgency: 78, nav: 'supplier-marketplace', audience: ['buyer', 'all'] },
+            { type: 'Suggested tenderer', title: '3 tenderers match Office IT Procurement', detail: 'Two have low risk and recent delivery capacity.', urgency: 78, nav: 'marketplace', audience: ['buyer', 'all'] },
             { type: 'Price insight', title: 'Network equipment prices up 4.2%', detail: 'Use the updated benchmark before publishing.', urgency: 72, nav: 'create-tender', audience: ['buyer', 'all'] },
             { type: 'Risk alert', title: 'One evaluator conflict needs review', detail: 'Resolve before award recommendation is locked.', urgency: 90, nav: 'award-recommendation', audience: ['buyer', 'all'] },
-            { type: 'Matching tender', title: 'New ICT tender matches your profile', detail: 'Closes soon and accepts digital service providers.', urgency: 84, nav: 'supplier-marketplace', audience: ['supplier', 'all'] },
-            { type: 'Partnership', title: 'Logistics partner available in Dodoma', detail: 'Could improve bid feasibility for rural delivery.', urgency: 70, nav: 'supplier-marketplace', audience: ['supplier', 'all'] },
+            { type: 'Matching tender', title: 'New ICT tender matches your profile', detail: 'Closes soon and accepts digital service providers.', urgency: 84, nav: 'marketplace', audience: ['supplier', 'all'] },
+            { type: 'Partnership', title: 'Logistics partner available in Dodoma', detail: 'Could improve bid feasibility for rural delivery.', urgency: 70, nav: 'marketplace', audience: ['supplier', 'all'] },
             { type: 'Market trend', title: 'Healthcare works liquidity is improving', detail: 'Average eligible supplier count rose this month.', urgency: 64, nav: 'workspace-dashboard', audience: ['buyer', 'supplier', 'all'] }
         ]
     }

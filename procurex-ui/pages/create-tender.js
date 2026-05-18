@@ -4595,9 +4595,9 @@ function renderCreateTender() {
 
                 <ul class="sidebar-nav">
                     <li><a href="#" data-navigate="procurement-dashboard">Procurement Dashboard</a></li>
-                    <li><a href="#" data-navigate="buyer-journey">Buyer Journey</a></li>
+                    <li><a href="#" data-navigate="procurement-guide">Procurement Process Guide</a></li>
                     <li><a href="#" data-navigate="communication-center">Communication Center</a></li>
-                    <li><a href="#" data-navigate="supplier-marketplace">Marketplace</a></li>
+                    <li><a href="#" data-navigate="marketplace">Marketplace</a></li>
                     <li><a href="#" data-navigate="records-history">Records & History</a></li>
                     <li><a href="#" data-navigate="welcome">Logout</a></li>
                 </ul>
@@ -6881,10 +6881,10 @@ function initializeCreateTenderWizard() {
                     window.addProcurexCommunicationItem?.({
                         kind: 'notification',
                         category: publishedTender.method === createTenderClosedMethod ? 'Supplier Invitation' : 'Tender Publication',
-                        subject: publishedTender.method === createTenderClosedMethod ? 'New Tender Invitation' : 'New Tender Opportunity',
+                        subject: publishedTender.method === createTenderClosedMethod ? 'New Tender Invitation' : 'New Tender Invitation',
                         body: publishedTender.method === createTenderClosedMethod
                             ? `You have been invited to participate in tender ${publishedTender.id}: ${publishedTender.title}.`
-                            : `A new tender opportunity matching your profile is available: ${publishedTender.id}: ${publishedTender.title}.`,
+                            : `A new tender matching your profile is available: ${publishedTender.id}: ${publishedTender.title}.`,
                         senderType: 'System',
                         senderName: 'ProcureX System',
                         recipientType: 'Supplier',
@@ -6901,7 +6901,7 @@ function initializeCreateTenderWizard() {
                         audience: ['supplier', 'all']
                     });
                     alert(`Tender passed evaluation and has been published to the marketplace.\n\nTender: ${publishedTender.title}`);
-                    window.app?.navigateTo('supplier-marketplace');
+                    window.app?.navigateTo('marketplace');
                 }
                 return;
             }

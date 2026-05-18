@@ -27,7 +27,7 @@ function renderAwardRecommendation() {
                 <section class="procurement-hero evaluation-hero-panel award-hero-panel">
                     <div>
                         <span class="section-kicker">Recommendation for award</span>
-                        <h1>${escapeEvaluationHtml(recommendation.supplier || 'Recommended supplier')}</h1>
+                        <h1>${escapeEvaluationHtml(recommendation.supplier || 'Recommended tenderer')}</h1>
                         <p>${escapeEvaluationHtml(recommendation.reason || '')}</p>
                     </div>
                     <div class="evaluation-hero-stats">
@@ -93,7 +93,7 @@ function renderAwardRecommendation() {
                         ${renderEvaluationStatusBadge(recommendation.decision || 'Draft')}
                     </div>
                     <div class="evaluation-form-grid recommendation-form">
-                        <label>Recommended supplier <input type="text" class="form-input" value="${escapeEvaluationHtml(recommendation.supplier || '')}"></label>
+                        <label>Recommended tenderer <input type="text" class="form-input" value="${escapeEvaluationHtml(recommendation.supplier || '')}"></label>
                         <label>Evaluation method used <input type="text" class="form-input" value="${escapeEvaluationHtml(recommendation.method || '')}"></label>
                         <label>Recommended amount <input type="text" class="form-input" value="${formatEvaluationMoney(recommendation.amount, recommendation.currency)}"></label>
                         <label>Evaluation team decision <input type="text" class="form-input" value="${escapeEvaluationHtml(recommendation.decision || '')}"></label>

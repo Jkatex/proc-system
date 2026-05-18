@@ -66,7 +66,7 @@ function renderSignIn() {
                         </form>
 
                         <div class="auth-note">
-                            New users continue to eKYC. Existing users enter the platform. Admin opens the admin dashboard.
+                            New users continue to identity verification. Existing users enter the platform. Admin opens the admin dashboard.
                         </div>
 
                         <div class="demo-credentials">

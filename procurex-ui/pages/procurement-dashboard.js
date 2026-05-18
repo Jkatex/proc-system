@@ -45,24 +45,24 @@ function renderProcurementDashboard() {
         {
             type: 'Tender',
             title: 'Rural Health Centers closes soon',
-            detail: 'Open works tender with TZS 5,000,000,000 budget and supplier eligibility checks active.',
+            detail: 'Open works tender with TZS 5,000,000,000 budget and tenderer eligibility checks active.',
             meta: 'Closes 2026-06-12',
             tone: 'success',
-            nav: 'supplier-tender-detail'
+            nav: 'tender-detail'
         },
         {
             type: 'Alert',
             title: 'Draft tender needs review',
             detail: 'Office ICT Equipment tender still needs attachments and timeline checks before publication.',
-            meta: 'Buyer action',
+            meta: 'Create & Manage',
             tone: 'warning',
             nav: 'create-tender'
         },
         {
             type: 'Activity',
             title: 'Technical envelope in progress',
-            detail: 'Supplier bid draft for Rural Health Centers is 60% complete and ready to continue.',
-            meta: 'Draft application',
+            detail: 'Bid draft for Rural Health Centers is 60% complete and ready to continue.',
+            meta: 'Draft bid',
             tone: 'info',
             nav: 'bidding-workspace'
         },
@@ -77,7 +77,7 @@ function renderProcurementDashboard() {
         {
             type: 'Alert',
             title: 'Clarification questions received',
-            detail: 'Buyer received 3 supplier questions that should be answered before deadline.',
+            detail: 'The procuring entity received 3 tenderer questions that should be answered before deadline.',
             meta: 'Response needed',
             tone: 'rose',
             nav: 'communication-center'
@@ -88,17 +88,17 @@ function renderProcurementDashboard() {
         <div class="main-layout procurement-layout">
             <aside class="sidebar">
                 <div style="padding: 0 16px 20px;">
-                    <h3>Procurement App</h3>
-                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Buyer and supplier workspace</div>
+                    <h3>Procurement Workspace</h3>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Procurement workspace</div>
                 </div>
 
                 <ul class="sidebar-nav">
                     <li><a href="#" data-navigate="procurement-dashboard" class="active">Dashboard</a></li>
-                    <li><a href="#" data-navigate="supplier-marketplace">Marketplace</a></li>
-                    <li><a href="#" data-navigate="buyer-journey">Buyer Path</a></li>
-                    <li><a href="#" data-navigate="supplier-journey">Supplier Path</a></li>
+                    <li><a href="#" data-navigate="marketplace">Marketplace</a></li>
+                    <li><a href="#" data-navigate="procurement-guide">Create Tender Path</a></li>
+                    <li><a href="#" data-navigate="procurement-guide">Bid Submission Path</a></li>
                     <li><a href="#" data-navigate="communication-center">Communication Center</a></li>
-                    <li><a href="#" data-navigate="bidding-workspace">Draft Applications</a></li>
+                    <li><a href="#" data-navigate="bidding-workspace">Draft Bids</a></li>
                     <li><a href="#" data-navigate="records-history">Records & History</a></li>
                     <li><a href="#" data-navigate="app-launcher">All Apps</a></li>
                     <li><a href="#" data-navigate="welcome">Logout</a></li>
@@ -109,12 +109,12 @@ function renderProcurementDashboard() {
                 <section class="procurement-hero">
                     <div>
                         <span class="badge badge-success">Unified procurement</span>
-                        <h1>One dashboard for buying and supplying.</h1>
-                        <p>Every verified user can create tenders as a buyer, discover tenders in the marketplace, and apply as a supplier without switching to a separate dashboard.</p>
+                        <h1>One dashboard for tendering workflows.</h1>
+                        <p>Every verified user can create tenders, discover tenders in the marketplace, and submit bids without switching to a separate dashboard.</p>
                     </div>
                     <div class="procurement-hero-actions">
-                        <button class="btn btn-primary" data-navigate="buyer-journey">Create Tender</button>
-                        <button class="btn btn-secondary" data-navigate="supplier-marketplace">View Marketplace</button>
+                        <button class="btn btn-primary" data-navigate="procurement-guide">Create Tender</button>
+                        <button class="btn btn-secondary" data-navigate="marketplace">View Marketplace</button>
                     </div>
                 </section>
 
@@ -122,27 +122,27 @@ function renderProcurementDashboard() {
                     <article class="procurement-action buyer">
                         <span class="procure-icon">${procurementIcon('create')}</span>
                         <div>
-                            <span class="section-kicker">Buyer action</span>
+                            <span class="section-kicker">Create & Manage</span>
                             <h2>Create a tender</h2>
-                            <p>Start the buyer path for tender design, attachments, BOQ, publication, evaluation, award, and contract tracking.</p>
+                            <p>Start the create tender path for tender design, attachments, BOQ, publication, evaluation, award, and contract tracking.</p>
                         </div>
-                        <button class="btn btn-primary" data-navigate="buyer-journey">Start Buyer Path</button>
+                        <button class="btn btn-primary" data-navigate="procurement-guide">Start Create Tender Path</button>
                     </article>
 
                     <article class="procurement-action supplier">
                         <span class="procure-icon">${procurementIcon('marketplace')}</span>
                         <div>
-                            <span class="section-kicker">Supplier action</span>
-                            <h2>Find and apply</h2>
-                            <p>Open marketplace tenders, review eligibility, then move into the supplier path to prepare a bid or application.</p>
+                            <span class="section-kicker">Bid & Respond</span>
+                            <h2>Find and bid</h2>
+                            <p>Open marketplace tenders, review eligibility, then move into the bid submission path to prepare a bid.</p>
                         </div>
-                        <button class="btn btn-primary" data-navigate="supplier-marketplace">Open Marketplace</button>
+                        <button class="btn btn-primary" data-navigate="marketplace">Open Marketplace</button>
                     </article>
                 </section>
 
                 <section class="journey-grid three-col">
                     <div class="kpi-card"><div class="kpi-value">${buyerKpis.activeTenders + buyerActiveTenders.length}</div><div class="kpi-label">Active tenders created</div></div>
-                    <div class="kpi-card"><div class="kpi-value">${supplierKpis.bidsInProgress}</div><div class="kpi-label">Draft applications</div></div>
+                    <div class="kpi-card"><div class="kpi-value">${supplierKpis.bidsInProgress}</div><div class="kpi-label">Draft Bids</div></div>
                     <div class="kpi-card"><div class="kpi-value">${openTenders.length}</div><div class="kpi-label">Open marketplace tenders</div></div>
                 </section>
 
@@ -153,7 +153,7 @@ function renderProcurementDashboard() {
                                 <span class="section-kicker">Marketplace</span>
                                 <h2>Open tenders</h2>
                             </div>
-                            <button class="btn btn-secondary" data-navigate="supplier-marketplace">View all</button>
+                            <button class="btn btn-secondary" data-navigate="marketplace">View all</button>
                         </div>
 
                         <div class="procurement-tender-list">
@@ -168,8 +168,8 @@ function renderProcurementDashboard() {
                                         <span>Closes ${tender.closingDate}</span>
                                     </div>
                                     <div class="tender-row-actions">
-                                        <button class="btn btn-secondary" data-select-tender="${tender.id}" data-navigate="${tender.createdByCurrentUser ? 'tender-details' : 'supplier-tender-detail'}">Review</button>
-                                        <button class="btn btn-primary" data-select-tender="${tender.id}" ${tender.status === 'Open' && !tender.createdByCurrentUser ? 'data-navigate="supplier-tender-detail"' : 'disabled'}>${tender.createdByCurrentUser ? 'Manage' : 'Apply'}</button>
+                                        <button class="btn btn-secondary" data-select-tender="${tender.id}" data-navigate="${tender.createdByCurrentUser ? 'tender-details' : 'tender-detail'}">Review</button>
+                                        <button class="btn btn-primary" data-select-tender="${tender.id}" ${tender.status === 'Open' && !tender.createdByCurrentUser ? 'data-navigate="tender-detail"' : 'disabled'}>${tender.createdByCurrentUser ? 'Manage' : 'Apply'}</button>
                                     </div>
                                 </article>
                             `).join('') || '<div class="scope-empty">No active marketplace tenders right now.</div>'}
@@ -180,7 +180,7 @@ function renderProcurementDashboard() {
                         <section class="procurement-panel">
                             <div class="panel-heading">
                                 <div>
-                                    <span class="section-kicker">Draft applications</span>
+                                    <span class="section-kicker">Draft Bids</span>
                                     <h2>Continue work</h2>
                                 </div>
                                 <span class="badge badge-warning">${savedTenderDraft ? 'Saved as draft' : '2 drafts'}</span>
@@ -188,7 +188,7 @@ function renderProcurementDashboard() {
                             <div class="record-summary compact">
                                 ${savedTenderDraft ? `
                                     <div>
-                                        <span>Buyer tender</span>
+                                        <span>Tender draft</span>
                                         <strong>${escapeProcurementDashboardHtml(savedTenderDraft.title || 'Untitled tender')} / saved as draft</strong>
                                     </div>
                                     <div>
@@ -196,8 +196,8 @@ function renderProcurementDashboard() {
                                         <strong>${escapeProcurementDashboardHtml(savedTenderDraft.visibility || 'Not set')}</strong>
                                     </div>
                                 ` : ''}
-                                <div><span>Supplier draft</span><strong>Rural Health Centers bid / 60% complete</strong></div>
-                                ${savedTenderDraft ? '' : '<div><span>Buyer draft</span><strong>Office ICT Equipment tender / attachments pending</strong></div>'}
+                                <div><span>Bid draft</span><strong>Rural Health Centers bid / 60% complete</strong></div>
+                                ${savedTenderDraft ? '' : '<div><span>Tender draft</span><strong>Office ICT Equipment tender / attachments pending</strong></div>'}
                             </div>
                             <button class="btn btn-secondary" data-navigate="${savedTenderDraft ? 'create-tender' : 'bidding-workspace'}">Open Drafts</button>
                         </section>
@@ -205,7 +205,7 @@ function renderProcurementDashboard() {
                         <section class="procurement-panel">
                             <div class="panel-heading">
                                 <div>
-                                    <span class="section-kicker">Live workspace</span>
+                                    <span class="section-kicker">Active Procurements</span>
                                     <h2>Recent updates</h2>
                                 </div>
                                 <span class="procure-icon small">${procurementIcon('activity')}</span>

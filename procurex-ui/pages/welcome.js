@@ -12,8 +12,8 @@ function renderWelcome() {
     const steps = [
         {
             icon: '<path d="M12 8v8"/><path d="M8 12h8"/><circle cx="12" cy="12" r="9"/>',
-            title: 'Create Opportunity',
-            text: 'Post goods, services, or consultancy needs to your global network of verified suppliers.'
+            title: 'Create Tender',
+            text: 'Post goods, services, or consultancy needs to your registered participants.'
         },
         {
             icon: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
@@ -35,15 +35,15 @@ function renderWelcome() {
     const marketplaceCards = [
         {
             icon: '<path d="M12 3a6 6 0 0 0-6 6c0 4 6 12 6 12s6-8 6-12a6 6 0 0 0-6-6Z"/><circle cx="12" cy="9" r="2"/>',
-            title: 'Opportunities',
+            title: 'Tenders',
             text: 'Access a global stream of verified procurement requests that match your specific industry and scale.',
-            points: ['Verified tender details', 'Direct buyer interaction']
+            points: ['Verified tender details', 'Direct procuring entity interaction']
         },
         {
             icon: '<path d="M7 11a4 4 0 1 1 8 0"/><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><path d="M21 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
             title: 'Relationships',
             text: 'Build long-term partnerships through our transparent profile and performance tracking system.',
-            points: ['Profile trust scores', 'Repeat business alerts']
+            points: ['Performance ratings', 'Repeat business alerts']
         },
         {
             icon: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8h8"/><path d="M8 12h8"/><path d="M8 16h5"/>',
@@ -62,7 +62,7 @@ function renderWelcome() {
                         <span class="brand-text">ProcureX</span>
                     </a>
                     <nav class="landing-nav-links welcome-nav-links-v2" aria-label="Welcome navigation">
-                        <a class="active" href="#" data-navigate="guest-marketplace">Explore Opportunities</a>
+                        <a class="active" href="#" data-navigate="guest-marketplace">Browse Open Tenders</a>
                         <a href="#how-it-works">How It Works</a>
                         <a href="#about-procurex">About</a>
                         <a href="#help-center">Help Center</a>
@@ -80,16 +80,16 @@ function renderWelcome() {
                         <span class="eyebrow">Welcome to ProcureX</span>
                         <h1>Buy. Supply. Connect. Grow.</h1>
                         <p>ProcureX is a modern e-procurement marketplace built to make procurement simple, fair, secure, and accessible for everyone.</p>
-                        <p>Create opportunities, discover tenders, and build trust today.</p>
+                        <p>Create tenders, discover tenders, and build a procurement record today.</p>
                         <div class="hero-actions">
                             <button class="btn btn-primary" type="button" data-navigate="register">Get Started</button>
-                            <button class="btn btn-secondary" type="button" data-navigate="guest-marketplace">Explore Opportunities</button>
+                            <button class="btn btn-secondary" type="button" data-navigate="guest-marketplace">Browse Open Tenders</button>
                         </div>
                         <div class="welcome-proof-v2" aria-label="Trusted business proof">
                             <span class="welcome-proof-avatars-v2" aria-hidden="true">
                                 <i></i><i></i><i></i>
                             </span>
-                            <span>Trusted by 2,000+ businesses</span>
+                            <span>Used by 2,000+ participants</span>
                         </div>
                     </section>
 
@@ -102,18 +102,18 @@ function renderWelcome() {
                             <div class="welcome-product-metrics-v2">
                                 <article>
                                     ${renderWelcomeIcon('<path d="M12 8v8"/><path d="M8 12h8"/><circle cx="12" cy="12" r="9"/>')}
-                                    <strong>Create opportunity</strong>
+                                    <strong>Create tender</strong>
                                     <span>Post goods, services, or consultancy.</span>
                                 </article>
                                 <article>
                                     ${renderWelcomeIcon('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>')}
                                     <strong>Discover tenders</strong>
-                                    <span>Find open opportunities and bidding.</span>
+                                    <span>Find open tenders and bidding.</span>
                                 </article>
                             </div>
                             <div class="welcome-product-rate-v2">
                                 <div>
-                                    <span>Trusted Profile</span>
+                                    <span>Verified Profile</span>
                                     <strong>98.4% Completion Rate</strong>
                                 </div>
                                 <button class="btn btn-primary" type="button" data-navigate="register">View Profile</button>
@@ -147,8 +147,8 @@ function renderWelcome() {
             <section id="about-procurex" class="welcome-section-v2 welcome-gateway-section-v2">
                 <div class="container">
                     <div class="section-header welcome-centered-v2">
-                        <h2>Your trusted gateway to smarter procurement</h2>
-                        <p>ProcureX connects businesses, suppliers, and organizations in one secure, digital-first marketplace.</p>
+                        <h2>Your procurement gateway for tendering</h2>
+                        <p>ProcureX connects businesses, procuring entities, and tenderers in one secure, digital-first marketplace.</p>
                     </div>
                     <div class="welcome-gateway-grid-v2">
                         <figure class="welcome-story-image-v2">
@@ -170,7 +170,7 @@ function renderWelcome() {
                             <article>
                                 ${renderWelcomeIcon('<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>')}
                                 <div>
-                                    <h3>No hidden opportunities</h3>
+                                    <h3>No hidden tenders</h3>
                                     <p>Discover open tenders and service needs in one organized place, ensuring fair competition for all verified partners.</p>
                                 </div>
                             </article>
@@ -183,7 +183,7 @@ function renderWelcome() {
                 <div class="container">
                     <div class="section-header welcome-centered-v2">
                         <h2>A smarter marketplace for everyone</h2>
-                        <p>ProcureX creates a shared space where businesses can meet and work together efficiently, whether they are buyers, suppliers, or specialized professionals.</p>
+                        <p>ProcureX creates a shared space where businesses can meet and work together efficiently, whether they are procuring entities, tenderers, or specialized professionals.</p>
                     </div>
                     <div class="welcome-market-grid-v2">
                         ${marketplaceCards.map((card, index) => `
@@ -208,7 +208,7 @@ function renderWelcome() {
                     <div class="welcome-cta-panel-v2">
                         <div>
                             <h2>Join ProcureX today.</h2>
-                            <p>Start your procurement journey with one simple account. Create opportunities, submit bids, and grow your business today.</p>
+                            <p>Start your procurement journey with one simple account. Create tenders, submit bids, and grow your business today.</p>
                         </div>
                         <div class="cta-actions">
                             <button class="btn btn-primary" type="button" data-navigate="register">Get Started Now</button>
@@ -221,7 +221,7 @@ function renderWelcome() {
                 <div class="container">
                     <div>
                         <strong>ProcureX</strong>
-                        <p>&copy; 2026 ProcureX. All rights reserved. Connecting businesses, suppliers, and professionals through smarter procurement.</p>
+                        <p>&copy; 2026 ProcureX. All rights reserved. Connecting businesses, tenderers, and professionals through smarter procurement.</p>
                     </div>
                     <nav aria-label="Company links">
                         <h3>Company</h3>
@@ -231,7 +231,7 @@ function renderWelcome() {
                     </nav>
                     <nav aria-label="Platform links">
                         <h3>Platform</h3>
-                        <a href="#" data-navigate="guest-marketplace">Explore Opportunities</a>
+                        <a href="#" data-navigate="guest-marketplace">Browse Open Tenders</a>
                         <a href="#help-center">System Status</a>
                     </nav>
                     <nav aria-label="Support links">

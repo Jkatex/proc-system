@@ -95,7 +95,7 @@ function getWorkspaceDashboardSavedBidDrafts() {
         const tender = tenders.find(item => item.id === tenderId);
         drafts.push({
             tenderId,
-            title: tender?.title || draft.title || 'Supplier bid draft',
+            title: tender?.title || draft.title || 'Bid draft',
             detail: tender ? `${tender.organization || 'Marketplace tender'} / ${tender.type || 'Tender'}` : 'Supplier application',
             savedAt: draft.savedAt,
             nav: 'bidding-workspace'
@@ -111,7 +111,7 @@ function getWorkspaceDashboardDrafts() {
 
     if (savedTenderDraft) {
         drafts.push({
-            type: 'Buyer tender',
+            type: 'Tender draft',
             title: savedTenderDraft.title || 'Untitled tender',
             detail: savedTenderDraft.visibility || 'Visibility not set',
             savedAt: savedTenderDraft.savedAt,
@@ -150,7 +150,7 @@ function getSignalScore(signal, urgentItems) {
         contracts: 'Contracts awaiting signature',
         payments: 'Payments overdue',
         messages: 'Messages requiring reply',
-        opportunities: 'New bids received',
+        tenders: 'New bids received',
         drafts: 'Pending approvals'
     };
     const linkedItem = urgentItems.find(item => item.type === signalMap[signal]);
@@ -220,10 +220,10 @@ function buildUserDashboardModel() {
         user,
         audience,
         summary: [
-            ['Active procurements', activeTenders + buyerActiveTenders.length, 'Buyer and supplier workflows in motion'],
+            ['Active procurements', activeTenders + buyerActiveTenders.length, 'Buyer and bidder workflows in motion'],
             ['Total spend', formatDashboardMoney((baseValue * activeTenders) + buyerActiveTenders.reduce((sum, tender) => sum + (tender.budget || 0), 0)), 'Procurement value connected to this account'],
             ['Supplier performance', `${supplierPerformance}%`, 'Delivery, quality, and communication health'],
-            [isSupplierContext ? 'Revenue pipeline' : 'Drafts', isSupplierContext ? formatDashboardMoney(revenue) : drafts.length, isSupplierContext ? 'Potential supplier revenue from active opportunities' : 'Incomplete tender or bid drafts for this user']
+            [isSupplierContext ? 'Contract Value Pipeline' : 'Drafts', isSupplierContext ? formatDashboardMoney(revenue) : drafts.length, isSupplierContext ? 'Potential contract value from active tenders' : 'Incomplete tender or bid drafts for this user']
         ],
         drafts,
         urgentItems,
@@ -275,11 +275,11 @@ function renderWorkspaceDashboard() {
             <main class="workspace-shell dashboard-shell">
                 <section class="dashboard-hero dashboard-welcome-card">
                     <div class="dashboard-welcome-copy">
-                        <span class="section-kicker">User dashboard</span>
+                        <span class="section-kicker">Procurement Dashboard</span>
                         <h1>${greeting}!<br><strong>${dashboard.user.displayName}</strong></h1>
                         <p>${dashboard.user.email}</p>
                         <div class="dashboard-welcome-actions">
-                            <button class="btn btn-primary" type="button" data-navigate="supplier-marketplace">View Marketplace</button>
+                            <button class="btn btn-primary" type="button" data-navigate="marketplace">View Marketplace</button>
                            
                         </div>
                     </div>
@@ -302,7 +302,7 @@ function renderWorkspaceDashboard() {
                     <div class="dashboard-panel urgent-panel">
                         <div class="panel-heading">
                             <div>
-                                <span class="section-kicker">Needs attention</span>
+                                <span class="section-kicker">Urgent Actions</span>
                                 <h2>Sorted by urgency</h2>
                             </div>
                             <span class="badge ${topUrgency >= 90 ? 'badge-error' : 'badge-warning'}">${dashboard.urgentItems.length} active</span>
@@ -323,7 +323,7 @@ function renderWorkspaceDashboard() {
                     <aside class="dashboard-panel quick-panel">
                         <div class="panel-heading">
                             <div>
-                                <span class="section-kicker">Smart quick actions</span>
+                                <span class="section-kicker">Quick Actions</span>
                                 <h2>Adapted to you</h2>
                             </div>
                         </div>
@@ -359,7 +359,7 @@ function renderWorkspaceDashboard() {
                         `).join('') : `
                             <div class="draft-empty">
                                 <strong>No saved drafts yet</strong>
-                                <span>Saved tenders and bid applications will appear here.</span>
+                                <span>Saved tenders and draft bids will appear here.</span>
                                 <button class="btn btn-secondary" type="button" data-navigate="create-tender">Create Tender</button>
                             </div>
                         `}
@@ -370,7 +370,7 @@ function renderWorkspaceDashboard() {
                     <div class="dashboard-panel">
                         <div class="panel-heading">
                             <div>
-                                <span class="section-kicker">Continue working</span>
+                                <span class="section-kicker">Resume Drafts</span>
                                 <h2>Active workflows you touched</h2>
                             </div>
                         </div>
@@ -390,7 +390,7 @@ function renderWorkspaceDashboard() {
                     <aside class="dashboard-panel">
                         <div class="panel-heading">
                             <div>
-                                <span class="section-kicker">Personalized apps</span>
+                                <span class="section-kicker">Applications</span>
                                 <h2>Most used first</h2>
                             </div>
                         </div>
@@ -421,10 +421,10 @@ function renderWorkspaceDashboard() {
                     <div class="dashboard-panel">
                         <div class="panel-heading">
                             <div>
-                                <span class="section-kicker">Opportunity and insight feed</span>
+                                <span class="section-kicker">Procurement Updates</span>
                                 <h2>Live recommendations</h2>
                             </div>
-                            <span class="badge badge-info">${dashboard.audience === 'supplier' ? 'Supplier' : dashboard.audience === 'buyer' ? 'Buyer' : 'Mixed'} view</span>
+                            <span class="badge badge-info">${dashboard.audience === 'supplier' ? 'Bidder' : dashboard.audience === 'buyer' ? 'Procuring Entity' : 'Mixed'} view</span>
                         </div>
                         <div class="insight-feed">
                             ${dashboard.insights.map(insight => `
@@ -443,15 +443,15 @@ function renderWorkspaceDashboard() {
                     <aside class="dashboard-panel">
                         <div class="panel-heading">
                             <div>
-                                <span class="section-kicker">Current user</span>
+                                <span class="section-kicker">Account Details</span>
                                 <h2>Account information</h2>
                             </div>
                         </div>
                         <div class="status-section-list">
                             <div class="status-section ${iam.isComplete ? 'done' : 'attention'}">
-                                <strong>IAM</strong>
+                                <strong>Registration & Verification</strong>
                                 <span>${iam.statusLabel}</span>
-                                <button class="btn btn-secondary" data-navigate="verification-status">Review</button>
+                                <button class="btn btn-secondary" data-navigate="account-profile">Review</button>
                             </div>
                             <div class="status-section">
                                 <strong>Account type</strong>
@@ -464,7 +464,7 @@ function renderWorkspaceDashboard() {
                             <div class="status-section ${dashboard.closingSoon ? 'attention' : ''}">
                                 <strong>Deadline watch</strong>
                                 <span>${dashboard.closingSoon ? 'One user-tracked item closes this week.' : 'No tracked item closes this week.'}</span>
-                                <button class="btn btn-secondary" data-navigate="supplier-marketplace">Open</button>
+                                <button class="btn btn-secondary" data-navigate="marketplace">Open</button>
                             </div>
                         </div>
                     </aside>

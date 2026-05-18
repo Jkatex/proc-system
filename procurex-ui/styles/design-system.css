@@ -3426,9 +3426,7 @@ textarea.form-input {
     padding-top: 3px;
 }
 
-.bid-status-chip,
-.bid-section-status,
-.bid-table-status {
+.bid-status-chip {
     display: inline-flex;
     align-items: center;
     width: max-content;
@@ -3441,16 +3439,12 @@ textarea.form-input {
     text-transform: uppercase;
 }
 
-.bid-status-chip.draft,
-.bid-section-status.draft,
-.bid-table-status.draft {
+.bid-status-chip.draft {
     background: #fef3c7;
     color: #92400e;
 }
 
-.bid-status-chip.review,
-.bid-section-status.review,
-.bid-table-status.review {
+.bid-status-chip.review {
     background: #dbeafe;
     color: #1e40af;
 }
@@ -3469,12 +3463,6 @@ textarea.form-input {
 .bid-status-chip.offer {
     background: #e0f2fe;
     color: #075985;
-}
-
-.bid-section-status.complete,
-.bid-table-status.captured {
-    background: #dcfce7;
-    color: #166534;
 }
 
 .bid-response-document-meta {
@@ -3546,7 +3534,7 @@ textarea.form-input {
 
 .bid-response-document-section-heading {
     display: grid;
-    grid-template-columns: 36px minmax(0, 1fr) auto;
+    grid-template-columns: 36px minmax(0, 1fr);
     align-items: center;
     gap: 12px;
     padding-bottom: 10px;
@@ -3587,7 +3575,7 @@ textarea.form-input {
 
 .bid-response-document-table table {
     width: 100%;
-    min-width: 820px;
+    min-width: 680px;
     border-spacing: 0;
     border-collapse: collapse;
 }
@@ -3617,8 +3605,18 @@ textarea.form-input {
     white-space: pre-wrap;
 }
 
-.bid-response-document-table tr.pending td {
-    background: rgba(255, 251, 235, 0.72);
+.bid-response-document-table td strong {
+    display: block;
+    color: #0f172a;
+}
+
+.bid-response-document-table td small {
+    display: block;
+    margin-top: 4px;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.35;
+    white-space: normal;
 }
 
 .bid-response-document-table tbody tr:hover td {
@@ -3653,6 +3651,25 @@ textarea.form-input {
     background: #ccfbf1;
     box-shadow: 0 8px 18px rgba(15, 118, 110, 0.12);
     transform: translateY(-1px);
+}
+
+.bid-review-readonly {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+
+.evaluation-bid-document-review {
+    margin: 18px 0 22px;
+}
+
+.evaluation-bid-document-review .bid-response-document {
+    max-width: none;
+    box-shadow: none;
 }
 
 .bid-review-edit-target {
@@ -3724,9 +3741,6 @@ textarea.form-input {
         grid-template-columns: 34px minmax(0, 1fr);
     }
 
-    .bid-response-document-section-heading .bid-section-status {
-        grid-column: 1 / -1;
-    }
 }
 
 .metric-grid,
@@ -5485,6 +5499,44 @@ textarea.form-input {
 
 .bid-dynamic-group.view-only {
     background: var(--surface-soft);
+}
+
+.contract-clause-list,
+.scoring-guidance-grid,
+.bid-completeness-list,
+.service-category-context-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+}
+
+.contract-clause-card,
+.scoring-guidance-card,
+.bid-completeness-item,
+.service-category-context-grid article {
+    display: grid;
+    gap: 8px;
+    padding: 14px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    background: var(--surface-soft);
+}
+
+.contract-clause-card strong,
+.scoring-guidance-card strong,
+.bid-completeness-item strong,
+.service-category-context-grid strong {
+    color: var(--text-primary);
+}
+
+.contract-clause-card p,
+.scoring-guidance-card p,
+.bid-completeness-item span,
+.service-category-context-grid span {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.5;
 }
 
 .bid-dynamic-group-heading,

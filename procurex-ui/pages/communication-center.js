@@ -126,7 +126,7 @@ function getCurrentCommunicationUser() {
         || account.displayName
         || roleMailbox?.name
         || email
-        || 'Current user';
+        || 'Account Details';
     const id = email || roleMailbox?.id || getCommunicationDefaultMailboxId(role);
 
     return {
@@ -197,7 +197,7 @@ function normalizeCommunicationItem(item = {}) {
         senderName: item.senderName || item.sender || 'ProcureX System',
         recipientId,
         recipientType: item.recipientType || 'User',
-        recipientName: item.recipientName || 'Current user',
+        recipientName: item.recipientName || 'Account Details',
         tenderId: item.tenderId || '',
         tenderReference: item.tenderReference || item.tenderId || 'Not linked',
         tenderTitle: item.tenderTitle || 'No tender linked',

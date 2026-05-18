@@ -1,4 +1,4 @@
-// Procurement app marketplace. No dashboard inside the app.
+// Tender Marketplace marketplace. No dashboard inside the app.
 
 function renderSupplierMarketplace() {
     const tenders = typeof getProcurexMarketplaceTenders === 'function' ? getProcurexMarketplaceTenders() : (mockData.tenders || []);
@@ -9,7 +9,7 @@ function renderSupplierMarketplace() {
             <main class="procurement-market-shell">
                 <section class="procurement-market-hero">
                     <div>
-                        <span class="section-kicker">Procurement app</span>
+                        <span class="section-kicker">Tender Marketplace</span>
                         <h1>Marketplace</h1>
                         <p>View available tenders, create a new tender when buying, or bid when interested in an open opportunity.</p>
                     </div>
@@ -48,7 +48,7 @@ function renderSupplierMarketplace() {
                     <div class="panel-heading">
                         <div>
                             <span class="section-kicker">Tender list</span>
-                            <h2>Available opportunities</h2>
+                            <h2>Available tenders</h2>
                         </div>
                         <span class="badge badge-success">${openCount} open</span>
                     </div>
@@ -65,8 +65,8 @@ function renderSupplierMarketplace() {
                                     <span>${tender.description}</span>
                                 </div>
                                 <div class="tender-row-actions">
-                                    <button class="btn btn-secondary" data-select-tender="${tender.id}" data-navigate="${tender.createdByCurrentUser ? 'tender-details' : 'supplier-tender-detail'}">View Tender</button>
-                                    <button class="btn btn-primary" data-select-tender="${tender.id}" ${tender.status === 'Open' && !tender.createdByCurrentUser ? 'data-navigate="supplier-tender-detail"' : 'disabled'}>${tender.createdByCurrentUser ? 'Your Tender' : 'Bid'}</button>
+                                    <button class="btn btn-secondary" data-select-tender="${tender.id}" data-navigate="${tender.createdByCurrentUser ? 'tender-details' : 'tender-detail'}">View Tender</button>
+                                    <button class="btn btn-primary" data-select-tender="${tender.id}" ${tender.status === 'Open' && !tender.createdByCurrentUser ? 'data-navigate="tender-detail"' : 'disabled'}>${tender.createdByCurrentUser ? 'Your Tender' : 'Bid'}</button>
                                 </div>
                             </article>
                         `).join('') || '<div class="scope-empty">No active marketplace tenders right now.</div>'}

@@ -31,9 +31,9 @@ function renderRecordsHistory() {
 
                 <ul class="sidebar-nav">
                     <li><a href="#" data-navigate="records-history" class="active">Records</a></li>
-                    <li><a href="#" data-navigate="supplier-marketplace">Marketplace</a></li>
+                    <li><a href="#" data-navigate="marketplace">Marketplace</a></li>
                     <li><a href="#" data-navigate="procurement-dashboard">Procurement Dashboard</a></li>
-                    <li><a href="#" data-navigate="workspace-dashboard">User Dashboard</a></li>
+                    <li><a href="#" data-navigate="workspace-dashboard">Procurement Dashboard</a></li>
                 </ul>
             </aside>
 
@@ -46,7 +46,7 @@ function renderRecordsHistory() {
                             <p>Expired timelines, awarded bids, cancelled tenders, opening reports, amendments, and supplier activity stay archived here for the current user.</p>
                         </div>
                         <div class="hero-action-stack">
-                            <button class="btn btn-secondary" data-navigate="supplier-marketplace">Active Marketplace</button>
+                            <button class="btn btn-secondary" data-navigate="marketplace">Active Marketplace</button>
                             <button class="btn btn-primary" data-navigate="create-tender">Create Tender</button>
                         </div>
                     </section>
