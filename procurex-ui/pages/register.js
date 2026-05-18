@@ -42,8 +42,8 @@ function renderRegister() {
                     <div class="screens-container-new">
                         <div class="register-screen-new active" data-screen="1">
                             <div class="screen-header-new">
-                                <h2>Create Your Account</h2>
-                                <p>Set up the login credentials you will use before eKYC.</p>
+                                <h2>Join Us</h2>
+                                <p>Create an account</p>
                             </div>
 
                             <button type="button" class="mock-fill-btn" data-fill-signup>
@@ -239,6 +239,9 @@ function renderRegister() {
                             </button>
                         </div>
                     </div>
+                </div>
+                <div class="auth-image-panel" aria-hidden="true">
+                    ${typeof renderProcureXLottie === 'function' ? renderProcureXLottie('procurex-lottie auth-image-lottie', 'ProcureX auth animation') : ''}
                 </div>
             </div>
         </div>

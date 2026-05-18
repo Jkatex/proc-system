@@ -69,8 +69,8 @@ function renderTenderDetails() {
                             <p>${tender.id} / ${tender.organization}. Manage live tender interactions, amendments, supplier clarifications, and evaluation readiness.</p>
                         </div>
                         <div class="hero-action-stack">
-                            <button class="btn btn-secondary" type="button" data-tender-pdf="open" data-tender-id="${escapeTenderDetailsHtml(tender.id)}" data-document-audience="buyer">Open PDF</button>
-                            <button class="btn btn-secondary" type="button" data-tender-pdf="download" data-tender-id="${escapeTenderDetailsHtml(tender.id)}" data-document-audience="buyer">Download PDF</button>
+                            <button class="btn btn-secondary" type="button" data-tender-pdf="open" data-tender-id="${escapeTenderDetailsHtml(tender.id)}" data-document-audience="buyer">Open Document</button>
+                            <button class="btn btn-secondary" type="button" data-tender-pdf="download" data-tender-id="${escapeTenderDetailsHtml(tender.id)}" data-document-audience="buyer">Download Document</button>
                             <button class="btn btn-secondary">Create Amendment</button>
                             <button class="btn btn-primary" data-navigate="bid-evaluation">Open Evaluation</button>
                         </div>

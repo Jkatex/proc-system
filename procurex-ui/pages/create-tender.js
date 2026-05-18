@@ -194,6 +194,7 @@ const defaultCreateTenderRegulatoryLicenses = [];
 
 const createTenderRequirementOptions = {
     currencies: ['TZS', 'USD', 'EUR', 'GBP'],
+    fundingSources: ['Government of Tanzania', 'Own Source', 'Donor Funded', 'Development Partner', 'Loan', 'Grant', 'Other'],
     procurementMethods: ['Open Tender', 'Invited Tender'],
     worksContractTypes: ['Lump Sum Contract', 'Unit Price Contract', 'Fixed Price Contract', 'Framework Contract', 'Consultancy / Time-Based Contract', 'Other'],
     worksDocumentTypes: ['Architectural drawings', 'Structural drawings', 'Electrical drawings', 'Mechanical drawings', 'Geotechnical report', 'Environmental report', 'Other'],
@@ -266,6 +267,7 @@ const createTenderRequirementTemplates = {
                         label: 'Quantity lines',
                         type: 'table',
                         addLabel: 'Add Item',
+                        importLabel: 'Import Excel',
                         emptyText: 'No items added yet.',
                         columns: [
                             { id: 'itemNumber', label: 'Item', type: 'index' },
@@ -280,32 +282,13 @@ const createTenderRequirementTemplates = {
             },
             {
                 id: 'technicalSpecifications',
-                title: 'Technical Specifications',
-                hint: 'Use specification cards so each product specification is captured as a full object.',
+                title: 'Product Specification Builder',
+                hint: 'specification that suppliers must respond to.',
                 controls: [
                     {
-                        id: 'specificationCards',
-                        label: 'Product specifications',
-                        type: 'cards',
-                        addLabel: 'Add Specification',
-                        requiresSourceOptions: true,
-                        sourceEmptyText: 'Add at least one quantity item before adding specifications.',
-                        cardTitleField: 'itemRowId',
-                        cardTitlePrefix: 'Specification for',
-                        emptyText: 'No product specifications added yet.',
-                        fields: [
-                            { id: 'itemRowId', label: 'Item', type: 'source-select', sourceControlId: 'quantityScheduleRows', sourceLabelField: 'itemDescription' },
-                            { id: 'productDescription', label: 'Product description', type: 'textarea' },
-                            { id: 'brandRequirements', label: 'Brand requirement', type: 'text' },
-                            { id: 'standards', label: 'Standards', type: 'multiselect', options: createTenderRequirementOptions.standards },
-                            { id: 'performanceSpecifications', label: 'Performance specs', type: 'textarea' },
-                            { id: 'dimensions', label: 'Dimensions', type: 'text' },
-                            { id: 'materialQuality', label: 'Material quality', type: 'select', options: createTenderRequirementOptions.materialQualities },
-                            { id: 'warrantyRequirements', label: 'Warranty', type: 'text' },
-                            { id: 'packagingRequirements', label: 'Packaging', type: 'text' },
-                            { id: 'shelfLifeRequirements', label: 'Shelf life', type: 'text' },
-                            { id: 'installationRequirements', label: 'Installation requirement', type: 'textarea' }
-                        ]
+                        id: 'productSpecificationTemplate',
+                        label: 'Product specification table',
+                        type: 'product-spec-builder'
                     }
                 ]
             },
@@ -382,8 +365,7 @@ const createTenderRequirementTemplates = {
                         helperDescriptions: createTenderWorksContractTypeDescriptions,
                         helperText: 'Select Other to type a contract type that is not listed.'
                     },
-                    { id: 'completionPeriod', label: 'Completion period', type: 'text' },
-                    { id: 'fundingSource', label: 'Funding source', type: 'text' }
+                    { id: 'completionPeriod', label: 'Completion period', type: 'text' }
                 ]
             },
             {
@@ -516,7 +498,7 @@ const createTenderRequirementTemplates = {
             },
             {
                 id: 'siteInformation',
-                title: '7. Site Information',
+                title: '7. Site Visit',
                 hint: 'Important works-procurement context for access, utilities, infrastructure, and ground conditions.',
                 controls: [
                     {
@@ -560,8 +542,7 @@ const createTenderRequirementTemplates = {
                 controls: [
                     { id: 'scopeOfServices', label: 'Scope of services', type: 'textarea' },
                     { id: 'serviceLocations', label: 'Service locations', type: 'list', addLabel: 'Add Service Location', emptyText: 'No service locations added yet.' },
-                    { id: 'duration', label: 'Duration', type: 'text' },
-                    { id: 'fundingSource', label: 'Funding source', type: 'text' }
+                    { id: 'duration', label: 'Duration', type: 'text' }
                 ]
             },
             createTenderFinancialCapacitySection(),
@@ -772,8 +753,7 @@ const createTenderRequirementTemplates = {
                         cardTitle: 'Procuring entity background',
                         fields: [
                             { id: 'organizationBackground', label: 'Organization Background', type: 'richtext' },
-                            { id: 'departmentUnit', label: 'Department / Unit', type: 'select-custom-prompt', options: ['Procurement Management Unit', 'Finance', 'Planning', 'ICT', 'Engineering', 'Legal', 'User Department', 'Other'] },
-                            { id: 'fundingSource', label: 'Funding Source', type: 'select-custom-prompt', options: ['Government of Tanzania', 'Own Source', 'Donor Funded', 'Development Partner', 'Loan', 'Grant', 'Other'] }
+                            { id: 'departmentUnit', label: 'Department / Unit', type: 'select-custom-prompt', options: ['Procurement Management Unit', 'Finance', 'Planning', 'ICT', 'Engineering', 'Legal', 'User Department', 'Other'] }
                         ],
                         defaultValue: []
                     },
@@ -1534,6 +1514,7 @@ const defaultCreateTenderMainDraft = {
     scope: '',
     procurementTypeId: '',
     method: createTenderOpenMethod,
+    fundingSource: '',
     category: '',
     categories: [],
     visibility: 'Public marketplace',
@@ -1640,6 +1621,7 @@ function getCreateTenderRequirementDefaultFields(profileId = 'works') {
 function sanitizeCreateTenderRequirementFields(profileId = 'works', fields = {}) {
     const sanitizedFields = { ...(fields || {}) };
     createTenderLegacyContractClauseFieldIds.forEach(fieldId => delete sanitizedFields[fieldId]);
+    delete sanitizedFields.fundingSource;
 
     if (profileId === 'consultancy') {
         createTenderLegacyConsultancyRequirementFieldIds.forEach(fieldId => delete sanitizedFields[fieldId]);
@@ -1651,7 +1633,7 @@ function sanitizeCreateTenderRequirementFields(profileId = 'works', fields = {})
 
         if (Array.isArray(sanitizedFields.consultancyEntityBackground)) {
             sanitizedFields.consultancyEntityBackground = sanitizedFields.consultancyEntityBackground.map(item => {
-                const { procurementReferenceNo, projectName, ...rest } = item || {};
+                const { procurementReferenceNo, projectName, fundingSource, ...rest } = item || {};
                 return rest;
             });
         }
@@ -1677,6 +1659,25 @@ function sanitizeCreateTenderRequirementFields(profileId = 'works', fields = {})
     }
 
     return sanitizedFields;
+}
+
+function getCreateTenderMainFundingSource(mainDraft = getCreateTenderMainDraft()) {
+    const directValue = String(mainDraft.fundingSource || '').trim();
+    if (directValue) return directValue;
+
+    const requirements = mainDraft.requirements && typeof mainDraft.requirements === 'object' ? mainDraft.requirements : {};
+    const directRequirementValue = ['works', 'services']
+        .map(profileId => String(requirements[profileId]?.fields?.fundingSource || '').trim())
+        .find(Boolean);
+    if (directRequirementValue) return directRequirementValue;
+
+    const entityBackground = requirements.consultancy?.fields?.consultancyEntityBackground;
+    if (!Array.isArray(entityBackground)) return '';
+
+    const backgroundFundingSource = entityBackground
+        .map(item => String(item?.fundingSource || '').trim())
+        .find(Boolean);
+    return backgroundFundingSource || '';
 }
 
 function getCreateTenderRequirementDraft(profileId = 'works') {
@@ -2328,6 +2329,7 @@ function renderCreateTenderRequirementControlTable(control, value, profileId = '
     const sourceField = columns.find(column => column.sourceControlId);
     const sourceOptions = sourceField?.options || [];
     const shouldDisableAdd = Boolean(control.requiresSourceOptions && !sourceOptions.length);
+    const shouldShowTemplate = control.importLabel || isCreateTenderBoqTemplateControl(control.id);
 
     return `
         <div class="requirement-table-wrap" data-requirement-table-wrap="${escapeCreateTenderHtml(control.id)}">
@@ -2346,7 +2348,236 @@ function renderCreateTenderRequirementControlTable(control, value, profileId = '
         ${shouldDisableAdd ? `<span class="form-hint">${escapeCreateTenderHtml(control.sourceEmptyText || 'Add a source item first.')}</span>` : ''}
         <div class="requirement-table-actions">
             ${control.importLabel ? `<button class="btn btn-secondary scope-add" type="button" data-requirement-import="${escapeCreateTenderHtml(control.id)}">${escapeCreateTenderHtml(control.importLabel)}</button>` : ''}
+            ${shouldShowTemplate ? `<button class="btn btn-secondary scope-add" type="button" data-requirement-template="${escapeCreateTenderHtml(control.id)}">Download Excel Template</button>` : ''}
             <button class="btn btn-secondary scope-add" type="button" data-requirement-control-add="${escapeCreateTenderHtml(control.id)}" ${shouldDisableAdd ? 'disabled' : ''}>${escapeCreateTenderHtml(control.addLabel || `Add ${control.label}`)}</button>
+        </div>
+    `;
+}
+
+const createTenderProductSpecStructuralColumns = [
+    { id: 'itemNo', label: 'Item No.', required: true, locked: true, instructions: 'Buyer item number. Suppliers cannot edit this field.' },
+    { id: 'productName', label: 'Product Name', required: true, locked: true, instructions: 'Name of the goods item being procured.' },
+    { id: 'quantity', label: 'Quantity', required: true, locked: true, instructions: 'Quantity required by the buyer.' }
+];
+
+const createTenderProductSpecDetailColumns = [
+    ...createTenderProductSpecStructuralColumns,
+    { id: 'specificationName', label: 'Specification', required: true, locked: false, instructions: 'Name of the item-specific requirement.' },
+    { id: 'acceptableRequirement', label: 'Specific Detail Required', required: false, locked: false, instructions: 'Optional buyer detail for this item specification.' }
+];
+
+function slugCreateTenderProductSpecColumnId(label = 'column') {
+    return String(label || 'column')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        || 'column';
+}
+
+function getCreateTenderProductSpecDefaultTemplate() {
+    return {
+        allowSupplierComments: true,
+        columns: createTenderProductSpecDetailColumns,
+        rows: []
+    };
+}
+
+function getCreateTenderProductSpecQuantityRows(profileId = '') {
+    if (typeof getCreateTenderRequirementDraft !== 'function') return [];
+    const draft = getCreateTenderRequirementDraft(profileId);
+    return Array.isArray(draft.fields?.quantityScheduleRows) ? draft.fields.quantityScheduleRows : [];
+}
+
+function getCreateTenderProductSpecItemValues(item = {}, index = 0) {
+    return {
+        itemNo: item.itemNumber || item.item || String(index + 1),
+        productName: item.itemDescription || item.description || item.productName || `Product item ${index + 1}`,
+        quantity: item.quantity || item.qty || ''
+    };
+}
+
+function findCreateTenderProductSpecExistingRow(existingRows = [], sourceValues = {}, sourceRowId = '') {
+    return existingRows.find(row => row.sourceRowId === sourceRowId)
+        || existingRows.find(row => row.id === `product-spec-${sourceRowId}`)
+        || existingRows.find(row => String(row.values?.itemNo || '') === String(sourceValues.itemNo || ''))
+        || existingRows.find(row => String(row.values?.productName || '').toLowerCase() === String(sourceValues.productName || '').toLowerCase())
+        || null;
+}
+
+function getCreateTenderProductSpecSourceMap(quantityRows = []) {
+    return new Map((Array.isArray(quantityRows) ? quantityRows : []).map((item, index) => {
+        const sourceRowId = item.id || `quantity-row-${index}`;
+        return [sourceRowId, {
+            sourceRowId,
+            index,
+            values: getCreateTenderProductSpecItemValues(item, index)
+        }];
+    }));
+}
+
+function isCreateTenderProductSpecDetailTemplate(value = {}) {
+    const ids = new Set((value?.columns || []).map(column => column?.id));
+    return ids.has('specificationName') || ids.has('acceptableRequirement');
+}
+
+function normalizeCreateTenderProductSpecRow(row = {}, rowIndex = 0, sourceMap = new Map()) {
+    const rawValues = row?.values && typeof row.values === 'object' ? row.values : row || {};
+    const sourceRowId = row?.sourceRowId || '';
+    const source = sourceMap.get(sourceRowId)
+        || Array.from(sourceMap.values()).find(item => (
+            String(item.values.itemNo || '') === String(rawValues.itemNo || '')
+            || String(item.values.productName || '').toLowerCase() === String(rawValues.productName || '').toLowerCase()
+        ))
+        || null;
+    const itemValues = source?.values || {
+        itemNo: rawValues.itemNo || String(rowIndex + 1),
+        productName: rawValues.productName || `Product item ${rowIndex + 1}`,
+        quantity: rawValues.quantity || ''
+    };
+    return {
+        id: row?.id || `product-spec-row-${Date.now()}-${rowIndex}`,
+        sourceRowId: source?.sourceRowId || sourceRowId,
+        values: {
+            ...itemValues,
+            specificationName: rawValues.specificationName || '',
+            acceptableRequirement: rawValues.acceptableRequirement || rawValues.requiredSpecification || ''
+        }
+    };
+}
+
+function convertCreateTenderLegacyProductSpecRows(value = {}, quantityRows = []) {
+    const sourceMap = getCreateTenderProductSpecSourceMap(quantityRows);
+    const structuralIds = new Set(createTenderProductSpecStructuralColumns.map(column => column.id));
+    const detailIds = new Set(createTenderProductSpecDetailColumns.map(column => column.id));
+    const legacyColumns = (value?.columns || [])
+        .filter(column => column && !structuralIds.has(column.id) && !detailIds.has(column.id));
+    const rawRows = Array.isArray(value?.rows) ? value.rows : [];
+    return rawRows.flatMap((row, rowIndex) => {
+        const rawValues = row?.values && typeof row.values === 'object' ? row.values : row || {};
+        const sourceRowId = row?.sourceRowId || `quantity-row-${rowIndex}`;
+        const source = sourceMap.get(sourceRowId)
+            || Array.from(sourceMap.values()).find(item => (
+                String(item.values.itemNo || '') === String(rawValues.itemNo || '')
+                || String(item.values.productName || '').toLowerCase() === String(rawValues.productName || '').toLowerCase()
+            ))
+            || null;
+        const itemValues = source?.values || {
+            itemNo: rawValues.itemNo || String(rowIndex + 1),
+            productName: rawValues.productName || `Product item ${rowIndex + 1}`,
+            quantity: rawValues.quantity || ''
+        };
+        return legacyColumns
+            .filter(column => String(rawValues[column.id] || '').trim())
+            .map(column => ({
+                id: `${row?.id || `product-spec-row-${rowIndex}`}-${column.id}`,
+                sourceRowId: source?.sourceRowId || sourceRowId,
+                values: {
+                    ...itemValues,
+                    specificationName: column.label || 'Specification',
+                    acceptableRequirement: rawValues[column.id] || ''
+                }
+            }));
+    });
+}
+
+function normalizeCreateTenderProductSpecTemplate(value = {}, quantityRows = null) {
+    const fallback = getCreateTenderProductSpecDefaultTemplate();
+    const sourceMap = getCreateTenderProductSpecSourceMap(quantityRows || []);
+    const rawRows = Array.isArray(value?.rows) ? value.rows : fallback.rows;
+    const rowSource = isCreateTenderProductSpecDetailTemplate(value)
+        ? rawRows
+        : convertCreateTenderLegacyProductSpecRows(value, quantityRows || []);
+    const rows = rowSource
+        .map((row, rowIndex) => normalizeCreateTenderProductSpecRow(row, rowIndex, sourceMap))
+        .filter(row => !sourceMap.size || sourceMap.has(row.sourceRowId));
+    return {
+        allowSupplierComments: value?.allowSupplierComments !== false,
+        columns: createTenderProductSpecDetailColumns,
+        rows
+    };
+}
+
+function renderCreateTenderProductSpecificationBuilder(control, value, profileId = '') {
+    const quantityRows = getCreateTenderProductSpecQuantityRows(profileId);
+    const template = normalizeCreateTenderProductSpecTemplate(value, quantityRows);
+    const itemOptions = Array.from(getCreateTenderProductSpecSourceMap(quantityRows).values());
+    return `
+        <div class="product-spec-builder" data-product-spec-builder="${escapeCreateTenderHtml(control.id)}">
+            <div class="product-spec-toolbar">
+                <button class="btn btn-secondary scope-add" type="button" data-product-spec-import="${escapeCreateTenderHtml(control.id)}">Import CSV</button>
+                <button class="btn btn-secondary scope-add" type="button" data-product-spec-download="${escapeCreateTenderHtml(control.id)}">Download CSV Template</button>
+            </div>
+            <div class="product-spec-item-grid">
+                ${itemOptions.length ? itemOptions.map((item) => {
+                    const itemRows = template.rows.filter(row => row.sourceRowId === item.sourceRowId);
+                    return `
+                        <article class="product-spec-item-card">
+                            <div class="product-spec-item-header">
+                                <div>
+                                    <span class="section-kicker">Quantity schedule item ${escapeCreateTenderHtml(item.values.itemNo)}</span>
+                                    <h4>${escapeCreateTenderHtml(item.values.productName)}</h4>
+                                    <p>${escapeCreateTenderHtml(item.values.quantity || 0)} unit${Number(item.values.quantity) === 1 ? '' : 's'} required</p>
+                                </div>
+                                <button class="btn btn-secondary scope-add" type="button" data-product-spec-open-modal="${escapeCreateTenderHtml(control.id)}" data-product-spec-source="${escapeCreateTenderHtml(item.sourceRowId)}">Add Specification</button>
+                            </div>
+                            <div class="product-spec-sheet-wrap">
+                                <table class="product-spec-sheet product-spec-item-sheet">
+                                    <thead>
+                                        <tr>
+                                            <th>Specification <span class="required-dot">*</span></th>
+                                            <th>Specific detail required</th>
+                                            <th aria-label="Actions"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${itemRows.length ? itemRows.map((row, rowIndex) => `
+                                            <tr data-product-spec-row="${escapeCreateTenderHtml(row.id)}" data-product-spec-control="${escapeCreateTenderHtml(control.id)}">
+                                                <td><input class="form-input" type="text" value="${escapeCreateTenderHtml(row.values?.specificationName || '')}" data-product-spec-cell="specificationName" aria-label="Specification name ${rowIndex + 1}"></td>
+                                                <td><textarea class="form-input" rows="3" data-product-spec-cell="acceptableRequirement" aria-label="Specific detail required ${rowIndex + 1}">${escapeCreateTenderHtml(row.values?.acceptableRequirement || '')}</textarea></td>
+                                                <td>
+                                                    <button class="boq-row-action icon-delete-btn" type="button" data-product-spec-delete-row="${escapeCreateTenderHtml(row.id)}" aria-label="Delete specification" title="Delete specification">${renderCreateTenderTrashIcon()}</button>
+                                                </td>
+                                            </tr>
+                                        `).join('') : `
+                                            <tr>
+                                                <td colspan="3">
+                                                    <div class="scope-empty">No specifications added for this item yet.</div>
+                                                </td>
+                                            </tr>
+                                        `}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </article>
+                    `;
+                }).join('') : `<div class="scope-empty">Add goods items in the Quantity Schedule first. Each item will get its own specification table here.</div>`}
+            </div>
+            <div class="product-spec-modal" data-product-spec-modal="${escapeCreateTenderHtml(control.id)}" role="dialog" aria-modal="true" aria-labelledby="product-spec-modal-title-${escapeCreateTenderHtml(control.id)}" hidden>
+                <div class="product-spec-modal-card">
+                    <div class="product-spec-modal-heading">
+                        <div>
+                            <span class="section-kicker">Item specification</span>
+                            <h4 id="product-spec-modal-title-${escapeCreateTenderHtml(control.id)}">Add Specification</h4>
+                            <p data-product-spec-modal-item></p>
+                        </div>
+                        <button class="boq-row-action icon-delete-btn" type="button" data-product-spec-modal-cancel aria-label="Cancel add specification" title="Cancel">x</button>
+                    </div>
+                    <label>
+                        <span class="form-label">Specification name</span>
+                        <input class="form-input" type="text" data-product-spec-modal-name placeholder="Example: Brand, Processor, Warranty">
+                    </label>
+                    <label>
+                        <span class="form-label">Specific detail required</span>
+                        <textarea class="form-input" rows="4" data-product-spec-modal-detail placeholder="Optional, e.g. HP/Dell/Lenovo or equivalent, Core i5 or above"></textarea>
+                    </label>
+                    <span class="form-hint" data-product-spec-modal-error hidden>Specification name is required.</span>
+                    <div class="product-spec-modal-actions">
+                        <button class="btn btn-secondary" type="button" data-product-spec-modal-cancel>Cancel</button>
+                        <button class="btn btn-primary" type="button" data-product-spec-modal-save>Save Specification</button>
+                    </div>
+                </div>
+            </div>
         </div>
     `;
 }
@@ -2416,6 +2647,10 @@ function renderCreateTenderRequirementControl(control, value, profileId = '') {
         return renderCreateTenderRequirementControlTable(control, value, profileId);
     }
 
+    if (control.type === 'product-spec-builder') {
+        return renderCreateTenderProductSpecificationBuilder(control, value, profileId);
+    }
+
     if (control.type === 'cards') {
         return renderCreateTenderRequirementCards(control, value, profileId);
     }
@@ -2444,7 +2679,7 @@ function renderCreateTenderRequirementSectionBlock(section, requirementDraft, pr
                     if (!control.showWhen) return true;
                     return isCreateTenderShowWhenMatched(control.showWhen, requirementDraft.fields);
                 }).map(control => `
-                    <div class="requirement-control ${['table', 'cards', 'accordion', 'textarea', 'richtext', 'regulatory-licenses'].includes(control.type) ? 'requirement-control-wide' : ''}">
+                    <div class="requirement-control ${['table', 'cards', 'accordion', 'textarea', 'richtext', 'regulatory-licenses', 'product-spec-builder'].includes(control.type) ? 'requirement-control-wide' : ''}">
                         ${control.label ? `<span class="form-label">${escapeCreateTenderHtml(control.label)}</span>` : ''}
                         ${renderCreateTenderRequirementControl(control, requirementDraft.fields?.[control.id], profileId)}
                         ${getCreateTenderRequirementHelperText(control, requirementDraft.fields?.[control.id])
@@ -3257,6 +3492,14 @@ function getProcurexSelectedTender() {
         || tenders[0];
 }
 
+function getCreateTenderWizardFundingSource(wizard) {
+    const sourceSelect = wizard?.querySelector?.('[data-tender-funding-source-select]');
+    const customInput = wizard?.querySelector?.('[data-tender-funding-source-custom]');
+    if (!sourceSelect) return getCreateTenderMainFundingSource(getCreateTenderMainDraft());
+    if (sourceSelect.value !== 'Other') return sourceSelect.value;
+    return customInput?.value.trim() || 'Other';
+}
+
 function publishCreateTenderToMarketplace(wizard) {
     const setup = getCreateTenderSetup();
     const selectedTypeId = wizard.querySelector('input[name="procurementType"]:checked')?.value || setup.defaultType.id;
@@ -3266,6 +3509,7 @@ function publishCreateTenderToMarketplace(wizard) {
     const categories = getCreateTenderWizardCategories(wizard);
     const category = categories.join(', ');
     const invitedUsers = getCreateTenderInvitedUsers();
+    const fundingSource = getCreateTenderWizardFundingSource(wizard);
     const visibility = getCreateTenderVisibilityForMethod(method);
     const visibilityNote = getCreateTenderVisibilityNoteForMethod(method, invitedUsers.length);
     const contact = getCreateTenderContactDetails();
@@ -3306,6 +3550,7 @@ function publishCreateTenderToMarketplace(wizard) {
         category,
         categories,
         method,
+        fundingSource,
         visibility,
         visibilityNote,
         invitedUsers,
@@ -3346,6 +3591,7 @@ function buildCreateTenderDocumentPreview(wizard) {
     const categories = getCreateTenderWizardCategories(wizard);
     const category = categories.join(', ') || getCreateTenderMainDraft().category || selectedType.label;
     const invitedUsers = getCreateTenderInvitedUsers();
+    const fundingSource = getCreateTenderWizardFundingSource(wizard);
     const visibility = getCreateTenderVisibilityForMethod(method);
     const visibilityNote = getCreateTenderVisibilityNoteForMethod(method, invitedUsers.length);
     const contact = getCreateTenderContactDetails();
@@ -3377,6 +3623,7 @@ function buildCreateTenderDocumentPreview(wizard) {
         category,
         categories,
         method,
+        fundingSource,
         visibility,
         visibilityNote,
         invitedUsers,
@@ -3411,6 +3658,7 @@ function saveCreateTenderDraftFromWizard(wizard) {
         scope: currentDraft.scope || defaultCreateTenderMainDraft.scope,
         procurementTypeId: selectedType.id,
         method: normalizeCreateTenderMethod(wizard.querySelector('[data-procurement-method]')?.value),
+        fundingSource: getCreateTenderWizardFundingSource(wizard),
         category: getCreateTenderWizardCategoryValue(wizard, ''),
         categories: getCreateTenderWizardCategories(wizard),
         visibility: getCreateTenderVisibilityForMethod(wizard.querySelector('[data-procurement-method]')?.value),
@@ -3454,6 +3702,85 @@ function renderCreateTenderBoqRows(items = getCreateTenderBoqItems(), profile = 
             </tr>
         `;
     }).join('');
+}
+
+function isCreateTenderBoqTemplateControl(controlId = '') {
+    return ['quantityScheduleRows', 'boqRows'].includes(String(controlId || ''));
+}
+
+function getCreateTenderBoqTemplateControlId(profile = getCreateTenderCurrentTypeProfile()) {
+    if (profile.id === 'goods') return 'quantityScheduleRows';
+    if (profile.id === 'works') return 'boqRows';
+    return '';
+}
+
+function formatCreateTenderCsvCell(value = '') {
+    const text = String(value ?? '');
+    return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function getCreateTenderBoqTemplateRows(profile = getCreateTenderCurrentTypeProfile(), controlId = '') {
+    const templateControlId = controlId || getCreateTenderBoqTemplateControlId(profile);
+    const control = templateControlId ? getCreateTenderRequirementControl(profile.id, templateControlId) : null;
+    const columns = control?.type === 'table'
+        ? resolveCreateTenderRequirementColumns(control, profile.id)
+        : [];
+
+    if (columns.length) {
+        const examples = {
+            quantityScheduleRows: [
+                ['1', 'Laptop computer, business grade', 'Pcs', '20', '1800000', '=D2*E2'],
+                ['2', 'Printer toner cartridge', 'Pcs', '50', '95000', '=D3*E3']
+            ],
+            boqRows: [
+                ['Foundation excavation', '120', 'm3', '1500000', '3200000', '800000', '=D2+E2+F2'],
+                ['Concrete works', '40', 'm3', '2200000', '5400000', '1200000', '=D3+E3+F3']
+            ]
+        };
+        return [
+            columns.map(column => column.label),
+            ...(examples[templateControlId] || [])
+        ];
+    }
+
+    const examples = {
+        works: [
+            ['1.1', 'Excavation and earthworks', '1', 'Lot', '2500000', '=C2*E2'],
+            ['1.2', 'Concrete works', '40', 'm3', '180000', '=C3*E3']
+        ],
+        goods: [
+            ['1.1', 'Laptop computer, business grade', '20', 'Pcs', '1800000', '=C2*E2'],
+            ['1.2', 'Printer toner cartridge', '50', 'Pcs', '95000', '=C3*E3']
+        ],
+        services: [
+            ['1.1', 'Monthly cleaning service', '12', 'Month', '650000', '=C2*E2'],
+            ['1.2', 'Deep cleaning service', '4', 'Quarter', '1200000', '=C3*E3']
+        ],
+        consultancy: [
+            ['1.1', 'Team leader professional fee', '30', 'Day', '450000', '=C2*E2'],
+            ['1.2', 'Draft report preparation', '1', 'Lot', '1800000', '=C3*E3']
+        ]
+    };
+    return [
+        ['Code', 'Requirement', 'Qty / Duration', 'Unit', 'Rate / Fee', 'Amount'],
+        ...(examples[profile.id] || examples.works)
+    ];
+}
+
+function downloadCreateTenderBoqTemplate(profile = getCreateTenderCurrentTypeProfile(), controlId = '') {
+    const rows = getCreateTenderBoqTemplateRows(profile, controlId);
+    const csv = `\uFEFF${rows.map(row => row.map(formatCreateTenderCsvCell).join(',')).join('\r\n')}\r\n`;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    const controlLabel = controlId || getCreateTenderBoqTemplateControlId(profile) || profile.commercialName || 'boq';
+    const fileLabel = String(controlLabel).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'boq';
+    link.href = url;
+    link.download = `${fileLabel}-import-template.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
 }
 
 function renderCreateTenderMilestoneRows(items = getCreateTenderMilestones()) {
@@ -3895,6 +4222,7 @@ function renderCreateTenderReviewWorkspace(profile, mainDraft = getCreateTenderM
     const evaluationSummary = getCreateTenderEvaluationSummary(evaluationDraft);
     const requirementSummary = getCreateTenderRequirementSummary(profile, mainDraft);
     const invitedUsers = getCreateTenderInvitedUsers();
+    const fundingSource = getCreateTenderMainFundingSource(mainDraft);
 
     return `
         <div class="tender-review-workspace">
@@ -3910,6 +4238,7 @@ function renderCreateTenderReviewWorkspace(profile, mainDraft = getCreateTenderM
                     ${renderCreateTenderReviewField('Procurement type', selectedType.label)}
                     ${renderCreateTenderReviewField('Categories', categories)}
                     ${renderCreateTenderReviewField('Procurement method', method)}
+                    ${renderCreateTenderReviewField('Funding source', fundingSource)}
                     ${renderCreateTenderReviewField('Visibility', getCreateTenderVisibilityForMethod(method))}
                     ${renderCreateTenderReviewField('Invited suppliers', invitedUsers.map(user => user.name))}
                     ${renderCreateTenderReviewField('Location', contact.tenderLocation)}
@@ -4239,6 +4568,10 @@ function renderCreateTender() {
     const evaluationDraft = getCreateTenderEvaluationDraft(selectedProfile.id, mainDraft);
     const evaluationSummary = getCreateTenderEvaluationSummary(evaluationDraft);
     const tenderMethod = normalizeCreateTenderMethod(mainDraft.method);
+    const fundingSourceValue = getCreateTenderMainFundingSource(mainDraft);
+    const fundingSourceIsCustom = Boolean(fundingSourceValue && !createTenderRequirementOptions.fundingSources.includes(fundingSourceValue));
+    const fundingSourceSelectValue = fundingSourceIsCustom ? 'Other' : fundingSourceValue;
+    const fundingSourceCustomValue = fundingSourceIsCustom ? fundingSourceValue : '';
     const invitedUsers = getCreateTenderInvitedUsers();
     const isClosedTender = isCreateTenderClosedMethod(tenderMethod);
     const steps = [
@@ -4311,8 +4644,8 @@ function renderCreateTender() {
                                 </div>
                                 <div class="contact-detail-grid">
                                     <div class="form-group">
-                                        <label class="form-label">Location of tender</label>
-                                        <input class="form-input" value="${escapeCreateTenderHtml(contactDetails.tenderLocation)}" data-contact-field="tenderLocation" aria-label="Location of tender">
+                                        <label class="form-label">Delivery Point </label>
+                                        <input class="form-input" value="${escapeCreateTenderHtml(contactDetails.tenderLocation)}" data-contact-field="tenderLocation" aria-label="Delivery Point ">
                                     </div>
                                     <div class="form-group">
                                         <label class="form-label">Contact person or department</label>
@@ -4348,6 +4681,13 @@ function renderCreateTender() {
                                             <input class="form-input" value="${escapeCreateTenderHtml(mainDraft.title)}" aria-label="Tender title" data-tender-title>
                                         </div>
                                         <div class="form-grid two">
+                                        <div class="form-group">
+                                            <label class="form-label">Funding source</label>
+                                            <select class="form-input" data-tender-funding-source-select aria-label="Funding source">
+                                                ${renderCreateTenderOptions(createTenderRequirementOptions.fundingSources, fundingSourceSelectValue)}
+                                            </select>
+                                            <input class="form-input" style="margin-top: 8px;" value="${escapeCreateTenderHtml(fundingSourceCustomValue)}" data-tender-funding-source-custom aria-label="Custom funding source" placeholder="Type funding source" ${fundingSourceSelectValue === 'Other' ? '' : 'hidden'}>
+                                        </div>
                                         <div class="form-group">
                                             <label class="form-label">Submission deadline</label>
                                             <input class="form-input" type="date" value="${escapeCreateTenderHtml(milestones.find(item => item.id === 'milestone-closing')?.date || '')}" data-milestone-field="date" data-milestone-row-proxy="milestone-closing" aria-label="Submission deadline">
@@ -4544,6 +4884,8 @@ function initializeCreateTenderWizard() {
     const progressOutput = wizard.querySelector('[data-wizard-progress]');
     const stepTitleOutput = wizard.querySelector('[data-wizard-step-title]');
     let activeStepIndex = 0;
+    let pendingRequirementImportControlId = '';
+    let pendingProductSpecImportControlId = '';
 
     const renderOptions = (select, options, selectedValue = '') => {
         if (!select) return;
@@ -4908,6 +5250,20 @@ function initializeCreateTenderWizard() {
         syncTenderMethod();
     };
 
+    const syncFundingSourceCustomField = () => {
+        const sourceSelect = wizard.querySelector('[data-tender-funding-source-select]');
+        const customInput = wizard.querySelector('[data-tender-funding-source-custom]');
+        if (!sourceSelect || !customInput) return;
+
+        const isCustom = sourceSelect.value === 'Other';
+        customInput.hidden = !isCustom;
+        if (!isCustom) customInput.value = '';
+    };
+
+    const getFundingSourceFromInputs = () => {
+        return getCreateTenderWizardFundingSource(wizard);
+    };
+
     const saveMainDetailsFromInputs = () => {
         const selectedTypeId = wizard.querySelector('input[name="procurementType"]:checked')?.value || setup.defaultType.id;
         const selectedType = setup.types.find(type => type.id === selectedTypeId) || setup.defaultType;
@@ -4917,6 +5273,7 @@ function initializeCreateTenderWizard() {
             scope: currentDraft.scope || defaultCreateTenderMainDraft.scope,
             procurementTypeId: selectedType.id,
             method: normalizeCreateTenderMethod(methodSelect?.value),
+            fundingSource: getFundingSourceFromInputs(),
             category: getCreateTenderWizardCategoryValue(wizard, ''),
             categories: getSelectedCategories(),
             visibility: getCreateTenderVisibilityForMethod(methodSelect?.value),
@@ -5498,6 +5855,160 @@ function initializeCreateTenderWizard() {
         saveCreateTenderRequirementDraft(profile.id, requirementDraft);
     };
 
+    const getProductSpecTemplateValue = (controlId = 'productSpecificationTemplate') => (
+        normalizeCreateTenderProductSpecTemplate(getRequirementControlValue(controlId), getRequirementControlValue('quantityScheduleRows') || [])
+    );
+
+    const saveProductSpecTemplateValue = (controlId, template) => {
+        saveRequirementControlValue(controlId, normalizeCreateTenderProductSpecTemplate(template, getRequirementControlValue('quantityScheduleRows') || []));
+    };
+
+    const downloadProductSpecTemplateCsv = (controlId = 'productSpecificationTemplate') => {
+        const template = getProductSpecTemplateValue(controlId);
+        const csvRows = [
+            template.columns.map(column => column.label),
+            ...template.rows.map(row => template.columns.map(column => row.values?.[column.id] || ''))
+        ];
+        const csv = `\uFEFF${csvRows.map(row => row.map(formatCreateTenderCsvCell).join(',')).join('\r\n')}\r\n`;
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.href = url;
+        link.download = 'product-specification-template.csv';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    };
+
+    const parseProductSpecTemplateCsv = (text) => {
+        const rows = parseDelimitedRows(text);
+        if (!rows.length) return null;
+        const headerCells = rows[0].map(cell => String(cell || '').trim()).filter(Boolean);
+        if (headerCells.length < 3) return null;
+        const normalizeHeaderId = (label, index) => {
+            const lower = label.toLowerCase();
+            if (/^item\s*(no|number|#)?\.?$/i.test(label)) return 'itemNo';
+            if (/product\s*name|description/i.test(lower)) return 'productName';
+            if (/quantity|qty/i.test(lower)) return 'quantity';
+            if (/specification\s*name|^specification$/i.test(label)) return 'specificationName';
+            if (/specific\s*detail|acceptable|required\s*(requirement|value)|buyer\s*requirement|instruction|guidance|note/i.test(lower)) return 'acceptableRequirement';
+            return slugCreateTenderProductSpecColumnId(label) || `column-${index + 1}`;
+        };
+        const columns = headerCells.map((label, index) => ({ id: normalizeHeaderId(label, index), label }));
+        const dataRows = rows.slice(1).filter(cells => cells.some(cell => String(cell || '').trim()));
+        if (!dataRows.length) return null;
+        const importedRows = dataRows.map((cells, rowIndex) => ({
+            id: `product-spec-import-${Date.now()}-${rowIndex}`,
+            values: Object.fromEntries(columns.map((column, columnIndex) => [column.id, cells[columnIndex] || '']))
+        }));
+        const quantityRows = getRequirementControlValue('quantityScheduleRows') || [];
+        return normalizeCreateTenderProductSpecTemplate({
+            allowSupplierComments: true,
+            columns,
+            rows: importedRows
+        }, Array.isArray(quantityRows) ? quantityRows : []);
+    };
+
+    const updateProductSpecColumnField = (input) => {
+        const card = input.closest('[data-product-spec-column]');
+        const controlId = card?.dataset.productSpecControl;
+        const columnId = card?.dataset.productSpecColumn;
+        if (!controlId || !columnId) return;
+        const template = getProductSpecTemplateValue(controlId);
+        const column = template.columns.find(item => item.id === columnId);
+        if (!column || column.locked) return;
+        if (input.matches('[data-product-spec-column-label]')) {
+            column.label = input.value.trim() || column.label;
+        } else if (input.matches('[data-product-spec-column-required]')) {
+            column.required = input.checked;
+        } else if (input.matches('[data-product-spec-column-instructions]')) {
+            column.instructions = input.value;
+        }
+        saveProductSpecTemplateValue(controlId, template);
+    };
+
+    const updateProductSpecCell = (input) => {
+        const row = input.closest('[data-product-spec-row]');
+        const controlId = row?.dataset.productSpecControl;
+        const rowId = row?.dataset.productSpecRow;
+        const columnId = input.dataset.productSpecCell;
+        if (!controlId || !rowId || !columnId) return;
+        const template = getProductSpecTemplateValue(controlId);
+        const templateRow = template.rows.find(item => item.id === rowId);
+        if (!templateRow) return;
+        const column = template.columns.find(item => item.id === columnId);
+        if (column?.locked) return;
+        templateRow.values = {
+            ...(templateRow.values || {}),
+            [columnId]: input.value
+        };
+        saveProductSpecTemplateValue(controlId, template);
+    };
+
+    const openProductSpecModal = (controlId = 'productSpecificationTemplate', sourceRowId = '') => {
+        const modal = wizard.querySelector(`[data-product-spec-modal="${CSS.escape(controlId)}"]`);
+        const quantityRows = getRequirementControlValue('quantityScheduleRows') || [];
+        const sourceMap = getCreateTenderProductSpecSourceMap(Array.isArray(quantityRows) ? quantityRows : []);
+        const source = sourceMap.get(sourceRowId);
+        if (!modal || !source) return;
+
+        modal.dataset.productSpecControl = controlId;
+        modal.dataset.productSpecSource = source.sourceRowId;
+        modal.querySelector('[data-product-spec-modal-item]').textContent = `${source.values.itemNo}. ${source.values.productName}`;
+        modal.querySelector('[data-product-spec-modal-name]').value = '';
+        modal.querySelector('[data-product-spec-modal-detail]').value = '';
+        modal.querySelector('[data-product-spec-modal-error]')?.setAttribute('hidden', '');
+        modal.querySelectorAll('.error').forEach(input => input.classList.remove('error'));
+        modal.hidden = false;
+        modal.querySelector('[data-product-spec-modal-name]')?.focus();
+    };
+
+    const closeProductSpecModal = (modal) => {
+        if (!modal) return;
+        modal.hidden = true;
+        delete modal.dataset.productSpecControl;
+        delete modal.dataset.productSpecSource;
+    };
+
+    const saveProductSpecModal = (modal) => {
+        const controlId = modal?.dataset.productSpecControl || 'productSpecificationTemplate';
+        const sourceRowId = modal?.dataset.productSpecSource || '';
+        const nameInput = modal?.querySelector('[data-product-spec-modal-name]');
+        const detailInput = modal?.querySelector('[data-product-spec-modal-detail]');
+        const specificationName = nameInput?.value.trim() || '';
+        const acceptableRequirement = detailInput?.value.trim() || '';
+        const errorNode = modal?.querySelector('[data-product-spec-modal-error]');
+        const isValid = Boolean(specificationName);
+
+        nameInput?.classList.toggle('error', !specificationName);
+        if (errorNode) errorNode.hidden = isValid;
+        if (!isValid) {
+            nameInput?.focus();
+            return;
+        }
+
+        const quantityRows = getRequirementControlValue('quantityScheduleRows') || [];
+        const sourceMap = getCreateTenderProductSpecSourceMap(Array.isArray(quantityRows) ? quantityRows : []);
+        const source = sourceMap.get(sourceRowId);
+        if (!source) return;
+
+        const template = getProductSpecTemplateValue(controlId);
+        const nextId = `product-spec-${source.sourceRowId}-${Date.now()}`;
+        template.rows.push({
+            id: nextId,
+            sourceRowId: source.sourceRowId,
+            values: {
+                ...source.values,
+                specificationName,
+                acceptableRequirement
+            }
+        });
+        saveProductSpecTemplateValue(controlId, template);
+        renderRequirementControl(controlId);
+        wizard.querySelector(`[data-product-spec-row="${CSS.escape(nextId)}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    };
+
     const renderRequirementControl = (controlId) => {
         const profile = getSelectedProfile();
         const control = getCreateTenderRequirementControl(profile.id, controlId);
@@ -5525,6 +6036,18 @@ function initializeCreateTenderWizard() {
                 } else {
                     tableBody.innerHTML = renderCreateTenderRequirementTableRows(getRequirementControlValue(controlId), control, profile.id);
                 }
+            }
+            return;
+        }
+
+        if (control.type === 'product-spec-builder') {
+            const builder = wizard.querySelector(`[data-product-spec-builder="${CSS.escape(controlId)}"]`);
+            const controlNode = builder?.closest('.requirement-control');
+            if (controlNode) {
+                controlNode.innerHTML = `
+                    <span class="form-label">${escapeCreateTenderHtml(control.label)}</span>
+                    ${renderCreateTenderProductSpecificationBuilder(control, getRequirementControlValue(controlId), profile.id)}
+                `;
             }
             return;
         }
@@ -5636,7 +6159,7 @@ function initializeCreateTenderWizard() {
             renderRequirementControl(controlId);
         }
         if (controlId === 'quantityScheduleRows') {
-            renderRequirementControl('specificationCards');
+            renderRequirementControl('productSpecificationTemplate');
             renderRequirementControl('sampleRequirementRows');
         }
     };
@@ -5716,7 +6239,7 @@ function initializeCreateTenderWizard() {
         refreshTenderReview();
     };
 
-    const parseBoqDelimitedText = (text) => {
+    const parseDelimitedRows = (text) => {
         const splitLine = (line) => {
             if (line.includes('\t')) {
                 return line.split('\t').map(cell => cell.trim().replace(/^"|"$/g, ''));
@@ -5758,7 +6281,17 @@ function initializeCreateTenderWizard() {
             .split(/\r?\n/)
             .map(line => line.trim())
             .filter(Boolean)
-            .map(splitLine)
+            .map(splitLine);
+    };
+
+    const isHeaderRow = (cells, labels = []) => {
+        const normalizedCells = cells.map(cell => String(cell || '').trim().toLowerCase());
+        const normalizedLabels = labels.map(label => String(label || '').trim().toLowerCase());
+        return normalizedLabels.length && normalizedLabels.every((label, index) => normalizedCells[index] === label);
+    };
+
+    const parseBoqDelimitedText = (text) => {
+        return parseDelimitedRows(text)
             .filter(cells => cells.length >= 5)
             .filter((cells, index) => index !== 0 || !/item|description|qty|quantity/i.test(cells.join(' ')))
             .map((cells, index) => normalizeCreateTenderBoqItem({
@@ -5769,6 +6302,36 @@ function initializeCreateTenderWizard() {
                 unit: cells[3],
                 rate: cells[4]
             }, index));
+    };
+
+    const parseRequirementTableDelimitedText = (controlId, text) => {
+        const profile = getSelectedProfile();
+        const control = getCreateTenderRequirementControl(profile.id, controlId);
+        if (!control || control.type !== 'table') return [];
+
+        const columns = resolveCreateTenderRequirementColumns(control, profile.id);
+        const labels = columns.map(column => column.label);
+        return parseDelimitedRows(text)
+            .filter(cells => cells.length)
+            .filter((cells, index) => index !== 0 || !isHeaderRow(cells, labels))
+            .map((cells, rowIndex) => {
+                const row = { id: `requirement-${controlId}-import-${Date.now()}-${rowIndex}` };
+                columns.forEach((column, columnIndex) => {
+                    if (column.type === 'index' || column.type === 'calculated') return;
+                    const cellValue = cells[columnIndex] || '';
+                    if (column.type === 'toggle') {
+                        row[column.id] = /^(yes|true|1)$/i.test(String(cellValue).trim());
+                        return;
+                    }
+                    if (column.type === 'multiselect' || column.type === 'tag-select') {
+                        row[column.id] = String(cellValue || '').split(/[;,]/).map(item => item.trim()).filter(Boolean);
+                        return;
+                    }
+                    row[column.id] = cellValue;
+                });
+                return row;
+            })
+            .filter(row => Object.entries(row).some(([key, value]) => key !== 'id' && String(value || '').trim()));
     };
 
     wizard.addEventListener('change', (event) => {
@@ -5839,7 +6402,10 @@ function initializeCreateTenderWizard() {
         if (event.target?.matches('[data-procurement-method]')) {
             syncTenderMethod();
         }
-        if (event.target?.matches('[data-tender-title], [data-procurement-method], [data-evaluation-field]')) {
+        if (event.target?.matches('[data-tender-funding-source-select]')) {
+            syncFundingSourceCustomField();
+        }
+        if (event.target?.matches('[data-tender-title], [data-tender-funding-source-select], [data-tender-funding-source-custom], [data-procurement-method], [data-evaluation-field]')) {
             saveMainDetailsFromInputs();
             refreshTenderReview();
         }
@@ -5897,6 +6463,12 @@ function initializeCreateTenderWizard() {
         if (event.target?.matches('[data-requirement-card-field]')) {
             updateRequirementCardField(event.target);
         }
+        if (event.target?.matches('[data-product-spec-cell]')) {
+            updateProductSpecCell(event.target);
+        }
+        if (event.target?.matches('[data-product-spec-column-label], [data-product-spec-column-instructions]')) {
+            updateProductSpecColumnField(event.target);
+        }
         if (event.target?.matches('[data-requirement-accordion-field]')) {
             updateRequirementAccordionField(event.target);
         }
@@ -5906,7 +6478,7 @@ function initializeCreateTenderWizard() {
         if (event.target?.matches('[data-evaluation-field]')) {
             updateEvaluationField(event.target);
         }
-        if (event.target?.matches('[data-tender-title], [data-evaluation-field]')) {
+        if (event.target?.matches('[data-tender-title], [data-tender-funding-source-custom], [data-evaluation-field]')) {
             saveMainDetailsFromInputs();
             refreshTenderReview();
         }
@@ -5952,8 +6524,51 @@ function initializeCreateTenderWizard() {
             return;
         }
 
-        if (target.matches('[data-requirement-import]')) {
+        if (target.matches('[data-product-spec-open-modal]')) {
+            openProductSpecModal(target.dataset.productSpecOpenModal || 'productSpecificationTemplate', target.dataset.productSpecSource || '');
+            return;
+        }
+
+        if (target.matches('[data-product-spec-modal-cancel]')) {
+            closeProductSpecModal(target.closest('[data-product-spec-modal]'));
+            return;
+        }
+
+        if (target.matches('[data-product-spec-modal-save]')) {
+            saveProductSpecModal(target.closest('[data-product-spec-modal]'));
+            return;
+        }
+
+        if (target.matches('[data-product-spec-delete-row]')) {
+            const row = target.closest('[data-product-spec-row]');
+            const controlId = row?.dataset.productSpecControl || 'productSpecificationTemplate';
+            const rowId = target.dataset.productSpecDeleteRow;
+            const template = getProductSpecTemplateValue(controlId);
+            template.rows = template.rows.filter(item => item.id !== rowId);
+            saveProductSpecTemplateValue(controlId, template);
+            renderRequirementControl(controlId);
+            return;
+        }
+
+        if (target.matches('[data-product-spec-import]')) {
+            pendingProductSpecImportControlId = target.dataset.productSpecImport || 'productSpecificationTemplate';
             wizard.querySelector('[data-boq-file]')?.click();
+            return;
+        }
+
+        if (target.matches('[data-product-spec-download]')) {
+            downloadProductSpecTemplateCsv(target.dataset.productSpecDownload || 'productSpecificationTemplate');
+            return;
+        }
+
+        if (target.matches('[data-requirement-import]')) {
+            pendingRequirementImportControlId = target.dataset.requirementImport || '';
+            wizard.querySelector('[data-boq-file]')?.click();
+            return;
+        }
+
+        if (target.matches('[data-requirement-template]')) {
+            downloadCreateTenderBoqTemplate(getSelectedProfile(), target.dataset.requirementTemplate);
             return;
         }
 
@@ -6340,7 +6955,13 @@ function initializeCreateTenderWizard() {
         }
 
         if (target.matches('[data-boq-import]')) {
+            pendingRequirementImportControlId = '';
             wizard.querySelector('[data-boq-file]')?.click();
+            return;
+        }
+
+        if (target.matches('[data-boq-template]')) {
+            downloadCreateTenderBoqTemplate(getSelectedProfile());
             return;
         }
 
@@ -6451,7 +7072,7 @@ function initializeCreateTenderWizard() {
                 saveRequirementControlValue(controlId, rows);
                 renderRequirementControl(controlId);
                 if (controlId === 'quantityScheduleRows') {
-                    renderRequirementControl('specificationCards');
+                    renderRequirementControl('productSpecificationTemplate');
                     renderRequirementControl('sampleRequirementRows');
                 }
                 wizard.querySelector(`[data-requirement-table-body="${CSS.escape(controlId)}"] [data-requirement-table-row]:last-child input`)?.focus();
@@ -6504,7 +7125,7 @@ function initializeCreateTenderWizard() {
                 saveRequirementControlValue(controlId, rows);
                 renderRequirementControl(controlId);
                 if (controlId === 'quantityScheduleRows') {
-                    renderRequirementControl('specificationCards');
+                    renderRequirementControl('productSpecificationTemplate');
                     renderRequirementControl('sampleRequirementRows');
                 }
                 return;
@@ -6575,8 +7196,45 @@ function initializeCreateTenderWizard() {
 
         const reader = new FileReader();
         reader.onload = () => {
-            const importedItems = parseBoqDelimitedText(String(reader.result || ''));
             const profile = getSelectedProfile();
+            if (pendingProductSpecImportControlId) {
+                const controlId = pendingProductSpecImportControlId;
+                const importedTemplate = parseProductSpecTemplateCsv(String(reader.result || ''));
+                if (!importedTemplate || !importedTemplate.rows.length) {
+                    alert('No valid product specification rows found. Use the downloaded CSV template for this table.');
+                    event.target.value = '';
+                    pendingProductSpecImportControlId = '';
+                    return;
+                }
+                saveProductSpecTemplateValue(controlId, importedTemplate);
+                renderRequirementControl(controlId);
+                event.target.value = '';
+                pendingProductSpecImportControlId = '';
+                return;
+            }
+
+            if (pendingRequirementImportControlId) {
+                const controlId = pendingRequirementImportControlId;
+                const importedRows = parseRequirementTableDelimitedText(controlId, String(reader.result || ''));
+                if (!importedRows.length) {
+                    alert('No valid rows found. Use the downloaded template for this table.');
+                    event.target.value = '';
+                    pendingRequirementImportControlId = '';
+                    return;
+                }
+
+                saveRequirementControlValue(controlId, importedRows);
+                renderRequirementControl(controlId);
+                if (controlId === 'quantityScheduleRows') {
+                    renderRequirementControl('productSpecificationTemplate');
+                    renderRequirementControl('sampleRequirementRows');
+                }
+                event.target.value = '';
+                pendingRequirementImportControlId = '';
+                return;
+            }
+
+            const importedItems = parseBoqDelimitedText(String(reader.result || ''));
             if (!importedItems.length) {
                 alert(`No valid rows found. ${profile.importHint}`);
                 event.target.value = '';
@@ -6667,6 +7325,7 @@ function initializeCreateTenderWizard() {
     refreshProfileText();
     syncTenderMethod();
     syncCustomCategoryField();
+    syncFundingSourceCustomField();
     refreshTenderReview();
     setActiveStep(0);
     wizard.dataset.ready = 'true';

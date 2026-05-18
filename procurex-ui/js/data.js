@@ -1,5 +1,37 @@
 // Mock data for the ProcureX application
 
+const mockProductSpecificationStructuralColumns = [
+    { id: 'itemNo', label: 'Item No.', required: true, locked: true, instructions: 'Buyer item number from the quantity schedule.' },
+    { id: 'productName', label: 'Product Name', required: true, locked: true, instructions: 'Buyer product name from the quantity schedule.' },
+    { id: 'quantity', label: 'Quantity', required: true, locked: true, instructions: 'Buyer required quantity from the quantity schedule.' }
+];
+
+const mockProductSpecificationDetailColumns = [
+    ...mockProductSpecificationStructuralColumns,
+    { id: 'specificationName', label: 'Specification', required: true, locked: false, instructions: 'Item-specific requirement.' },
+    { id: 'acceptableRequirement', label: 'Specific Detail Required', required: false, locked: false, instructions: 'Optional buyer detail for this item specification.' }
+];
+
+function createMockProductSpecificationTemplate(customColumns = [], rows = [], options = {}) {
+    return {
+        allowSupplierComments: options.allowSupplierComments !== false,
+        columns: mockProductSpecificationDetailColumns,
+        rows: rows.flatMap((values, index) => customColumns
+            .filter(column => String(values[column.id] || '').trim())
+            .map(column => ({
+                id: `product-spec-quantity-row-${index}-${column.id}`,
+                sourceRowId: `quantity-row-${index}`,
+                values: {
+                    itemNo: String(index + 1),
+                    productName: values.productName,
+                    quantity: values.quantity,
+                    specificationName: column.label,
+                    acceptableRequirement: values[column.id]
+                }
+            })))
+    };
+}
+
 const mockData = {
     // Workspace roles are assigned after onboarding, not during initial authentication.
     roles: ['buyer', 'supplier', 'admin'],
@@ -451,7 +483,7 @@ const mockData = {
             visibility: 'Public marketplace',
             location: 'Dar es Salaam, Mwanza, Arusha, Mbeya, Tabora, and Mtwara',
             commercialModel: 'Quantity Schedule',
-            documents: ['Technical_Specifications.pdf', 'Quantity_Schedule.xlsx', 'Warranty_Terms.pdf', 'Installation_Requirements.pdf'],
+            documents: ['Product_Specification_Template.csv', 'Quantity_Schedule.xlsx', 'Warranty_Terms.pdf', 'Installation_Requirements.pdf'],
             regulatoryLicenses: [
                 { group: 'Food, Drugs & Cosmetics', license: 'Medical Devices Registration Permit', body: 'Tanzania Medicines and Medical Devices Authority (TMDA)', mandatory: true },
                 { group: 'Specialized Services', license: 'Calibration Certificate', body: 'Weights and Measures Agency (WMA)', mandatory: false }
@@ -463,10 +495,41 @@ const mockData = {
                         { itemDescription: 'Radiology workstation and diagnostic display', unitOfMeasure: 'Set', quantity: 6, unitPrice: 45000000, totalPrice: 270000000, mandatory: true },
                         { itemDescription: 'User training and commissioning kit', unitOfMeasure: 'Lot', quantity: 1, unitPrice: 190000000, totalPrice: 190000000, mandatory: true }
                     ],
-                    specificationCards: [
-                        { itemRowId: 'Digital X-ray system with flat panel detector', productDescription: 'Floor-mounted digital radiography unit with detector, generator, table, bucky stand, and DICOM connectivity.', brandRequirements: 'Brand-neutral or equivalent', standards: ['ISO', 'CE'], performanceSpecifications: 'Minimum 50 kW generator, flat panel detector, DICOM 3.0, PACS/RIS integration.', dimensions: 'Suitable for standard radiology room', materialQuality: 'Medical grade', warrantyRequirements: 'Minimum 3 years comprehensive warranty', packagingRequirements: 'Shock-protected export packaging', installationRequirements: 'Installation, calibration, acceptance testing, and radiation safety checks required.' },
-                        { itemRowId: 'Radiology workstation and diagnostic display', productDescription: 'Diagnostic workstation with licensed image viewing software.', brandRequirements: 'Brand-neutral or equivalent', standards: ['CE'], performanceSpecifications: 'Medical-grade display and DICOM viewer with local storage.', dimensions: 'Desktop workstation', materialQuality: 'Medical grade', warrantyRequirements: 'Minimum 3 years warranty', installationRequirements: 'Configured with hospital PACS where available.' }
-                    ],
+                    productSpecificationTemplate: createMockProductSpecificationTemplate([
+                        { id: 'requiredSpecification', label: 'Required Specification', required: true, locked: false, instructions: 'Minimum technical requirement suppliers must meet or exceed.' },
+                        { id: 'brandEquivalent', label: 'Required Brand/Equivalent', required: false, locked: false, instructions: 'Accepted brand position or equivalent wording.' },
+                        { id: 'standards', label: 'Standards/Certification', required: true, locked: false, instructions: 'Applicable registration, safety, or quality standard.' },
+                        { id: 'warranty', label: 'Warranty', required: true, locked: false, instructions: 'Minimum warranty and service support.' },
+                        { id: 'installationCommissioning', label: 'Installation/Commissioning', required: true, locked: false, instructions: 'Site installation, testing, training, and handover requirements.' }
+                    ], [
+                        {
+                            productName: 'Digital X-ray system with flat panel detector',
+                            quantity: 6,
+                            requiredSpecification: 'Floor-mounted digital radiography unit with detector, generator, table, bucky stand, DICOM 3.0, and PACS/RIS integration.',
+                            brandEquivalent: 'Brand-neutral or equivalent',
+                            standards: 'TMDA registered medical device, ISO, CE',
+                            warranty: 'Minimum 3 years comprehensive warranty with spare parts availability commitment.',
+                            installationCommissioning: 'Installation, calibration, acceptance testing, radiation safety checks, and user training at each hospital.'
+                        },
+                        {
+                            productName: 'Radiology workstation and diagnostic display',
+                            quantity: 6,
+                            requiredSpecification: 'Diagnostic workstation with licensed image viewing software, medical-grade display, DICOM viewer, and local storage.',
+                            brandEquivalent: 'Brand-neutral or equivalent',
+                            standards: 'CE and DICOM compatibility evidence',
+                            warranty: 'Minimum 3 years warranty.',
+                            installationCommissioning: 'Configured with hospital PACS where available and handed over with user orientation.'
+                        },
+                        {
+                            productName: 'User training and commissioning kit',
+                            quantity: 1,
+                            requiredSpecification: 'Training materials, calibration records, acceptance forms, safety checklist, and commissioning consumables for all six sites.',
+                            brandEquivalent: 'Not applicable',
+                            standards: 'Radiation safety and manufacturer commissioning procedures',
+                            warranty: 'Training and commissioning support included through warranty period.',
+                            installationCommissioning: 'Complete commissioning report and signed training attendance sheets required.'
+                        }
+                    ]),
                     requireSamples: 'No',
                     otherEligibilityRequirements: [
                         { requirementName: 'Manufacturer authorization', mandatory: true, requiresUpload: true, notes: 'Authorization must name Tanzania and the tender title.' },
@@ -533,7 +596,7 @@ const mockData = {
             visibility: 'Public marketplace',
             location: 'Nationwide school delivery points',
             commercialModel: 'Quantity Schedule',
-            documents: ['Science_Lab_Specifications.pdf', 'Delivery_Lot_Schedule.xlsx', 'Sample_Submission_Form.pdf', 'Warranty_Form.pdf'],
+            documents: ['Product_Specification_Template.csv', 'Delivery_Lot_Schedule.xlsx', 'Sample_Submission_Form.pdf', 'Warranty_Form.pdf'],
             regulatoryLicenses: [
                 { group: 'Specialized Services', license: 'Weights and Measures Inspection Certificate', body: 'Weights and Measures Agency (WMA)', mandatory: false }
             ],
@@ -545,10 +608,50 @@ const mockData = {
                         { itemDescription: 'Laboratory safety cabinet', unitOfMeasure: 'Pcs', quantity: 100, unitPrice: 2250000, totalPrice: 225000000, mandatory: true },
                         { itemDescription: 'Laboratory bench with chemical-resistant top', unitOfMeasure: 'Pcs', quantity: 200, unitPrice: 1450000, totalPrice: 290000000, mandatory: true }
                     ],
-                    specificationCards: [
-                        { itemRowId: 'Student microscope, binocular', productDescription: 'Durable school microscope with achromatic objectives and LED illumination.', brandRequirements: 'Brand-neutral or equivalent', standards: ['ISO', 'TBS'], performanceSpecifications: '40x to 1000x magnification, mechanical stage, rechargeable LED light.', materialQuality: 'Certified', warrantyRequirements: 'Minimum 24 months warranty', packagingRequirements: 'Individual shock-resistant box' },
-                        { itemRowId: 'Laboratory safety cabinet', productDescription: 'Lockable chemical storage cabinet for school laboratories.', standards: ['TBS'], materialQuality: 'Industrial grade', warrantyRequirements: 'Minimum 24 months warranty', packagingRequirements: 'Flat packed or assembled with protective packaging' }
-                    ],
+                    productSpecificationTemplate: createMockProductSpecificationTemplate([
+                        { id: 'requiredSpecification', label: 'Required Specification', required: true, locked: false, instructions: 'Minimum item specification required by the buyer.' },
+                        { id: 'standards', label: 'Standards/Certification', required: true, locked: false, instructions: 'Quality, safety, or conformity evidence required.' },
+                        { id: 'warranty', label: 'Warranty', required: true, locked: false, instructions: 'Minimum warranty or replacement support.' },
+                        { id: 'packagingDelivery', label: 'Packaging/Delivery', required: false, locked: false, instructions: 'Packaging and delivery requirements.' },
+                        { id: 'sampleRequirement', label: 'Sample Requirement', required: false, locked: false, instructions: 'Whether a physical sample is required before award.' }
+                    ], [
+                        {
+                            productName: 'Student microscope, binocular',
+                            quantity: 500,
+                            requiredSpecification: 'Durable binocular school microscope with achromatic objectives, mechanical stage, rechargeable LED light, and 40x to 1000x magnification.',
+                            standards: 'ISO and TBS conformity evidence',
+                            warranty: 'Minimum 24 months warranty.',
+                            packagingDelivery: 'Individual shock-resistant box suitable for regional school delivery.',
+                            sampleRequirement: 'One fully functional microscope sample required.'
+                        },
+                        {
+                            productName: 'Chemistry glassware starter kit',
+                            quantity: 250,
+                            requiredSpecification: 'Starter glassware kit for secondary school chemistry practicals with beakers, flasks, test tubes, measuring cylinders, and safety accessories.',
+                            standards: 'TBS-compliant laboratory glassware',
+                            warranty: 'Replacement of damaged or defective items on delivery.',
+                            packagingDelivery: 'Packed per school kit with item checklist and breakage protection.',
+                            sampleRequirement: 'One representative starter kit required.'
+                        },
+                        {
+                            productName: 'Laboratory safety cabinet',
+                            quantity: 100,
+                            requiredSpecification: 'Lockable chemical storage cabinet for school laboratories with ventilation slots, corrosion-resistant shelves, and safety labelling.',
+                            standards: 'TBS conformity evidence',
+                            warranty: 'Minimum 24 months warranty.',
+                            packagingDelivery: 'Flat packed or assembled with protective packaging.',
+                            sampleRequirement: 'Catalogue and technical drawing acceptable unless requested during evaluation.'
+                        },
+                        {
+                            productName: 'Laboratory bench with chemical-resistant top',
+                            quantity: 200,
+                            requiredSpecification: 'Student laboratory bench with chemical-resistant worktop, sturdy frame, service-ready surface, and rounded safety edges.',
+                            standards: 'TBS conformity evidence',
+                            warranty: 'Minimum 24 months warranty.',
+                            packagingDelivery: 'Delivered with installation guidance and damage protection.',
+                            sampleRequirement: 'Material swatch or catalogue required.'
+                        }
+                    ]),
                     requireSamples: 'Yes',
                     sampleRequirementRows: [
                         { relatedBoqItem: 'Student microscope, binocular', sampleRequired: true, numberOfSamples: 1, sampleDescription: 'One fully functional microscope sample.', deliveryLocation: 'Dar es Salaam PMU', deliveryDeadline: '2026-06-07', mandatory: true, returnableSample: true },
@@ -621,7 +724,7 @@ const mockData = {
             visibility: 'Public marketplace',
             location: 'Morogoro, Dodoma, Manyara, and Simiyu',
             commercialModel: 'Quantity Schedule',
-            documents: ['Seed_Technical_Specifications.pdf', 'Lot_Delivery_Schedule.xlsx', 'Traceability_Form.pdf', 'Sample_Testing_Form.pdf'],
+            documents: ['Product_Specification_Template.csv', 'Lot_Delivery_Schedule.xlsx', 'Traceability_Form.pdf', 'Sample_Testing_Form.pdf'],
             regulatoryLicenses: [
                 { group: 'Specialized Services', license: 'Weights and Measures Inspection Certificate', body: 'Weights and Measures Agency (WMA)', mandatory: false }
             ],
@@ -633,10 +736,50 @@ const mockData = {
                         { itemDescription: 'Portable soil testing kit', unitOfMeasure: 'Set', quantity: 400, unitPrice: 255000, totalPrice: 102000000, mandatory: true },
                         { itemDescription: 'Digital grain moisture meter', unitOfMeasure: 'Pcs', quantity: 200, unitPrice: 200000, totalPrice: 40000000, mandatory: true }
                     ],
-                    specificationCards: [
-                        { itemRowId: 'Certified maize seed 10kg packs', productDescription: 'Certified improved maize seed packed in 10kg sealed bags.', standards: ['TBS', 'Manufacturer certificate'], performanceSpecifications: 'Minimum germination 85 percent with batch traceability.', materialQuality: 'Certified', warrantyRequirements: 'Replacement for failed certified lots', packagingRequirements: 'Sealed moisture-resistant bags', shelfLifeRequirements: 'Minimum 12 months remaining shelf life' },
-                        { itemRowId: 'Portable soil testing kit', productDescription: 'Portable field soil testing kit for pH, NPK, and organic matter indicators.', standards: ['ISO'], performanceSpecifications: 'Field-ready kit with reagents, instructions, and carrying case.', materialQuality: 'Certified', warrantyRequirements: '12 months warranty' }
-                    ],
+                    productSpecificationTemplate: createMockProductSpecificationTemplate([
+                        { id: 'requiredSpecification', label: 'Required Specification', required: true, locked: false, instructions: 'Minimum required product or kit specification.' },
+                        { id: 'certificationStandard', label: 'Certification/Standard', required: true, locked: false, instructions: 'Certification, inspection, or conformity evidence required.' },
+                        { id: 'shelfLifeTraceability', label: 'Shelf Life/Traceability', required: true, locked: false, instructions: 'Batch traceability or remaining shelf-life requirement.' },
+                        { id: 'packaging', label: 'Packaging', required: false, locked: false, instructions: 'Required packaging or delivery condition.' },
+                        { id: 'warrantyReplacement', label: 'Warranty/Replacement', required: false, locked: false, instructions: 'Warranty or replacement obligation.' }
+                    ], [
+                        {
+                            productName: 'Certified maize seed 10kg packs',
+                            quantity: 18000,
+                            requiredSpecification: 'Certified improved maize seed packed in 10kg sealed bags with minimum 85 percent germination.',
+                            certificationStandard: 'Official seed certification and TBS/manufacturer certificate where applicable.',
+                            shelfLifeTraceability: 'Batch traceability with lot numbers and minimum 12 months remaining shelf life.',
+                            packaging: 'Sealed moisture-resistant bags labelled by variety, batch, and expiry date.',
+                            warrantyReplacement: 'Replacement for failed certified lots.'
+                        },
+                        {
+                            productName: 'Certified sunflower seed 5kg packs',
+                            quantity: 12000,
+                            requiredSpecification: 'Certified sunflower seed packed in 5kg sealed bags suitable for target agro-ecological zones.',
+                            certificationStandard: 'Official seed certification and variety approval evidence.',
+                            shelfLifeTraceability: 'Batch traceability with source and warehouse records.',
+                            packaging: 'Sealed moisture-resistant bags labelled by variety, batch, and expiry date.',
+                            warrantyReplacement: 'Replacement for failed certified lots.'
+                        },
+                        {
+                            productName: 'Portable soil testing kit',
+                            quantity: 400,
+                            requiredSpecification: 'Portable field soil testing kit for pH, NPK, and organic matter indicators with reagents, instructions, and carrying case.',
+                            certificationStandard: 'ISO or manufacturer quality certificate',
+                            shelfLifeTraceability: 'Reagents must have minimum 12 months usable shelf life at delivery.',
+                            packaging: 'Field-ready hard case with consumables inventory.',
+                            warrantyReplacement: 'Minimum 12 months warranty.'
+                        },
+                        {
+                            productName: 'Digital grain moisture meter',
+                            quantity: 200,
+                            requiredSpecification: 'Portable digital grain moisture meter suitable for maize and sunflower with clear display and calibration guide.',
+                            certificationStandard: 'Manufacturer calibration certificate or inspection certificate.',
+                            shelfLifeTraceability: 'Serial-numbered units with calibration record.',
+                            packaging: 'Protective case with batteries and user manual.',
+                            warrantyReplacement: 'Minimum 12 months warranty.'
+                        }
+                    ]),
                     requireSamples: 'Yes',
                     sampleRequirementRows: [
                         { relatedBoqItem: 'Certified maize seed 10kg packs', sampleRequired: true, numberOfSamples: 2, sampleDescription: 'Two sealed sample packs with batch certificates.', deliveryLocation: 'Ministry PMU Dodoma', deliveryDeadline: '2026-06-13', mandatory: true, returnableSample: false },
@@ -709,7 +852,7 @@ const mockData = {
             visibility: 'Public marketplace',
             location: 'TRA offices nationwide',
             commercialModel: 'Quantity Schedule',
-            documents: ['Furniture_Catalogue_Requirements.pdf', 'Framework_Quantity_Schedule.xlsx', 'Warranty_Service_Form.pdf'],
+            documents: ['Product_Specification_Template.csv', 'Framework_Quantity_Schedule.xlsx', 'Warranty_Service_Form.pdf'],
             regulatoryLicenses: [],
             requirements: {
                 fields: {
@@ -719,10 +862,50 @@ const mockData = {
                         { itemDescription: 'Steel filing cabinet four drawer', unitOfMeasure: 'Pcs', quantity: 500, unitPrice: 250000, totalPrice: 125000000, mandatory: true },
                         { itemDescription: 'Meeting table for 12 users', unitOfMeasure: 'Pcs', quantity: 90, unitPrice: 1700000, totalPrice: 153000000, mandatory: true }
                     ],
-                    specificationCards: [
-                        { itemRowId: 'Ergonomic office chair', productDescription: 'Adjustable ergonomic task chair with lumbar support and five-star base.', brandRequirements: 'Brand-neutral or equivalent', standards: ['TBS'], performanceSpecifications: 'Adjustable height, tilt, breathable fabric, minimum 120kg load rating.', dimensions: 'Standard task chair', materialQuality: 'Premium', warrantyRequirements: 'Minimum 24 months warranty', packagingRequirements: 'Protected delivery packaging' },
-                        { itemRowId: 'Executive desk with cable management', productDescription: 'Office desk with modesty panel and cable management.', standards: ['TBS'], materialQuality: 'Premium', warrantyRequirements: 'Minimum 24 months warranty' }
-                    ],
+                    productSpecificationTemplate: createMockProductSpecificationTemplate([
+                        { id: 'requiredSpecification', label: 'Required Specification', required: true, locked: false, instructions: 'Minimum furniture specification required by the buyer.' },
+                        { id: 'materialFinish', label: 'Material/Finish', required: true, locked: false, instructions: 'Required material, colour, or finish details.' },
+                        { id: 'standards', label: 'Standards', required: false, locked: false, instructions: 'Applicable furniture or quality standard.' },
+                        { id: 'warranty', label: 'Warranty', required: true, locked: false, instructions: 'Minimum warranty and service support.' },
+                        { id: 'sampleRequirement', label: 'Sample Requirement', required: false, locked: false, instructions: 'Sample or catalogue evidence required.' }
+                    ], [
+                        {
+                            productName: 'Ergonomic office chair',
+                            quantity: 1800,
+                            requiredSpecification: 'Adjustable ergonomic task chair with lumbar support, breathable fabric, height adjustment, tilt, and five-star base with minimum 120kg load rating.',
+                            materialFinish: 'Premium fabric or mesh finish with buyer-approved colour options.',
+                            standards: 'TBS conformity evidence',
+                            warranty: 'Minimum 24 months warranty with replacement support.',
+                            sampleRequirement: 'One assembled chair for ergonomic inspection.'
+                        },
+                        {
+                            productName: 'Executive desk with cable management',
+                            quantity: 650,
+                            requiredSpecification: 'Office desk with modesty panel, cable management, durable worktop, and matching pedestal compatibility.',
+                            materialFinish: 'Premium laminated board or equivalent with buyer-approved finishes.',
+                            standards: 'TBS conformity evidence',
+                            warranty: 'Minimum 24 months warranty.',
+                            sampleRequirement: 'Catalogue, material swatch, and technical drawing required.'
+                        },
+                        {
+                            productName: 'Steel filing cabinet four drawer',
+                            quantity: 500,
+                            requiredSpecification: 'Four-drawer steel filing cabinet with central locking, smooth runners, label holders, and anti-rust treatment.',
+                            materialFinish: 'Powder-coated steel in buyer-approved colour.',
+                            standards: 'TBS conformity evidence',
+                            warranty: 'Minimum 24 months warranty.',
+                            sampleRequirement: 'Catalogue and finish sample required.'
+                        },
+                        {
+                            productName: 'Meeting table for 12 users',
+                            quantity: 90,
+                            requiredSpecification: 'Meeting table sized for 12 users with stable frame, cable access, and durable top suitable for office use.',
+                            materialFinish: 'Premium board or hardwood equivalent with buyer-approved finish.',
+                            standards: 'TBS conformity evidence',
+                            warranty: 'Minimum 24 months warranty.',
+                            sampleRequirement: 'Catalogue and technical drawing required.'
+                        }
+                    ]),
                     requireSamples: 'Yes',
                     sampleRequirementRows: [
                         { relatedBoqItem: 'Ergonomic office chair', sampleRequired: true, numberOfSamples: 1, sampleDescription: 'One assembled chair for ergonomic inspection.', deliveryLocation: 'TRA Headquarters Dar es Salaam', deliveryDeadline: '2026-06-20', mandatory: true, returnableSample: true }
@@ -1709,6 +1892,1135 @@ const mockData = {
             interestedSuppliers: [
                 { name: 'HealthChain Analytics', status: 'Downloaded TOR', lastActivity: 'Today' },
                 { name: 'Supply Optima Consulting', status: 'Watching tender', lastActivity: 'Yesterday' }
+            ]
+        },
+        {
+            id: 'PX-GDS-2026-003',
+            title: 'Supply of Office Supplies and Stationery',
+            type: 'Goods',
+            procurementTypeId: 'goods',
+            status: 'Open',
+            budget: 85000000,
+            closingDate: '2026-06-15',
+            organization: 'District Education Office',
+            description: 'Annual framework supply of office stationery, printer consumables, paper, pens, and filing materials for district office.',
+            eligibility: 'Open Tender / Local stationery supplier with tax clearance.',
+            category: 'Office Supplies',
+            categories: ['Office Supplies', 'Computer Equipment and Accessories'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'District Education Office',
+            commercialModel: 'Quantity Schedule',
+            documents: ['Stationery_List.xlsx', 'Sample_Submission_Form.pdf'],
+            regulatoryLicenses: [],
+            requirements: {
+                fields: {
+                    quantityScheduleRows: [
+                        { itemDescription: 'A4 paper 80gsm ream 500 sheets', unitOfMeasure: 'Ream', quantity: 2400, unitPrice: 18000, totalPrice: 43200000, mandatory: true },
+                        { itemDescription: 'Ballpoint pen blue medium', unitOfMeasure: 'Box/50pcs', quantity: 80, unitPrice: 85000, totalPrice: 6800000, mandatory: true },
+                        { itemDescription: 'Pencil wooden HB', unitOfMeasure: 'Box/144pcs', quantity: 40, unitPrice: 45000, totalPrice: 1800000, mandatory: true },
+                        { itemDescription: 'Correction fluid 20ml', unitOfMeasure: 'Bottle', quantity: 200, unitPrice: 12000, totalPrice: 2400000, mandatory: true },
+                        { itemDescription: 'Envelopes brown A4', unitOfMeasure: 'Box/100pcs', quantity: 300, unitPrice: 28000, totalPrice: 8400000, mandatory: true },
+                        { itemDescription: 'Printer ink cartridge black', unitOfMeasure: 'Cartridge', quantity: 150, unitPrice: 42000, totalPrice: 6300000, mandatory: true },
+                        { itemDescription: 'Highlighter marker set of 4', unitOfMeasure: 'Set', quantity: 200, unitPrice: 35000, totalPrice: 7000000, mandatory: true },
+                        { itemDescription: 'Manila folders A4', unitOfMeasure: 'Box/50pcs', quantity: 200, unitPrice: 52000, totalPrice: 10400000, mandatory: true }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Price', weight: 70, subcriteria: ['Unit rates', 'Total cost'] },
+                    { name: 'Quality assurance', weight: 20, subcriteria: ['Product samples', 'Durability'] },
+                    { name: 'Delivery capacity', weight: 10, subcriteria: ['Local availability', 'Call-off response'] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-05-20' },
+                { id: 'milestone-clarification', name: 'Clarification deadline', date: '2026-06-05' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-15' },
+                { id: 'milestone-opening', name: 'Bid opening', date: '2026-06-16' },
+                { id: 'milestone-evaluation', name: 'Evaluation complete', date: '2026-06-22' },
+                { id: 'milestone-award', name: 'Award target', date: '2026-06-29' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'A4 paper 80gsm', qty: 2400, unit: 'Ream', rate: 18000 },
+                { item: '1.2', description: 'Ballpoint pen blue', qty: 80, unit: 'Box', rate: 85000 },
+                { item: '1.3', description: 'Printer cartridge black', qty: 150, unit: 'Cartridge', rate: 42000 }
+            ],
+            deliverables: ['Office supplies delivered', 'Monthly consumption reports'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: [
+                { name: 'Local Stationery Services', status: 'Downloaded', lastActivity: 'Today' },
+                { name: 'Office Plus Tanzania', status: 'Watching', lastActivity: 'Yesterday' }
+            ]
+        },
+        {
+            id: 'PX-GDS-2026-004',
+            title: 'Supply of Tool Kit and Hand Tools',
+            type: 'Goods',
+            procurementTypeId: 'goods',
+            status: 'Open',
+            budget: 125000000,
+            closingDate: '2026-06-28',
+            organization: 'Local Government Authority',
+            description: 'Supply of basic tool kits and hand tools for maintenance teams including hammers, wrenches, screwdrivers, and power tools.',
+            eligibility: 'Open Tender / Tools and equipment supplier with safety certification.',
+            category: 'Tools and Equipment',
+            categories: ['Tools and Equipment', 'Construction and maintenance support equipment'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'LGA headquarters',
+            commercialModel: 'Quantity Schedule',
+            documents: ['Tool_Specification.pdf', 'Warranty_Terms.pdf'],
+            regulatoryLicenses: [],
+            requirements: {
+                fields: {
+                    quantityScheduleRows: [
+                        { itemDescription: 'Complete tool kit with carrying case', unitOfMeasure: 'Kit', quantity: 25, unitPrice: 2800000, totalPrice: 70000000, mandatory: true },
+                        { itemDescription: 'Electric drill 750W', unitOfMeasure: 'Unit', quantity: 15, unitPrice: 1800000, totalPrice: 27000000, mandatory: true },
+                        { itemDescription: 'Angle grinder 125mm', unitOfMeasure: 'Unit', quantity: 12, unitPrice: 1500000, totalPrice: 18000000, mandatory: true },
+                        { itemDescription: 'Safety helmet with visor', unitOfMeasure: 'Unit', quantity: 50, unitPrice: 350000, totalPrice: 17500000, mandatory: true },
+                        { itemDescription: 'Safety gloves leather', unitOfMeasure: 'Pair', quantity: 100, unitPrice: 125000, totalPrice: 12500000, mandatory: true }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Price', weight: 50, subcriteria: ['Unit rates'] },
+                    { name: 'Durability and safety', weight: 30, subcriteria: ['Tool quality', 'Safety standards'] },
+                    { name: 'Warranty', weight: 20, subcriteria: ['Warranty period', 'After-sales service'] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-05-25' },
+                { id: 'milestone-clarification', name: 'Clarification deadline', date: '2026-06-15' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-28' },
+                { id: 'milestone-opening', name: 'Bid opening', date: '2026-06-29' },
+                { id: 'milestone-evaluation', name: 'Evaluation complete', date: '2026-07-06' },
+                { id: 'milestone-award', name: 'Award target', date: '2026-07-13' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Complete tool kit', qty: 25, unit: 'Kit', rate: 2800000 },
+                { item: '1.2', description: 'Electric drill', qty: 15, unit: 'Unit', rate: 1800000 },
+                { item: '1.3', description: 'Safety helmet with visor', qty: 50, unit: 'Unit', rate: 350000 }
+            ],
+            deliverables: ['Tools delivered and functional', 'Warranty cards', 'Safety training guide'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: [
+                { name: 'BuildCo Tools Ltd', status: 'Downloaded', lastActivity: 'Today' },
+                { name: 'Equipment Plus Tanzania', status: 'Watching', lastActivity: '2 days ago' }
+            ]
+        },
+        {
+            id: 'PX-GDS-2026-005',
+            title: 'Supply of Solar Lighting Systems for Community Centers',
+            type: 'Goods',
+            procurementTypeId: 'goods',
+            status: 'Open',
+            budget: 285000000,
+            closingDate: '2026-07-05',
+            organization: 'Community Development Program',
+            description: 'Supply and installation of standalone solar lighting systems for 30 community centers including panels, batteries, charge controllers, and LED lights.',
+            eligibility: 'Open Tender / Solar equipment supplier with installation experience.',
+            category: 'Electrical equipment and components',
+            categories: ['Electrical equipment and components', 'Batteries and generators', 'Lighting Fixtures and Accessories'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Rural community centers across 6 districts',
+            commercialModel: 'Quantity Schedule',
+            documents: ['System_Specification.pdf', 'Installation_Requirements.pdf', 'Warranty_Conditions.pdf'],
+            regulatoryLicenses: [
+                { group: 'Environmental & Safety', license: 'Occupational Safety and Health Compliance Certificate', body: 'OSHA', mandatory: false }
+            ],
+            requirements: {
+                fields: {
+                    quantityScheduleRows: [
+                        { itemDescription: 'Solar panel 100W monocrystalline', unitOfMeasure: 'Unit', quantity: 30, unitPrice: 3500000, totalPrice: 105000000, mandatory: true },
+                        { itemDescription: 'Li-ion battery 10kWh', unitOfMeasure: 'Unit', quantity: 30, unitPrice: 2800000, totalPrice: 84000000, mandatory: true },
+                        { itemDescription: 'MPPT charge controller 60A', unitOfMeasure: 'Unit', quantity: 30, unitPrice: 850000, totalPrice: 25500000, mandatory: true },
+                        { itemDescription: 'LED light fixture kit per system', unitOfMeasure: 'Kit', quantity: 30, unitPrice: 1200000, totalPrice: 36000000, mandatory: true },
+                        { itemDescription: 'Installation, wiring, and commissioning', unitOfMeasure: 'System', quantity: 30, unitPrice: 850000, totalPrice: 25500000, mandatory: true },
+                        { itemDescription: 'User training and manual per center', unitOfMeasure: 'Pack', quantity: 30, unitPrice: 200000, totalPrice: 6000000, mandatory: true }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Specification compliance', weight: 40, subcriteria: ['Panel efficiency', 'Battery capacity'] },
+                    { name: 'Price', weight: 30, subcriteria: ['Unit rates', 'Installation cost'] },
+                    { name: 'Installation and support', weight: 20, subcriteria: ['Experience', 'Training provided'] },
+                    { name: 'Warranty', weight: 10, subcriteria: ['Warranty period'] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-05-22' },
+                { id: 'milestone-clarification', name: 'Clarification deadline', date: '2026-06-18' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-07-05' },
+                { id: 'milestone-opening', name: 'Bid opening', date: '2026-07-06' },
+                { id: 'milestone-evaluation', name: 'Evaluation complete', date: '2026-07-20' },
+                { id: 'milestone-award', name: 'Award target', date: '2026-08-03' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Solar panel 100W', qty: 30, unit: 'Unit', rate: 3500000 },
+                { item: '1.2', description: 'Li-ion battery 10kWh', qty: 30, unit: 'Unit', rate: 2800000 },
+                { item: '1.3', description: 'Installation and commissioning', qty: 30, unit: 'System', rate: 850000 }
+            ],
+            deliverables: ['Installed solar systems', 'User training certificates', 'Warranty registration'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: [
+                { name: 'SolarTech Tanzania', status: 'Downloaded', lastActivity: 'Today' },
+                { name: 'Green Energy Solutions', status: 'Watching', lastActivity: 'Yesterday' }
+            ]
+        },
+        {
+            id: 'PX-WRK-2026-004',
+            title: 'Renovation of District Health Center Block A',
+            type: 'Works',
+            procurementTypeId: 'works',
+            status: 'Open',
+            budget: 245000000,
+            closingDate: '2026-06-30',
+            organization: 'District Health Office',
+            description: 'Interior renovation including repainting, tile replacement, window repairs, plumbing fixes, and electrical upgrades for clinic block.',
+            eligibility: 'Local building contractor with experience in health facility renovations.',
+            category: 'Healthcare infrastructure',
+            categories: ['Healthcare infrastructure', 'Concrete and cement', 'Electrical equipment'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'District Health Center',
+            commercialModel: 'BOQ',
+            contractType: 'Unit Price Contract',
+            documents: ['Renovation_Drawings.pdf', 'BOQ_Template.xlsx', 'Site_Conditions.pdf'],
+            regulatoryLicenses: [
+                { group: 'Construction & Real Estate', license: 'Contractor Registration Certificate', body: 'CRB', mandatory: true }
+            ],
+            requirements: {
+                fields: {
+                    boqRows: [
+                        { workItem: 'Wall preparation and painting', quantity: 1200, unit: 'Sqm', laborCost: 30000000, materialCost: 48000000, equipmentCost: 6000000, totalCost: 84000000, mandatory: true },
+                        { workItem: 'Floor tile replacement and grouting', quantity: 800, unit: 'Sqm', laborCost: 40000000, materialCost: 64000000, equipmentCost: 8000000, totalCost: 112000000, mandatory: true },
+                        { workItem: 'Window repair and hardware replacement', quantity: 1, unit: 'Lot', laborCost: 8000000, materialCost: 12000000, equipmentCost: 2000000, totalCost: 22000000, mandatory: true },
+                        { workItem: 'Electrical rewiring and circuit upgrades', quantity: 1, unit: 'Lot', laborCost: 12000000, materialCost: 15000000, equipmentCost: 3000000, totalCost: 30000000, mandatory: true }
+                    ],
+                    worksMilestoneRows: [
+                        { milestone: 'Preparation and demolition complete', targetDate: '2026-08-15', liquidatedDamagesTrigger: true },
+                        { milestone: 'Interior finishes complete', targetDate: '2026-09-15', liquidatedDamagesTrigger: true },
+                        { milestone: 'Final handover', targetDate: '2026-09-30', liquidatedDamagesTrigger: true }
+                    ],
+                    siteVisitRequirement: 'Recommended',
+                    similarCompletedProjectsRequired: true,
+                    keyPersonnelCvsRequired: true,
+                    bankStatementsRequired: false
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Technical competence', weight: 40, subcriteria: ['Methodology', 'Experience'] },
+                    { name: 'Price competitiveness', weight: 40, subcriteria: ['BOQ rates', 'Total cost'] },
+                    { name: 'Delivery schedule', weight: 10, subcriteria: ['Milestone feasibility'] },
+                    { name: 'Compliance', weight: 10, subcriteria: ['Registration', 'Safety plan'] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-05-24' },
+                { id: 'milestone-clarification', name: 'Clarification deadline', date: '2026-06-12' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-30' },
+                { id: 'milestone-opening', name: 'Bid opening', date: '2026-07-01' },
+                { id: 'milestone-evaluation', name: 'Evaluation complete', date: '2026-07-15' },
+                { id: 'milestone-award', name: 'Award target', date: '2026-07-29' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Wall preparation and painting', qty: 1200, unit: 'Sqm', rate: 70000 },
+                { item: '2.1', description: 'Floor tile replacement', qty: 800, unit: 'Sqm', rate: 140000 },
+                { item: '3.1', description: 'Window repairs', qty: 1, unit: 'Lot', rate: 22000000 },
+                { item: '4.1', description: 'Electrical rewiring', qty: 1, unit: 'Lot', rate: 30000000 }
+            ],
+            deliverables: ['Renovated health center block', 'Defects-free certificate'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: [
+                { name: 'Local Builders Ltd', status: 'Downloaded', lastActivity: 'Today' },
+                { name: 'Construction Services Tanzania', status: 'Watching', lastActivity: 'Yesterday' }
+            ]
+        },
+        {
+            id: 'PX-WRK-2026-005',
+            title: 'Fence Construction for School Compound',
+            type: 'Works',
+            procurementTypeId: 'works',
+            status: 'Open',
+            budget: 180000000,
+            closingDate: '2026-07-08',
+            organization: 'Regional Education Department',
+            description: 'Construction of perimeter fence (2.8m height) with concrete posts and wire mesh for primary school compound.',
+            eligibility: 'Registered contractor with fence construction experience.',
+            category: 'Construction and infrastructure',
+            categories: ['Concrete and cement', 'Construction and maintenance support equipment'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Primary School',
+            commercialModel: 'BOQ',
+            contractType: 'Unit Price Contract',
+            documents: ['Site_Plan.pdf', 'Fence_Specification.xlsx', 'BOQ_Fence.xlsx'],
+            regulatoryLicenses: [
+                { group: 'Construction & Real Estate', license: 'Contractor Registration Certificate', body: 'CRB', mandatory: true }
+            ],
+            requirements: {
+                fields: {
+                    boqRows: [
+                        { workItem: 'Concrete post installation 2.8m height', quantity: 180, unit: 'Unit', laborCost: 25000000, materialCost: 72000000, equipmentCost: 8000000, totalCost: 105000000, mandatory: true },
+                        { workItem: 'Wire mesh fencing 1.2m width', quantity: 720, unit: 'Meter', laborCost: 18000000, materialCost: 28800000, equipmentCost: 3600000, totalCost: 50400000, mandatory: true },
+                        { workItem: 'Main gate fabrication and installation', quantity: 1, unit: 'Lot', laborCost: 8000000, materialCost: 12000000, equipmentCost: 2000000, totalCost: 22000000, mandatory: true },
+                        { workItem: 'Site cleanup and restoration', quantity: 1, unit: 'Lot', laborCost: 4000000, materialCost: 2000000, equipmentCost: 1000000, totalCost: 7000000, mandatory: true }
+                    ],
+                    worksMilestoneRows: [
+                        { milestone: 'Post installation complete', targetDate: '2026-08-30', liquidatedDamagesTrigger: true },
+                        { milestone: 'Wire mesh installation complete', targetDate: '2026-09-15', liquidatedDamagesTrigger: true },
+                        { milestone: 'Fence final completion', targetDate: '2026-09-30', liquidatedDamagesTrigger: true }
+                    ],
+                    siteVisitRequirement: 'Recommended'
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Price', weight: 50, subcriteria: ['Unit rates', 'Total cost'] },
+                    { name: 'Technical quality', weight: 30, subcriteria: ['Material quality', 'Construction method'] },
+                    { name: 'Schedule', weight: 20, subcriteria: ['Timeline feasibility'] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-05-28' },
+                { id: 'milestone-clarification', name: 'Clarification deadline', date: '2026-06-20' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-07-08' },
+                { id: 'milestone-opening', name: 'Bid opening', date: '2026-07-09' },
+                { id: 'milestone-evaluation', name: 'Evaluation complete', date: '2026-07-22' },
+                { id: 'milestone-award', name: 'Award target', date: '2026-08-05' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Concrete post installation', qty: 180, unit: 'Unit', rate: 583333 },
+                { item: '2.1', description: 'Wire mesh fencing', qty: 720, unit: 'Meter', rate: 70000 },
+                { item: '3.1', description: 'Main gate fabrication', qty: 1, unit: 'Lot', rate: 22000000 }
+            ],
+            deliverables: ['Completed fence', 'Maintenance guide'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: [
+                { name: 'Fence Builders Tanzania', status: 'Downloaded', lastActivity: 'Today' },
+                { name: 'Construction Plus', status: 'Watching', lastActivity: 'Yesterday' }
+            ]
+        },
+        {
+            id: 'PX-WRK-2026-006',
+            title: 'Roof Maintenance and Waterproofing',
+            type: 'Works',
+            procurementTypeId: 'works',
+            status: 'Open',
+            budget: 95000000,
+            closingDate: '2026-06-25',
+            organization: 'Municipal Office',
+            description: 'Roof leak repair, tile replacement, and waterproofing treatment for office building.',
+            eligibility: 'Licensed roofing contractor with warranty.',
+            category: 'Building maintenance',
+            categories: ['Concrete and cement', 'Construction and maintenance support equipment'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Municipal Office Building',
+            commercialModel: 'BOQ',
+            contractType: 'Unit Price Contract',
+            documents: ['Roof_Assessment.pdf', 'BOQ_Roof.xlsx'],
+            regulatoryLicenses: [
+                { group: 'Construction & Real Estate', license: 'Contractor Registration Certificate', body: 'CRB', mandatory: false }
+            ],
+            requirements: {
+                fields: {
+                    boqRows: [
+                        { workItem: 'Damaged tile removal and replacement', quantity: 800, unit: 'Unit', laborCost: 12000000, materialCost: 24000000, equipmentCost: 4000000, totalCost: 40000000, mandatory: true },
+                        { workItem: 'Crack sealing and waterproofing coating', quantity: 2500, unit: 'Sqm', laborCost: 10000000, materialCost: 20000000, equipmentCost: 5000000, totalCost: 35000000, mandatory: true },
+                        { workItem: 'Gutter cleaning and repair', quantity: 1, unit: 'Lot', laborCost: 5000000, materialCost: 8000000, equipmentCost: 2000000, totalCost: 15000000, mandatory: true },
+                        { workItem: 'Safety scaffolding and cleanup', quantity: 1, unit: 'Lot', laborCost: 3000000, materialCost: 2000000, equipmentCost: 1000000, totalCost: 6000000, mandatory: true }
+                    ],
+                    worksMilestoneRows: [
+                        { milestone: 'Tile replacement complete', targetDate: '2026-07-20', liquidatedDamagesTrigger: true },
+                        { milestone: 'Waterproofing complete', targetDate: '2026-08-03', liquidatedDamagesTrigger: true }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Price', weight: 60, subcriteria: ['Competitive rates'] },
+                    { name: 'Quality materials', weight: 25, subcriteria: ['Waterproofing grade'] },
+                    { name: 'Warranty', weight: 15, subcriteria: ['2-year warranty'] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-05-22' },
+                { id: 'milestone-clarification', name: 'Clarification deadline', date: '2026-06-10' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-25' },
+                { id: 'milestone-opening', name: 'Bid opening', date: '2026-06-26' },
+                { id: 'milestone-evaluation', name: 'Evaluation complete', date: '2026-07-03' },
+                { id: 'milestone-award', name: 'Award target', date: '2026-07-10' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Tile replacement', qty: 800, unit: 'Unit', rate: 50000 },
+                { item: '2.1', description: 'Waterproofing treatment', qty: 2500, unit: 'Sqm', rate: 14000 },
+                { item: '3.1', description: 'Gutter repair', qty: 1, unit: 'Lot', rate: 15000000 }
+            ],
+            deliverables: ['Sealed and waterproof roof', '2-year warranty certificate'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: [
+                { name: 'Roof Care Services', status: 'Downloaded', lastActivity: 'Today' }
+            ]
+        },
+        {
+            id: 'PX-WRK-2026-007',
+            title: 'Installation of Water Harvesting Tanks',
+            type: 'Works',
+            procurementTypeId: 'works',
+            status: 'Open',
+            budget: 165000000,
+            closingDate: '2026-07-12',
+            organization: 'Community Water Project',
+            description: 'Supply and installation of 40 x 10,000-liter rainwater harvesting tanks with guttering, pipes, and filtration systems.',
+            eligibility: 'Contractor with water systems experience.',
+            category: 'Water infrastructure',
+            categories: ['Water Pumps and Spare Parts', 'Concrete and cement', 'Water and Sewer Treatment Equipment'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Community centers across 8 villages',
+            commercialModel: 'BOQ',
+            contractType: 'Unit Price Contract',
+            documents: ['Tank_Specification.pdf', 'Installation_Drawing.pdf', 'BOQ_Tanks.xlsx'],
+            regulatoryLicenses: [
+                { group: 'Construction & Real Estate', license: 'Contractor Registration Certificate', body: 'CRB', mandatory: true }
+            ],
+            requirements: {
+                fields: {
+                    boqRows: [
+                        { workItem: 'Plastic tank 10,000L with stand', quantity: 40, unit: 'Unit', laborCost: 8000000, materialCost: 60000000, equipmentCost: 4000000, totalCost: 72000000, mandatory: true },
+                        { workItem: 'Gutter, downpipe, and first flush device', quantity: 40, unit: 'Set', laborCost: 6000000, materialCost: 24000000, equipmentCost: 2000000, totalCost: 32000000, mandatory: true },
+                        { workItem: 'Sand and gravel filtration installation', quantity: 40, unit: 'Set', laborCost: 4000000, materialCost: 16000000, equipmentCost: 2000000, totalCost: 22000000, mandatory: true },
+                        { workItem: 'Foundation, connection, and testing', quantity: 1, unit: 'Lot', laborCost: 18000000, materialCost: 12000000, equipmentCost: 9000000, totalCost: 39000000, mandatory: true }
+                    ],
+                    worksMilestoneRows: [
+                        { milestone: 'Tank foundations and installation complete', targetDate: '2026-09-01', liquidatedDamagesTrigger: true },
+                        { milestone: 'Guttering and filtration complete', targetDate: '2026-09-20', liquidatedDamagesTrigger: true },
+                        { milestone: 'System commissioning complete', targetDate: '2026-10-05', liquidatedDamagesTrigger: false }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Technical competence', weight: 40, subcriteria: ['Installation method', 'Quality assurance'] },
+                    { name: 'Price', weight: 35, subcriteria: ['Competitive rates', 'Total cost'] },
+                    { name: 'Schedule', weight: 15, subcriteria: ['Timeline'] },
+                    { name: 'Support', weight: 10, subcriteria: ['Training provided'] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-05-29' },
+                { id: 'milestone-clarification', name: 'Clarification deadline', date: '2026-06-25' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-07-12' },
+                { id: 'milestone-opening', name: 'Bid opening', date: '2026-07-13' },
+                { id: 'milestone-evaluation', name: 'Evaluation complete', date: '2026-07-27' },
+                { id: 'milestone-award', name: 'Award target', date: '2026-08-10' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Plastic tank 10,000L', qty: 40, unit: 'Unit', rate: 1800000 },
+                { item: '2.1', description: 'Gutter and filtration set', qty: 40, unit: 'Set', rate: 1375000 },
+                { item: '3.1', description: 'Foundation and commissioning', qty: 1, unit: 'Lot', rate: 39000000 }
+            ],
+            deliverables: ['Installed water tanks', 'Operation manual', 'Maintenance training'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: [
+                { name: 'Water Systems Ltd', status: 'Downloaded', lastActivity: 'Today' },
+                { name: 'Environmental Solutions', status: 'Watching', lastActivity: 'Yesterday' }
+            ]
+        },
+        {
+            id: 'PX-SRV-2026-003',
+            title: 'Office Cleaning and Maintenance Services',
+            type: 'Service',
+            procurementTypeId: 'services',
+            status: 'Open',
+            budget: 72000000,
+            closingDate: '2026-06-20',
+            organization: 'District Administrative Office',
+            description: 'Daily office cleaning, waste management, and grounds maintenance for 12 months.',
+            eligibility: 'Local cleaning service provider with trained staff.',
+            category: 'Cleaning',
+            categories: ['Cleaning Equipment and Supplies', 'Waste Management'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'District Office Compound',
+            commercialModel: 'Service Schedule',
+            documents: ['Cleaning_Scope.pdf', 'SLA_Requirements.pdf'],
+            regulatoryLicenses: [
+                { group: 'Environmental & Safety', license: 'Occupational Safety and Health Compliance Certificate', body: 'OSHA', mandatory: false }
+            ],
+            requirements: {
+                fields: {
+                    serviceCategory: 'Cleaning',
+                    scopeOfServices: 'Daily office cleaning, corridor sanitization, waste removal, grounds maintenance, and quarterly deep cleaning.',
+                    serviceLocations: [
+                        { text: 'Main office building' },
+                        { text: 'Office compound and grounds' }
+                    ],
+                    duration: '12 months',
+                    supportHours: '6 AM - 8 PM Monday to Friday, 7 AM - 12 PM Saturday',
+                    responseTime: 'Same day for routine, 4 hours for urgent',
+                    commercialItems: [
+                        { item: '1.1', description: 'Daily office cleaning', qty: 12, unit: 'Month', rate: 4500000 },
+                        { item: '1.2', description: 'Waste removal service', qty: 12, unit: 'Month', rate: 1500000 },
+                        { item: '1.3', description: 'Quarterly deep cleaning', qty: 4, unit: 'Service', rate: 2000000 }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Price', weight: 50, subcriteria: ['Monthly rates', 'Service costs'] },
+                    { name: 'Service quality', weight: 30, subcriteria: ['Staff training', 'References'] },
+                    { name: 'Response time', weight: 20, subcriteria: ['Availability', 'Responsiveness'] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-05-20' },
+                { id: 'milestone-clarification', name: 'Clarification deadline', date: '2026-06-05' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-20' },
+                { id: 'milestone-opening', name: 'Bid opening', date: '2026-06-21' },
+                { id: 'milestone-evaluation', name: 'Evaluation complete', date: '2026-06-28' },
+                { id: 'milestone-award', name: 'Award target', date: '2026-07-05' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Daily cleaning', qty: 12, unit: 'Month', rate: 4500000 },
+                { item: '1.2', description: 'Waste removal', qty: 12, unit: 'Month', rate: 1500000 },
+                { item: '1.3', description: 'Deep cleaning', qty: 4, unit: 'Service', rate: 2000000 }
+            ],
+            deliverables: ['Clean office premises', 'Monthly cleaning reports'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: [
+                { name: 'Clean Team Services', status: 'Downloaded', lastActivity: 'Today' }
+            ]
+        },
+        {
+            id: 'PX-SRV-2026-004',
+            title: 'Vehicle Maintenance and Repair Services',
+            type: 'Service',
+            procurementTypeId: 'services',
+            status: 'Open',
+            budget: 95000000,
+            closingDate: '2026-07-01',
+            organization: 'Local Government Authority',
+            description: 'Preventive and corrective maintenance service for fleet of 20 vehicles for 12 months.',
+            eligibility: 'Registered auto repair shop with qualified mechanics.',
+            category: 'Vehicle maintenance',
+            categories: ['Motor Vehicles', 'Motor Vehicle Components and Accessories'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Municipal vehicle depot',
+            commercialModel: 'Service Schedule',
+            documents: ['Fleet_Details.pdf', 'Maintenance_Schedule.pdf', 'SLA_Template.pdf'],
+            regulatoryLicenses: [
+                { group: 'Environmental & Safety', license: 'Occupational Safety and Health Compliance Certificate', body: 'OSHA', mandatory: false }
+            ],
+            requirements: {
+                fields: {
+                    serviceCategory: 'Vehicle maintenance',
+                    scopeOfServices: 'Oil changes, filter replacement, tire rotation, battery checks, brake inspection, and emergency repair on demand.',
+                    duration: '12 months',
+                    supportHours: '24/7 for emergency breakdowns',
+                    responseTime: 'Emergency: 2 hours, Routine: 24 hours',
+                    commercialItems: [
+                        { item: '1.1', description: 'Monthly preventive maintenance (20 vehicles)', qty: 12, unit: 'Month', rate: 5000000 },
+                        { item: '1.2', description: 'Emergency repair call-out service', qty: 1, unit: 'Year', rate: 8000000 },
+                        { item: '1.3', description: 'Spare parts markup', qty: 1, unit: 'Year', rate: 3000000 }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Monthly rate', weight: 50, subcriteria: ['Maintenance cost'] },
+                    { name: 'Emergency response', weight: 25, subcriteria: ['24/7 availability', 'Response time'] },
+                    { name: 'Experience', weight: 15, subcriteria: ['Fleet maintenance', 'References'] },
+                    { name: 'Warranty', weight: 10, subcriteria: ['Repair warranty period'] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-05-24' },
+                { id: 'milestone-clarification', name: 'Clarification deadline', date: '2026-06-15' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-07-01' },
+                { id: 'milestone-opening', name: 'Bid opening', date: '2026-07-02' },
+                { id: 'milestone-evaluation', name: 'Evaluation complete', date: '2026-07-09' },
+                { id: 'milestone-award', name: 'Award target', date: '2026-07-16' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Monthly maintenance', qty: 12, unit: 'Month', rate: 5000000 },
+                { item: '1.2', description: 'Emergency service', qty: 1, unit: 'Year', rate: 8000000 },
+                { item: '1.3', description: 'Parts and consumables', qty: 1, unit: 'Year', rate: 3000000 }
+            ],
+            deliverables: ['Fleet maintenance reports', 'Service logs', 'Repair invoices'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: [
+                { name: 'AutoCare Services', status: 'Downloaded', lastActivity: 'Today' },
+                { name: 'Fleet Maintenance Ltd', status: 'Watching', lastActivity: 'Yesterday' }
+            ]
+        },
+        {
+            id: 'PX-SRV-2026-005',
+            title: 'Security Guarding Services for Government Building',
+            type: 'Service',
+            procurementTypeId: 'services',
+            status: 'Open',
+            budget: 148000000,
+            closingDate: '2026-07-06',
+            organization: 'Regional Headquarters',
+            description: '24/7 security guarding service including gate management, CCTV monitoring, and incident response.',
+            eligibility: 'Licensed security company with trained and vetted security personnel.',
+            category: 'Security',
+            categories: ['Security services', 'Fire Fighting Equipment'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Regional Government Building',
+            commercialModel: 'Service Schedule',
+            documents: ['Building_Security_Specification.pdf', 'Guard_Requirements.pdf', 'SLA_Requirements.pdf'],
+            regulatoryLicenses: [
+                { group: 'Environmental & Safety', license: 'Occupational Safety and Health Compliance Certificate', body: 'OSHA', mandatory: true }
+            ],
+            requirements: {
+                fields: {
+                    serviceCategory: 'Security',
+                    scopeOfServices: '24/7 security presence, gate control, visitor management, CCTV monitoring, incident reporting, and emergency response.',
+                    duration: '12 months',
+                    supportHours: '24/7',
+                    personnelRequirementRows: [
+                        { position: 'Security supervisor', minimumEducation: 'Diploma', minimumYearsExperience: 5, cvRequired: true, mandatory: true },
+                        { position: 'Gate officers', minimumEducation: 'Certificate', minimumYearsExperience: 2, cvRequired: false, mandatory: true },
+                        { position: 'Patrol security personnel', minimumEducation: 'Certificate', minimumYearsExperience: 1, cvRequired: false, mandatory: true }
+                    ],
+                    responseTime: 'Critical incidents: 5 minutes, Normal incidents: 30 minutes',
+                    commercialItems: [
+                        { item: '1.1', description: 'Supervisor (1 person)', qty: 12, unit: 'Month', rate: 2800000 },
+                        { item: '1.2', description: 'Gate officers (2 persons)', qty: 12, unit: 'Month', rate: 3600000 },
+                        { item: '1.3', description: 'Patrol personnel (2 persons)', qty: 12, unit: 'Month', rate: 3600000 },
+                        { item: '1.4', description: 'Uniforms and equipment provision', qty: 1, unit: 'Year', rate: 2500000 }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Personnel cost', weight: 50, subcriteria: ['Monthly rates'] },
+                    { name: 'Guard quality', weight: 25, subcriteria: ['Training', 'Vetting', 'References'] },
+                    { name: 'Response capability', weight: 15, subcriteria: ['24/7 staffing', 'Communication'] },
+                    { name: 'Equipment', weight: 10, subcriteria: ['Uniforms', 'Radios'] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-05-27' },
+                { id: 'milestone-clarification', name: 'Clarification deadline', date: '2026-06-18' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-07-06' },
+                { id: 'milestone-opening', name: 'Bid opening', date: '2026-07-07' },
+                { id: 'milestone-evaluation', name: 'Evaluation complete', date: '2026-07-20' },
+                { id: 'milestone-award', name: 'Award target', date: '2026-08-03' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Supervisor', qty: 12, unit: 'Month', rate: 2800000 },
+                { item: '1.2', description: 'Gate officers', qty: 12, unit: 'Month', rate: 3600000 },
+                { item: '1.3', description: 'Patrol personnel', qty: 12, unit: 'Month', rate: 3600000 },
+                { item: '1.4', description: 'Equipment', qty: 1, unit: 'Year', rate: 2500000 }
+            ],
+            deliverables: ['Security reports', 'Incident logs', 'Monthly attendance'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: [
+                { name: 'SecureGuard Tanzania', status: 'Downloaded', lastActivity: 'Today' },
+                { name: 'Professional Security Services', status: 'Watching', lastActivity: 'Yesterday' }
+            ]
+        },
+        {
+            id: 'PX-SRV-2026-006',
+            title: 'Transport and Courier Service',
+            type: 'Service',
+            procurementTypeId: 'services',
+            status: 'Open',
+            budget: 65000000,
+            closingDate: '2026-06-28',
+            organization: 'Health Office District',
+            description: 'Monthly transport and courier service for document delivery, sample collection, and supplies distribution.',
+            eligibility: 'Licensed transport company with fuel-efficient vehicles.',
+            category: 'Transport',
+            categories: ['Transport and logistics', 'Motor Vehicles'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'District and surrounding areas',
+            commercialModel: 'Service Schedule',
+            documents: ['Service_Routes.pdf', 'SLA_Conditions.pdf'],
+            regulatoryLicenses: [],
+            requirements: {
+                fields: {
+                    serviceCategory: 'Transport',
+                    scopeOfServices: 'Weekly document courier runs, monthly supplies delivery, and emergency transport services.',
+                    duration: '12 months',
+                    supportHours: '7 AM - 6 PM Monday to Friday',
+                    commercialItems: [
+                        { item: '1.1', description: 'Weekly courier service (50 km per trip)', qty: 52, unit: 'Trip', rate: 400000 },
+                        { item: '1.2', description: 'Monthly bulk supplies transport', qty: 12, unit: 'Trip', rate: 850000 },
+                        { item: '1.3', description: 'Emergency transport call-out', qty: 1, unit: 'Year', rate: 1500000 }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Trip cost', weight: 60, subcriteria: ['Courier rates', 'Transport rates'] },
+                    { name: 'Vehicle condition', weight: 20, subcriteria: ['Fleet quality', 'Maintenance'] },
+                    { name: 'Reliability', weight: 20, subcriteria: ['On-time delivery', 'References'] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-05-21' },
+                { id: 'milestone-clarification', name: 'Clarification deadline', date: '2026-06-08' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-28' },
+                { id: 'milestone-opening', name: 'Bid opening', date: '2026-06-29' },
+                { id: 'milestone-evaluation', name: 'Evaluation complete', date: '2026-07-06' },
+                { id: 'milestone-award', name: 'Award target', date: '2026-07-13' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Weekly courier trips', qty: 52, unit: 'Trip', rate: 400000 },
+                { item: '1.2', description: 'Monthly transport', qty: 12, unit: 'Trip', rate: 850000 },
+                { item: '1.3', description: 'Emergency service', qty: 1, unit: 'Year', rate: 1500000 }
+            ],
+            deliverables: ['Delivery receipts', 'Monthly trip logs'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: [
+                { name: 'FastCourier Services', status: 'Downloaded', lastActivity: 'Today' }
+            ]
+        },
+        {
+            id: 'PX-GDS-2026-006',
+            title: 'Supply of Educational Books and Teaching Materials',
+            type: 'Goods',
+            procurementTypeId: 'goods',
+            status: 'Open',
+            budget: 156000000,
+            closingDate: '2026-07-02',
+            organization: 'Primary Schools Network',
+            description: 'Supply of primary school textbooks, workbooks, exercise books, and teaching aids for 45 schools.',
+            eligibility: 'Book distributor with school supply experience.',
+            category: 'Educational materials',
+            categories: ['Developmental and professional teaching aids', 'Classroom decoratives and supplies'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Nationwide school distribution',
+            commercialModel: 'Quantity Schedule',
+            documents: ['Book_List.xlsx', 'Sample_Books.pdf', 'Delivery_Schedule.pdf'],
+            regulatoryLicenses: [],
+            requirements: {
+                fields: {
+                    quantityScheduleRows: [
+                        { itemDescription: 'English textbook Primary 4', unitOfMeasure: 'Unit', quantity: 18000, unitPrice: 35000, totalPrice: 630000000, mandatory: true },
+                        { itemDescription: 'Mathematics textbook Primary 4', unitOfMeasure: 'Unit', quantity: 18000, unitPrice: 32000, totalPrice: 576000000, mandatory: true },
+                        { itemDescription: 'Science workbook Primary 4', unitOfMeasure: 'Unit', quantity: 18000, unitPrice: 18000, totalPrice: 324000000, mandatory: true },
+                        { itemDescription: 'Exercise book 100 pages', unitOfMeasure: 'Unit', quantity: 15000, unitPrice: 12000, totalPrice: 180000000, mandatory: true }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Price', weight: 60, subcriteria: ['Unit rates', 'Total cost'] },
+                    { name: 'Book quality', weight: 25, subcriteria: ['Durability', 'Content accuracy'] },
+                    { name: 'Delivery', weight: 15, subcriteria: ['Timely delivery', 'Packaging'] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-05-27' },
+                { id: 'milestone-clarification', name: 'Clarification deadline', date: '2026-06-17' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-07-02' },
+                { id: 'milestone-opening', name: 'Bid opening', date: '2026-07-03' },
+                { id: 'milestone-evaluation', name: 'Evaluation complete', date: '2026-07-10' },
+                { id: 'milestone-award', name: 'Award target', date: '2026-07-17' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'English textbook', qty: 18000, unit: 'Unit', rate: 35000 },
+                { item: '1.2', description: 'Mathematics textbook', qty: 18000, unit: 'Unit', rate: 32000 },
+                { item: '1.3', description: 'Science workbook', qty: 18000, unit: 'Unit', rate: 18000 }
+            ],
+            deliverables: ['Books delivered to schools', 'Delivery certificates'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: [
+                { name: 'Educational Publishers Ltd', status: 'Downloaded', lastActivity: 'Today' }
+            ]
+        },
+        {
+            id: 'PX-GDS-2026-007',
+            title: 'Supply of Kitchen Equipment and Cookware',
+            type: 'Goods',
+            procurementTypeId: 'goods',
+            status: 'Open',
+            budget: 48000000,
+            closingDate: '2026-06-26',
+            organization: 'Hospital Catering Department',
+            description: 'Kitchen pots, pans, cutlery, serving trays, and food containers for hospital kitchen.',
+            eligibility: 'Kitchenware supplier with food-grade certification.',
+            category: 'Kitchen equipment',
+            categories: ['Domestic kitchenware and kitchen supplies', 'Commercial and industrial furniture'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Hospital Kitchen',
+            commercialModel: 'Quantity Schedule',
+            documents: ['Equipment_List.xlsx'],
+            regulatoryLicenses: [],
+            requirements: {
+                fields: {
+                    quantityScheduleRows: [
+                        { itemDescription: 'Stainless steel cooking pot 40L', unitOfMeasure: 'Unit', quantity: 10, unitPrice: 1200000, totalPrice: 12000000, mandatory: true },
+                        { itemDescription: 'Stainless steel frying pan 60cm', unitOfMeasure: 'Unit', quantity: 12, unitPrice: 850000, totalPrice: 10200000, mandatory: true },
+                        { itemDescription: 'Stainless steel serving trays', unitOfMeasure: 'Unit', quantity: 50, unitPrice: 185000, totalPrice: 9250000, mandatory: true },
+                        { itemDescription: 'Food containers with lids 20L', unitOfMeasure: 'Unit', quantity: 40, unitPrice: 425000, totalPrice: 17000000, mandatory: true },
+                        { itemDescription: 'Cutlery set serving spoons 12pcs', unitOfMeasure: 'Set', quantity: 8, unitPrice: 285000, totalPrice: 2280000, mandatory: true }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Price', weight: 50, subcriteria: ['Competitive rates'] },
+                    { name: 'Quality (food-grade)', weight: 35, subcriteria: ['Material quality'] },
+                    { name: 'Durability', weight: 15, subcriteria: ['Warranty'] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-05-25' },
+                { id: 'milestone-clarification', name: 'Clarification deadline', date: '2026-06-12' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-26' },
+                { id: 'milestone-opening', name: 'Bid opening', date: '2026-06-27' },
+                { id: 'milestone-evaluation', name: 'Evaluation complete', date: '2026-07-03' },
+                { id: 'milestone-award', name: 'Award target', date: '2026-07-10' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Stainless steel cooking pot', qty: 10, unit: 'Unit', rate: 1200000 },
+                { item: '1.2', description: 'Frying pan', qty: 12, unit: 'Unit', rate: 850000 },
+                { item: '1.3', description: 'Serving trays', qty: 50, unit: 'Unit', rate: 185000 }
+            ],
+            deliverables: ['Kitchen equipment delivered', 'Certification of food-grade materials'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: [
+                { name: 'Kitchen Equipment Supplies', status: 'Downloaded', lastActivity: 'Today' }
+            ]
+        },
+        {
+            id: 'PX-GDS-2026-008',
+            title: 'Supply of Medical Consumables and Supplies',
+            type: 'Goods',
+            procurementTypeId: 'goods',
+            status: 'Open',
+            budget: 78000000,
+            closingDate: '2026-06-29',
+            organization: 'Health Center',
+            description: 'Medical gloves, syringes, cotton, gauze, dressing materials, and basic medical consumables for 6 months.',
+            eligibility: 'Medical supplies distributor with TMDA registration.',
+            category: 'Medical supplies',
+            categories: ['Laboratory and scientific equipment', 'Medical facility products', 'Laboratory supplies and fixtures'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Health Center Store',
+            commercialModel: 'Quantity Schedule',
+            documents: ['Supplies_List.xlsx', 'TMDA_Certification.pdf'],
+            regulatoryLicenses: [
+                { group: 'Food, Drugs & Cosmetics', license: 'Medical Devices Registration Permit', body: 'TMDA', mandatory: false }
+            ],
+            requirements: {
+                fields: {
+                    quantityScheduleRows: [
+                        { itemDescription: 'Latex medical gloves S/M/L (1000 pairs)', unitOfMeasure: 'Box', quantity: 48, unitPrice: 850000, totalPrice: 40800000, mandatory: true },
+                        { itemDescription: 'Plastic syringe 5ml with needle', unitOfMeasure: 'Box/100', quantity: 200, unitPrice: 125000, totalPrice: 25000000, mandatory: true },
+                        { itemDescription: 'Cotton wool roll 500g', unitOfMeasure: 'Roll', quantity: 100, unitPrice: 45000, totalPrice: 4500000, mandatory: true },
+                        { itemDescription: 'Gauze swabs sterile 7.5x7.5cm', unitOfMeasure: 'Box/100', quantity: 60, unitPrice: 185000, totalPrice: 11100000, mandatory: true },
+                        { itemDescription: 'Elastic bandage 10cm x 4.5m', unitOfMeasure: 'Roll', quantity: 120, unitPrice: 35000, totalPrice: 4200000, mandatory: true }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Price', weight: 55, subcriteria: ['Unit rates'] },
+                    { name: 'Quality and standards', weight: 30, subcriteria: ['Medical grade', 'Sterility'] },
+                    { name: 'Delivery timeliness', weight: 15, subcriteria: ['Stock availability'] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-05-28' },
+                { id: 'milestone-clarification', name: 'Clarification deadline', date: '2026-06-15' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-29' },
+                { id: 'milestone-opening', name: 'Bid opening', date: '2026-06-30' },
+                { id: 'milestone-evaluation', name: 'Evaluation complete', date: '2026-07-07' },
+                { id: 'milestone-award', name: 'Award target', date: '2026-07-14' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Medical gloves (1000 pairs)', qty: 48, unit: 'Box', rate: 850000 },
+                { item: '1.2', description: 'Plastic syringes 5ml', qty: 200, unit: 'Box', rate: 125000 },
+                { item: '1.3', description: 'Gauze swabs', qty: 60, unit: 'Box', rate: 185000 }
+            ],
+            deliverables: ['Medical supplies delivered', 'Quality certificates', 'Expiry date documentation'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: [
+                { name: 'Medical Supplies Ltd', status: 'Downloaded', lastActivity: 'Today' }
+            ]
+        },
+        {
+            id: 'PX-WRK-2026-008',
+            title: 'Desk Repairs and Office Furniture Refurbishment',
+            type: 'Works',
+            procurementTypeId: 'works',
+            status: 'Open',
+            budget: 38000000,
+            closingDate: '2026-06-22',
+            organization: 'Administrative Office',
+            description: 'Repair of office furniture including desks, chairs, cabinets, and reupholstering of seating.',
+            eligibility: 'Furniture restoration and repair specialist.',
+            category: 'Furniture repair',
+            categories: ['Accommodation and Office furniture'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Office Building',
+            commercialModel: 'BOQ',
+            contractType: 'Unit Price Contract',
+            documents: ['Furniture_Assessment.pdf', 'BOQ_Repairs.xlsx'],
+            regulatoryLicenses: [],
+            requirements: {
+                fields: {
+                    boqRows: [
+                        { workItem: 'Office desk repairs and polishing', quantity: 120, unit: 'Unit', laborCost: 8000000, materialCost: 6000000, equipmentCost: 1000000, totalCost: 15000000, mandatory: true },
+                        { workItem: 'Office chair reupholstering and repairs', quantity: 80, unit: 'Unit', laborCost: 6000000, materialCost: 8000000, equipmentCost: 800000, totalCost: 14800000, mandatory: true },
+                        { workItem: 'Filing cabinet repairs and refinishing', quantity: 40, unit: 'Unit', laborCost: 2400000, materialCost: 2400000, equipmentCost: 600000, totalCost: 5400000, mandatory: true },
+                        { workItem: 'Quality inspection and delivery', quantity: 1, unit: 'Lot', laborCost: 1200000, materialCost: 800000, equipmentCost: 1800000, totalCost: 3800000, mandatory: true }
+                    ],
+                    worksMilestoneRows: [
+                        { milestone: 'Assessment and work plan complete', targetDate: '2026-06-29', liquidatedDamagesTrigger: false },
+                        { milestone: 'Repairs 50% complete', targetDate: '2026-08-10', liquidatedDamagesTrigger: true },
+                        { milestone: 'All repairs complete and delivered', targetDate: '2026-09-05', liquidatedDamagesTrigger: true }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Price', weight: 55, subcriteria: ['Unit rates', 'Total cost'] },
+                    { name: 'Quality of workmanship', weight: 30, subcriteria: ['Finishing', 'Durability'] },
+                    { name: 'Timeline', weight: 15, subcriteria: ['Schedule feasibility'] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-05-22' },
+                { id: 'milestone-clarification', name: 'Clarification deadline', date: '2026-06-08' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-22' },
+                { id: 'milestone-opening', name: 'Bid opening', date: '2026-06-23' },
+                { id: 'milestone-evaluation', name: 'Evaluation complete', date: '2026-06-30' },
+                { id: 'milestone-award', name: 'Award target', date: '2026-07-07' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Desk repairs and polishing', qty: 120, unit: 'Unit', rate: 125000 },
+                { item: '1.2', description: 'Chair reupholstering', qty: 80, unit: 'Unit', rate: 185000 },
+                { item: '1.3', description: 'Cabinet refinishing', qty: 40, unit: 'Unit', rate: 135000 }
+            ],
+            deliverables: ['Repaired and refurbished furniture', 'Quality inspection report'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: [
+                { name: 'Furniture Restoration Services', status: 'Downloaded', lastActivity: 'Today' }
+            ]
+        },
+        {
+            id: 'PX-WRK-2026-009',
+            title: 'Landscaping and Grounds Development',
+            type: 'Works',
+            procurementTypeId: 'works',
+            status: 'Open',
+            budget: 72000000,
+            closingDate: '2026-07-04',
+            organization: 'Municipality',
+            description: 'Landscaping, garden beds, turf installation, and pathway paving for municipal office grounds.',
+            eligibility: 'Landscaping contractor with garden development experience.',
+            category: 'Grounds development',
+            categories: ['Construction and maintenance support equipment'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Municipal Office Grounds',
+            commercialModel: 'BOQ',
+            contractType: 'Unit Price Contract',
+            documents: ['Site_Plan.pdf', 'Landscape_Design.pdf', 'BOQ_Landscaping.xlsx'],
+            regulatoryLicenses: [],
+            requirements: {
+                fields: {
+                    boqRows: [
+                        { workItem: 'Site clearance and soil preparation', quantity: 4500, unit: 'Sqm', laborCost: 9000000, materialCost: 4500000, equipmentCost: 2250000, totalCost: 15750000, mandatory: true },
+                        { workItem: 'Garden beds construction with plants', quantity: 6, unit: 'Lot', laborCost: 6000000, materialCost: 12000000, equipmentCost: 1200000, totalCost: 19200000, mandatory: true },
+                        { workItem: 'Turf installation and watering system', quantity: 3000, unit: 'Sqm', laborCost: 9000000, materialCost: 15000000, equipmentCost: 3000000, totalCost: 27000000, mandatory: true },
+                        { workItem: 'Concrete pathway laying', quantity: 800, unit: 'Sqm', laborCost: 4800000, materialCost: 4800000, equipmentCost: 800000, totalCost: 10400000, mandatory: true }
+                    ],
+                    worksMilestoneRows: [
+                        { milestone: 'Site preparation complete', targetDate: '2026-07-20', liquidatedDamagesTrigger: true },
+                        { milestone: 'Garden beds and turf complete', targetDate: '2026-08-15', liquidatedDamagesTrigger: true },
+                        { milestone: 'Pathways and landscaping complete', targetDate: '2026-09-10', liquidatedDamagesTrigger: true }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Design quality', weight: 40, subcriteria: ['Aesthetic appeal', 'Functionality'] },
+                    { name: 'Price', weight: 35, subcriteria: ['Unit rates'] },
+                    { name: 'Timeline', weight: 15, subcriteria: ['Schedule'] },
+                    { name: 'Maintenance plan', weight: 10, subcriteria: ['Aftercare guide'] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-05-30' },
+                { id: 'milestone-clarification', name: 'Clarification deadline', date: '2026-06-20' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-07-04' },
+                { id: 'milestone-opening', name: 'Bid opening', date: '2026-07-05' },
+                { id: 'milestone-evaluation', name: 'Evaluation complete', date: '2026-07-18' },
+                { id: 'milestone-award', name: 'Award target', date: '2026-08-01' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Site preparation', qty: 4500, unit: 'Sqm', rate: 3500 },
+                { item: '2.1', description: 'Garden beds and plants', qty: 6, unit: 'Lot', rate: 3200000 },
+                { item: '3.1', description: 'Turf installation', qty: 3000, unit: 'Sqm', rate: 9000 }
+            ],
+            deliverables: ['Landscaped grounds', 'Maintenance manual', 'Plant care guide'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: [
+                { name: 'Green Landscaping Ltd', status: 'Downloaded', lastActivity: 'Today' }
+            ]
+        },
+        {
+            id: 'PX-SRV-2026-007',
+            title: 'Waste Management and Garbage Collection Service',
+            type: 'Service',
+            procurementTypeId: 'services',
+            status: 'Open',
+            budget: 58000000,
+            closingDate: '2026-06-30',
+            organization: 'Community Center',
+            description: '6-month weekly garbage collection, waste segregation, and proper disposal service.',
+            eligibility: 'Waste management service provider with proper disposal licensing.',
+            category: 'Waste Management',
+            categories: ['Waste Management', 'Environmental Protection'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Community Facilities',
+            commercialModel: 'Service Schedule',
+            documents: ['Waste_SLA.pdf', 'Disposal_Procedures.pdf'],
+            regulatoryLicenses: [
+                { group: 'Environmental & Safety', license: 'Environmental Compliance Certificate', body: 'NEMC', mandatory: false }
+            ],
+            requirements: {
+                fields: {
+                    serviceCategory: 'Waste Management',
+                    scopeOfServices: 'Weekly garbage collection, waste segregation into recyclables and organic, and proper disposal at approved sites.',
+                    duration: '6 months',
+                    supportHours: '6 AM - 6 PM',
+                    commercialItems: [
+                        { item: '1.1', description: 'Weekly collection service (52 weeks)', qty: 1, unit: 'Package', rate: 35000000 },
+                        { item: '1.2', description: 'Waste segregation and recycling', qty: 1, unit: 'Package', rate: 12000000 },
+                        { item: '1.3', description: 'Disposal site management', qty: 1, unit: 'Package', rate: 8000000 },
+                        { item: '1.4', description: 'Monthly compliance reports', qty: 6, unit: 'Report', rate: 500000 }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Price', weight: 50, subcriteria: ['Service rates'] },
+                    { name: 'Environmental compliance', weight: 30, subcriteria: ['Proper disposal', 'Recycling'] },
+                    { name: 'Reliability', weight: 20, subcriteria: ['On-time collection', 'References'] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-05-24' },
+                { id: 'milestone-clarification', name: 'Clarification deadline', date: '2026-06-12' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-30' },
+                { id: 'milestone-opening', name: 'Bid opening', date: '2026-07-01' },
+                { id: 'milestone-evaluation', name: 'Evaluation complete', date: '2026-07-08' },
+                { id: 'milestone-award', name: 'Award target', date: '2026-07-15' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Weekly collection', qty: 1, unit: 'Package', rate: 35000000 },
+                { item: '1.2', description: 'Waste segregation', qty: 1, unit: 'Package', rate: 12000000 },
+                { item: '1.3', description: 'Disposal site management', qty: 1, unit: 'Package', rate: 8000000 }
+            ],
+            deliverables: ['Waste collection schedules', 'Monthly compliance reports', 'Disposal certificates'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: [
+                { name: 'EcoWaste Services', status: 'Downloaded', lastActivity: 'Today' }
+            ]
+        },
+        {
+            id: 'PX-SRV-2026-008',
+            title: 'Office Catering and Food Service',
+            type: 'Service',
+            procurementTypeId: 'services',
+            status: 'Open',
+            budget: 42000000,
+            closingDate: '2026-06-27',
+            organization: 'Office Department',
+            description: 'Daily lunch provision for office staff with 3 menu options and special diet accommodation.',
+            eligibility: 'Registered catering company with food handling licenses.',
+            category: 'Catering',
+            categories: ['Food Services', 'Beverages'],
+            method: 'Open Tender',
+            visibility: 'Public marketplace',
+            location: 'Office Building',
+            commercialModel: 'Service Schedule',
+            documents: ['Catering_Menu.pdf', 'Dietary_Requirements.pdf', 'Food_Safety_Standards.pdf'],
+            regulatoryLicenses: [
+                { group: 'Food, Drugs & Cosmetics', license: 'Food Business Permit', body: 'TMDA', mandatory: true }
+            ],
+            requirements: {
+                fields: {
+                    serviceCategory: 'Catering',
+                    scopeOfServices: 'Daily lunch (250 persons) including rice, main protein, vegetables, and beverages.',
+                    duration: '12 months',
+                    supportHours: '11:30 AM - 1:30 PM weekdays',
+                    commercialItems: [
+                        { item: '1.1', description: 'Standard lunch (200 persons)', qty: 240, unit: 'Day', rate: 125000 },
+                        { item: '1.2', description: 'Special diet meals (50 persons)', qty: 240, unit: 'Day', rate: 145000 },
+                        { item: '1.3', description: 'Beverages and desserts', qty: 1, unit: 'Year', rate: 12000000 },
+                        { item: '1.4', description: 'Kitchen hygiene and food safety audit', qty: 2, unit: 'Audit', rate: 800000 }
+                    ]
+                }
+            },
+            evaluation: {
+                criteria: [
+                    { name: 'Daily meal cost', weight: 50, subcriteria: ['Per person rate'] },
+                    { name: 'Menu variety', weight: 25, subcriteria: ['Options diversity', 'Nutrition'] },
+                    { name: 'Food safety', weight: 15, subcriteria: ['Hygiene standards', 'Certifications'] },
+                    { name: 'Reliability', weight: 10, subcriteria: ['On-time delivery'] }
+                ]
+            },
+            milestones: [
+                { id: 'milestone-publication', name: 'Publication', date: '2026-05-23' },
+                { id: 'milestone-clarification', name: 'Clarification deadline', date: '2026-06-10' },
+                { id: 'milestone-closing', name: 'Bid closing', date: '2026-06-27' },
+                { id: 'milestone-opening', name: 'Bid opening', date: '2026-06-28' },
+                { id: 'milestone-evaluation', name: 'Evaluation complete', date: '2026-07-05' },
+                { id: 'milestone-award', name: 'Award target', date: '2026-07-12' }
+            ],
+            commercialItems: [
+                { item: '1.1', description: 'Standard lunch per person', qty: 240, unit: 'Day', rate: 125000 },
+                { item: '1.2', description: 'Special diet meals', qty: 240, unit: 'Day', rate: 145000 },
+                { item: '1.3', description: 'Annual beverages', qty: 1, unit: 'Year', rate: 12000000 }
+            ],
+            deliverables: ['Daily lunch service', 'Monthly consumption reports', 'Food hygiene compliance'],
+            clarifications: [],
+            amendments: [],
+            interestedSuppliers: [
+                { name: 'Quality Catering Services', status: 'Downloaded', lastActivity: 'Today' }
             ]
         }
     ],

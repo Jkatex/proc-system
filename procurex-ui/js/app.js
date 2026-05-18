@@ -1776,7 +1776,9 @@ class ProcureXApp {
     // Page render methods will be implemented in separate files
     getLoadingSpinner(pageName) {
         return `<div class="loading-container">
-            ${renderProcureXLottie('procurex-lottie procurex-lottie-lg', `Loading ${pageName}`)}
+            <div class="loading-animation-shell">
+                ${renderProcureXLottie('procurex-lottie procurex-lottie-lg', `Loading ${pageName}`)}
+            </div>
             <p>Loading ${pageName}...</p>
         </div>`;
     }

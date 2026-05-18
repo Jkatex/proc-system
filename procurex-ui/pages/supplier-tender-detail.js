@@ -403,12 +403,8 @@ function renderProcurexTenderDetailFullSections(tender = {}, profile = {}, optio
                 ${renderSupplierTenderClarificationPrompt('Need clarification about milestones or field visit timing?', 'Timeline')}
             `, `<span class="badge badge-info">${(tender.milestones || []).length || 4} milestones</span>`)}
 
-            ${renderProcurexTenderDocumentSection('6', profile.commercialName || tender.commercialModel || 'Commercial Schedule', 'Pricing schedule', `
-                ${renderProcurexTenderDetailCommercial(tender, profile)}
-                ${renderSupplierTenderClarificationPrompt('Question about pricing lines?', 'Commercial Schedule')}
-            `, `<span class="badge badge-info">${(tender.commercialItems || tender.boqItems || []).length} lines</span>`)}
-
-            ${renderProcurexTenderDocumentSection('7', 'Deliverables and Required Outputs', 'Contract outputs', `
+          
+            ${renderProcurexTenderDocumentSection('6', 'Deliverables and Required Outputs', 'Contract outputs', `
                 ${renderProcurexTenderDetailValue(tender.deliverables || [])}
                 ${renderSupplierTenderClarificationPrompt('Need clarification about deliverables?', 'Deliverables')}
             `, `<span class="badge badge-info">${(tender.deliverables || []).length} listed</span>`)}
@@ -709,8 +705,8 @@ function renderSupplierTenderDetail() {
                         <div class="hero-action-stack supplier-detail-actions">
                             <button class="btn btn-primary supplier-detail-primary-action" data-navigate="bidding-workspace">Start Bid</button>
                             <div class="supplier-detail-action-row">
-                                <button class="btn btn-secondary" type="button" data-tender-pdf="open" data-tender-id="${escapeSupplierTenderDetailHtml(tender.id)}" data-document-audience="supplier">Open PDF</button>
-                                <button class="btn btn-secondary" type="button" data-tender-pdf="download" data-tender-id="${escapeSupplierTenderDetailHtml(tender.id)}" data-document-audience="supplier">Download PDF</button>
+                                <button class="btn btn-secondary" type="button" data-tender-pdf="open" data-tender-id="${escapeSupplierTenderDetailHtml(tender.id)}" data-document-audience="supplier">Open Document</button>
+                                <button class="btn btn-secondary" type="button" data-tender-pdf="download" data-tender-id="${escapeSupplierTenderDetailHtml(tender.id)}" data-document-audience="supplier">Download Document</button>
                             </div>
                             <div class="supplier-detail-action-row">
                                 <button class="btn btn-secondary" type="button" data-supplier-save-tender>${saved ? 'Saved' : 'Save Tender'}</button>

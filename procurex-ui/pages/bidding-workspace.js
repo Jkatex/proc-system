@@ -3,6 +3,7 @@
 const bidWorkspaceDraftStoragePrefix = 'procurex.supplierBidDraft.v1.';
 const bidWorkspaceSubmittedStorageKey = 'procurex.supplierSubmittedBids.v1';
 const bidWorkspaceContractClauseFieldPattern = /contractclausecards$/i;
+const bidWorkspaceUploadPreviewMaxBytes = 3 * 1024 * 1024;
 
 function escapeBidWorkspaceHtml(value = '') {
     return String(value)
@@ -376,12 +377,16 @@ function mergeBidWorkspaceRequirements(baseRequirements = [], rawRequirements = 
     const seen = new Set();
     [...baseRequirements, ...rawRequirements].forEach(requirement => {
         if (!requirement?.title) return;
-        const key = `${String(requirement.category || '').toLowerCase()}::${String(requirement.title || '').toLowerCase()}`;
+        const key = getBidWorkspaceRequirementDedupeKey(requirement);
         if (seen.has(key)) return;
         seen.add(key);
         merged.push(requirement);
     });
     return merged;
+}
+
+function getBidWorkspaceRequirementDedupeKey(requirement = {}) {
+    return `${String(requirement.category || '').trim().toLowerCase()}::${String(requirement.title || '').trim().toLowerCase()}`;
 }
 
 function getBidWorkspaceCompleteDynamicRequirements(tender = {}, baseRequirements = []) {
@@ -422,6 +427,17 @@ function splitBidWorkspaceGateRequirements(requirements = []) {
     };
 }
 
+function isBidWorkspaceStepOneRequirement(requirement = {}) {
+    return requirement.responseType === 'upload' || isBidWorkspaceGateRequirement(requirement);
+}
+
+function getBidWorkspaceStepOneRequirements(requirementSet = {}) {
+    return sortBidWorkspaceRequirements([
+        ...(requirementSet.mandatory || []),
+        ...(requirementSet.optional || [])
+    ].filter(isBidWorkspaceStepOneRequirement));
+}
+
 function renderBidWorkspaceRequirementSummary(requirements = []) {
     return requirements.map(requirement => `
         <article class="bid-requirement-summary-card">
@@ -442,10 +458,27 @@ function getBidWorkspaceDraft(tenderId = 'selected') {
 }
 
 function saveBidWorkspaceDraft(tenderId = 'selected', draft = {}) {
-    localStorage.setItem(`${bidWorkspaceDraftStoragePrefix}${tenderId}`, JSON.stringify({
+    const payload = {
         ...draft,
         savedAt: new Date().toISOString()
-    }));
+    };
+    try {
+        localStorage.setItem(`${bidWorkspaceDraftStoragePrefix}${tenderId}`, JSON.stringify(payload));
+    } catch (error) {
+        const compactUploads = Object.fromEntries(Object.entries(payload.uploadedFiles || {}).map(([key, file]) => [key, {
+            name: file?.name || '',
+            type: file?.type || '',
+            size: file?.size || 0
+        }]));
+        try {
+            localStorage.setItem(`${bidWorkspaceDraftStoragePrefix}${tenderId}`, JSON.stringify({
+                ...payload,
+                uploadedFiles: compactUploads
+            }));
+        } catch (compactError) {
+            console.warn('Unable to save full bid draft after upload preview was compacted.', compactError);
+        }
+    }
 }
 
 function getBidWorkspaceSavedResponse(draft = {}, requirementId = '') {
@@ -477,7 +510,7 @@ function renderBidWorkspaceRequirementInput(requirement, draft, required = false
     if (requirement.responseType === 'upload') {
         return `
             <div class="bid-upload-response" data-bid-upload-control>
-                <span>Upload required evidence</span>
+                <span>${required ? 'Upload mandatory evidence' : 'Upload evidence'}</span>
                 <input class="form-input" type="file" data-bid-file-input accept="${getBidWorkspaceUploadAccept(requirement)}" aria-label="${label}">
                 <input type="hidden" ${attrs} value="${escapeBidWorkspaceHtml(value)}">
                 <small data-bid-file-name>${value ? `Selected: ${escapeBidWorkspaceHtml(value)}` : 'No file selected yet.'}</small>
@@ -608,76 +641,112 @@ function renderBidWorkspaceDynamicResponses(requirements = [], draft = {}, respo
     `;
 }
 
-function renderBidWorkspaceRequirementCards(requirements = [], draft = {}, required = false) {
+function renderBidWorkspaceRequirementCards(requirements = [], draft = {}, required = null) {
     if (!requirements.length) {
         return '<div class="scope-empty">No requirements were configured for this group.</div>';
     }
-    return sortBidWorkspaceRequirements(requirements).map(requirement => `
-        <article class="bid-requirement-card" data-bid-requirement-card="${escapeBidWorkspaceHtml(requirement.id)}" data-bid-requirement-category="${escapeBidWorkspaceHtml(requirement.category)}" data-bid-requirement-response-type="${escapeBidWorkspaceHtml(requirement.responseType)}">
-            <div>
-                <span class="section-kicker">${escapeBidWorkspaceHtml(requirement.category)}</span>
-                <h3>${escapeBidWorkspaceHtml(requirement.title)}</h3>
-                <p>${escapeBidWorkspaceHtml(requirement.description || 'Supplier response required.')}</p>
+    return sortBidWorkspaceRequirements(requirements).map(requirement => {
+        const isRequired = required === null ? Boolean(requirement.mandatory) : Boolean(required);
+        return `
+            <article class="bid-requirement-card" data-bid-requirement-card="${escapeBidWorkspaceHtml(requirement.id)}" data-bid-requirement-category="${escapeBidWorkspaceHtml(requirement.category)}" data-bid-requirement-response-type="${escapeBidWorkspaceHtml(requirement.responseType)}">
+                <div class="bid-response-card-heading">
+                    <div>
+                        <span class="section-kicker">${escapeBidWorkspaceHtml(requirement.category)}</span>
+                        <h3>${escapeBidWorkspaceHtml(requirement.title)}</h3>
+                        <p>${escapeBidWorkspaceHtml(requirement.description || 'Supplier response required.')}</p>
+                    </div>
+                    <em class="badge ${isRequired ? 'badge-warning' : 'badge-info'}">${isRequired ? 'Mandatory' : 'Optional'}</em>
+                </div>
+                ${renderBidWorkspaceRequirementInput(requirement, draft, isRequired)}
+            </article>
+        `;
+    }).join('');
+}
+
+function getBidWorkspaceRequirementSearchText(requirement = {}) {
+    return `${requirement.category || ''} ${requirement.title || ''} ${requirement.description || ''}`.toLowerCase();
+}
+
+function isBidWorkspaceLicenseDocumentRequirement(requirement = {}) {
+    const text = getBidWorkspaceRequirementSearchText(requirement);
+    return getBidWorkspaceRequirementPriority(requirement) === 0
+        || /license|licence|certificate|certification|registration|incorporation|permit|tax clearance|vat|tin|regulatory/.test(text);
+}
+
+function isBidWorkspaceSubmissionDocumentRequirement(requirement = {}) {
+    const text = getBidWorkspaceRequirementSearchText(requirement);
+    return /submission document|bid submission|tender submission|bid form|letter of bid|form of tender|power of attorney|authorization|authorisation|signed form/.test(text);
+}
+
+function isBidWorkspacePlanDocumentRequirement(requirement = {}) {
+    const text = getBidWorkspaceRequirementSearchText(requirement);
+    return /technical proposal|methodology|method statement|work plan|delivery plan|implementation plan|project plan|quality plan|hse|health and safety|environmental|staffing|personnel|equipment|schedule|timeline|mobilization|mobilisation|approach/.test(text);
+}
+
+function renderBidWorkspaceGateDocumentSection(index, kicker, title, description, requirements = [], draft = {}, emptyMessage = 'No documents were configured for this section.') {
+    const mandatoryCount = requirements.filter(requirement => Boolean(requirement.mandatory)).length;
+    const optionalCount = Math.max(requirements.length - mandatoryCount, 0);
+    const badgeText = requirements.length
+        ? `${mandatoryCount} mandatory / ${optionalCount} optional`
+        : '0 documents';
+    return `
+        <div class="bid-gate-group">
+            <div class="bid-gate-group-heading">
+                <div>
+                    <span class="section-kicker">${index}. ${escapeBidWorkspaceHtml(kicker)}</span>
+                    <h3>${escapeBidWorkspaceHtml(title)}</h3>
+                    <p>${escapeBidWorkspaceHtml(description)}</p>
+                </div>
+                <span class="badge ${mandatoryCount ? 'badge-warning' : 'badge-info'}">${badgeText}</span>
             </div>
-            ${renderBidWorkspaceRequirementInput(requirement, draft, required)}
-        </article>
-    `).join('');
+            <div class="bid-requirement-list">
+                ${requirements.length ? renderBidWorkspaceRequirementCards(requirements, draft) : `<div class="scope-empty">${escapeBidWorkspaceHtml(emptyMessage)}</div>`}
+            </div>
+        </div>
+    `;
 }
 
 function renderBidWorkspaceMandatoryGate(requirements = [], draft = {}) {
-    const split = splitBidWorkspaceGateRequirements(requirements);
-    const sorted = split.gate;
-    const licenseRequirements = sorted.filter(requirement => getBidWorkspaceRequirementPriority(requirement) === 0);
-    const evidenceRequirements = sorted.filter(requirement => getBidWorkspaceRequirementPriority(requirement) === 1);
-    const declarationRequirements = sorted.filter(requirement => getBidWorkspaceRequirementPriority(requirement) > 1);
+    const sorted = sortBidWorkspaceRequirements(requirements);
+    const uploadRequirements = sorted.filter(requirement => requirement.responseType === 'upload');
+    const licenseRequirements = uploadRequirements.filter(isBidWorkspaceLicenseDocumentRequirement);
+    const submissionRequirements = uploadRequirements.filter(requirement => (
+        !licenseRequirements.includes(requirement) && isBidWorkspaceSubmissionDocumentRequirement(requirement)
+    ));
+    const planRequirements = uploadRequirements.filter(requirement => (
+        !licenseRequirements.includes(requirement)
+        && !submissionRequirements.includes(requirement)
+        && isBidWorkspacePlanDocumentRequirement(requirement)
+    ));
+    const otherDocumentRequirements = uploadRequirements.filter(requirement => (
+        !licenseRequirements.includes(requirement)
+        && !submissionRequirements.includes(requirement)
+        && !planRequirements.includes(requirement)
+    ));
+    const declarationRequirements = sorted.filter(requirement => requirement.responseType !== 'upload');
+    const mandatoryDeclarationCount = declarationRequirements.filter(requirement => Boolean(requirement.mandatory)).length;
 
     return `
         <div class="bid-prequalification-note">
-            <strong>Pre-qualification required before bidding</strong>
-            <span>Complete only the eligibility checks needed to start. Detailed response sections are handled after this gate.</span>
+            <strong>Eligibility and document requirements</strong>
+            <span>Upload mandatory eligibility documents and complete required confirmations before moving forward. Documents are grouped so licenses and certifications are separate from plans and other supporting files.</span>
         </div>
+        ${renderBidWorkspaceGateDocumentSection(1, 'Licenses and certifications', 'License and certification documents', 'Business licenses, regulatory permits, registration certificates, tax/VAT evidence, and other eligibility certificates.', licenseRequirements, draft, 'No license or certification document is required for this tender.')}
+        ${renderBidWorkspaceGateDocumentSection(2, 'Submission documents', 'Bid submission documents', 'Tender submission forms, signed bid documents, authorization letters, and buyer-required submission files.', submissionRequirements, draft, 'No separate submission document upload was configured for this tender.')}
+        ${renderBidWorkspaceGateDocumentSection(3, 'Other documents', 'Other supporting documents', 'Additional evidence or supporting uploads that are not licenses, certifications, submission files, or plan documents.', otherDocumentRequirements, draft, 'No other supporting document upload was configured for this tender.')}
+        ${renderBidWorkspaceGateDocumentSection(4, 'Plan documents', 'Technical and delivery plan documents', 'Methodology, work plan, delivery plan, quality/HSE plan, staffing, equipment, schedule, and other planning documents.', planRequirements, draft, 'No plan document upload was configured for this tender.')}
         <div class="bid-gate-group">
             <div class="bid-gate-group-heading">
                 <div>
-                    <span class="section-kicker">1. Regulatory licenses if required</span>
-                    <h3>License evidence</h3>
-                </div>
-                <span class="badge badge-warning">${licenseRequirements.length} required</span>
-            </div>
-            <div class="bid-requirement-list">
-                ${licenseRequirements.length ? renderBidWorkspaceRequirementCards(licenseRequirements, draft, true) : '<div class="scope-empty">No regulatory license upload is required for this tender.</div>'}
-            </div>
-        </div>
-        <div class="bid-gate-group">
-            <div class="bid-gate-group-heading">
-                <div>
-                    <span class="section-kicker">2. Mandatory documents</span>
-                    <h3>Administrative evidence</h3>
-                </div>
-                <span class="badge badge-info">${evidenceRequirements.length} items</span>
-            </div>
-            <div class="bid-requirement-list">
-                ${evidenceRequirements.length ? renderBidWorkspaceRequirementCards(evidenceRequirements, draft, true) : '<div class="scope-empty">No additional mandatory document uploads are required.</div>'}
-            </div>
-        </div>
-        <div class="bid-gate-group">
-            <div class="bid-gate-group-heading">
-                <div>
-                    <span class="section-kicker">3. Declarations and confirmations</span>
+                    <span class="section-kicker">5. Eligibility declarations/confirmations</span>
                     <h3>Administrative confirmations</h3>
                 </div>
-                <span class="badge badge-info">${declarationRequirements.length} items</span>
+                <span class="badge ${mandatoryDeclarationCount ? 'badge-warning' : 'badge-info'}">${mandatoryDeclarationCount} mandatory</span>
             </div>
             <div class="bid-requirement-list">
-                ${declarationRequirements.length ? renderBidWorkspaceRequirementCards(declarationRequirements, draft, true) : '<div class="scope-empty">No additional confirmations are required.</div>'}
+                ${declarationRequirements.length ? renderBidWorkspaceRequirementCards(declarationRequirements, draft) : '<div class="scope-empty">No additional confirmations are required.</div>'}
             </div>
         </div>
-        ${split.later.length ? `
-            <div class="bid-gate-deferred-note">
-                <strong>${split.later.length} detailed bid requirement${split.later.length === 1 ? '' : 's'} available after eligibility gate</strong>
-                <span>These detailed response sections are available after this eligibility gate is complete.</span>
-            </div>
-        ` : ''}
     `;
 }
 
@@ -761,15 +830,288 @@ function getGoodsBidItemDescription(item = {}, index = 0) {
     return item.itemDescription || item.description || item.workItem || item.serviceTask || item.productDescription || `Goods item ${index + 1}`;
 }
 
-function renderGoodsBidTechnicalResponse(tender = {}, draft = {}) {
-    const specifications = getGoodsBidSpecificationCards(tender);
-    if (!specifications.length) {
-        return '<div class="scope-empty">No buyer technical specification cards were configured for this goods tender.</div>';
+const bidWorkspaceProductSpecStructuralColumns = [
+    { id: 'itemNo', label: 'Item No.', required: true, locked: true, instructions: 'Buyer item number.' },
+    { id: 'productName', label: 'Product Name', required: true, locked: true, instructions: 'Buyer product name.' },
+    { id: 'quantity', label: 'Quantity', required: true, locked: true, instructions: 'Buyer required quantity.' }
+];
+
+const bidWorkspaceProductSpecDetailColumns = [
+    ...bidWorkspaceProductSpecStructuralColumns,
+    { id: 'specificationName', label: 'Specification', required: true, locked: false, instructions: 'Item-specific requirement.' },
+    { id: 'acceptableRequirement', label: 'Specific Detail Required', required: false, locked: false, instructions: 'Optional buyer detail for this item specification.' }
+];
+
+function getBidWorkspaceProductSpecDraftRow(draft = {}, rowId = '') {
+    return (draft.productSpecificationResponses || []).find(row => row.rowId === rowId) || {};
+}
+
+function isBidWorkspaceProductSpecDetailTemplate(template = {}) {
+    const ids = new Set((template?.columns || []).map(column => column?.id));
+    return ids.has('specificationName') || ids.has('acceptableRequirement');
+}
+
+function normalizeBidWorkspaceProductSpecDetailRow(row = {}, rowIndex = 0) {
+    const values = row.values && typeof row.values === 'object' ? row.values : row;
+    return {
+        id: row.id || `product-spec-row-${rowIndex}`,
+        sourceRowId: row.sourceRowId || '',
+        values: {
+            itemNo: values?.itemNo ?? String(rowIndex + 1),
+            productName: values?.productName || `Product item ${rowIndex + 1}`,
+            quantity: values?.quantity || '',
+            specificationName: values?.specificationName || '',
+            acceptableRequirement: values?.acceptableRequirement || values?.requiredSpecification || ''
+        }
+    };
+}
+
+function groupBidWorkspaceProductSpecRowsByItem(rows = []) {
+    const groups = [];
+    const groupMap = new Map();
+    rows.forEach((row, index) => {
+        const values = row.values || {};
+        const key = row.sourceRowId || `${values.itemNo || index}::${values.productName || ''}::${values.quantity || ''}`;
+        if (!groupMap.has(key)) {
+            const group = {
+                key,
+                itemNo: values.itemNo || String(groups.length + 1),
+                productName: values.productName || `Product item ${groups.length + 1}`,
+                quantity: values.quantity || '',
+                rows: []
+            };
+            groupMap.set(key, group);
+            groups.push(group);
+        }
+        groupMap.get(key).rows.push(row);
+    });
+    return groups;
+}
+
+function getBidWorkspaceProductSpecItemResponseId(group = {}, suffix = '') {
+    const base = String(group.key || `${group.itemNo || ''}-${group.productName || ''}`)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        || 'item';
+    return `goods-product-spec-item-${base}-${suffix}`;
+}
+
+function convertBidWorkspaceLegacyProductSpecRows(template = {}) {
+    const structuralIds = new Set(bidWorkspaceProductSpecStructuralColumns.map(column => column.id));
+    const detailIds = new Set(bidWorkspaceProductSpecDetailColumns.map(column => column.id));
+    const legacyColumns = (template?.columns || []).filter(column => (
+        column && !structuralIds.has(column.id) && !detailIds.has(column.id)
+    ));
+    return (template?.rows || []).flatMap((row, rowIndex) => {
+        const values = row.values && typeof row.values === 'object' ? row.values : row;
+        return legacyColumns
+            .filter(column => String(values?.[column.id] || '').trim())
+            .map(column => ({
+                id: `${row.id || `product-spec-row-${rowIndex}`}-${column.id}`,
+                values: {
+                    itemNo: values?.itemNo ?? String(rowIndex + 1),
+                    productName: values?.productName || `Product item ${rowIndex + 1}`,
+                    quantity: values?.quantity || '',
+                    specificationName: column.label || 'Specification',
+                    acceptableRequirement: values?.[column.id] || ''
+                }
+            }));
+    });
+}
+
+function normalizeBidWorkspaceProductSpecificationTemplate(tender = {}) {
+    const template = tender.requirements?.fields?.productSpecificationTemplate;
+    if (template?.columns?.length && template?.rows?.length) {
+        return {
+            allowSupplierComments: template.allowSupplierComments !== false,
+            columns: bidWorkspaceProductSpecDetailColumns,
+            rows: (isBidWorkspaceProductSpecDetailTemplate(template)
+                ? template.rows
+                : convertBidWorkspaceLegacyProductSpecRows(template)
+            ).map((row, rowIndex) => normalizeBidWorkspaceProductSpecDetailRow(row, rowIndex))
+        };
+    }
+
+    const quantityRows = getGoodsBidQuantityRows(tender);
+    const specificationCards = getGoodsBidSpecificationCards(tender);
+    const rows = (quantityRows.length ? quantityRows : specificationCards).flatMap((item, index) => {
+        const spec = specificationCards[index] || {};
+        const itemValues = {
+                itemNo: item.itemNumber || item.item || String(index + 1),
+                productName: getGoodsBidItemDescription(item, index),
+                quantity: item.quantity || item.qty || '',
+        };
+        const fallbackSpecs = [
+            { specificationName: 'Required Specification', acceptableRequirement: [spec.productDescription, spec.performanceSpecifications, spec.dimensions, spec.materialQuality, spec.installationRequirements].filter(Boolean).join(' / '), instructions: 'Buyer technical requirement.' },
+            { specificationName: 'Brand/Equivalent', acceptableRequirement: spec.brandRequirements || '', instructions: 'Accepted brand or equivalent.' },
+            { specificationName: 'Warranty', acceptableRequirement: spec.warrantyRequirements || '', instructions: 'Required warranty.' }
+        ].filter(row => String(row.acceptableRequirement || '').trim());
+        return fallbackSpecs.map((row, specIndex) => ({
+            id: item.id || spec.id ? `${item.id || spec.id}-${specIndex}` : `product-spec-fallback-${index}-${specIndex}`,
+            values: {
+                ...itemValues,
+                ...row
+            }
+        }));
+    });
+    return {
+        allowSupplierComments: true,
+        columns: bidWorkspaceProductSpecDetailColumns,
+        rows
+    };
+}
+
+function renderGoodsBidProductSpecificationResponse(tender = {}, draft = {}) {
+    const template = normalizeBidWorkspaceProductSpecificationTemplate(tender);
+    if (!template.rows.length) {
+        return '<div class="scope-empty">No buyer product specification template was configured for this goods tender.</div>';
+    }
+    const itemGroups = groupBidWorkspaceProductSpecRowsByItem(template.rows);
+
+    return `
+        <section class="product-spec-response">
+            <div class="product-spec-response-actions">
+                <button class="btn btn-secondary" type="button" data-bid-download-product-spec-template>Download Buyer Specification CSV</button>
+                <span class="badge badge-warning">${template.rows.length} item specification${template.rows.length === 1 ? '' : 's'}</span>
+            </div>
+            <div class="product-spec-item-grid">
+                ${itemGroups.map((group, groupIndex) => `
+                    <article class="product-spec-item-card product-spec-response-item">
+                        <div class="product-spec-item-header">
+                            <div>
+                                <span class="section-kicker">Item ${escapeBidWorkspaceHtml(group.itemNo)}</span>
+                                <h4>${escapeBidWorkspaceHtml(group.productName)}</h4>
+                                <p>${escapeBidWorkspaceHtml(group.quantity || 0)} unit${Number(group.quantity) === 1 ? '' : 's'} required</p>
+                            </div>
+                            <span class="badge badge-info">${group.rows.length} specification${group.rows.length === 1 ? '' : 's'}</span>
+                        </div>
+                        <div class="product-spec-response-table-wrap">
+                            <table class="product-spec-response-table product-spec-item-sheet">
+                                <thead>
+                                    <tr>
+                                        ${group.rows.map(row => `
+                                            <th>
+                                                ${escapeBidWorkspaceHtml(row.values?.specificationName || 'Specification')}
+                                                <small>${escapeBidWorkspaceHtml(row.values?.acceptableRequirement || 'No specific detail required')}</small>
+                                            </th>
+                                        `).join('')}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        ${group.rows.map((row, rowIndex) => {
+                                            const response = getBidWorkspaceProductSpecDraftRow(draft, row.id);
+                                            const absoluteRowIndex = `${groupIndex + 1}.${rowIndex + 1}`;
+                                            const currentValue = response.complianceStatus === 'Compliant' || response.complianceStatus === true || response.complianceStatus === 'true' ? 'Compliant' : (response.complianceStatus === 'Not Compliant' || response.complianceStatus === false || response.complianceStatus === 'false' ? 'Not Compliant' : '');
+                                            return `
+                                                <td data-bid-product-spec-row="${escapeBidWorkspaceHtml(row.id)}">
+                                                    <select class="form-input product-spec-compliance-dropdown" data-bid-product-spec-field="complianceStatus" aria-label="Compliance status for specification ${absoluteRowIndex}">
+                                                        <option value="" ${currentValue === '' ? 'selected' : ''}>Select status</option>
+                                                        <option value="Compliant" ${currentValue === 'Compliant' ? 'selected' : ''}>Comply</option>
+                                                        <option value="Not Compliant" ${currentValue === 'Not Compliant' ? 'selected' : ''}>Not Comply</option>
+                                                    </select>
+                                                </td>
+                                            `;
+                                        }).join('')}
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="product-spec-item-response-fields">
+                            <label class="form-group wide">
+                                <span class="form-label">Supplier Short Specification</span>
+                                <textarea class="form-input" rows="3" data-bid-response="${escapeBidWorkspaceHtml(getBidWorkspaceProductSpecItemResponseId(group, 'short-specification'))}" aria-label="Supplier short specification for ${escapeBidWorkspaceHtml(group.productName)}" placeholder="Optional short offered specification for this item">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, getBidWorkspaceProductSpecItemResponseId(group, 'short-specification')))}</textarea>
+                            </label>
+                            <div class="form-group">
+                                ${renderBidWorkspaceUploadControl(getBidWorkspaceProductSpecItemResponseId(group, 'attachment'), draft, 'Attach item evidence', '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png', false)}
+                            </div>
+                        </div>
+                    </article>
+                `).join('')}
+            </div>
+        </section>
+    `;
+}
+
+function formatBidWorkspaceCsvCell(value = '') {
+    const text = String(value ?? '');
+    return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function downloadBidWorkspaceProductSpecificationCsv(tender = {}) {
+    const template = normalizeBidWorkspaceProductSpecificationTemplate(tender);
+    const rows = [
+        template.columns.map(column => column.label),
+        ...template.rows.map(row => template.columns.map(column => row.values?.[column.id] || ''))
+    ];
+    const csv = `\uFEFF${rows.map(row => row.map(formatBidWorkspaceCsvCell).join(',')).join('\r\n')}\r\n`;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.download = 'buyer-product-specification-template.csv';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+}
+
+function renderGoodsBidProductDetailResponse(tender = {}, draft = {}) {
+    const rows = getGoodsBidQuantityRows(tender);
+    if (!rows.length) {
+        return '<div class="scope-empty">No goods line items were configured for supplier technical product details.</div>';
     }
 
     return `
+        <section class="bid-dynamic-group goods-product-detail-response">
+            <div class="bid-dynamic-group-heading">
+                <div>
+                    <h3>Offered product details</h3>
+                    <p>Provide the supplier product identity and delivery details for each requested goods line before pricing.</p>
+                </div>
+                <span class="badge badge-warning">${rows.length} product detail${rows.length === 1 ? '' : 's'}</span>
+            </div>
+            <div class="bid-requirement-list">
+                ${rows.map((item, index) => {
+                    const baseId = `goods-line-${index}`;
+                    const qty = parseBidWorkspaceNumber(item.quantity || item.qty) || 1;
+                    const unit = item.unitOfMeasure || item.unit || 'Unit';
+                    return `
+                        <article class="bid-requirement-card goods-product-detail-card">
+                            <div class="bid-response-card-heading">
+                                <div>
+                                    <span class="section-kicker">Requested goods line ${index + 1}</span>
+                                    <h3>${escapeBidWorkspaceHtml(getGoodsBidItemDescription(item, index))}</h3>
+                                    <p>${qty} ${escapeBidWorkspaceHtml(unit)} requested. Confirm the exact offered product and supporting details.</p>
+                                </div>
+                                <em class="badge badge-warning">Technical details required</em>
+                            </div>
+                            <div class="goods-line-detail-grid">
+                                <div class="form-group"><label class="form-label">Supplier Product</label><input class="form-input" data-bid-response="${baseId}-product-name" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-product-name`))}" placeholder="Product name offered"></div>
+                                <div class="form-group"><label class="form-label">Brand</label><input class="form-input" data-bid-response="${baseId}-brand" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-brand`))}"></div>
+                                <div class="form-group"><label class="form-label">Model Number</label><input class="form-input" data-bid-response="${baseId}-model" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-model`))}"></div>
+                                <div class="form-group"><label class="form-label">Country of Origin</label><input class="form-input" data-bid-response="${baseId}-origin" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-origin`))}" placeholder="Country"></div>
+                                <div class="form-group"><label class="form-label">Quantity Offered</label><input class="form-input" type="number" min="0" data-bid-response="${baseId}-quantity-offered" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-quantity-offered`) || qty)}"></div>
+                                <div class="form-group"><label class="form-label">Delivery Time</label><input class="form-input" data-bid-response="${baseId}-delivery-time" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-delivery-time`))}" placeholder="e.g. 30 days"></div>
+                                <div class="form-group"><label class="form-label">Warranty Period</label><input class="form-input" data-bid-response="${baseId}-warranty" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-warranty`))}" placeholder="e.g. 24 months"></div>
+                                <div class="form-group wide"><label class="form-label">Deviations / Comments</label><textarea class="form-input" rows="2" data-bid-response="${baseId}-deviations">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-deviations`))}</textarea></div>
+                                <div class="form-group"><label class="form-label">Attach Brochure</label><div class="bid-upload-response" data-bid-upload-control><input class="form-input" type="file" data-bid-file-input accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"><input type="hidden" data-bid-response="${baseId}-brochure" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-brochure`))}"><small data-bid-file-name>${getBidWorkspaceSavedResponse(draft, `${baseId}-brochure`) ? `Selected: ${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-brochure`))}` : 'No file selected yet.'}</small></div></div>
+                            </div>
+                        </article>
+                    `;
+                }).join('')}
+            </div>
+        </section>
+    `;
+}
+
+function renderGoodsBidTechnicalResponse(tender = {}, draft = {}) {
+    const specifications = getGoodsBidSpecificationCards(tender);
+
+    return `
         <div class="goods-compliance-matrix">
-            ${specifications.map((spec, index) => {
+            ${specifications.length ? specifications.map((spec, index) => {
                 const baseId = `goods-spec-${index}`;
                 const buyerRequirement = [
                     spec.productDescription,
@@ -797,49 +1139,30 @@ function renderGoodsBidTechnicalResponse(tender = {}, draft = {}) {
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label">Offered Value</label>
-                                    <input class="form-input" data-bid-response="${baseId}-offered-value" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-offered-value`))}" placeholder="e.g. 32GB DDR5">
-                                </div>
-                                <div class="form-group wide">
-                                    <label class="form-label">Explanation</label>
-                                    <textarea class="form-input" rows="3" data-bid-response="${baseId}-explanation" placeholder="Explain compliance or deviations">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-explanation`))}</textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Technical Document</label>
+                                    <label class="form-label">Supporting Evidence</label>
                                     <div class="bid-upload-response" data-bid-upload-control>
                                         <input class="form-input" type="file" data-bid-file-input accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
                                         <input type="hidden" data-bid-response="${baseId}-technical-document" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-technical-document`))}">
                                         <small data-bid-file-name>${getBidWorkspaceSavedResponse(draft, `${baseId}-technical-document`) ? `Selected: ${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-technical-document`))}` : 'No file selected yet.'}</small>
                                     </div>
                                 </div>
-                                <div class="form-group">
-                                    <label class="form-label">Manufacturer Datasheet</label>
-                                    <div class="bid-upload-response" data-bid-upload-control>
-                                        <input class="form-input" type="file" data-bid-file-input accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
-                                        <input type="hidden" data-bid-response="${baseId}-datasheet" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-datasheet`))}">
-                                        <small data-bid-file-name>${getBidWorkspaceSavedResponse(draft, `${baseId}-datasheet`) ? `Selected: ${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-datasheet`))}` : 'No file selected yet.'}</small>
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Alternative Specification</label>
-                                    <input class="form-input" data-bid-response="${baseId}-alternative" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-alternative`))}" placeholder="Alternative if partially compliant">
-                                </div>
                                 <div class="form-group wide">
                                     <label class="form-label">Notes</label>
-                                    <textarea class="form-input" rows="2" data-bid-response="${baseId}-notes">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-notes`))}</textarea>
+                                    <textarea class="form-input" rows="3" data-bid-response="${baseId}-notes" placeholder="Add any compliance comments or clarifications">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-notes`))}</textarea>
                                 </div>
                             </div>
                         </div>
                     </article>
                 `;
-            }).join('')}
+            }).join('') : '<div class="scope-empty">No buyer technical specification cards were configured for this goods tender.</div>'}
         </div>
+        ${renderGoodsBidProductDetailResponse(tender, draft)}
     `;
 }
 
 function renderGoodsBidFinancialRows(tender = {}, draft = {}) {
     const rows = getGoodsBidQuantityRows(tender);
-    if (!rows.length) return '<tr><td colspan="8">No quantity schedule configured.</td></tr>';
+    if (!rows.length) return '<tr><td colspan="9">No quantity schedule configured.</td></tr>';
     return rows.map((item, index) => {
         const baseId = `goods-line-${index}`;
         const qty = parseBidWorkspaceNumber(item.quantity || item.qty) || 1;
@@ -859,26 +1182,10 @@ function renderGoodsBidFinancialRows(tender = {}, draft = {}) {
                         ${['Bid', 'Not Bid'].map(option => `<option ${getBidWorkspaceSavedResponse(draft, `${baseId}-status`) === option ? 'selected' : ''}>${option}</option>`).join('')}
                     </select>
                 </td>
-                <td><input class="form-input" data-bid-response="${baseId}-product-name" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-product-name`))}" placeholder="Supplier product"></td>
                 <td><input class="form-input boq-input boq-number" type="number" min="0" step="1000" data-bid-rate data-bid-response="${baseId}-unit-price" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(bidderRate)}" placeholder="Unit price"></td>
+                <td><select class="form-input" data-bid-response="${baseId}-tax-included" data-bid-workflow-required-response="true"><option value="" ${getBidWorkspaceSavedResponse(draft, `${baseId}-tax-included`) ? '' : 'selected'}>Select</option>${['Yes', 'No'].map(option => `<option ${getBidWorkspaceSavedResponse(draft, `${baseId}-tax-included`) === option ? 'selected' : ''}>${option}</option>`).join('')}</select></td>
+                <td><input class="form-input" data-bid-response="${baseId}-discount" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-discount`))}" placeholder="Amount or %"></td>
                 <td data-bid-line-amount>${formatBidWorkspaceMoney(qty * parseBidWorkspaceNumber(bidderRate))}</td>
-            </tr>
-            <tr class="goods-offer-detail-row">
-                <td></td>
-                <td colspan="7">
-                    <div class="goods-line-detail-grid">
-                        <div class="form-group"><label class="form-label">Brand</label><input class="form-input" data-bid-response="${baseId}-brand" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-brand`))}"></div>
-                        <div class="form-group"><label class="form-label">Model Number</label><input class="form-input" data-bid-response="${baseId}-model" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-model`))}"></div>
-                        <div class="form-group"><label class="form-label">Country of Origin</label><input class="form-input" data-bid-response="${baseId}-origin" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-origin`))}" placeholder="Country"></div>
-                        <div class="form-group"><label class="form-label">Quantity Offered</label><input class="form-input" type="number" min="0" data-bid-response="${baseId}-quantity-offered" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-quantity-offered`) || qty)}"></div>
-                        <div class="form-group"><label class="form-label">Delivery Time</label><input class="form-input" data-bid-response="${baseId}-delivery-time" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-delivery-time`))}" placeholder="e.g. 30 days"></div>
-                        <div class="form-group"><label class="form-label">Warranty Period</label><input class="form-input" data-bid-response="${baseId}-warranty" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-warranty`))}" placeholder="e.g. 24 months"></div>
-                        <div class="form-group"><label class="form-label">Tax Included?</label><select class="form-input" data-bid-response="${baseId}-tax-included" data-bid-workflow-required-response="true"><option value="" ${getBidWorkspaceSavedResponse(draft, `${baseId}-tax-included`) ? '' : 'selected'}>Select</option>${['Yes', 'No'].map(option => `<option ${getBidWorkspaceSavedResponse(draft, `${baseId}-tax-included`) === option ? 'selected' : ''}>${option}</option>`).join('')}</select></div>
-                        <div class="form-group"><label class="form-label">Discount</label><input class="form-input" data-bid-response="${baseId}-discount" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-discount`))}" placeholder="Amount or %"></div>
-                        <div class="form-group wide"><label class="form-label">Deviations / Comments</label><textarea class="form-input" rows="2" data-bid-response="${baseId}-deviations">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-deviations`))}</textarea></div>
-                        <div class="form-group"><label class="form-label">Attach Brochure</label><div class="bid-upload-response" data-bid-upload-control><input class="form-input" type="file" data-bid-file-input accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"><input type="hidden" data-bid-response="${baseId}-brochure" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-brochure`))}"><small data-bid-file-name>${getBidWorkspaceSavedResponse(draft, `${baseId}-brochure`) ? `Selected: ${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-brochure`))}` : 'No file selected yet.'}</small></div></div>
-                    </div>
-                </td>
             </tr>
         `;
     }).join('');
@@ -1766,11 +2073,20 @@ function renderBiddingWorkspace() {
     const requirementSet = getBidWorkspaceRequirementSet(tender, profile);
     const mandatoryCount = requirementSet.mandatory.length;
     const optionalCount = requirementSet.optional.length;
-    const splitMandatoryRequirements = splitBidWorkspaceGateRequirements(requirementSet.mandatory);
-    const dynamicRequirements = getBidWorkspaceCompleteDynamicRequirements(tender, [...splitMandatoryRequirements.later, ...requirementSet.optional]);
-    const gateRequirementCount = splitMandatoryRequirements.gate.length;
+    const stepOneRequirements = getBidWorkspaceStepOneRequirements(requirementSet);
+    const stepOneRequirementIds = new Set(stepOneRequirements.map(requirement => requirement.id));
+    const stepOneRequirementKeys = new Set(stepOneRequirements.map(getBidWorkspaceRequirementDedupeKey));
+    const laterRequirements = [...requirementSet.mandatory, ...requirementSet.optional]
+        .filter(requirement => !stepOneRequirementIds.has(requirement.id));
+    const dynamicRequirements = getBidWorkspaceCompleteDynamicRequirements(tender, laterRequirements)
+        .filter(requirement => (
+            !stepOneRequirementIds.has(requirement.id)
+            && !stepOneRequirementKeys.has(getBidWorkspaceRequirementDedupeKey(requirement))
+        ));
+    const gateRequirementCount = stepOneRequirements.length;
+    const mandatoryGateCount = stepOneRequirements.filter(requirement => requirement.mandatory).length;
     const deferredMandatoryCount = dynamicRequirements.filter(isBidWorkspaceResponseRequirement).length;
-    const requiredLicenseCount = splitMandatoryRequirements.gate.filter(requirement => getBidWorkspaceRequirementPriority(requirement) === 0).length;
+    const requiredLicenseCount = stepOneRequirements.filter(requirement => getBidWorkspaceRequirementPriority(requirement) === 0 && requirement.mandatory).length;
     const responseFields = profile.responseFields || ['Technical response', 'Delivery approach'];
     const goodsFlow = profile.id === 'goods';
     const worksFlow = profile.id === 'works';
@@ -1778,8 +2094,8 @@ function renderBiddingWorkspace() {
     const hasGoodsSamples = goodsFlow && isGoodsBidSamplesRequired(tender);
     const steps = goodsFlow
         ? [
-            ['01', 'Eligibility & Documents', 'Licenses, certificates, and mandatory uploads'],
-            ['02', 'Technical Response', 'Specification compliance and technical documents'],
+            ['01', 'Eligibility and Document Requirements', 'Licenses, certifications, submission files, and document uploads'],
+            ['02', 'Technical Response', 'Fill the buyer product specification table'],
             ['03', 'Financial Offer', 'Quantity schedule, delivery, and commercial terms'],
             ...(hasGoodsSamples ? [['04', 'Samples', 'Sample dispatch and delivery evidence']] : []),
             [hasGoodsSamples ? '05' : '04', 'Review & Validate', 'Check missing responses before declaration'],
@@ -1787,7 +2103,7 @@ function renderBiddingWorkspace() {
         ]
         : worksFlow
             ? [
-                ['01', 'Eligibility & Legal', 'Licenses, registrations, and mandatory certificates'],
+                ['01', 'Eligibility and Document Requirements', 'Licenses, certifications, submission files, and document uploads'],
                 ['02', 'Technical Capacity', 'Experience, personnel, equipment, finance, and HSE'],
                 ['03', 'Technical Proposal', 'Methodology, schedule, drawings, and site response'],
                 ['04', 'Financial Proposal', 'BOQ pricing, cost breakdown, and commercial terms'],
@@ -1796,7 +2112,7 @@ function renderBiddingWorkspace() {
             ]
             : serviceFlow
                 ? [
-                    ['01', 'Eligibility & Compliance', 'Licenses, certificates, and mandatory service evidence'],
+                    ['01', 'Eligibility and Document Requirements', 'Licenses, certifications, submission files, and document uploads'],
                     ['02', 'Methodology', 'Service understanding, workflow, QA, and risk approach'],
                     ['03', 'Delivery Plan', 'Schedule, locations, SLA timers, and milestones'],
                     ['04', 'Staffing & Capacity', 'People, equipment, finance, and service capability'],
@@ -1805,7 +2121,7 @@ function renderBiddingWorkspace() {
                     ['07', 'Review & Submit', 'Validate, declare, and submit service bid']
                 ]
         : [
-        ['01', 'License & Evidence Gate', 'Upload required licenses and mandatory evidence'],
+        ['01', 'Eligibility and Document Requirements', 'Licenses, certifications, submission files, and document uploads'],
         ['02', 'Dynamic Responses', 'Answer optional and technical tender requirements'],
         ['03', 'Financial Offer', `${profile.commercialName} rates and commercial schedule`],
         ['04', 'Review & Submit', 'Validate, declare, and submit sealed bid'],
@@ -1870,30 +2186,32 @@ function renderBiddingWorkspace() {
                                 <div class="panel-heading">
                                     <div>
                                         <span class="section-kicker">Step 1</span>
-                                        <h2>License & Mandatory Evidence Gate</h2>
+                                        <h2>Eligibility and Document Requirements</h2>
                                     </div>
-                                    <span class="badge badge-warning" data-bid-gate-badge>${gateRequirementCount} gate items</span>
+                                    <span class="badge ${mandatoryGateCount ? 'badge-warning' : 'badge-info'}" data-bid-gate-badge>${gateRequirementCount} gate items</span>
                                 </div>
                                 <div class="bid-gate-status" data-bid-gate-status>
                                     ${requiredLicenseCount
                                         ? `Upload ${requiredLicenseCount} required regulatory license${requiredLicenseCount === 1 ? '' : 's'} and complete eligibility evidence to unlock the bid workflow.`
-                                        : 'No regulatory license upload is required for this tender. Complete the eligibility evidence to unlock the bid workflow.'}
+                                        : mandatoryGateCount
+                                            ? `Complete ${mandatoryGateCount} mandatory eligibility item${mandatoryGateCount === 1 ? '' : 's'} to unlock the bid workflow.`
+                                            : 'No mandatory eligibility upload is required for this tender. Optional documents can be attached here before continuing.'}
                                 </div>
-                                ${renderBidWorkspaceMandatoryGate(requirementSet.mandatory, draft)}
+                                ${renderBidWorkspaceMandatoryGate(stepOneRequirements, draft)}
                             </section>
 
                             ${goodsFlow ? `
                             <section class="journey-panel" id="bid-step-2">
                                 <div class="panel-heading">
-                                    <div><span class="section-kicker">Step 2</span><h2>Technical Specification Response</h2></div>
-                                    <span class="badge badge-warning">${getGoodsBidSpecificationCards(tender).length} compliance cards</span>
+                                    <div><span class="section-kicker">Step 2</span><h2>Technical Response</h2></div>
+                                    <span class="badge badge-warning">${normalizeBidWorkspaceProductSpecificationTemplate(tender).rows.length} product rows</span>
                                 </div>
                                 <div class="bid-step-intro">
-                                    <strong>Structured goods compliance matrix</strong>
-                                    <span>Respond against each buyer specification. Use compliance status, offered value, supporting documents, and notes instead of a long free-form proposal.</span>
-                                </div>
-                                ${renderBidWorkspaceClarificationPrompt('Need clarification about technical specifications?', 'Technical', 'Question about goods technical specifications or compliance')}
-                                ${renderGoodsBidTechnicalResponse(tender, draft)}
+                                    <strong>Complete the buyer's specification table</strong>
+                                    <span>Fill in your offered product specification against the buyer's required format. Do not change buyer columns, required rows, or the template structure.</span>
+                                </div>Technical Response
+                                ${renderBidWorkspaceClarificationPrompt('Need clarification about product specifications?', 'Technical', 'Question about goods product specifications or compliance')}
+                                ${renderGoodsBidProductSpecificationResponse(tender, draft)}
                             </section>
 
                             <section class="journey-panel" id="bid-step-3">
@@ -1903,11 +2221,11 @@ function renderBiddingWorkspace() {
                                 </div>
                                 <div class="bid-step-intro">
                                     <strong>Editable supplier pricing table</strong>
-                                    <span>For each requested item, confirm whether you bid, identify the offered product, price the unit, and provide delivery information.</span>
+                                    <span>For each requested item, confirm whether you bid and complete the commercial price, tax, and discount details.</span>
                                 </div>
                                 <div class="data-table goods-offer-table">
                                     <table>
-                                        <thead><tr><th>Item</th><th>Requested Item</th><th>Qty</th><th>Unit</th><th>Status</th><th>Supplier Product</th><th>Unit Price</th><th>Total</th></tr></thead>
+                                        <thead><tr><th>Item</th><th>Requested Item</th><th>Qty</th><th>Unit</th><th>Status</th><th>Unit Price</th><th>Tax Included?</th><th>Discount</th><th>Total</th></tr></thead>
                                         <tbody data-bid-commercial-body>${renderGoodsBidFinancialRows(tender, draft)}</tbody>
                                     </table>
                                 </div>
@@ -1921,7 +2239,7 @@ function renderBiddingWorkspace() {
                                     </div>
                                     ${renderGoodsBidCommercialTerms(draft)}
                                 </section>
-                                ${renderBidWorkspaceClarificationPrompt('Question about pricing lines?', 'Commercial Schedule', 'Question about goods quantity schedule, unit prices, delivery time, or commercial terms')}
+                                ${renderBidWorkspaceClarificationPrompt('Question about pricing lines?', 'Commercial Schedule', 'Question about goods quantity schedule, unit prices, tax, discount, or commercial terms')}
                             </section>
 
                             ${hasGoodsSamples ? `
@@ -1946,7 +2264,7 @@ function renderBiddingWorkspace() {
                                 <div class="record-summary">
                                     <div><span>Bidder</span><strong>${escapeBidWorkspaceHtml(mockData.users?.supplier?.organization || 'Supplier organization')}</strong></div>
                                     <div><span>Eligibility gate</span><strong data-bid-gate-summary>Pending validation</strong></div>
-                                    <div><span>Technical specifications</span><strong>${getGoodsBidSpecificationCards(tender).length} compliance responses</strong></div>
+                                    <div><span>Product specification response</span><strong>${normalizeBidWorkspaceProductSpecificationTemplate(tender).rows.length} required rows</strong></div>
                                     <div><span>Quantity schedule</span><strong>${getGoodsBidQuantityRows(tender).length} priced lines</strong></div>
                                     <div><span>Samples</span><strong>${hasGoodsSamples ? `${getGoodsBidSampleRows(tender).length} required` : 'Not required'}</strong></div>
                                     <div><span>Deadline</span><strong>${escapeBidWorkspaceHtml(tender.closingDate)}</strong></div>
@@ -2339,6 +2657,8 @@ function initializeBiddingWorkspace() {
     const receiptHash = wizard.querySelector('[data-bid-receipt-hash]');
     const finalStatus = wizard.querySelector('[data-bid-final-status]');
     const existingDraft = getBidWorkspaceDraft(tenderId);
+    const sessionUploadUrls = {};
+    let uploadedFiles = { ...(existingDraft.uploadedFiles || {}) };
     let activeStepIndex = Number(existingDraft.step || 0);
 
     const getRequiredInputsByPriority = () => {
@@ -2363,21 +2683,140 @@ function initializeBiddingWorkspace() {
         wizard.querySelectorAll('[data-bid-free-response]').forEach(input => {
             freeResponses[input.dataset.bidFreeResponse] = input.value;
         });
+        const productSpecificationResponses = Array.from(wizard.querySelectorAll('[data-bid-product-spec-row]')).map(row => {
+            const rowId = row.dataset.bidProductSpecRow;
+            const response = { rowId };
+            row.querySelectorAll('[data-bid-product-spec-field]').forEach(input => {
+                response[input.dataset.bidProductSpecField] = input.type === 'checkbox'
+                    ? (input.checked ? input.value : 'Not Compliant')
+                    : input.value;
+            });
+            const attachment = row.querySelector('[data-bid-response$="-attachment"]');
+            if (attachment?.dataset.bidResponse) {
+                response.attachmentResponseId = attachment.dataset.bidResponse;
+                response.supportingAttachment = attachment.value || '';
+            }
+            return response;
+        });
         return {
             ...getBidWorkspaceDraft(tenderId),
             step: activeStepIndex,
             responses,
             freeResponses,
+            productSpecificationResponses,
+            uploadedFiles,
             total: wizard.querySelector('[data-bid-review-total]')?.textContent || ''
         };
     };
 
     const saveDraft = () => saveBidWorkspaceDraft(tenderId, collectDraft());
 
+    const getBidUploadResponseId = (uploadControl) => uploadControl?.querySelector('[data-bid-response]')?.dataset.bidResponse || '';
+
+    const updateBidUploadControlState = (uploadControl) => {
+        if (!uploadControl) return;
+        const responseInput = uploadControl.querySelector('[data-bid-response]');
+        const responseId = getBidUploadResponseId(uploadControl);
+        const value = String(responseInput?.value || '').trim();
+        let actions = uploadControl.querySelector('[data-bid-upload-actions]');
+        if (!actions) {
+            actions = document.createElement('div');
+            actions.className = 'bid-upload-actions';
+            actions.dataset.bidUploadActions = 'true';
+            actions.innerHTML = `
+                <button class="btn btn-secondary btn-sm" type="button" data-bid-view-upload>View</button>
+                <button class="btn btn-secondary btn-sm" type="button" data-bid-delete-upload>Delete</button>
+            `;
+            uploadControl.appendChild(actions);
+        }
+        const viewButton = actions.querySelector('[data-bid-view-upload]');
+        const deleteButton = actions.querySelector('[data-bid-delete-upload]');
+        const hasUpload = Boolean(value);
+        if (viewButton) viewButton.disabled = !hasUpload;
+        if (deleteButton) deleteButton.disabled = !hasUpload;
+        uploadControl.classList.toggle('has-upload', hasUpload);
+        if (responseId && uploadedFiles[responseId]?.dataUrl) {
+            uploadControl.dataset.bidUploadPreviewReady = 'true';
+        } else {
+            delete uploadControl.dataset.bidUploadPreviewReady;
+        }
+    };
+
+    const refreshBidUploadControls = () => {
+        wizard.querySelectorAll('[data-bid-upload-control]').forEach(updateBidUploadControlState);
+    };
+
+    const storeBidUploadPreview = (responseId, file) => {
+        if (!responseId || !file) return;
+        if (sessionUploadUrls[responseId]) URL.revokeObjectURL(sessionUploadUrls[responseId]);
+        sessionUploadUrls[responseId] = URL.createObjectURL(file);
+        uploadedFiles[responseId] = {
+            name: file.name,
+            type: file.type || 'application/octet-stream',
+            size: file.size || 0
+        };
+
+        if (file.size > bidWorkspaceUploadPreviewMaxBytes) {
+            saveDraft();
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            uploadedFiles[responseId] = {
+                ...uploadedFiles[responseId],
+                dataUrl: String(reader.result || '')
+            };
+            refreshBidUploadControls();
+            saveDraft();
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const clearBidUpload = (uploadControl) => {
+        const fileInput = uploadControl?.querySelector('[data-bid-file-input]');
+        const hiddenInput = uploadControl?.querySelector('[data-bid-response]');
+        const fileNameOutput = uploadControl?.querySelector('[data-bid-file-name]');
+        const responseId = getBidUploadResponseId(uploadControl);
+        if (fileInput) fileInput.value = '';
+        if (hiddenInput) hiddenInput.value = '';
+        if (fileNameOutput) fileNameOutput.textContent = 'No file selected yet.';
+        if (responseId) {
+            if (sessionUploadUrls[responseId]) URL.revokeObjectURL(sessionUploadUrls[responseId]);
+            delete sessionUploadUrls[responseId];
+            delete uploadedFiles[responseId];
+        }
+        updateBidUploadControlState(uploadControl);
+        validateMandatoryGate(false);
+        validateWorkflowResponses(false);
+        saveDraft();
+    };
+
+    const viewBidUpload = (uploadControl) => {
+        const responseId = getBidUploadResponseId(uploadControl);
+        const fileInput = uploadControl?.querySelector('[data-bid-file-input]');
+        const selectedFile = fileInput?.files?.[0];
+        if (selectedFile) {
+            if (sessionUploadUrls[responseId]) URL.revokeObjectURL(sessionUploadUrls[responseId]);
+            sessionUploadUrls[responseId] = URL.createObjectURL(selectedFile);
+        }
+        const previewUrl = uploadedFiles[responseId]?.dataUrl || sessionUploadUrls[responseId] || '';
+        if (!previewUrl) {
+            alert('This upload was saved by filename only. Select the file again to preview it, or delete it if it is no longer needed.');
+            return;
+        }
+        window.open(previewUrl, '_blank', 'noopener');
+    };
+
     const isResponseComplete = (input) => {
         if (!input) return false;
         if (input.type === 'checkbox') return input.checked;
         return String(input.value || '').trim().length > 0;
+    };
+
+    const focusBidWorkspaceInput = (input) => {
+        const uploadInput = input?.closest('[data-bid-upload-control]')?.querySelector('[data-bid-file-input]');
+        (uploadInput || input)?.focus?.();
     };
 
     const validateMandatoryGate = (show = false) => {
@@ -2414,7 +2853,7 @@ function initializeBiddingWorkspace() {
     };
 
     const markWorkflowInputState = (input, show = false) => {
-        const container = input.closest('[data-bid-requirement-card], .form-group, .bid-response-check, .goods-compliance-card, .goods-offer-row, .goods-sample-card, .works-capacity-card, .works-person-card, .works-accordion-card, .works-boq-row, .works-drawing-card, .service-accordion-card, .service-sla-card, .service-staff-card, .service-pricing-row, .service-document-card, .service-kpi-card');
+        const container = input.closest('[data-bid-requirement-card], [data-bid-product-spec-row], .form-group, .bid-response-check, .goods-compliance-card, .goods-offer-row, .goods-sample-card, .works-capacity-card, .works-person-card, .works-accordion-card, .works-boq-row, .works-drawing-card, .service-accordion-card, .service-sla-card, .service-staff-card, .service-pricing-row, .service-document-card, .service-kpi-card');
         const complete = isResponseComplete(input);
         container?.classList.toggle('completed', complete);
         container?.classList.toggle('invalid', show && !complete);
@@ -2532,12 +2971,20 @@ function initializeBiddingWorkspace() {
         if (railStep) {
             event.preventDefault();
             const requestedStep = Number(railStep.dataset.bidStepIndex);
-            if (requestedStep > activeStepIndex && activeStepIndex > 0) {
-                const panelValidation = validatePanelWorkflowResponses(activeStepIndex, true);
-                if (!panelValidation.valid) {
-                    alert(`Complete ${panelValidation.remaining} required response${panelValidation.remaining === 1 ? '' : 's'} in this section before continuing.`);
-                    panelValidation.firstIncomplete?.focus?.();
+            if (requestedStep > activeStepIndex) {
+                if (activeStepIndex === 0 && !validateMandatoryGate(true)) {
+                    const incompleteGateInput = Array.from(wizard.querySelectorAll('[data-bid-required-response]')).find(input => !isResponseComplete(input));
+                    alert('Upload or confirm every mandatory eligibility document before continuing.');
+                    focusBidWorkspaceInput(incompleteGateInput);
                     return;
+                }
+                if (activeStepIndex > 0) {
+                    const panelValidation = validatePanelWorkflowResponses(activeStepIndex, true);
+                    if (!panelValidation.valid) {
+                        alert(`Complete ${panelValidation.remaining} required response${panelValidation.remaining === 1 ? '' : 's'} in this section before continuing.`);
+                        focusBidWorkspaceInput(panelValidation.firstIncomplete);
+                        return;
+                    }
                 }
             }
             setActiveStep(requestedStep);
@@ -2553,11 +3000,17 @@ function initializeBiddingWorkspace() {
         }
 
         if (target.matches('[data-bid-next]')) {
+            if (activeStepIndex === 0 && !validateMandatoryGate(true)) {
+                const incompleteGateInput = Array.from(wizard.querySelectorAll('[data-bid-required-response]')).find(input => !isResponseComplete(input));
+                alert('Upload or confirm every mandatory eligibility document before continuing.');
+                focusBidWorkspaceInput(incompleteGateInput);
+                return;
+            }
             if (activeStepIndex > 0) {
                 const panelValidation = validatePanelWorkflowResponses(activeStepIndex, true);
                 if (!panelValidation.valid) {
                     alert(`Complete ${panelValidation.remaining} required response${panelValidation.remaining === 1 ? '' : 's'} in this section before continuing.`);
-                    panelValidation.firstIncomplete?.focus?.();
+                    focusBidWorkspaceInput(panelValidation.firstIncomplete);
                     return;
                 }
             }
@@ -2595,6 +3048,21 @@ function initializeBiddingWorkspace() {
             return;
         }
 
+        if (target.matches('[data-bid-view-upload]')) {
+            viewBidUpload(target.closest('[data-bid-upload-control]'));
+            return;
+        }
+
+        if (target.matches('[data-bid-delete-upload]')) {
+            clearBidUpload(target.closest('[data-bid-upload-control]'));
+            return;
+        }
+
+        if (target.matches('[data-bid-download-product-spec-template]')) {
+            downloadBidWorkspaceProductSpecificationCsv(tender);
+            return;
+        }
+
         if (target.matches('[data-bid-submit]')) {
             if (!validateMandatoryGate(true)) {
                 setActiveStep(0, true);
@@ -2605,7 +3073,7 @@ function initializeBiddingWorkspace() {
                 const firstIncompletePanelIndex = panels.findIndex(panel => panel.contains(workflowValidation.firstIncomplete));
                 setActiveStep(firstIncompletePanelIndex > -1 ? firstIncompletePanelIndex : 1, true);
                 alert(`Complete ${workflowValidation.remaining} required response${workflowValidation.remaining === 1 ? '' : 's'} before submitting.`);
-                workflowValidation.firstIncomplete?.focus?.();
+                focusBidWorkspaceInput(workflowValidation.firstIncomplete);
                 return;
             }
             const declaration = wizard.querySelector('[data-bid-declaration]');
@@ -2661,7 +3129,7 @@ function initializeBiddingWorkspace() {
 
     wizard.addEventListener('input', (event) => {
         if (event.target?.matches('[data-bid-rate], [data-works-cost]')) refreshBidTotals();
-        if (event.target?.matches('[data-bid-response], [data-bid-free-response]')) {
+        if (event.target?.matches('[data-bid-response], [data-bid-free-response], [data-bid-product-spec-field]')) {
             validateMandatoryGate(false);
             validateWorkflowResponses(false);
             saveDraft();
@@ -2673,16 +3141,23 @@ function initializeBiddingWorkspace() {
             const uploadControl = event.target.closest('[data-bid-upload-control]');
             const hiddenInput = uploadControl?.querySelector('[data-bid-response]');
             const fileNameOutput = uploadControl?.querySelector('[data-bid-file-name]');
-            const fileName = event.target.files?.[0]?.name || '';
+            const file = event.target.files?.[0] || null;
+            const fileName = file?.name || '';
             if (hiddenInput) hiddenInput.value = fileName;
             if (fileNameOutput) fileNameOutput.textContent = fileName ? `Selected: ${fileName}` : 'No file selected yet.';
+            if (file && hiddenInput?.dataset.bidResponse) {
+                storeBidUploadPreview(hiddenInput.dataset.bidResponse, file);
+            } else {
+                clearBidUpload(uploadControl);
+            }
+            updateBidUploadControlState(uploadControl);
             validateMandatoryGate(false);
             validateWorkflowResponses(false);
             saveDraft();
             return;
         }
 
-        if (event.target?.matches('[data-bid-response], [data-bid-free-response]')) {
+        if (event.target?.matches('[data-bid-response], [data-bid-free-response], [data-bid-product-spec-field]')) {
             validateMandatoryGate(false);
             validateWorkflowResponses(false);
             saveDraft();
@@ -2690,6 +3165,7 @@ function initializeBiddingWorkspace() {
     });
 
     refreshBidTotals();
+    refreshBidUploadControls();
     validateMandatoryGate(false);
     validateWorkflowResponses(false);
     setActiveStep(activeStepIndex);

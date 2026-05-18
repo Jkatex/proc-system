@@ -24,8 +24,8 @@ function renderSignIn() {
                 <div class="register-card-new auth-card">
                     <div class="screens-container-new">
                         <div class="screen-header-new">
-                            <h2>Sign In</h2>
-                            <p>Use the credentials created during account setup.</p>
+                            <h2>Welcome Back</h2>
+                            <p>Sign in</p>
                         </div>
 
                         <form class="screen-form-new" data-action="sign-in">
@@ -82,6 +82,9 @@ function renderSignIn() {
                             `).join('')}
                         </div>
                     </div>
+                </div>
+                <div class="auth-image-panel" aria-hidden="true">
+                    ${typeof renderProcureXLottie === 'function' ? renderProcureXLottie('procurex-lottie auth-image-lottie', 'ProcureX auth animation') : ''}
                 </div>
             </div>
         </div>

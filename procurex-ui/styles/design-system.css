@@ -4938,6 +4938,185 @@ textarea.form-input {
     text-transform: uppercase;
 }
 
+.bid-upload-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.bid-upload-actions .btn {
+    min-height: 34px;
+    padding: 7px 12px;
+    font-size: 12px;
+}
+
+.bid-upload-response:not(.has-upload) .bid-upload-actions {
+    opacity: 0.62;
+}
+
+.product-spec-builder,
+.product-spec-response {
+    display: grid;
+    gap: 16px;
+}
+
+.product-spec-toolbar,
+.product-spec-response-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.product-spec-sheet-wrap,
+.product-spec-response-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-md);
+    background: var(--card-bg);
+}
+
+.product-spec-sheet,
+.product-spec-response-table {
+    width: max-content;
+    min-width: 100%;
+    border-collapse: collapse;
+}
+
+.product-spec-sheet th,
+.product-spec-sheet td,
+.product-spec-response-table th,
+.product-spec-response-table td {
+    min-width: 170px;
+    padding: 10px;
+    border-bottom: 1px solid var(--border-soft);
+    border-right: 1px solid var(--border-soft);
+    vertical-align: top;
+}
+
+.product-spec-sheet th,
+.product-spec-response-table th {
+    background: var(--surface-muted);
+    color: var(--text-primary);
+    font-size: 12px;
+    text-align: left;
+}
+
+.product-spec-sheet th small,
+.product-spec-response-table th small {
+    display: block;
+    margin-top: 4px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.product-spec-buyer-value {
+    display: block;
+    max-width: 260px;
+    color: var(--text-primary);
+    font-size: 13px;
+    line-height: 1.45;
+    white-space: normal;
+}
+
+.product-spec-item-grid {
+    display: grid;
+    gap: 14px;
+}
+
+.product-spec-item-card {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    background: var(--card-bg);
+}
+
+.product-spec-item-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.product-spec-item-header h4,
+.product-spec-modal-heading h4 {
+    margin: 2px 0 4px;
+    color: var(--text-primary);
+}
+
+.product-spec-item-header p,
+.product-spec-modal-heading p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.product-spec-item-sheet {
+    width: 100%;
+}
+
+.product-spec-item-response-fields {
+    display: grid;
+    grid-template-columns: minmax(240px, 1fr) minmax(220px, 0.7fr);
+    gap: 12px;
+    align-items: start;
+}
+
+.product-spec-compliance-check {
+    justify-content: center;
+    min-width: 120px;
+}
+
+.product-spec-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgba(15, 23, 42, 0.42);
+}
+
+.product-spec-modal[hidden] {
+    display: none;
+}
+
+.product-spec-modal-card {
+    display: grid;
+    gap: 14px;
+    width: min(560px, 100%);
+    padding: 18px;
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    background: var(--card-bg);
+    box-shadow: var(--shadow-lg);
+}
+
+.product-spec-modal-heading,
+.product-spec-modal-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.product-spec-modal-actions {
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.required-dot {
+    color: var(--error-red);
+    font-weight: 900;
+}
+
+[data-bid-product-spec-row].invalid {
+    background: rgba(254, 242, 242, 0.95);
+}
+
 .bid-requirement-card {
     grid-template-columns: minmax(0, 1fr);
 }
@@ -14648,6 +14827,53 @@ body[data-page="communication-center"] {
     box-shadow: var(--px-shadow-photo);
 }
 
+.register-container-new:has(.auth-image-panel)::after {
+    display: none;
+}
+
+.auth-image-panel {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 520px;
+    overflow: hidden;
+    border: 1px solid var(--px-line-soft);
+    border-radius: 16px;
+    box-shadow: var(--px-shadow-photo);
+    isolation: isolate;
+}
+
+.auth-image-panel::before {
+    content: "";
+    position: absolute;
+    inset: -10px;
+    background: var(--px-visual-auth) center / cover no-repeat;
+    filter: blur(5px);
+    transform: scale(1.04);
+    z-index: -2;
+}
+
+.auth-image-panel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 50% 44%, rgba(255, 255, 255, 0.38), transparent 34%),
+        linear-gradient(180deg, rgba(30, 48, 67, 0.18) 0%, rgba(30, 48, 67, 0.72) 100%);
+    z-index: -1;
+}
+
+.auth-image-lottie {
+    width: clamp(150px, 18vw, 220px);
+    height: clamp(150px, 18vw, 220px);
+    padding: 14px;
+    border-radius: 30px;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.68);
+    box-shadow: 0 24px 70px rgba(0, 38, 38, 0.22);
+    backdrop-filter: blur(10px);
+}
+
 .register-card-new {
     width: 100% !important;
     max-width: none !important;
@@ -14875,6 +15101,16 @@ body[data-page="communication-center"] {
         grid-row: 1;
     }
 
+    .auth-image-panel {
+        min-height: 300px;
+        grid-row: 1;
+    }
+
+    .auth-image-lottie {
+        width: 150px;
+        height: 150px;
+    }
+
     .sidebar {
         border-right: 0 !important;
         border-bottom: 1px solid var(--px-line-soft) !important;
@@ -15027,6 +15263,24 @@ body[data-page="communication-center"] {
     text-align: center;
 }
 
+.loading-animation-shell {
+    display: grid;
+    place-items: center;
+    width: clamp(156px, 20vw, 220px);
+    aspect-ratio: 1;
+    border-radius: 32px;
+    background:
+        radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.7) 58%, rgba(255, 255, 255, 0.28)),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.52));
+    border: 1px solid rgba(0, 128, 128, 0.12);
+    box-shadow: 0 24px 70px rgba(0, 38, 38, 0.12);
+}
+
+.loading-animation-shell .procurex-lottie {
+    width: min(190px, 86%);
+    height: min(190px, 86%);
+}
+
 .app-boot-loader span,
 .loading-container p {
     margin: 0;
@@ -15060,6 +15314,11 @@ body[data-page="communication-center"] {
 .dashboard-brand-animation .procurex-lottie {
     width: 72px;
     height: 72px;
+}
+
+.dashboard-welcome-card::after,
+.dashboard-brand-animation {
+    display: none !important;
 }
 
 .loading-spinner,
