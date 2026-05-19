@@ -1087,7 +1087,12 @@ function renderBidWorkspaceTendererCsvTemplatePanel(tender = {}) {
             <div class="tenderer-template-actions">
                 <span class="badge badge-info">${stats.rowCount} template row${stats.rowCount === 1 ? '' : 's'}</span>
                 <button class="btn btn-secondary" type="button" data-bid-download-tenderer-csv-template>${stats.hasBuyerSpecificationRows ? 'Download CSV Template' : 'Download Item Response CSV'}</button>
+                <label class="btn btn-secondary bid-csv-import-control">
+                    Import CSV
+                    <input type="file" accept=".csv,text/csv" data-bid-import-tenderer-csv>
+                </label>
             </div>
+            <p class="bid-csv-import-status" data-bid-import-tenderer-csv-status></p>
         </section>
     `;
 }
@@ -1328,6 +1333,48 @@ function downloadBidWorkspaceCsv(rows = [], filename = 'template.csv') {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
+}
+
+function parseBidWorkspaceCsv(text = '') {
+    const rows = [];
+    let row = [];
+    let cell = '';
+    let quoted = false;
+    const input = String(text || '').replace(/^\uFEFF/, '');
+    for (let index = 0; index < input.length; index += 1) {
+        const char = input[index];
+        const next = input[index + 1];
+        if (quoted && char === '"' && next === '"') {
+            cell += '"';
+            index += 1;
+            continue;
+        }
+        if (char === '"') {
+            quoted = !quoted;
+            continue;
+        }
+        if (!quoted && char === ',') {
+            row.push(cell);
+            cell = '';
+            continue;
+        }
+        if (!quoted && (char === '\n' || char === '\r')) {
+            if (char === '\r' && next === '\n') index += 1;
+            row.push(cell);
+            if (row.some(value => String(value || '').trim())) rows.push(row);
+            row = [];
+            cell = '';
+            continue;
+        }
+        cell += char;
+    }
+    row.push(cell);
+    if (row.some(value => String(value || '').trim())) rows.push(row);
+    return rows;
+}
+
+function normalizeBidWorkspaceCsvHeader(value = '') {
+    return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
 }
 
 function downloadBidWorkspaceBlob(content = '', filename = 'download.html', type = 'text/html;charset=utf-8') {
@@ -2450,11 +2497,7 @@ function renderWorksBidDeclaration(draft = {}) {
 
 function getServiceBidPersonnelRows(tender = {}) {
     const rows = tender.requirements?.fields?.personnelRequirementRows || [];
-    return rows.length ? rows : [
-        { position: 'Service Manager', minimumEducation: 'Diploma', minimumYearsExperience: 5, cvRequired: true, mandatory: true },
-        { position: 'Service Supervisor', minimumEducation: 'Certificate', minimumYearsExperience: 3, cvRequired: true, mandatory: true },
-        { position: 'Field Officer / Technician', minimumEducation: 'Certificate', minimumYearsExperience: 2, cvRequired: true, mandatory: true }
-    ];
+    return rows.length ? rows : [];
 }
 
 function getServiceBidEquipmentRows(tender = {}) {
@@ -2767,8 +2810,9 @@ function renderServiceBidStaffingCapacity(tender = {}, draft = {}) {
                     </div>
                     <span class="badge badge-warning">${personnelRows.length} roles</span>
                 </div>
-                <div class="service-staffing-grid">
-                    ${personnelRows.map((person, index) => {
+                ${personnelRows.length ? `
+                    <div class="service-staffing-grid">
+                        ${personnelRows.map((person, index) => {
                         const baseId = `service-staff-${index}`;
                         const role = person.position || person.role || person.staffRole || `Service role ${index + 1}`;
                         const required = person.mandatory !== false;
@@ -2793,7 +2837,8 @@ function renderServiceBidStaffingCapacity(tender = {}, draft = {}) {
                             </article>
                         `;
                     }).join('')}
-                </div>
+                    </div>
+                ` : '<div class="scope-empty">No personnel requirements configured for this tender.</div>'}
             </section>
             ${equipmentRows.length ? `
                 <section class="service-response-section">
@@ -4020,6 +4065,74 @@ function initializeBiddingWorkspace() {
         return String(input.value || '').trim().length > 0;
     };
 
+    const getWorkflowCompletion = () => {
+        const requiredInputs = Array.from(wizard.querySelectorAll('[data-bid-workflow-required-response]'));
+        const completed = requiredInputs.filter(isResponseComplete).length;
+        return {
+            completed,
+            total: requiredInputs.length,
+            percent: requiredInputs.length ? Math.round((completed / requiredInputs.length) * 100) : 100
+        };
+    };
+
+    const refreshBidProgress = () => {
+        if (!progressOutput) return;
+        const completion = getWorkflowCompletion();
+        progressOutput.textContent = `Step ${activeStepIndex + 1} of ${panels.length} - ${completion.percent}% complete`;
+    };
+
+    const markBidSemanticInvalid = (input, invalid, show = false) => {
+        const container = input?.closest('[data-bid-requirement-card], [data-bid-product-spec-row], .form-group, .bid-response-check, .goods-compliance-card, .goods-offer-row, .goods-sample-card, .works-capacity-card, .works-person-card, .works-accordion-card, .works-boq-row, .works-drawing-card, .service-accordion-card, .service-staff-card, .service-pricing-row, .service-document-card, .service-kpi-card') || input;
+        container?.classList.toggle('invalid', Boolean(show && invalid));
+    };
+
+    const validateSemanticResponses = (show = false, root = wizard) => {
+        const issues = [];
+        const addIssue = (input, message) => {
+            if (!input) return;
+            issues.push({ input, message });
+            markBidSemanticInvalid(input, true, show);
+        };
+        const clearInput = (input) => markBidSemanticInvalid(input, false, show);
+
+        Array.from(root.querySelectorAll('[data-bid-response$="validity"], [data-bid-response$="bid-validity"]')).forEach(input => {
+            const days = parseBidWorkspaceNumber(input.value);
+            clearInput(input);
+            if (days <= 0 || days > 730) addIssue(input, 'Bid validity period must be between 1 and 730 days.');
+        });
+
+        const advanceRequested = root.querySelector('[data-bid-response="works-commercial-advance-requested"]');
+        const advancePercent = root.querySelector('[data-bid-response="works-commercial-advance-percent"]');
+        if (advancePercent) {
+            const requested = String(advanceRequested?.value || '').toLowerCase() === 'yes';
+            const value = String(advancePercent.value || '').trim();
+            const percent = parseBidWorkspaceNumber(value);
+            clearInput(advancePercent);
+            if (requested && !value) addIssue(advancePercent, 'Proposed advance percentage is required when advance payment is requested.');
+            if (value && (percent < 0 || percent > 100)) addIssue(advancePercent, 'Proposed advance percentage must be between 0 and 100.');
+        }
+
+        Array.from(root.querySelectorAll('[data-bid-rate], [data-bid-line-qty], [data-bid-line-extra-cost]')).forEach(input => {
+            clearInput(input);
+            if (String(input.value || '').trim() && parseBidWorkspaceNumber(input.value) < 0) {
+                addIssue(input, 'Commercial rates, quantities, and extra costs must be non-negative.');
+            }
+        });
+
+        const performanceGuarantee = root.querySelector('[data-bid-response="works-commercial-performance-guarantee"]');
+        if (performanceGuarantee) {
+            clearInput(performanceGuarantee);
+            if (!String(performanceGuarantee.value || '').trim()) addIssue(performanceGuarantee, 'Performance guarantee availability must be confirmed.');
+        }
+
+        return {
+            valid: issues.length === 0,
+            remaining: issues.length,
+            firstIncomplete: issues[0]?.input || null,
+            messages: issues.map(issue => issue.message)
+        };
+    };
+
     const focusBidWorkspaceInput = (input) => {
         const uploadInput = input?.closest('[data-bid-upload-control]')?.querySelector('[data-bid-file-input]');
         (uploadInput || input)?.focus?.();
@@ -4325,6 +4438,48 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
 </html>`;
     };
 
+    const getStoredSubmittedBids = () => {
+        try {
+            const parsed = JSON.parse(localStorage.getItem(bidWorkspaceSubmittedStorageKey) || '[]');
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+            return [];
+        }
+    };
+
+    const saveStoredSubmittedBids = (items = []) => {
+        localStorage.setItem(bidWorkspaceSubmittedStorageKey, JSON.stringify(items));
+    };
+
+    const isBidWorkspaceBeforeClosing = () => {
+        const timestamp = Date.parse(tender.closingDate || tender.deadline || '');
+        return Number.isFinite(timestamp) && Date.now() < timestamp;
+    };
+
+    const withdrawSubmittedBid = () => {
+        saveStoredSubmittedBids(getStoredSubmittedBids().filter(item => item.tenderId !== tenderId));
+        if (finalStatus) finalStatus.textContent = 'Draft until submitted';
+        const receiptPanel = panels[panels.length - 1];
+        if (receiptPanel) {
+            receiptPanel.innerHTML = `
+                <div class="panel-heading"><div><span class="section-kicker">Submission withdrawn</span><h2>Draft reopened</h2></div><span class="badge badge-warning">Withdrawn</span></div>
+                <section class="bid-submission-confirmation">
+                    <div class="bid-submission-confirmation-mark">OK</div>
+                    <div>
+                        <span class="section-kicker">Pre-deadline withdrawal</span>
+                        <h3>Your local submitted bid record was withdrawn</h3>
+                        <p>You can update the draft and submit again before the tender closing date.</p>
+                    </div>
+                    <div class="inline-actions">
+                        <button class="btn btn-primary" type="button" data-bid-jump-submit>Return to submission</button>
+                    </div>
+                </section>
+            `;
+        }
+        setActiveStep(Math.max(panels.length - 2, 0), true);
+        saveDraft();
+    };
+
     const renderBidSubmissionConfirmation = (receipt = {}) => `
         <div class="panel-heading">
             <div><span class="section-kicker">Step 5</span><h2>Submission Receipt</h2></div>
@@ -4348,6 +4503,7 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
             <div class="inline-actions">
                 <button class="btn btn-secondary" type="button" data-bid-download-review-document>Download Bid Record</button>
                 <button class="btn btn-secondary" type="button" data-bid-print-review-document>Print Submission Receipt</button>
+                ${isBidWorkspaceBeforeClosing() ? '<button class="btn btn-secondary" type="button" data-bid-withdraw-submission>Withdraw Submission</button>' : ''}
                 <button class="btn btn-primary" type="button" data-navigate="workspace-dashboard">Return to Dashboard</button>
             </div>
         </section>
@@ -4398,6 +4554,81 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
         window.setTimeout(() => printWindow.print(), 250);
     };
 
+    const importTendererTechnicalResponseCsv = (fileInput) => {
+        const file = fileInput.files?.[0];
+        const status = wizard.querySelector('[data-bid-import-tenderer-csv-status]');
+        if (!file) return;
+        const setStatus = (message, type = 'info') => {
+            if (!status) return;
+            status.textContent = message;
+            status.dataset.status = type;
+        };
+        const reader = new FileReader();
+        reader.onload = () => {
+            const rows = parseBidWorkspaceCsv(reader.result || '');
+            const headers = rows[0] || [];
+            const normalizedHeaders = headers.map(normalizeBidWorkspaceCsvHeader);
+            const requiredHeaders = ['itemno', 'requestedproduct', 'compliancestatus', 'supplierofferedspecification'];
+            const hasRequiredShape = requiredHeaders.every(header => normalizedHeaders.includes(header))
+                || (normalizedHeaders.includes('itemno') && normalizedHeaders.includes('buyerrequirement') && normalizedHeaders.includes('compliancestatus'));
+            if (!hasRequiredShape) {
+                setStatus('CSV rejected: use the downloaded tenderer technical response template.', 'error');
+                fileInput.value = '';
+                return;
+            }
+
+            const getCell = (row, header) => row[normalizedHeaders.indexOf(header)] || '';
+            const template = normalizeBidWorkspaceProductSpecificationTemplate(tender);
+            const itemGroups = groupBidWorkspaceProductSpecRowsByItem(template.rows);
+            let imported = 0;
+            rows.slice(1).forEach((row, index) => {
+                const templateRow = template.rows[index];
+                if (!templateRow) return;
+                const compliance = getCell(row, 'compliancestatus');
+                const offeredSpec = getCell(row, 'supplierofferedspecification');
+                const evidenceFile = getCell(row, 'supportingevidencefile');
+                const remarks = getCell(row, 'remarks');
+                const rowNode = wizard.querySelector(`[data-bid-product-spec-row="${CSS.escape(templateRow.id)}"]`);
+                const complianceInput = rowNode?.querySelector('[data-bid-product-spec-field="complianceStatus"]');
+                if (complianceInput && /not/i.test(compliance)) {
+                    complianceInput.value = 'Not Compliant';
+                    imported += 1;
+                } else if (complianceInput && /comply|compliant|yes/i.test(compliance)) {
+                    complianceInput.value = 'Compliant';
+                    imported += 1;
+                }
+                const group = itemGroups.find(item => (item.rows || []).some(groupRow => groupRow.id === templateRow.id));
+                const offeredInput = group ? wizard.querySelector(`[data-bid-response="${CSS.escape(getBidWorkspaceProductSpecItemResponseId(group, 'short-specification'))}"]`) : null;
+                if (offeredInput && (offeredSpec || remarks)) {
+                    offeredInput.value = [offeredSpec, remarks].filter(Boolean).join('\n');
+                    imported += 1;
+                }
+                const evidenceInput = group ? wizard.querySelector(`[data-bid-response="${CSS.escape(getBidWorkspaceProductSpecItemResponseId(group, 'attachment'))}"]`) : null;
+                if (evidenceInput && evidenceFile) {
+                    evidenceInput.value = evidenceFile;
+                    imported += 1;
+                }
+            });
+            if (!imported) {
+                setStatus('CSV parsed, but no matching specification rows were found.', 'warning');
+                fileInput.value = '';
+                return;
+            }
+            setStatus(`Imported ${imported} response field${imported === 1 ? '' : 's'} from CSV.`, 'success');
+            validateWorkflowResponses(false);
+            validateSemanticResponses(false);
+            refreshBidProgress();
+            refreshBidResponseReviews();
+            saveDraft();
+            fileInput.value = '';
+        };
+        reader.onerror = () => {
+            setStatus('CSV import failed. Select the template again and retry.', 'error');
+            fileInput.value = '';
+        };
+        reader.readAsText(file);
+    };
+
     const refreshBidResponseReviews = () => {
         panels.forEach(panel => {
             const review = panel.querySelector('[data-bid-response-review]');
@@ -4430,7 +4661,7 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
             nextButton.hidden = activeStepIndex === panels.length - 1;
             nextButton.disabled = activeStepIndex === 0 && !validateMandatoryGate(false);
         }
-        if (progressOutput) progressOutput.textContent = `Step ${activeStepIndex + 1} of ${panels.length}`;
+        refreshBidProgress();
         if (stepTitleOutput) stepTitleOutput.textContent = railSteps.find(step => Number(step.dataset.bidStepIndex) === activeStepIndex)?.querySelector('span')?.textContent || '';
         refreshBidResponseReviews();
         saveDraft();
@@ -4473,14 +4704,7 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
     };
 
     const storeSubmittedBid = () => {
-        const submitted = (() => {
-            try {
-                const parsed = JSON.parse(localStorage.getItem(bidWorkspaceSubmittedStorageKey) || '[]');
-                return Array.isArray(parsed) ? parsed : [];
-            } catch (error) {
-                return [];
-            }
-        })();
+        const submitted = getStoredSubmittedBids();
         const hash = `0x${Date.now().toString(16)}${Math.random().toString(16).slice(2, 10)}`;
         const draftSnapshot = collectDraft();
         const compactUploads = Object.fromEntries(Object.entries(draftSnapshot.uploadedFiles || {}).map(([key, file]) => [key, {
@@ -4502,7 +4726,7 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
                 fileManifest: getBidFileManifest()
             }
         };
-        localStorage.setItem(bidWorkspaceSubmittedStorageKey, JSON.stringify([bid, ...submitted.filter(item => item.tenderId !== tenderId)]));
+        saveStoredSubmittedBids([bid, ...submitted.filter(item => item.tenderId !== tenderId)]);
         if (finalStatus) finalStatus.textContent = 'Submitted and sealed';
         return {
             receiptHash: hash,
@@ -4536,6 +4760,12 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
                         focusBidWorkspaceInput(panelValidation.firstIncomplete);
                         return;
                     }
+                    const semanticValidation = validateSemanticResponses(true, panels[activeStepIndex] || wizard);
+                    if (!semanticValidation.valid) {
+                        alert(semanticValidation.messages[0] || 'Correct the highlighted bid values before continuing.');
+                        focusBidWorkspaceInput(semanticValidation.firstIncomplete);
+                        return;
+                    }
                 }
             }
             setActiveStep(requestedStep);
@@ -4562,6 +4792,12 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
                 if (!panelValidation.valid) {
                     alert(`Complete ${panelValidation.remaining} required response${panelValidation.remaining === 1 ? '' : 's'} in this section before continuing.`);
                     focusBidWorkspaceInput(panelValidation.firstIncomplete);
+                    return;
+                }
+                const semanticValidation = validateSemanticResponses(true, panels[activeStepIndex] || wizard);
+                if (!semanticValidation.valid) {
+                    alert(semanticValidation.messages[0] || 'Correct the highlighted bid values before continuing.');
+                    focusBidWorkspaceInput(semanticValidation.firstIncomplete);
                     return;
                 }
             }
@@ -4638,6 +4874,15 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
             return;
         }
 
+        if (target.matches('[data-bid-withdraw-submission]')) {
+            if (!isBidWorkspaceBeforeClosing()) {
+                alert('This bid can no longer be withdrawn because the tender closing date has passed.');
+                return;
+            }
+            withdrawSubmittedBid();
+            return;
+        }
+
         if (target.matches('[data-bid-submit]')) {
             if (!validateMandatoryGate(true)) {
                 setActiveStep(0, true);
@@ -4649,6 +4894,14 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
                 setActiveStep(firstIncompletePanelIndex > -1 ? firstIncompletePanelIndex : 1, true);
                 alert(`Complete ${workflowValidation.remaining} required response${workflowValidation.remaining === 1 ? '' : 's'} before submitting.`);
                 focusBidWorkspaceInput(workflowValidation.firstIncomplete);
+                return;
+            }
+            const semanticValidation = validateSemanticResponses(true);
+            if (!semanticValidation.valid) {
+                const firstInvalidPanelIndex = panels.findIndex(panel => panel.contains(semanticValidation.firstIncomplete));
+                setActiveStep(firstInvalidPanelIndex > -1 ? firstInvalidPanelIndex : 1, true);
+                alert(semanticValidation.messages[0] || 'Correct the highlighted bid values before submitting.');
+                focusBidWorkspaceInput(semanticValidation.firstIncomplete);
                 return;
             }
             const declaration = wizard.querySelector('[data-bid-declaration]');
@@ -4711,12 +4964,19 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
         if (event.target?.matches('[data-bid-response], [data-bid-free-response], [data-bid-product-spec-field]')) {
             validateMandatoryGate(false);
             validateWorkflowResponses(false);
+            validateSemanticResponses(false);
+            refreshBidProgress();
             refreshBidResponseReviews();
             saveDraft();
         }
     });
 
     wizard.addEventListener('change', (event) => {
+        if (event.target?.matches('[data-bid-import-tenderer-csv]')) {
+            importTendererTechnicalResponseCsv(event.target);
+            return;
+        }
+
         if (event.target?.matches('[data-bid-file-input]')) {
             const uploadControl = event.target.closest('[data-bid-upload-control]');
             const hiddenInput = uploadControl?.querySelector('[data-bid-response]');
@@ -4733,6 +4993,8 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
             updateBidUploadControlState(uploadControl);
             validateMandatoryGate(false);
             validateWorkflowResponses(false);
+            validateSemanticResponses(false);
+            refreshBidProgress();
             refreshBidResponseReviews();
             saveDraft();
             return;
@@ -4741,6 +5003,8 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
         if (event.target?.matches('[data-bid-response], [data-bid-free-response], [data-bid-product-spec-field]')) {
             validateMandatoryGate(false);
             validateWorkflowResponses(false);
+            validateSemanticResponses(false);
+            refreshBidProgress();
             refreshBidResponseReviews();
             saveDraft();
         }
@@ -4750,6 +5014,8 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
     refreshBidUploadControls();
     validateMandatoryGate(false);
     validateWorkflowResponses(false);
+    validateSemanticResponses(false);
+    refreshBidProgress();
     refreshBidResponseReviews();
     setActiveStep(activeStepIndex);
     wizard.dataset.ready = 'true';
