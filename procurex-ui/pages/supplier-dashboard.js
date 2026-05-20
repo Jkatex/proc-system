@@ -1,4 +1,4 @@
-// Supplier Dashboard Page Component
+// Dashboard Page Component
 
 function renderSupplierDashboard() {
     const kpis = mockData.kpis.supplier;
@@ -11,9 +11,9 @@ function renderSupplierDashboard() {
                     <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${mockData.users.supplier.organization}</div>
                 </div>
                 <ul class="sidebar-nav">
-                    <li><a href="#" data-navigate="supplier-dashboard" class="active">Dashboard</a></li>
-                    <li><a href="#" data-navigate="supplier-journey">Supplier Journey</a></li>
-                    <li><a href="#" data-navigate="supplier-marketplace">Marketplace</a></li>
+                    <li><a href="#" data-navigate="workspace-dashboard" class="active">Dashboard</a></li>
+                    <li><a href="#" data-navigate="procurement-guide">Procurement Process Guide</a></li>
+                    <li><a href="#" data-navigate="marketplace">Marketplace</a></li>
                     <li><a href="#" data-navigate="bidding-workspace">My Bids</a></li>
                     <li><a href="#" data-navigate="contract-negotiation">Contracts</a></li>
                     <li><a href="#" data-navigate="post-award-tracking">Performance</a></li>
@@ -26,12 +26,12 @@ function renderSupplierDashboard() {
                     <section class="journey-hero compact">
                         <div>
                             <span class="badge badge-success">Verified supplier</span>
-                            <h1>Supplier Dashboard</h1>
-                            <p>Discover matched opportunities, prepare sealed bids, track award outcomes, sign contracts, submit delivery evidence, invoice, and monitor payment.</p>
+                            <h1>Dashboard</h1>
+                            <p>Discover matched tenders, prepare sealed bids, track award outcomes, sign contracts, submit delivery evidence, invoice, and monitor payment.</p>
                         </div>
                         <div class="hero-action-stack">
-                            <button class="btn btn-secondary" data-navigate="supplier-journey">Open Journey</button>
-                            <button class="btn btn-primary" data-navigate="supplier-marketplace">Find Tenders</button>
+                            <button class="btn btn-secondary" data-navigate="procurement-guide">Open Journey</button>
+                            <button class="btn btn-primary" data-navigate="marketplace">Find Tenders</button>
                         </div>
                     </section>
 
@@ -45,8 +45,8 @@ function renderSupplierDashboard() {
                         <div class="journey-panel">
                             <div class="panel-heading">
                                 <div>
-                                    <span class="section-kicker">Discovery</span>
-                                    <h2>Matched Opportunity</h2>
+                                    <span class="section-kicker">Tender Search</span>
+                                    <h2>Matched Tender</h2>
                                 </div>
                                 <span class="badge badge-success">95% match</span>
                             </div>
@@ -56,7 +56,7 @@ function renderSupplierDashboard() {
                                 <div><span>Deadline</span><strong>June 12, 2026</strong></div>
                             </div>
                             <div class="inline-actions">
-                                <button class="btn btn-primary" data-navigate="supplier-tender-detail">View Tender</button>
+                                <button class="btn btn-primary" data-navigate="tender-detail">View Tender</button>
                                 <button class="btn btn-secondary">Add to Watchlist</button>
                             </div>
                         </div>

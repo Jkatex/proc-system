@@ -20,7 +20,7 @@ function renderGuestMarketplace() {
                 <section class="marketplace-hero">
                     <div>
                         <span class="section-kicker">Public marketplace</span>
-                        <h2>Discover procurement opportunities.</h2>
+                        <h2>Browse published tenders.</h2>
                         <p>Browse active tenders, compare buyer needs, and sign in when you are ready to submit a secure bid.</p>
                     </div>
                 </section>
@@ -55,7 +55,7 @@ function renderGuestMarketplace() {
 
                 <section class="procurement-market-summary">
                     <div class="kpi-card"><div class="kpi-value">${openCount}</div><div class="kpi-label">Open tenders</div></div>
-                    <div class="kpi-card"><div class="kpi-value">${tenders.length}</div><div class="kpi-label">Listed opportunities</div></div>
+                    <div class="kpi-card"><div class="kpi-value">${tenders.length}</div><div class="kpi-label">Published Tenders</div></div>
                     <div class="kpi-card"><div class="kpi-value">${Math.min(mockData.kpis.supplier.closing48h, openCount)}</div><div class="kpi-label">Closing soon</div></div>
                 </section>
 
@@ -63,7 +63,7 @@ function renderGuestMarketplace() {
                     <div class="panel-heading">
                         <div>
                             <span class="section-kicker">Tender list</span>
-                            <h2>Latest opportunities</h2>
+                            <h2>Latest tenders</h2>
                         </div>
                         <span class="badge badge-success">${openCount} open</span>
                     </div>
@@ -100,10 +100,10 @@ function renderGuestMarketplace() {
                             </article>
                             <article>
                                 <h3>SME Friendly</h3>
-                                <p>Smart matching algorithms ensure fair opportunities for small businesses</p>
+                                <p>Smart matching algorithms ensure fair access to tenders for small businesses</p>
                             </article>
                             <article>
-                                <h3>Secure & Compliant</h3>
+                                <h3>Secure and Compliant</h3>
                                 <p>Bank-grade security with full regulatory compliance</p>
                             </article>
                     </div>

@@ -43,12 +43,12 @@ function renderAppLauncher() {
         {
             icon: 'iam',
             tone: 'iam',
-            title: 'IAM',
-            subtitle: 'Registration and eKYC review',
+            title: 'Registration and Verification',
+            subtitle: 'Registration and identity verification',
             badge: iam.statusLabel,
             badgeClass: iam.badgeClass,
-            nav: iam.isComplete ? 'verification-status' : 'iam-verification',
-            action: iam.isComplete ? 'Review IAM' : 'Complete eKYC'
+            nav: iam.isComplete ? 'account-profile' : 'identity-verification',
+            action: iam.isComplete ? 'Review Account Profile' : 'Complete Identity Verification'
         },
         {
             icon: 'procurement',
@@ -57,7 +57,7 @@ function renderAppLauncher() {
             subtitle: 'Marketplace, create tender, bid',
             badge: 'Marketplace',
             badgeClass: 'badge-success',
-            nav: 'supplier-marketplace',
+            nav: 'marketplace',
             action: 'Open marketplace'
         },
         {
@@ -83,7 +83,7 @@ function renderAppLauncher() {
         {
             icon: 'contracts',
             tone: 'contracts',
-            title: 'Records & History',
+            title: 'Records and History',
             subtitle: 'Past tenders, bids, awards, cancellations',
             badge: 'Archive',
             badgeClass: 'badge-info',
@@ -99,7 +99,7 @@ function renderAppLauncher() {
                     <div>
                         <span class="section-kicker">Welcome to ProcureX</span>
                         <h1>Your account is ready. Choose where to start.</h1>
-                        <p>Use the app launcher to move between IAM, Procurement, Evaluation, Awarding and Contract, Records, and dashboard analytics. The 9-dot app drawer stays at the top right on every workspace screen.</p>
+                        <p>Use the app launcher to move between Registration and Verification, Procurement, Evaluation, Awarding and Contract, Records, and dashboard analytics. The 9-dot app drawer stays at the top right on every workspace screen.</p>
                     </div>
                     <div class="launcher-intro-card">
                         <span class="badge ${iam.badgeClass}">${iam.statusLabel}</span>

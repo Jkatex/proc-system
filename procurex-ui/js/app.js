@@ -20,7 +20,6 @@ function renderProcureXLottie(className = 'procurex-lottie', label = 'ProcureX a
 class ProcureXApp {
     constructor() {
         this.currentPage = 'welcome';
-        this.currentRole = null;
         this.pages = {};
         this.registrationTimer = null;
         this.procurementFeedTimer = null;
@@ -45,11 +44,6 @@ class ProcureXApp {
         // Handle initial load
         const urlParams = new URLSearchParams(window.location.search);
         const initialPage = urlParams.get('page') || 'welcome';
-        const initialRole = urlParams.get('role');
-
-        if (initialRole && mockData.roles.includes(initialRole)) {
-            this.setRole(initialRole);
-        }
 
         this.navigateTo(initialPage, false);
     }
@@ -65,10 +59,6 @@ class ProcureXApp {
                     window.selectProcurexTender(tenderId);
                 }
                 const page = link.getAttribute('data-navigate');
-                const role = link.getAttribute('data-role');
-                if (role) {
-                    this.setRole(role);
-                }
                 this.navigateTo(page);
             }
         });
@@ -84,39 +74,87 @@ class ProcureXApp {
         });
     }
 
-    setRole(role) {
-        if (mockData.roles.includes(role)) {
-            this.currentRole = role;
-            mockData.currentRole = role;
-            this.updateNavigation();
-        }
-    }
-
     navigateTo(page, updateHistory = true) {
         const pageAliases = {
             'buyer-dashboard': 'workspace-dashboard',
             'supplier-dashboard': 'workspace-dashboard',
-            'procurement-dashboard': 'workspace-dashboard'
+            'procurement-dashboard': 'workspace-dashboard',
+            'supplier-marketplace': 'marketplace',
+            'supplier-tender-detail': 'tender-detail',
+            'supplier-journey': 'procurement-guide',
+            'buyer-journey': 'procurement-guide',
+            'iam-verification': 'identity-verification',
+            'verification-status': 'account-profile'
         };
         page = pageAliases[page] || page;
         this.currentPage = page;
         if (updateHistory) {
-            const url = `?page=${page}${this.currentRole ? `&role=${this.currentRole}` : ''}`;
+            const url = `?page=${page}`;
             history.pushState({ page }, '', url);
         }
         this.renderPage();
     }
 
+    isAdminEvaluatorSession() {
+        return mockData.pendingAccount?.accountType === 'admin' || mockData.session?.accountType === 'admin';
+    }
+
     getNavigationHeader() {
-        const pagesWithoutAppBar = ['welcome', 'register', 'sign-in', 'iam-verification', 'guest-marketplace'];
+        const pagesWithoutAppBar = ['welcome', 'register', 'sign-in', 'identity-verification', 'iam-verification', 'guest-marketplace'];
         if (pagesWithoutAppBar.includes(this.currentPage)) return '';
 
         const currentAppName = this.getCurrentAppName();
+        const isAdmin = this.isAdminEvaluatorSession();
+        const homePage = isAdmin ? 'admin-dashboard' : 'workspace-dashboard';
+        const userApps = `
+            <button class="app-menu-card app-menu-iam" data-navigate="account-profile">
+                <span class="app-menu-icon">${this.getAppMenuIcon('iam')}</span>
+                <span><strong>Registration and Verification</strong><em>Account and identity verification</em></span>
+            </button>
+            <button class="app-menu-card app-menu-procurement" data-navigate="marketplace">
+                <span class="app-menu-icon">${this.getAppMenuIcon('procurement')}</span>
+                <span><strong>Procurement</strong><em>Marketplace, create tender, bid</em></span>
+            </button>
+            <button class="app-menu-card app-menu-communication" data-navigate="communication-center">
+                <span class="app-menu-icon">${this.getAppMenuIcon('communication')}</span>
+                <span><strong>Communication Center</strong><em>Messages, clarifications, alerts</em></span>
+            </button>
+            <button class="app-menu-card app-menu-evaluation" data-navigate="bid-evaluation">
+                <span class="app-menu-icon">${this.getAppMenuIcon('evaluation')}</span>
+                <span><strong>Evaluation</strong><em>Evaluate bids on your tenders</em></span>
+            </button>
+            <button class="app-menu-card app-menu-awarding" data-navigate="award-recommendation">
+                <span class="app-menu-icon">${this.getAppMenuIcon('awarding')}</span>
+                <span><strong>Awarding and Contract</strong><em>Award, approvals, signature</em></span>
+            </button>
+            <button class="app-menu-card app-menu-contracts" data-navigate="records-history">
+                <span class="app-menu-icon">${this.getAppMenuIcon('contracts')}</span>
+                <span><strong>Records and History</strong><em>Past tenders, bids, awards</em></span>
+            </button>
+        `;
+        const adminApps = `
+            <button class="app-menu-card app-menu-insights" data-navigate="admin-dashboard">
+                <span class="app-menu-icon">${this.getAppMenuIcon('insights')}</span>
+                <span><strong>Compliance Dashboard</strong><em>Review, approve, hold, and return procurements</em></span>
+            </button>
+            <button class="app-menu-card app-menu-iam" data-navigate="account-profile">
+                <span class="app-menu-icon">${this.getAppMenuIcon('iam')}</span>
+                <span><strong>Admin Profile</strong><em>Evaluator identity and verification</em></span>
+            </button>
+            <button class="app-menu-card app-menu-communication" data-navigate="communication-center">
+                <span class="app-menu-icon">${this.getAppMenuIcon('communication')}</span>
+                <span><strong>Communication Center</strong><em>Compliance notices and comments</em></span>
+            </button>
+            <button class="app-menu-card app-menu-contracts" data-navigate="records-history">
+                <span class="app-menu-icon">${this.getAppMenuIcon('contracts')}</span>
+                <span><strong>Platform Audit Records</strong><em>Platform-wide history and evidence</em></span>
+            </button>
+        `;
 
         return `
             <header class="app-topbar">
                 <div class="app-topbar-left">
-                    <button class="app-brand-button" type="button" data-navigate="workspace-dashboard">
+                    <button class="app-brand-button" type="button" data-navigate="${homePage}">
                         ${renderPlatformLogo()}
                         <span>${currentAppName}</span>
                     </button>
@@ -141,36 +179,16 @@ class ProcureXApp {
                             ${renderPlatformLogo('platform-logo platform-logo-sm')}
                             <strong>ProcureX Apps</strong>
                         </div>
-                        <span>Switch workspace</span>
+                        <span>${isAdmin ? 'Admin Evaluator tools' : 'Company account tools'}</span>
                     </div>
-                    <button class="app-menu-card app-menu-iam" data-navigate="verification-status">
-                        <span class="app-menu-icon">${this.getAppMenuIcon('iam')}</span>
-                        <span><strong>IAM</strong><em>Registration and eKYC review</em></span>
-                    </button>
-                    <button class="app-menu-card app-menu-procurement" data-navigate="supplier-marketplace">
-                        <span class="app-menu-icon">${this.getAppMenuIcon('procurement')}</span>
-                        <span><strong>Procurement</strong><em>Marketplace, create tender, bid</em></span>
-                    </button>
-                    <button class="app-menu-card app-menu-communication" data-navigate="communication-center">
-                        <span class="app-menu-icon">${this.getAppMenuIcon('communication')}</span>
-                        <span><strong>Communication Center</strong><em>Messages, clarifications, alerts</em></span>
-                    </button>
-                    <button class="app-menu-card app-menu-evaluation" data-navigate="bid-evaluation">
-                        <span class="app-menu-icon">${this.getAppMenuIcon('evaluation')}</span>
-                        <span><strong>Evaluation</strong><em>Bid opening, scoring, review</em></span>
-                    </button>
-                    <button class="app-menu-card app-menu-awarding" data-navigate="award-recommendation">
-                        <span class="app-menu-icon">${this.getAppMenuIcon('awarding')}</span>
-                        <span><strong>Awarding and Contract</strong><em>Award, approvals, signature</em></span>
-                    </button>
-                    <button class="app-menu-card app-menu-contracts" data-navigate="records-history">
-                        <span class="app-menu-icon">${this.getAppMenuIcon('contracts')}</span>
-                        <span><strong>Records & History</strong><em>Past tenders, bids, awards</em></span>
-                    </button>
+                    ${isAdmin ? adminApps : userApps}
                 </div>
 
                 <div class="profile-menu" data-profile-menu>
-                    <button type="button">Settings</button>
+                    <button type="button" data-navigate="account-profile">Profile</button>
+                    <button type="button" data-navigate="communication-center">Notifications</button>
+                    <button type="button">Help</button>
+                    <button type="button">Language</button>
                     <button type="button" data-navigate="welcome">Logout</button>
                 </div>
             </header>
@@ -200,16 +218,20 @@ class ProcureXApp {
             'app-launcher': 'Apps',
             'workspace-dashboard': 'Dashboard',
             'admin-dashboard': 'Admin',
-            'verification-status': 'IAM',
-            'buyer-journey': 'Procurement',
+            'account-profile': 'Registration and Verification',
+            'verification-status': 'Registration and Verification',
             'supplier-journey': 'Procurement',
+            'buyer-journey': 'Procurement',
+            'procurement-guide': 'Procurement',
+            'marketplace': 'Procurement',
+            'tender-detail': 'Procurement',
             'supplier-marketplace': 'Procurement',
             'supplier-tender-detail': 'Procurement',
             'communication-center': 'Communication Center',
             'create-tender': 'Procurement',
             'tender-publication': 'Procurement',
             'tender-details': 'Procurement',
-            'records-history': 'Records & History',
+            'records-history': 'Records and History',
             'bidding-workspace': 'Procurement',
             'bid-evaluation': 'Evaluation',
             'award-recommendation': 'Awarding and Contract',
@@ -225,7 +247,9 @@ class ProcureXApp {
             'register': 'welcome',
             'sign-in': 'register',
             'role-selection': 'welcome',
+            'identity-verification': 'sign-in',
             'iam-verification': 'sign-in',
+            'account-profile': 'app-launcher',
             'verification-status': 'app-launcher',
             'app-launcher': null,
             'workspace-dashboard': 'app-launcher',
@@ -233,17 +257,20 @@ class ProcureXApp {
             'admin-dashboard': null,
             'buyer-dashboard': 'workspace-dashboard',
             'buyer-journey': 'workspace-dashboard',
+            'procurement-guide': 'workspace-dashboard',
             'supplier-dashboard': 'workspace-dashboard',
             'supplier-journey': 'workspace-dashboard',
-            'supplier-marketplace': 'workspace-dashboard',
-            'supplier-tender-detail': 'supplier-marketplace',
+            'marketplace': 'workspace-dashboard',
+            'tender-detail': 'marketplace',
+            'supplier-marketplace': 'marketplace',
+            'supplier-tender-detail': 'tender-detail',
             'communication-center': 'workspace-dashboard',
             'guest-marketplace': 'welcome',
             'create-tender': 'workspace-dashboard',
             'tender-publication': 'create-tender',
-            'tender-details': 'supplier-marketplace',
+            'tender-details': 'marketplace',
             'records-history': 'workspace-dashboard',
-            'bidding-workspace': 'supplier-tender-detail',
+            'bidding-workspace': 'tender-detail',
             'bid-evaluation': 'workspace-dashboard',
             'award-recommendation': 'bid-evaluation',
             'contract-negotiation': 'award-recommendation',
@@ -256,25 +283,30 @@ class ProcureXApp {
         const titles = {
             'register': 'Create Account',
             'sign-in': 'Sign In',
-            'role-selection': 'Start Onboarding',
-            'iam-verification': 'eKYC Onboarding',
-            'verification-status': 'Verification Status',
+            'role-selection': 'Start Registration',
+            'identity-verification': 'Identity Verification',
+            'iam-verification': 'Identity Verification',
+            'account-profile': 'Account Profile',
+            'verification-status': 'Account Profile',
             'app-launcher': 'App Launcher',
             'workspace-dashboard': 'Dashboard',
             'procurement-dashboard': 'Dashboard',
             'admin-dashboard': 'Admin Dashboard',
-            'buyer-dashboard': 'Buyer Dashboard',
-            'buyer-journey': 'Buyer Journey',
-            'supplier-dashboard': 'Supplier Dashboard',
-            'supplier-journey': 'Supplier Journey',
-            'supplier-marketplace': 'Procurement Marketplace',
+            'buyer-dashboard': 'Dashboard',
+            'buyer-journey': 'Procurement Process Guide',
+            'procurement-guide': 'Procurement Process Guide',
+            'supplier-dashboard': 'Dashboard',
+            'supplier-journey': 'Procurement Process Guide',
+            'marketplace': 'Tender Marketplace',
+            'supplier-marketplace': 'Tender Marketplace',
+            'tender-detail': 'Tender Detail',
             'supplier-tender-detail': 'Tender Detail',
             'communication-center': 'Communication Center',
             'guest-marketplace': 'ProcureX Marketplace',
             'create-tender': 'Create Tender',
             'tender-publication': 'Tender Draft Detail',
             'tender-details': 'Tender Detail',
-            'records-history': 'Records & History',
+            'records-history': 'Records and History',
             'bidding-workspace': 'Bidding Workspace',
             'bid-evaluation': 'Bid Evaluation',
             'award-recommendation': 'Award Recommendation',
@@ -291,6 +323,7 @@ class ProcureXApp {
         if (this.pages[this.currentPage]) {
             const pageHtml = this.pages[this.currentPage]();
             const navHeader = this.getNavigationHeader();
+            pageContent.setAttribute('aria-live', 'polite');
             pageContent.innerHTML = navHeader + pageHtml;
             this.initializePageComponents();
         } else {
@@ -313,6 +346,10 @@ class ProcureXApp {
         // Initialize any interactive components
         this.initializeTabs();
         this.initializeForms();
+        document.querySelectorAll('.form-error-new, .form-error').forEach((error) => {
+            error.setAttribute('role', 'alert');
+            error.setAttribute('aria-live', 'polite');
+        });
         this.initializeConfirmControls();
         this.initializeWorkspaceMenus();
         this.initializeAuthPage();
@@ -330,6 +367,15 @@ class ProcureXApp {
         }
         if (typeof window.initializeCommunicationCenter === 'function') {
             window.initializeCommunicationCenter();
+        }
+        if (typeof window.initializeProcurexMarketplace === 'function') {
+            window.initializeProcurexMarketplace();
+        }
+        if (typeof window.initializeRecordsHistory === 'function') {
+            window.initializeRecordsHistory();
+        }
+        if (typeof window.initializeWorkspaceDashboard === 'function') {
+            window.initializeWorkspaceDashboard();
         }
         this.initializeProcurementLiveFeed();
     }
@@ -842,7 +888,7 @@ class ProcureXApp {
 
         document.getElementById('save-ekyc-draft')?.addEventListener('click', () => {
             this.saveEkycProfile(ekycForm, 'draft');
-            alert('eKYC draft saved.');
+            alert('Identity verification draft saved.');
         });
     }
 
@@ -1153,17 +1199,17 @@ class ProcureXApp {
         mockData.session = {
             isAuthenticated: true,
             isNewUser: !account.ekycCompleted,
-            email
+            email,
+            accountType: account.accountType || 'user'
         };
 
         if (account.accountType === 'admin' || account.role === 'admin') {
-            this.setRole('admin');
             this.navigateTo('admin-dashboard');
             return;
         }
 
         if (mockData.session.isNewUser) {
-            this.navigateTo('iam-verification');
+            this.navigateTo('identity-verification');
             return;
         }
 
@@ -1189,7 +1235,7 @@ class ProcureXApp {
         }
 
         if (!mockData.eKycRegistryRecord) {
-            alert('Fetch and verify registry information before completing eKYC.');
+            alert('Fetch and verify registry information before completing identity verification.');
             return;
         }
 
@@ -1205,7 +1251,7 @@ class ProcureXApp {
         this.upsertMockAuthAccount(mockData.pendingAccount);
         mockData.session.isNewUser = false;
 
-        this.navigateTo(isUpdateMode ? 'verification-status' : 'app-launcher');
+        this.navigateTo(isUpdateMode ? 'account-profile' : 'app-launcher');
     }
 
     getEkycRegistryConfig(entityType, form = null) {
@@ -1264,14 +1310,13 @@ class ProcureXApp {
     saveEkycProfile(form, status) {
         const formData = new FormData(form);
         const previousProfile = mockData.eKycProfile || {};
-        const role = formData.get('role') || mockData.pendingAccount?.role || mockData.currentRole || mockData.eKycProfile?.role || null;
         const entityType = formData.get('entityType') || 'individual';
         const registryConfig = this.getEkycRegistryConfig(entityType, form);
         const registryRecord = mockData.eKycRegistryRecord || mockData.eKycProfile?.registryRecord || {};
 
         mockData.eKycProfile = {
             status,
-            role,
+            role: null,
             entityType,
             businessRegistrationSource: entityType === 'business' ? (formData.get('businessRegistrationSource') || 'tin') : '',
             businessRegistrationMethod: entityType === 'business' ? (registryConfig.registrationMethod || registryConfig.sourceLabel) : '',
@@ -1544,7 +1589,7 @@ class ProcureXApp {
             length: password.length >= 8 && password.length <= 12,
             uppercase: /[A-Z]/.test(password),
             number: /\d/.test(password),
-            special: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)
+            special: /[!@#$%^and*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)
         };
 
         Object.entries(checks).forEach(([name, isMet]) => {
@@ -1575,7 +1620,7 @@ class ProcureXApp {
             password.length <= 12 &&
             /[A-Z]/.test(password) &&
             /\d/.test(password) &&
-            /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)
+            /[!@#$%^and*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)
         );
     }
 
@@ -1661,12 +1706,12 @@ class ProcureXApp {
             fullName,
             email,
             phone,
-            role: this.currentRole
+            accountType: 'user'
         });
 
         setTimeout(() => {
-            // Navigate to IAM verification after successful registration
-            this.navigateTo('iam-verification');
+            // Navigate to identity verification after successful registration
+            this.navigateTo('identity-verification');
         }, 1000);
     }
 
@@ -1675,7 +1720,7 @@ class ProcureXApp {
         if (otp.length === 6) {
             // Simulate verification
             setTimeout(() => {
-                this.navigateTo('verification-status');
+                this.navigateTo('account-profile');
             }, 1000);
         }
     }
@@ -1683,7 +1728,7 @@ class ProcureXApp {
     handleDocumentUpload(form) {
         // Simulate upload
         setTimeout(() => {
-            this.navigateTo('verification-status');
+            this.navigateTo('account-profile');
         }, 1000);
     }
 
@@ -1701,14 +1746,6 @@ class ProcureXApp {
         }, 1000);
     }
 
-    updateNavigation() {
-        // Update sidebar navigation based on role
-        const sidebarNavs = document.querySelectorAll('.sidebar-nav');
-        sidebarNavs.forEach(nav => {
-            nav.setAttribute('data-role', this.currentRole);
-        });
-    }
-
     loadAllPages() {
         // Load all page modules - render functions are registered by individual page files or available globally
         const pageNames = [
@@ -1716,19 +1753,15 @@ class ProcureXApp {
             'register',
             'sign-in',
             'role-selection',
-            'iam-verification',
-            'verification-status',
+            'identity-verification',
+            'account-profile',
             'app-launcher',
             'workspace-dashboard',
-            'procurement-dashboard',
             'admin-dashboard',
-            'buyer-dashboard',
-            'buyer-journey',
+            'procurement-guide',
             'guest-marketplace',
-            'supplier-dashboard',
-            'supplier-journey',
-            'supplier-marketplace',
-            'supplier-tender-detail',
+            'marketplace',
+            'tender-detail',
             'communication-center',
             'create-tender',
             'tender-publication',
@@ -1748,7 +1781,14 @@ class ProcureXApp {
     }
 
     getPageRenderFunction(pageName) {
-        const renderFnName = 'render' + pageName.split('-').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join('');
+        const renderAliases = {
+            'identity-verification': 'renderIamVerification',
+            'account-profile': 'renderVerificationStatus',
+            'marketplace': 'renderSupplierMarketplace',
+            'tender-detail': 'renderSupplierTenderDetail',
+            'procurement-guide': 'renderSupplierJourney'
+        };
+        const renderFnName = renderAliases[pageName] || 'render' + pageName.split('-').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join('');
         if (typeof window[renderFnName] === 'function') {
             return window[renderFnName]();
         }
@@ -1786,17 +1826,17 @@ class ProcureXApp {
     renderWelcome() { return this.getLoadingSpinner('welcome page'); }
     renderSignIn() { return this.getLoadingSpinner('sign in'); }
     renderRoleSelection() { return this.getLoadingSpinner('role selection'); }
-    renderIamVerification() { return this.getLoadingSpinner('IAM verification'); }
-    renderIAMVerification() { return this.getLoadingSpinner('IAM verification'); }
-    renderVerificationStatus() { return this.getLoadingSpinner('verification status'); }
+    renderIamVerification() { return this.getLoadingSpinner('identity verification'); }
+    renderIAMVerification() { return this.getLoadingSpinner('identity verification'); }
+    renderVerificationStatus() { return this.getLoadingSpinner('account profile'); }
     renderWorkspaceDashboard() { return this.getLoadingSpinner('dashboard'); }
     renderAdminDashboard() { return this.getLoadingSpinner('admin dashboard'); }
-    renderBuyerDashboard() { return this.getLoadingSpinner('buyer dashboard'); }
-    renderSupplierDashboard() { return this.getLoadingSpinner('supplier dashboard'); }
-    renderSupplierJourney() { return this.getLoadingSpinner('supplier journey'); }
+    renderBuyerDashboard() { return this.getLoadingSpinner('dashboard'); }
+    renderSupplierDashboard() { return this.getLoadingSpinner('dashboard'); }
+    renderSupplierJourney() { return this.getLoadingSpinner('procurement process guide'); }
     renderGuestMarketplace() { return this.getLoadingSpinner('guest marketplace'); }
-    renderSupplierMarketplace() { return this.getLoadingSpinner('supplier marketplace'); }
-    renderSupplierTenderDetail() { return this.getLoadingSpinner('supplier tender detail'); }
+    renderSupplierMarketplace() { return this.getLoadingSpinner('tender marketplace'); }
+    renderSupplierTenderDetail() { return this.getLoadingSpinner('tender detail'); }
     renderCommunicationCenter() { return this.getLoadingSpinner('communication center'); }
     renderCreateTender() { return this.getLoadingSpinner('create tender'); }
     renderTenderPublication() { return this.getLoadingSpinner('tender publication'); }

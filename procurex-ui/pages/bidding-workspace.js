@@ -7,11 +7,11 @@ const bidWorkspaceUploadPreviewMaxBytes = 3 * 1024 * 1024;
 
 function escapeBidWorkspaceHtml(value = '') {
     return String(value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+        .replace(/and/g, 'andamp;')
+        .replace(/</g, 'andlt;')
+        .replace(/>/g, 'andgt;')
+        .replace(/"/g, 'andquot;')
+        .replace(/'/g, 'and#039;');
 }
 
 function parseBidWorkspaceNumber(value) {
@@ -23,6 +23,13 @@ function parseBidWorkspaceNumber(value) {
 function formatBidWorkspaceMoney(value) {
     if (typeof formatCreateTenderMoney === 'function') return formatCreateTenderMoney(value);
     return `TZS ${Math.round(parseBidWorkspaceNumber(value)).toLocaleString('en-US')}`;
+}
+
+function formatBidWorkspaceFileSize(value = 0) {
+    const size = Number(value || 0);
+    if (size >= 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+    if (size >= 1024) return `${Math.round(size / 1024)} KB`;
+    return `${size} B`;
 }
 
 function getBidWorkspaceTypeId(tender = {}) {
@@ -468,7 +475,9 @@ function saveBidWorkspaceDraft(tenderId = 'selected', draft = {}) {
         const compactUploads = Object.fromEntries(Object.entries(payload.uploadedFiles || {}).map(([key, file]) => [key, {
             name: file?.name || '',
             type: file?.type || '',
-            size: file?.size || 0
+            size: file?.size || 0,
+            uploadedAt: file?.uploadedAt || '',
+            sha256: file?.sha256 || file?.hash || ''
         }]));
         try {
             localStorage.setItem(`${bidWorkspaceDraftStoragePrefix}${tenderId}`, JSON.stringify({
@@ -706,7 +715,7 @@ function renderBidWorkspaceGateDocumentSection(index, kicker, title, description
     `;
 }
 
-function renderBidWorkspaceMandatoryGate(requirements = [], draft = {}) {
+function renderBidWorkspaceMandatoryGate(requirements = [], draft = {}, tender = {}) {
     const sorted = sortBidWorkspaceRequirements(requirements);
     const uploadRequirements = sorted.filter(requirement => requirement.responseType === 'upload');
     const licenseRequirements = uploadRequirements.filter(isBidWorkspaceLicenseDocumentRequirement);
@@ -732,6 +741,7 @@ function renderBidWorkspaceMandatoryGate(requirements = [], draft = {}) {
             <span>Upload mandatory eligibility documents and complete required confirmations before moving forward. Documents are grouped so licenses and certifications are separate from plans and other supporting files.</span>
         </div>
         ${renderBidWorkspaceGateDocumentSection(1, 'Licenses and certifications', 'License and certification documents', 'Business licenses, regulatory permits, registration certificates, tax/VAT evidence, and other eligibility certificates.', licenseRequirements, draft, 'No license or certification document is required for this tender.')}
+        ${renderBidWorkspaceLicenseComplianceMatrix(tender, draft)}
         ${renderBidWorkspaceGateDocumentSection(2, 'Submission documents', 'Bid submission documents', 'Tender submission forms, signed bid documents, authorization letters, and buyer-required submission files.', submissionRequirements, draft, 'No separate submission document upload was configured for this tender.')}
         ${renderBidWorkspaceGateDocumentSection(3, 'Other documents', 'Other supporting documents', 'Additional evidence or supporting uploads that are not licenses, certifications, submission files, or plan documents.', otherDocumentRequirements, draft, 'No other supporting document upload was configured for this tender.')}
         ${renderBidWorkspaceGateDocumentSection(4, 'Plan documents', 'Technical and delivery plan documents', 'Methodology, work plan, delivery plan, quality/HSE plan, staffing, equipment, schedule, and other planning documents.', planRequirements, draft, 'No plan document upload was configured for this tender.')}
@@ -947,10 +957,16 @@ function normalizeBidWorkspaceProductSpecificationTemplate(tender = {}) {
             { specificationName: 'Brand/Equivalent', acceptableRequirement: spec.brandRequirements || '', instructions: 'Accepted brand or equivalent.' },
             { specificationName: 'Warranty', acceptableRequirement: spec.warrantyRequirements || '', instructions: 'Required warranty.' }
         ].filter(row => String(row.acceptableRequirement || '').trim());
-        return fallbackSpecs.map((row, specIndex) => ({
+        const responseRows = fallbackSpecs.length ? fallbackSpecs : [{
+            specificationName: 'Supplier technical comments',
+            acceptableRequirement: '',
+            instructions: 'No buyer specification detail was provided for this item. Supplier can describe the offered item and note any assumptions.'
+        }];
+        return responseRows.map((row, specIndex) => ({
             id: item.id || spec.id ? `${item.id || spec.id}-${specIndex}` : `product-spec-fallback-${index}-${specIndex}`,
             values: {
                 ...itemValues,
+                unit: item.unitOfMeasure || item.unit || '',
                 ...row
             }
         }));
@@ -968,12 +984,13 @@ function renderGoodsBidProductSpecificationResponse(tender = {}, draft = {}) {
         return '<div class="scope-empty">No buyer product specification template was configured for this goods tender.</div>';
     }
     const itemGroups = groupBidWorkspaceProductSpecRowsByItem(template.rows);
+    const templateStats = getBidWorkspaceTendererCsvTemplateStats(tender);
 
     return `
         <section class="product-spec-response">
             <div class="product-spec-response-actions">
-                <button class="btn btn-secondary" type="button" data-bid-download-product-spec-template>Download Buyer Specification CSV</button>
-                <span class="badge badge-warning">${template.rows.length} item specification${template.rows.length === 1 ? '' : 's'}</span>
+                <button class="btn btn-secondary" type="button" data-bid-download-product-spec-template>${templateStats.hasBuyerSpecificationRows ? 'Download Buyer Specification CSV' : 'Download Item Response CSV'}</button>
+                <span class="badge badge-warning">${template.rows.length} item ${templateStats.hasBuyerSpecificationRows ? 'specification' : 'response'}${template.rows.length === 1 ? '' : 's'}</span>
             </div>
             <div class="product-spec-item-grid">
                 ${itemGroups.map((group, groupIndex) => `
@@ -1037,8 +1054,19 @@ function renderGoodsBidProductSpecificationResponse(tender = {}, draft = {}) {
 function getBidWorkspaceTendererCsvTemplateStats(tender = {}) {
     const template = normalizeBidWorkspaceProductSpecificationTemplate(tender);
     const quantityRows = getGoodsBidQuantityRows(tender);
+    const configuredTemplate = tender.requirements?.fields?.productSpecificationTemplate;
+    const hasConfiguredTemplateRows = Array.isArray(configuredTemplate?.rows) && configuredTemplate.rows.length > 0;
+    const hasConfiguredSpecificationCards = getGoodsBidSpecificationCards(tender).some(spec => [
+        spec.productDescription,
+        spec.performanceSpecifications,
+        spec.dimensions,
+        spec.materialQuality,
+        spec.installationRequirements,
+        spec.brandRequirements,
+        spec.warrantyRequirements
+    ].some(value => String(value || '').trim()));
     return {
-        hasBuyerSpecificationRows: template.rows.length > 0,
+        hasBuyerSpecificationRows: hasConfiguredTemplateRows || hasConfiguredSpecificationCards,
         rowCount: template.rows.length || quantityRows.length
     };
 }
@@ -1058,7 +1086,232 @@ function renderBidWorkspaceTendererCsvTemplatePanel(tender = {}) {
             </div>
             <div class="tenderer-template-actions">
                 <span class="badge badge-info">${stats.rowCount} template row${stats.rowCount === 1 ? '' : 's'}</span>
-                <button class="btn btn-secondary" type="button" data-bid-download-tenderer-csv-template>Download CSV Template</button>
+                <button class="btn btn-secondary" type="button" data-bid-download-tenderer-csv-template>${stats.hasBuyerSpecificationRows ? 'Download CSV Template' : 'Download Item Response CSV'}</button>
+                <label class="btn btn-secondary bid-csv-import-control">
+                    Import CSV
+                    <input type="file" accept=".csv,text/csv" data-bid-import-tenderer-csv>
+                </label>
+            </div>
+            <p class="bid-csv-import-status" data-bid-import-tenderer-csv-status></p>
+        </section>
+    `;
+}
+
+function normalizeBidWorkspaceArray(value) {
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string' && value.trim()) {
+        return value.split(/\r?\n|;/).map(item => item.trim()).filter(Boolean);
+    }
+    return [];
+}
+
+function getBidWorkspaceContractClauses(tender = {}) {
+    const fields = tender.requirements?.fields || {};
+    const clauseGroups = Object.entries(fields)
+        .filter(([key]) => bidWorkspaceContractClauseFieldPattern.test(key))
+        .flatMap(([key, value]) => normalizeBidWorkspaceArray(value).map((item, index) => ({ key, item, index })));
+    const tenderClauses = normalizeBidWorkspaceArray(tender.contractClauses).map((item, index) => ({ key: 'contractClauses', item, index }));
+    return [...clauseGroups, ...tenderClauses].map((entry, index) => {
+        const item = entry.item;
+        if (typeof item === 'string') {
+            return {
+                id: `contract-clause-${index}`,
+                title: item,
+                description: 'Tender contract clause requiring bidder acknowledgment.'
+            };
+        }
+        return {
+            id: item.id || `contract-clause-${index}`,
+            title: item.clauseTitle || item.title || item.clause || item.name || humanizeBidWorkspaceKey(entry.key),
+            description: getBidWorkspaceRequirementDescription(item) || item.description || item.requirement || 'Tender contract clause requiring bidder acknowledgment.',
+            mandatory: item.mandatory !== false
+        };
+    });
+}
+
+function renderBidWorkspaceContractTerms(tender = {}, profile = {}, draft = {}) {
+    const clauses = getBidWorkspaceContractClauses(tender);
+    if (!clauses.length) return '';
+    return `
+        <section class="bid-dynamic-group contract-terms-review">
+            <div class="bid-dynamic-group-heading">
+                <div>
+                    <h3>Contract clause acknowledgement</h3>
+                    <p>Review buyer contract clauses, acknowledge acceptance, and record any deviations before final submission.</p>
+                </div>
+                <span class="badge badge-warning">${clauses.length} clause${clauses.length === 1 ? '' : 's'}</span>
+            </div>
+            <div class="contract-clause-list">
+                ${clauses.map((clause, index) => {
+                    const baseId = `contract-clause-${index}`;
+                    const accepted = getBidWorkspaceSavedResponse(draft, `${baseId}-accepted`);
+                    return `
+                        <article class="contract-clause-card">
+                            <span class="section-kicker">${escapeBidWorkspaceHtml(profile.responseTitle || 'Bidder acknowledgement')}</span>
+                            <strong>${escapeBidWorkspaceHtml(clause.title)}</strong>
+                            <p>${escapeBidWorkspaceHtml(clause.description)}</p>
+                            <label class="bid-response-check">
+                                <input type="checkbox" data-bid-response="${baseId}-accepted" ${clause.mandatory === false ? '' : 'data-bid-workflow-required-response="true"'} ${accepted === true || accepted === 'true' ? 'checked' : ''}>
+                                <span>I acknowledge this contract clause.</span>
+                            </label>
+                            <div class="form-group wide">
+                                <label class="form-label">Deviation / Clarification</label>
+                                <textarea class="form-input" rows="2" data-bid-response="${baseId}-deviation" placeholder="State none, or describe the requested deviation.">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-deviation`))}</textarea>
+                            </div>
+                        </article>
+                    `;
+                }).join('')}
+            </div>
+            <label class="bid-response-check">
+                <input type="checkbox" data-bid-response="contract-terms-all-accepted" data-bid-workflow-required-response="true" ${getBidWorkspaceSavedResponse(draft, 'contract-terms-all-accepted') === true || getBidWorkspaceSavedResponse(draft, 'contract-terms-all-accepted') === 'true' ? 'checked' : ''}>
+                <span>I have reviewed the contract terms and confirm the bid reflects all stated deviations.</span>
+            </label>
+        </section>
+    `;
+}
+
+function getBidWorkspaceRegulatoryLicenseRows(tender = {}) {
+    const directRows = normalizeBidWorkspaceArray(tender.regulatoryLicenses);
+    if (directRows.length) return directRows;
+    const fields = tender.requirements?.fields || {};
+    return [
+        ...normalizeBidWorkspaceArray(fields.regulatoryLicenses),
+        ...normalizeBidWorkspaceArray(fields.licenseRequirementRows),
+        ...normalizeBidWorkspaceArray(fields.licenseRequirements)
+    ];
+}
+
+function renderBidWorkspaceLicenseComplianceMatrix(tender = {}, draft = {}) {
+    const rows = getBidWorkspaceRegulatoryLicenseRows(tender);
+    if (!rows.length) return '';
+    return `
+        <div class="bid-gate-group license-compliance-matrix">
+            <div class="bid-gate-group-heading">
+                <div>
+                    <span class="section-kicker">License compliance matrix</span>
+                    <h3>Regulatory license details</h3>
+                    <p>Match each buyer-required license to your license number, status, validity, and copy upload.</p>
+                </div>
+                <span class="badge badge-warning">${rows.length} license${rows.length === 1 ? '' : 's'}</span>
+            </div>
+            <div class="data-table">
+                <table>
+                    <thead><tr><th>Required License</th><th>License No.</th><th>Validity</th><th>Status</th><th>Evidence</th></tr></thead>
+                    <tbody>
+                        ${rows.map((row, index) => {
+                            const item = typeof row === 'string' ? { licenseName: row } : row;
+                            const baseId = `license-compliance-${index}`;
+                            const title = item.licenseName || item.name || item.title || item.requirement || `License ${index + 1}`;
+                            return `
+                                <tr>
+                                    <td><strong>${escapeBidWorkspaceHtml(title)}</strong><small>${escapeBidWorkspaceHtml(item.issuingAuthority || item.description || item.notes || 'Buyer-required regulatory license')}</small></td>
+                                    <td><input class="form-input" data-bid-response="${baseId}-number" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-number`))}" placeholder="License number"></td>
+                                    <td>
+                                        <input class="form-input" type="date" data-bid-response="${baseId}-expiry" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-expiry`))}">
+                                        <input class="form-input" style="margin-top: 8px;" data-bid-response="${baseId}-class" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-class`) || item.class || item.grade || '')}" placeholder="Class / grade">
+                                    </td>
+                                    <td><select class="form-input" data-bid-response="${baseId}-status" data-bid-workflow-required-response="true"><option value="">Select</option>${['Valid', 'Renewal in progress', 'Not applicable'].map(option => `<option ${getBidWorkspaceSavedResponse(draft, `${baseId}-status`) === option ? 'selected' : ''}>${option}</option>`).join('')}</select></td>
+                                    <td>${renderBidWorkspaceUploadControl(`${baseId}-copy`, draft, 'Upload license copy', '.pdf,.jpg,.jpeg,.png', true)}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+function getBidWorkspaceFinancialCapacityRows(tender = {}) {
+    const fields = tender.requirements?.fields || {};
+    const candidates = [
+        fields.financialCapacityRows,
+        fields.financialCapacityRequirements,
+        fields.financialCapacityRequirementRows,
+        fields.financialCapacityCards,
+        fields.financialRequirementRows
+    ].flatMap(normalizeBidWorkspaceArray);
+    if (candidates.length) return candidates;
+    if (normalizeBidWorkspaceFlag(fields.bankStatementsRequired)) {
+        return [{
+            requirement: 'Bank statements',
+            minimumValue: fields.bankStatementPeriod || 'Buyer-specified period',
+            evidence: 'Bank statement upload',
+            mandatory: true
+        }];
+    }
+    return [];
+}
+
+function renderBidWorkspaceFinancialCapacityMatrix(tender = {}, draft = {}, prefix = 'financial-capacity') {
+    const rows = getBidWorkspaceFinancialCapacityRows(tender);
+    if (!rows.length) return '';
+    return `
+        <section class="bid-dynamic-group financial-capacity-matrix">
+            <div class="bid-dynamic-group-heading">
+                <div>
+                    <h3>Financial capacity response matrix</h3>
+                    <p>Respond to each buyer financial capacity threshold with your value and supporting evidence.</p>
+                </div>
+                <span class="badge badge-warning">${rows.length} requirement${rows.length === 1 ? '' : 's'}</span>
+            </div>
+            <div class="data-table">
+                <table>
+                    <thead><tr><th>Buyer Requirement</th><th>Minimum / Period</th><th>Your Value</th><th>Evidence Note</th><th>Upload</th></tr></thead>
+                    <tbody>
+                        ${rows.map((row, index) => {
+                            const item = typeof row === 'string' ? { requirement: row } : row;
+                            const baseId = `${prefix}-${index}`;
+                            const required = item.mandatory !== false;
+                            return `
+                                <tr>
+                                    <td><strong>${escapeBidWorkspaceHtml(item.requirement || item.requirementName || item.description || `Financial requirement ${index + 1}`)}</strong><small>${escapeBidWorkspaceHtml(item.evidence || item.notes || 'Financial capability evidence')}</small></td>
+                                    <td>${escapeBidWorkspaceHtml(item.minimumValue || item.minimumAmount || item.period || item.threshold || 'Not specified')}</td>
+                                    <td><input class="form-input" type="number" min="0" step="1000" data-bid-response="${baseId}-value" ${required ? 'data-bid-workflow-required-response="true"' : ''} value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-value`))}"></td>
+                                    <td><textarea class="form-input" rows="2" data-bid-response="${baseId}-note">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-note`))}</textarea></td>
+                                    <td>${renderBidWorkspaceUploadControl(`${baseId}-upload`, draft, 'Upload evidence', '.pdf,.doc,.docx,.xls,.xlsx', required)}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    `;
+}
+
+function renderBidWorkspaceScoringGuidance(tender = {}, profile = {}, draft = {}, prefix = 'evaluation-guidance') {
+    const criteria = tender.evaluation?.criteria?.length
+        ? tender.evaluation.criteria
+        : (profile.evaluationCriteria || []).map((item, index) => ({
+            id: `profile-criterion-${index}`,
+            name: item[0] || item.name || `Criterion ${index + 1}`,
+            weight: item[1] || item.weight || 0,
+            subcriteria: item[2] ? [item[2]] : (item.subcriteria || [])
+        }));
+    if (!criteria.length) return '';
+    return `
+        <section class="bid-dynamic-group scoring-guidance-panel">
+            <div class="bid-dynamic-group-heading">
+                <div>
+                    <h3>Evaluation criteria response guide</h3>
+                    <p>Use the published scoring criteria to organize evidence and make the evaluator's review traceable.</p>
+                </div>
+                <span class="badge badge-info">${criteria.length} criteria</span>
+            </div>
+            <div class="scoring-guidance-grid">
+                ${criteria.map((criterion, index) => {
+                    const id = `${prefix}-${criterion.id || getBidWorkspaceRequirementId(criterion.name || 'criterion', 'evaluation', index)}`;
+                    return `
+                        <article class="scoring-guidance-card">
+                            <span class="section-kicker">${escapeBidWorkspaceHtml(criterion.weight || 0)}% weight</span>
+                            <strong>${escapeBidWorkspaceHtml(criterion.name || `Criterion ${index + 1}`)}</strong>
+                            <p>${escapeBidWorkspaceHtml((criterion.subcriteria || []).join(', ') || criterion.description || 'Buyer-defined evaluation criterion.')}</p>
+                            <textarea class="form-input" rows="2" data-bid-response="${id}-response" placeholder="Explain where this response is addressed.">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${id}-response`))}</textarea>
+                            ${renderBidWorkspaceUploadControl(`${id}-evidence`, draft, 'Attach evidence', '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png', false)}
+                        </article>
+                    `;
+                }).join('')}
             </div>
         </section>
     `;
@@ -1080,6 +1333,48 @@ function downloadBidWorkspaceCsv(rows = [], filename = 'template.csv') {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
+}
+
+function parseBidWorkspaceCsv(text = '') {
+    const rows = [];
+    let row = [];
+    let cell = '';
+    let quoted = false;
+    const input = String(text || '').replace(/^\uFEFF/, '');
+    for (let index = 0; index < input.length; index += 1) {
+        const char = input[index];
+        const next = input[index + 1];
+        if (quoted && char === '"' && next === '"') {
+            cell += '"';
+            index += 1;
+            continue;
+        }
+        if (char === '"') {
+            quoted = !quoted;
+            continue;
+        }
+        if (!quoted && char === ',') {
+            row.push(cell);
+            cell = '';
+            continue;
+        }
+        if (!quoted && (char === '\n' || char === '\r')) {
+            if (char === '\r' && next === '\n') index += 1;
+            row.push(cell);
+            if (row.some(value => String(value || '').trim())) rows.push(row);
+            row = [];
+            cell = '';
+            continue;
+        }
+        cell += char;
+    }
+    row.push(cell);
+    if (row.some(value => String(value || '').trim())) rows.push(row);
+    return rows;
+}
+
+function normalizeBidWorkspaceCsvHeader(value = '') {
+    return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
 }
 
 function downloadBidWorkspaceBlob(content = '', filename = 'download.html', type = 'text/html;charset=utf-8') {
@@ -1105,11 +1400,12 @@ function getBidWorkspaceSafeFilename(value = 'bid-response-document') {
 
 function downloadBidWorkspaceProductSpecificationCsv(tender = {}) {
     const template = normalizeBidWorkspaceProductSpecificationTemplate(tender);
+    const stats = getBidWorkspaceTendererCsvTemplateStats(tender);
     const rows = [
         template.columns.map(column => column.label),
         ...template.rows.map(row => template.columns.map(column => row.values?.[column.id] || ''))
     ];
-    downloadBidWorkspaceCsv(rows, 'buyer-product-specification-template.csv');
+    downloadBidWorkspaceCsv(rows, stats.hasBuyerSpecificationRows ? 'buyer-product-specification-template.csv' : 'goods-item-response-template.csv');
 }
 
 function downloadBidWorkspaceTendererTechnicalResponseCsv(tender = {}) {
@@ -1154,11 +1450,407 @@ function downloadBidWorkspaceTendererTechnicalResponseCsv(tender = {}) {
     downloadBidWorkspaceCsv([columns, ...rows], 'tenderer-technical-response-template.csv');
 }
 
-function formatBidWorkspaceReviewValue(value) {
+function formatBidWorkspaceReviewValue(value, options = {}) {
     if (value === true) return 'Yes';
     if (value === false) return 'No';
+    if (Array.isArray(value)) return value.map(entry => formatBidWorkspaceReviewValue(entry, options)).filter(Boolean).join(', ') || (options.mandatory ? 'Incomplete' : 'Not provided');
+    if (value && typeof value === 'object') {
+        return Object.entries(value)
+            .filter(([, entryValue]) => isBidWorkspaceMeaningfulValue(entryValue))
+            .map(([key, entryValue]) => `${humanizeBidWorkspaceKey(key)}: ${formatBidWorkspaceReviewValue(entryValue, options)}`)
+            .join(' / ') || (options.mandatory ? 'Incomplete' : 'Not provided');
+    }
     const text = String(value ?? '').trim();
-    return text || 'Pending';
+    if (text) return text;
+    return options.mandatory ? 'Incomplete' : 'Not provided';
+}
+
+function getProcurexBidPackageTenderMeta(tender = {}) {
+    return [
+        ['Tender ID', tender.id || tender.reference],
+        ['Procuring entity', tender.organization],
+        ['Procurement type', tender.type || tender.category],
+        ['Procurement method', tender.method],
+        ['Closing date', tender.closingDate],
+        ['Location', tender.location],
+        ['Budget estimate', tender.budget ? formatBidWorkspaceMoney(tender.budget) : 'Not stated'],
+        ['Commercial model', tender.commercialModel || tender.contractType]
+    ].filter(([, value]) => isBidWorkspaceMeaningfulValue(value));
+}
+
+function getProcurexBidPackageSupplierMeta(supplier = {}) {
+    return [
+        ['Supplier', supplier.name || supplier.supplier || mockData.users?.supplier?.organization || 'Supplier organization'],
+        ['Registration', supplier.registrationNumber || supplier.registration || mockData.users?.supplier?.registrationNumber],
+        ['Contact', supplier.contactPerson || supplier.contact || mockData.users?.supplier?.name],
+        ['Submitted', supplier.submittedAt],
+        ['Submission Receipt No', supplier.receiptHash],
+        ['Bid total', supplier.total],
+        ['Status', supplier.status || 'Draft package']
+    ].filter(([, value]) => isBidWorkspaceMeaningfulValue(value));
+}
+
+function getProcurexBidPackageOfferLabel(tender = {}, profile = {}) {
+    const typeId = profile.id || getBidWorkspaceTypeId(tender);
+    if (typeId === 'goods') return 'Goods Offer';
+    if (typeId === 'works') return 'Works Offer';
+    if (typeId === 'services') return 'Service Offer';
+    if (typeId === 'consultancy') return 'Consultancy Offer';
+    return profile.responseTitle || 'Bid Offer';
+}
+
+function getProcurexBidPackageRowCategory(key = '', label = '') {
+    const raw = `${key} ${label}`.toLowerCase();
+    if (/declaration|confirm|signature|anti-corruption|representative|position/.test(raw)) return 'Declarations';
+    if (/sample/.test(raw)) return 'Samples';
+    if (/commercial|financial|price|pricing|currency|tax|discount|rate|amount|total|validity|boq|offer/.test(raw)) return 'Financial Offer';
+    if (/technical|methodology|workplan|drawing|capacity|personnel|equipment|product|spec|brand|model|origin|warranty|delivery|service|sla|kpi|quality|compliance/.test(raw)) return 'Technical Response';
+    if (/eligibility|document|license|certificate|registration|tax|upload|evidence|security|brochure|attachment|proof/.test(raw)) return 'Eligibility and Documents';
+    return 'Additional Responses';
+}
+
+function getProcurexBidPackageCategoryFromPanel(title = '') {
+    const raw = String(title || '').toLowerCase();
+    if (/eligibility|document|license|gate|administrative|pre-qualification|prequalification/.test(raw)) return 'Volume 1: Administrative Compliance';
+    if (/technical|methodology|scope|specification|goods offer|works offer|service response|consultancy response|tor|personnel|equipment|capacity/.test(raw)) return 'Volume 2: Technical Response';
+    if (/financial|commercial|boq|price|pricing|offer value|quantity schedule/.test(raw)) return 'Volume 3: Financial Offer';
+    if (/contract|declaration|review|submit|validation|terms/.test(raw)) return 'Volume 4: Declarations and Contract Terms';
+    return 'Additional Responses';
+}
+
+function normalizeProcurexBidPackageCategory(category = '') {
+    const raw = String(category || '').toLowerCase();
+    if (raw.includes('administrative') || raw.includes('eligibility')) return 'Volume 1: Administrative Compliance';
+    if (raw.includes('technical')) return 'Volume 2: Technical Response';
+    if (raw.includes('financial')) return 'Volume 3: Financial Offer';
+    if (raw.includes('declaration') || raw.includes('contract') || raw.includes('outcome')) return 'Volume 4: Declarations and Contract Terms';
+    if (raw.includes('sample')) return 'Samples';
+    return category || 'Additional Responses';
+}
+
+function getProcurexBidPackageCompleteness(sections = []) {
+    const rows = sections.flatMap(section => section.rows || []);
+    const mandatoryRows = rows.filter(row => row.mandatory);
+    const optionalRows = rows.filter(row => !row.mandatory);
+    const mandatoryComplete = mandatoryRows.filter(row => !row.pending).length;
+    const optionalComplete = optionalRows.filter(row => !row.pending).length;
+    const deviations = rows.filter(row => row.deviation).length;
+    const percent = mandatoryRows.length
+        ? Math.round((mandatoryComplete / mandatoryRows.length) * 100)
+        : rows.length
+            ? Math.round((rows.filter(row => !row.pending).length / rows.length) * 100)
+            : 0;
+    return {
+        percent,
+        mandatoryTotal: mandatoryRows.length,
+        mandatoryComplete,
+        optionalTotal: optionalRows.length,
+        optionalComplete,
+        deviations,
+        totalRows: rows.length
+    };
+}
+
+function pushProcurexBidPackageRow(groups, category, row = {}) {
+    const normalizedCategory = normalizeProcurexBidPackageCategory(category || row.category || 'Additional Responses');
+    if (!groups.has(normalizedCategory)) groups.set(normalizedCategory, []);
+    const mandatory = Boolean(row.mandatory);
+    const pending = row.pending ?? !isBidWorkspaceMeaningfulValue(row.value);
+    groups.get(normalizedCategory).push({
+        label: row.label || 'Bid response',
+        value: formatBidWorkspaceReviewValue(row.value, { mandatory }),
+        sourceId: row.sourceId || '',
+        editable: row.editable !== false,
+        upload: Boolean(row.upload),
+        requirement: row.requirement || '',
+        mandatory,
+        pending,
+        deviation: Boolean(row.deviation),
+        file: row.file || null
+    });
+}
+
+function createProcurexBidPackageSectionsFromRows(rows = []) {
+    const groups = new Map();
+    rows.forEach(row => {
+        pushProcurexBidPackageRow(groups, row.category || getProcurexBidPackageRowCategory(row.key || row.sourceId, row.label), row);
+    });
+    return Array.from(groups.entries())
+        .map(([title, sectionRows]) => ({ title, rows: sectionRows }))
+        .filter(section => section.rows.length);
+}
+
+function createProcurexBidPackageSectionsFromDraft(draft = {}) {
+    if (Array.isArray(draft.reviewSections) && draft.reviewSections.length) {
+        return draft.reviewSections;
+    }
+    const rows = [];
+    Object.entries(draft.responses || {}).forEach(([key, value]) => {
+        rows.push({ key, label: humanizeBidWorkspaceKey(key), value, sourceId: key });
+    });
+    Object.entries(draft.freeResponses || {}).forEach(([key, value]) => {
+        rows.push({ key, label: humanizeBidWorkspaceKey(key), value, sourceId: key });
+    });
+    (draft.productSpecificationResponses || []).forEach((row, index) => {
+        rows.push({
+            key: row.rowId || `product-spec-${index}`,
+            label: `Product specification ${index + 1}`,
+            value: Object.entries(row)
+                .filter(([key]) => key !== 'rowId' && key !== 'attachmentResponseId')
+                .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {}),
+            sourceId: row.rowId || '',
+            category: 'Technical Response'
+        });
+    });
+    Object.entries(draft.uploadedFiles || {}).forEach(([key, value]) => {
+        rows.push({
+            key,
+            label: humanizeBidWorkspaceKey(key),
+            value: value?.name || value,
+            sourceId: key,
+            upload: true,
+            category: 'Volume 1: Administrative Compliance',
+            file: value
+        });
+    });
+    return createProcurexBidPackageSectionsFromRows(rows);
+}
+
+function createProcurexBidPackageSectionsFromEvaluationBid(bid = {}, criteria = []) {
+    const sections = [];
+    const documents = bid.documents || [];
+    sections.push({
+        title: 'Eligibility and Documents',
+        rows: [
+            { label: 'Registration number', value: bid.registrationNumber || 'Not provided', editable: false },
+            { label: 'Contact person', value: bid.contactPerson || 'Not provided', editable: false },
+            { label: 'Submitted documents', value: documents.length ? documents.join(', ') : 'No documents listed', editable: false },
+            ...(bid.preliminaryChecks || []).map(item => ({ label: item.requirement, value: `${item.result || ''}${item.comment ? ` - ${item.comment}` : ''}`, editable: false })),
+            ...(bid.eligibilityChecks || []).map(item => ({ label: item.requirement, value: `${item.result || ''}${item.comment ? ` - ${item.comment}` : ''}`, editable: false }))
+        ]
+    });
+    sections.push({
+        title: 'Technical Response',
+        rows: [
+            { label: 'Technical score', value: bid.technicalScore ? `${bid.technicalScore}%` : 'Not scored', editable: false },
+            { label: 'Technical comment', value: bid.technicalComment || 'No technical comment recorded', editable: false },
+            ...criteria.map(criterion => ({
+                label: criterion.name,
+                value: bid.technicalScores?.[criterion.id] ?? bid.technicalScores?.[typeof slugEvaluationId === 'function' ? slugEvaluationId(criterion.name) : humanizeBidWorkspaceKey(criterion.name).toLowerCase()] ?? 'Pending score',
+                requirement: (criterion.subcriteria || []).join(', '),
+                editable: false
+            }))
+        ]
+    });
+    sections.push({
+        title: 'Financial Offer',
+        rows: [
+            { label: 'Quoted price', value: bid.price ? formatBidWorkspaceMoney(bid.price) : 'Not provided', editable: false },
+            { label: 'Corrected price', value: bid.financial?.correctedPrice ? formatBidWorkspaceMoney(bid.financial.correctedPrice) : 'Not corrected', editable: false },
+            { label: 'Taxes included', value: bid.financial?.taxesIncluded || 'Not stated', editable: false },
+            { label: 'Discount', value: bid.financial?.discount || 'None', editable: false },
+            { label: 'Pricing status', value: bid.financial?.pricingStatus || bid.financial?.boqStatus || 'Pending', editable: false },
+            { label: 'Correction note', value: bid.financial?.correctionNote || 'No correction note', editable: false }
+        ]
+    });
+    sections.push({
+        title: 'Evaluation Outcome',
+        rows: [
+            { label: 'Preliminary result', value: bid.preliminaryResult || 'Pending', editable: false },
+            { label: 'Eligibility result', value: bid.eligibilityResult || 'Pending', editable: false },
+            { label: 'Final result', value: bid.finalResult || 'Pending', editable: false },
+            { label: 'Integrity hash', value: bid.integrityHash || 'Not recorded', editable: false }
+        ]
+    });
+    return sections.filter(section => section.rows.some(row => isBidWorkspaceMeaningfulValue(row.value)));
+}
+
+function getProcurexSubmittedBidsForTender(tender = {}) {
+    const tenderIds = new Set([
+        tender.id,
+        tender.reference,
+        tender.sourceTender?.id,
+        tender.sourceTender?.reference
+    ].filter(Boolean).map(String));
+    try {
+        const parsed = JSON.parse(localStorage.getItem(bidWorkspaceSubmittedStorageKey) || '[]');
+        return (Array.isArray(parsed) ? parsed : []).filter(item => tenderIds.has(String(item.tenderId || '')));
+    } catch (error) {
+        return [];
+    }
+}
+
+function renderProcurexBidPackageDocument(config = {}) {
+    const tender = config.tender || {};
+    const profile = config.profile || {};
+    const supplier = config.supplier || {};
+    const sections = config.sections || [];
+    const editable = config.editable !== false;
+    const includeActions = config.includeActions !== false;
+    const tenderMeta = getProcurexBidPackageTenderMeta(tender);
+    const supplierMeta = getProcurexBidPackageSupplierMeta(supplier);
+    const offerLabel = config.offerLabel || getProcurexBidPackageOfferLabel(tender, profile);
+    const totalRows = sections.reduce((sum, section) => sum + section.rows.length, 0);
+    const completeness = config.completeness || getProcurexBidPackageCompleteness(sections);
+    const fileManifest = config.fileManifest || sections
+        .flatMap(section => section.rows || [])
+        .map(row => row.file)
+        .filter(Boolean);
+    const deviationRows = sections
+        .flatMap(section => section.rows || [])
+        .filter(row => row.deviation);
+
+    return `
+        ${includeActions ? `
+            <div class="bid-response-download-panel">
+                <div>
+                    <span class="section-kicker">Bid package document</span>
+                    <strong>${escapeBidWorkspaceHtml(config.actionsTitle || 'Bid response package review')}</strong>
+                    <p>${escapeBidWorkspaceHtml(config.actionsDescription || 'Review the supplier bid package against tender requirements and captured responses.')}</p>
+                </div>
+                <div class="bid-response-download-actions">
+                    <button class="btn btn-secondary" type="button" data-bid-download-review-document>Download HTML</button>
+                    <button class="btn btn-primary" type="button" data-bid-print-review-document>Print / Save PDF</button>
+                </div>
+            </div>
+        ` : ''}
+        <div class="bid-response-document procurex-bid-package-document">
+            <div class="bid-response-document-masthead">
+                <div class="bid-response-document-mark">PX</div>
+                <div>
+                    <span>ProcureX e-Procurement</span>
+                    <strong>Tenderer's Bid Submission</strong>
+                </div>
+                <em>${escapeBidWorkspaceHtml(config.documentLabel || 'Evaluation Copy')}</em>
+            </div>
+            <header class="bid-response-document-cover">
+                <div>
+                    <span class="section-kicker">Bid Response Package</span>
+                    <h3>${escapeBidWorkspaceHtml(tender.title || config.title || 'Tender bid response')}</h3>
+                    <p>${escapeBidWorkspaceHtml(config.description || 'This document combines tender information, supplier identity, tender-defined requirements, and the supplier responses captured during bid submission.')}</p>
+                </div>
+                <div class="bid-response-document-status">
+                    <span class="bid-status-chip review">${escapeBidWorkspaceHtml(supplier.status || 'Under Evaluation')}</span>
+                    ${editable ? '<span class="bid-status-chip editable">Corrections enabled</span>' : ''}
+                    <span class="bid-status-chip offer">${escapeBidWorkspaceHtml(offerLabel)}</span>
+                </div>
+            </header>
+            <section class="bid-completeness-summary">
+                <div>
+                    <span class="section-kicker">Bid completeness</span>
+                    <strong>${completeness.percent}%</strong>
+                    <p>${completeness.mandatoryComplete}/${completeness.mandatoryTotal || 0} mandatory complete / ${completeness.optionalComplete}/${completeness.optionalTotal || 0} optional provided / ${completeness.deviations} deviations flagged</p>
+                </div>
+                <div class="bid-completeness-meter" aria-hidden="true"><span style="width: ${Math.max(0, Math.min(100, completeness.percent))}%"></span></div>
+            </section>
+            <div class="bid-response-document-meta">
+                ${tenderMeta.map(([label, value]) => `
+                    <article><span>${escapeBidWorkspaceHtml(label)}</span><strong>${escapeBidWorkspaceHtml(value)}</strong><em>Tender information</em></article>
+                `).join('')}
+                ${supplierMeta.map(([label, value]) => `
+                    <article class="${/total|amount|value/i.test(label) ? 'bid-value-card' : ''}"><span>${escapeBidWorkspaceHtml(label)}</span><strong>${escapeBidWorkspaceHtml(value)}</strong><em>Supplier information</em></article>
+                `).join('')}
+                <article><span>Responses captured</span><strong>${totalRows}</strong><em>Bid package scope</em></article>
+            </div>
+            ${sections.length ? `
+                <div class="bid-response-document-sections">
+                    ${sections.map((section, sectionIndex) => `
+                        <article class="bid-response-document-section">
+                            <div class="bid-response-document-section-heading">
+                                <span>${String(sectionIndex + 1).padStart(2, '0')}</span>
+                                <div>
+                                    <h4>${escapeBidWorkspaceHtml(section.title)}</h4>
+                                    <small>${section.rows.length} tender requirement${section.rows.length === 1 ? '' : 's'} and supplier response${section.rows.length === 1 ? '' : 's'}</small>
+                                </div>
+                            </div>
+                            <div class="bid-response-document-table">
+                                <table>
+                                    <thead>
+                                        <tr><th>Requirement status</th><th>Tender requirement / bid category</th><th>Supplier response</th>${editable ? '<th>Correction</th>' : ''}</tr>
+                                    </thead>
+                                    <tbody>
+                                        ${section.rows.map(row => `
+                                            <tr class="${row.pending ? 'is-incomplete' : ''} ${row.deviation ? 'is-deviation' : ''}">
+                                                <td>
+                                                    <span class="bid-requirement-marker ${row.mandatory ? (row.pending ? 'required-incomplete' : 'required-complete') : (row.pending ? 'optional-empty' : 'optional-complete')}">
+                                                        ${row.mandatory ? (row.pending ? 'Required incomplete' : 'Required') : (row.pending ? 'Optional not provided' : 'Optional')}
+                                                    </span>
+                                                    ${row.deviation ? '<span class="bid-deviation-marker">Deviation</span>' : ''}
+                                                </td>
+                                                <td>
+                                                    <strong>${escapeBidWorkspaceHtml(row.label)}</strong>
+                                                    ${row.requirement ? `<small>${escapeBidWorkspaceHtml(row.requirement)}</small>` : ''}
+                                                </td>
+                                                <td>${escapeBidWorkspaceHtml(row.value)}</td>
+                                                ${editable ? `
+                                                    <td>
+                                                        ${row.editable === false ? '<span class="bid-review-readonly">Read only</span>' : `
+                                                            <button class="bid-review-edit-button" type="button" data-bid-review-edit="${escapeBidWorkspaceHtml(row.sourceId)}">
+                                                                ${row.upload ? 'Replace file' : 'Change'}
+                                                            </button>
+                                                        `}
+                                                    </td>
+                                                ` : ''}
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </article>
+                    `).join('')}
+                </div>
+            ` : '<div class="scope-empty">No supplier responses have been captured for this bid package yet.</div>'}
+            ${deviationRows.length ? `
+                <section class="bid-response-document-section bid-deviation-log">
+                    <div class="bid-response-document-section-heading">
+                        <span>DL</span>
+                        <div>
+                            <h4>Deviation Log</h4>
+                            <small>${deviationRows.length} contract or commercial deviation${deviationRows.length === 1 ? '' : 's'} flagged</small>
+                        </div>
+                    </div>
+                    <div class="bid-response-document-table">
+                        <table>
+                            <thead><tr><th>Clause / field</th><th>Deviation text</th></tr></thead>
+                            <tbody>
+                                ${deviationRows.map(row => `<tr><td>${escapeBidWorkspaceHtml(row.label)}</td><td>${escapeBidWorkspaceHtml(row.value)}</td></tr>`).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            ` : ''}
+            ${fileManifest.length ? `
+                <section class="bid-response-document-section bid-file-manifest">
+                    <div class="bid-response-document-section-heading">
+                        <span>AN</span>
+                        <div>
+                            <h4>Annex: Uploaded Evidence Files</h4>
+                            <small>${fileManifest.length} uploaded file${fileManifest.length === 1 ? '' : 's'} with integrity metadata</small>
+                        </div>
+                    </div>
+                    <div class="bid-response-document-table">
+                        <table>
+                            <thead><tr><th>File</th><th>Size</th><th>Uploaded</th><th>SHA-256 hash</th></tr></thead>
+                            <tbody>
+                                ${fileManifest.map(file => `
+                                    <tr>
+                                        <td>${escapeBidWorkspaceHtml(file.name || 'Uploaded file')}</td>
+                                        <td>${escapeBidWorkspaceHtml(formatBidWorkspaceFileSize(file.size))}</td>
+                                        <td>${escapeBidWorkspaceHtml(file.uploadedAt ? new Date(file.uploadedAt).toLocaleString() : 'Current session')}</td>
+                                        <td><code>${escapeBidWorkspaceHtml(file.sha256 || file.hash || 'Hash pending')}</code></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            ` : ''}
+            <footer class="bid-response-document-footer">
+                <span>${escapeBidWorkspaceHtml(config.footerLabel || 'System-Generated Bid Record')}</span>
+                <strong>ProcureX</strong>
+            </footer>
+        </div>
+    `;
 }
 
 function renderBidWorkspaceResponseReviewPlaceholder() {
@@ -1179,25 +1871,25 @@ function renderBidWorkspaceResponseReviewPlaceholder() {
                 <div class="bid-response-document-mark">PX</div>
                 <div>
                     <span>ProcureX e-Procurement</span>
-                    <strong>Bid Response Document</strong>
+                    <strong>Tenderer's Bid Submission</strong>
                 </div>
-                <em>Generated PDF preview</em>
+                <em>Evaluation Copy</em>
             </div>
             <header class="bid-response-document-cover">
                 <div>
-                    <span class="section-kicker">Official bid package preview</span>
-                    <h3>Submitted response document</h3>
+                    <span class="section-kicker">Bid Response Package</span>
+                    <h3>Submitted response record</h3>
                     <p>Bidder responses are compiled here for evaluator review against the tender requirements.</p>
                 </div>
                 <div class="bid-response-document-status">
-                    <span class="bid-status-chip review">Evaluation review</span>
+                    <span class="bid-status-chip review">Under Evaluation</span>
                     <span class="bid-status-chip editable">Corrections enabled</span>
                     <span class="bid-status-chip submitted">Bid package</span>
                 </div>
             </header>
             <div class="scope-empty">Captured bidder responses will appear here as a formal evaluation document.</div>
             <footer class="bid-response-document-footer">
-                <span>System generated bid response preview</span>
+                <span>System-Generated Bid Record</span>
                 <strong>ProcureX</strong>
             </footer>
         </div>
@@ -1351,10 +2043,13 @@ function renderGoodsBidSamples(tender = {}, draft = {}) {
                     <article class="goods-sample-card">
                         <span class="section-kicker">${escapeBidWorkspaceHtml(sample.relatedBoqItem || `Sample ${index + 1}`)}</span>
                         <h3>${escapeBidWorkspaceHtml(sample.sampleDescription || 'Sample submission')}</h3>
-                        <p>Destination: ${escapeBidWorkspaceHtml(sample.deliveryLocation || 'Buyer location')} / Deadline: ${escapeBidWorkspaceHtml(sample.deliveryDeadline || 'Not set')}</p>
+                        <p>BOQ link: ${escapeBidWorkspaceHtml(sample.relatedBoqItem || sample.boqItem || 'Buyer sample item')} / Destination: ${escapeBidWorkspaceHtml(sample.deliveryLocation || 'Buyer location')} / Deadline: ${escapeBidWorkspaceHtml(sample.deliveryDeadline || 'Not set')}</p>
                         <div class="form-grid two">
                             <div class="form-group"><label class="form-label">Sample Submission Status</label><select class="form-input" data-bid-response="${baseId}-status" data-bid-workflow-required-response="true"><option value="" ${getBidWorkspaceSavedResponse(draft, `${baseId}-status`) ? '' : 'selected'}>Select status</option>${['Prepared', 'Dispatched', 'Not applicable'].map(option => `<option ${getBidWorkspaceSavedResponse(draft, `${baseId}-status`) === option ? 'selected' : ''}>${option}</option>`).join('')}</select></div>
                             <div class="form-group"><label class="form-label">Number Submitted</label><input class="form-input" type="number" min="0" data-bid-response="${baseId}-number" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-number`) || sample.numberOfSamples || '')}"></div>
+                            <div class="form-group"><label class="form-label">Returnable?</label><select class="form-input" data-bid-response="${baseId}-returnable"><option value="">Select</option>${['Yes', 'No', 'Buyer to confirm'].map(option => `<option ${getBidWorkspaceSavedResponse(draft, `${baseId}-returnable`) === option || (!getBidWorkspaceSavedResponse(draft, `${baseId}-returnable`) && String(sample.returnable || sample.returnableSample || '') === option) ? 'selected' : ''}>${option}</option>`).join('')}</select></div>
+                            <div class="form-group"><label class="form-label">Sample Cost</label><input class="form-input" type="number" min="0" step="1000" data-bid-response="${baseId}-cost" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-cost`))}" placeholder="Cost if chargeable"></div>
+                            <div class="form-group"><label class="form-label">Batch / Lot Number</label><input class="form-input" data-bid-response="${baseId}-batch-lot" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-batch-lot`))}"></div>
                             <div class="form-group"><label class="form-label">Courier / Delivery Method</label><input class="form-input" data-bid-response="${baseId}-courier" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-courier`))}"></div>
                             <div class="form-group"><label class="form-label">Dispatch Date</label><input class="form-input" type="date" data-bid-response="${baseId}-dispatch-date" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-dispatch-date`))}"></div>
                             <div class="form-group"><label class="form-label">Tracking Number</label><input class="form-input" data-bid-response="${baseId}-tracking" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-tracking`))}"></div>
@@ -1593,7 +2288,7 @@ function renderWorksBidCapacityResponse(tender = {}, draft = {}) {
             <section class="works-response-section">
                 <div class="bid-dynamic-group-heading">
                     <div>
-                        <h3>Health, Safety & Environmental Response</h3>
+                        <h3>Health, Safety and Environmental Response</h3>
                         <p>Provide site-specific safety, environmental, incident, PPE, and waste management controls.</p>
                     </div>
                     <span class="badge badge-warning">Response required</span>
@@ -1620,7 +2315,7 @@ function renderWorksBidTechnicalProposal(tender = {}, draft = {}) {
         ['site-strategy', 'Site Execution Strategy', 'Site establishment, access, hoarding, storage, utilities, and coordination.'],
         ['risk-plan', 'Risk Mitigation Plan', 'Technical, schedule, safety, environmental, and commercial risk controls.'],
         ['quality-plan', 'Quality Assurance Approach', 'Inspection test plans, material approvals, workmanship control, and QA/QC records.'],
-        ['environment-safety', 'Environmental & Safety Measures', 'Worker safety, public safety, environmental safeguards, and incident response.']
+        ['environment-safety', 'Environmental and Safety Measures', 'Worker safety, public safety, environmental safeguards, and incident response.']
     ];
     const milestones = getWorksBidMilestoneRows(tender);
     const drawings = getWorksBidDrawingRows(tender);
@@ -1648,7 +2343,7 @@ function renderWorksBidTechnicalProposal(tender = {}, draft = {}) {
                 </div>
                 <div class="form-grid two">
                     <div class="form-group wide"><label class="form-label">Traffic / Operational Continuity Plan</label><textarea class="form-input" rows="3" data-bid-response="works-proposal-continuity">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-proposal-continuity'))}</textarea></div>
-                    <div class="form-group wide"><label class="form-label">Assumptions & Clarifications</label><textarea class="form-input" rows="3" data-bid-response="works-proposal-assumptions">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-proposal-assumptions'))}</textarea></div>
+                    <div class="form-group wide"><label class="form-label">Assumptions and Clarifications</label><textarea class="form-input" rows="3" data-bid-response="works-proposal-assumptions">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-proposal-assumptions'))}</textarea></div>
                     <div class="form-group">${renderBidWorkspaceUploadControl('works-proposal-upload', draft, 'Technical proposal upload', '.pdf,.doc,.docx', true)}</div>
                     <div class="form-group">${renderBidWorkspaceUploadControl('works-method-statement-upload', draft, 'Method statement upload', '.pdf,.doc,.docx', true)}</div>
                 </div>
@@ -1716,8 +2411,10 @@ function renderWorksBidTechnicalProposal(tender = {}, draft = {}) {
                     <div class="form-group"><label class="form-label">Site Visit Conducted?</label><select class="form-input" data-bid-response="works-site-visit-conducted" ${siteVisitMandatory ? 'data-bid-workflow-required-response="true"' : ''}><option value="">Select</option>${['Yes', 'No'].map(option => `<option ${getBidWorkspaceSavedResponse(draft, 'works-site-visit-conducted') === option ? 'selected' : ''}>${option}</option>`).join('')}</select></div>
                     <div class="form-group"><label class="form-label">Site Visit Date</label><input class="form-input" type="date" data-bid-response="works-site-visit-date" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-site-visit-date'))}"></div>
                     <div class="form-group"><label class="form-label">Representative Name</label><input class="form-input" data-bid-response="works-site-representative" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-site-representative'))}"></div>
+                    <div class="form-group"><label class="form-label">Representative Position</label><input class="form-input" data-bid-response="works-site-representative-position" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-site-representative-position'))}"></div>
                     <div class="form-group">${renderBidWorkspaceUploadControl('works-site-visit-evidence', draft, 'Upload site visit evidence', '.pdf,.doc,.docx,.jpg,.jpeg,.png', siteVisitMandatory)}</div>
                     <div class="form-group wide"><label class="form-label">Site Constraints Identified</label><textarea class="form-input" rows="2" data-bid-response="works-site-constraints">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-site-constraints'))}</textarea></div>
+                    <div class="form-group wide"><label class="form-label">Site Visit Observations</label><textarea class="form-input" rows="2" data-bid-response="works-site-observations">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-site-observations'))}</textarea></div>
                     <div class="form-group wide"><label class="form-label">Site Understanding Notes</label><textarea class="form-input" rows="2" data-bid-response="works-site-notes">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-site-notes'))}</textarea></div>
                 </div>
             </section>
@@ -1800,11 +2497,7 @@ function renderWorksBidDeclaration(draft = {}) {
 
 function getServiceBidPersonnelRows(tender = {}) {
     const rows = tender.requirements?.fields?.personnelRequirementRows || [];
-    return rows.length ? rows : [
-        { position: 'Service Manager', minimumEducation: 'Diploma', minimumYearsExperience: 5, cvRequired: true, mandatory: true },
-        { position: 'Service Supervisor', minimumEducation: 'Certificate', minimumYearsExperience: 3, cvRequired: true, mandatory: true },
-        { position: 'Field Officer / Technician', minimumEducation: 'Certificate', minimumYearsExperience: 2, cvRequired: true, mandatory: true }
-    ];
+    return rows.length ? rows : [];
 }
 
 function getServiceBidEquipmentRows(tender = {}) {
@@ -1833,12 +2526,161 @@ function getServiceBidCommercialRows(tender = {}, profile = {}) {
     return tender.commercialItems?.length ? tender.commercialItems : (tender.boqItems || profile.defaultItems || []);
 }
 
+function getServiceBidCategoryConfig(category = '') {
+    const key = String(category || '').toLowerCase();
+    if (/security|guard/.test(key)) {
+        return {
+            title: 'Security service category response',
+            buyerFields: [
+                ['Number of guards', 'numberOfGuards'],
+                ['Shift schedule', 'shiftSchedule'],
+                ['Patrol frequency', 'patrolFrequency'],
+                ['Weapon requirement', 'weaponRequirement'],
+                ['Control room requirement', 'controlRoomRequirement']
+            ],
+            responses: [
+                ['guards-available', 'Guards Available', 'number'],
+                ['shift-plan', 'Shift Coverage Plan', 'textarea'],
+                ['patrol-plan', 'Patrol Method', 'textarea'],
+                ['control-room', 'Control Room / Supervision Plan', 'textarea'],
+                ['license-evidence', 'Security License Evidence', 'upload']
+            ]
+        };
+    }
+    if (/clean/.test(key)) {
+        return {
+            title: 'Cleaning service category response',
+            buyerFields: [
+                ['Cleaning areas', 'cleaningAreas'],
+                ['Cleaning frequency', 'cleaningFrequency'],
+                ['Materials', 'cleaningMaterials'],
+                ['Waste disposal', 'wasteDisposalRequirements']
+            ],
+            responses: [
+                ['area-coverage', 'Area Coverage Confirmation', 'textarea'],
+                ['schedule', 'Cleaning Schedule', 'textarea'],
+                ['materials', 'Materials / Consumables List', 'textarea'],
+                ['waste-plan', 'Waste Disposal Approach', 'textarea'],
+                ['hygiene-evidence', 'Hygiene / Safety Evidence', 'upload']
+            ]
+        };
+    }
+    if (/it|ict|support|internet|software|network/.test(key)) {
+        return {
+            title: 'IT support service category response',
+            buyerFields: [
+                ['SLA requirement', 'slaRequirement'],
+                ['Uptime requirement', 'uptimeRequirement'],
+                ['Response time', 'responseTime'],
+                ['Support hours', 'supportHours']
+            ],
+            responses: [
+                ['sla-commitment', 'SLA Commitment', 'textarea'],
+                ['uptime-guarantee', 'Uptime Guarantee', 'input'],
+                ['response-time', 'Response Time Commitment', 'input'],
+                ['support-model', 'Support Model', 'textarea'],
+                ['tool-evidence', 'Monitoring / Ticketing Evidence', 'upload']
+            ]
+        };
+    }
+    if (/maintenance|repair|generator|vehicle|plant/.test(key)) {
+        return {
+            title: 'Maintenance service category response',
+            buyerFields: [
+                ['Maintenance schedule', 'maintenanceSchedule'],
+                ['Spare parts requirement', 'sparePartsRequirement'],
+                ['Technician requirements', 'technicianRequirements']
+            ],
+            responses: [
+                ['maintenance-plan', 'Maintenance Schedule Response', 'textarea'],
+                ['spares', 'Spare Parts Availability', 'textarea'],
+                ['technicians', 'Technician Qualifications', 'textarea'],
+                ['workshop-evidence', 'Workshop / Tooling Evidence', 'upload']
+            ]
+        };
+    }
+    if (/catering|food|meal/.test(key)) {
+        return {
+            title: 'Catering service category response',
+            buyerFields: [
+                ['Menu requirements', 'menuRequirements'],
+                ['Hygiene requirements', 'hygieneRequirements'],
+                ['Food certifications', 'foodCertifications']
+            ],
+            responses: [
+                ['menu-compliance', 'Menu Compliance', 'textarea'],
+                ['hygiene-plan', 'Hygiene Plan', 'textarea'],
+                ['certifications', 'Food Certification Notes', 'textarea'],
+                ['sample-menu', 'Sample Menu / Certification Upload', 'upload']
+            ]
+        };
+    }
+    if (/transport|logistics|fleet|driver/.test(key)) {
+        return {
+            title: 'Transport service category response',
+            buyerFields: [
+                ['Fleet requirements', 'fleetRequirements'],
+                ['Driver license requirements', 'driverLicenseRequirements'],
+                ['Route coverage', 'routeCoverage']
+            ],
+            responses: [
+                ['fleet', 'Fleet Availability', 'textarea'],
+                ['drivers', 'Driver License Compliance', 'textarea'],
+                ['routes', 'Route Coverage Plan', 'textarea'],
+                ['insurance', 'Insurance / Vehicle Evidence', 'upload']
+            ]
+        };
+    }
+    return null;
+}
+
+function renderServiceBidCategoryResponse(tender = {}, draft = {}) {
+    const fields = tender.requirements?.fields || {};
+    const category = fields.serviceCategory || tender.category || tender.type || '';
+    const config = getServiceBidCategoryConfig(category);
+    if (!config) return '';
+    return `
+        <section class="service-response-section service-category-response">
+            <div class="bid-dynamic-group-heading">
+                <div>
+                    <h3>${escapeBidWorkspaceHtml(config.title)}</h3>
+                    <p>Respond directly to the category-specific buyer requirements for ${escapeBidWorkspaceHtml(category)}.</p>
+                </div>
+                <span class="badge badge-warning">Category response</span>
+            </div>
+            <div class="service-category-context-grid">
+                ${config.buyerFields.map(([label, key]) => `
+                    <article>
+                        <span>${escapeBidWorkspaceHtml(label)}</span>
+                        <strong>${escapeBidWorkspaceHtml(fields[key] || 'Not specified')}</strong>
+                    </article>
+                `).join('')}
+            </div>
+            <div class="form-grid two">
+                ${config.responses.map(([key, label, type]) => {
+                    const responseId = `service-category-${key}`;
+                    if (type === 'upload') {
+                        return `<div class="form-group wide">${renderBidWorkspaceUploadControl(responseId, draft, label, '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png', false)}</div>`;
+                    }
+                    if (type === 'number') {
+                        return `<div class="form-group"><label class="form-label">${escapeBidWorkspaceHtml(label)}</label><input class="form-input" type="number" min="0" data-bid-response="${responseId}" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, responseId))}"></div>`;
+                    }
+                    if (type === 'input') {
+                        return `<div class="form-group"><label class="form-label">${escapeBidWorkspaceHtml(label)}</label><input class="form-input" data-bid-response="${responseId}" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, responseId))}"></div>`;
+                    }
+                    return `<div class="form-group wide"><label class="form-label">${escapeBidWorkspaceHtml(label)}</label><textarea class="form-input" rows="3" data-bid-response="${responseId}" data-bid-workflow-required-response="true">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, responseId))}</textarea></div>`;
+                }).join('')}
+            </div>
+        </section>
+    `;
+}
+
 function renderServiceBidMethodology(tender = {}, draft = {}) {
     const fields = tender.requirements?.fields || {};
     const blocks = [
         ['understanding', 'Understanding of Service', fields.scopeOfServices || tender.description || 'Explain the buyer service need and operational context.'],
         ['methodology', 'Service Delivery Methodology', 'Describe how the service will be delivered, controlled, supervised, and improved.'],
-        ['work-plan', 'Approach & Work Plan', 'Describe mobilization, handover, recurring activities, quality checks, and closure.'],
+        ['work-plan', 'Approach and Work Plan', 'Describe mobilization, handover, recurring activities, quality checks, and closure.'],
         ['quality', 'Quality Assurance Approach', 'Describe inspection, review, acceptance, and corrective action controls.'],
         ['reporting', 'Reporting Method', fields.reportingRequirements || 'Describe reports, dashboards, data sources, and buyer communication rhythm.'],
         ['risk', 'Risk Management Approach', fields.riskAssessmentRequirement || 'Describe risks, mitigation, escalation, and continuity controls.']
@@ -1846,6 +2688,7 @@ function renderServiceBidMethodology(tender = {}, draft = {}) {
     const deliverables = fields.serviceDeliverables || tender.deliverables?.map(text => ({ text })) || [];
     return `
         <div class="service-workbook">
+            ${renderServiceBidCategoryResponse(tender, draft)}
             <section class="service-response-section">
                 <div class="bid-dynamic-group-heading">
                     <div>
@@ -1967,8 +2810,9 @@ function renderServiceBidStaffingCapacity(tender = {}, draft = {}) {
                     </div>
                     <span class="badge badge-warning">${personnelRows.length} roles</span>
                 </div>
-                <div class="service-staffing-grid">
-                    ${personnelRows.map((person, index) => {
+                ${personnelRows.length ? `
+                    <div class="service-staffing-grid">
+                        ${personnelRows.map((person, index) => {
                         const baseId = `service-staff-${index}`;
                         const role = person.position || person.role || person.staffRole || `Service role ${index + 1}`;
                         const required = person.mandatory !== false;
@@ -1993,7 +2837,8 @@ function renderServiceBidStaffingCapacity(tender = {}, draft = {}) {
                             </article>
                         `;
                     }).join('')}
-                </div>
+                    </div>
+                ` : '<div class="scope-empty">No personnel requirements configured for this tender.</div>'}
             </section>
             ${equipmentRows.length ? `
                 <section class="service-response-section">
@@ -2047,7 +2892,7 @@ function renderServiceBidSlaReportingCompliance(tender = {}, draft = {}) {
         <div class="service-workbook">
             <section class="service-response-section">
                 <div class="bid-dynamic-group-heading">
-                    <div><h3>Performance & SLA response</h3><p>Accept SLA requirements, map KPI commitments, penalties, reporting cadence, and escalation controls.</p></div>
+                    <div><h3>Performance and SLA response</h3><p>Accept SLA requirements, map KPI commitments, penalties, reporting cadence, and escalation controls.</p></div>
                     <span class="badge badge-warning">SLA required</span>
                 </div>
                 <div class="service-sla-timer-grid">
@@ -2078,7 +2923,7 @@ function renderServiceBidSlaReportingCompliance(tender = {}, draft = {}) {
             </section>
             <section class="service-response-section">
                 <div class="bid-dynamic-group-heading">
-                    <div><h3>Reporting & communication plan</h3><p>${escapeBidWorkspaceHtml(fields.reportingRequirements || 'Define reporting format, channels, templates, escalation, and meetings.')}</p></div>
+                    <div><h3>Reporting and communication plan</h3><p>${escapeBidWorkspaceHtml(fields.reportingRequirements || 'Define reporting format, channels, templates, escalation, and meetings.')}</p></div>
                     <span class="badge badge-info">Continuous reporting</span>
                 </div>
                 <div class="form-grid two">
@@ -2098,7 +2943,7 @@ function renderServiceBidSlaReportingCompliance(tender = {}, draft = {}) {
                     ${(esCards.length ? esCards : [
                         { category: 'Labor Compliance', description: 'Formal employment and lawful labor practices.', mandatory: true },
                         { category: 'Worker Safety', description: 'Workplace safety measures and PPE.', mandatory: true },
-                        { category: 'Gender & Inclusion', description: 'Inclusion policy and fair treatment.', mandatory: false },
+                        { category: 'Gender and Inclusion', description: 'Inclusion policy and fair treatment.', mandatory: false },
                         { category: 'Environmental Policy', description: 'Environmental controls for service delivery.', mandatory: false }
                     ]).map((card, index) => {
                         const baseId = `service-esg-${index}`;
@@ -2145,30 +2990,32 @@ function renderServiceBidSlaReportingCompliance(tender = {}, draft = {}) {
 
 function renderServiceBidPricingRows(tender = {}, profile = {}, draft = {}) {
     const rows = getServiceBidCommercialRows(tender, profile);
-    if (!rows.length) return '<tr><td colspan="8">No service pricing schedule configured.</td></tr>';
+    if (!rows.length) return '<tr><td colspan="7">No service pricing schedule configured.</td></tr>';
     return rows.map((item, index) => {
         const baseId = `service-price-${index}`;
         const qty = parseBidWorkspaceNumber(item.qty || item.quantity) || 1;
-        const unit = item.unit || item.unitOfMeasure || 'Unit';
+        const frequency = item.frequency || item.unit || item.unitOfMeasure || 'Monthly';
         const buyerRate = parseBidWorkspaceNumber(item.rate || item.unitPrice || item.amount);
-        const unitRate = getBidWorkspaceSavedResponse(draft, `${baseId}-unit-rate`) || (buyerRate ? Math.round(buyerRate * 0.98) : '');
+        const monthlyRate = getBidWorkspaceSavedResponse(draft, `${baseId}-monthly-rate`) || (buyerRate ? Math.round(buyerRate * 0.98) : '');
+        const equipmentCost = getBidWorkspaceSavedResponse(draft, `${baseId}-equipment-cost`) || '';
+        const staffCount = getBidWorkspaceSavedResponse(draft, `${baseId}-staff-count`) || item.staffCount || '';
         return `
             <tr class="service-pricing-row">
-                <td>${escapeBidWorkspaceHtml(item.item || `${index + 1}.1`)}</td>
-                <td><strong>${escapeBidWorkspaceHtml(item.description || item.serviceTask || `Service line ${index + 1}`)}</strong><small>${qty} ${escapeBidWorkspaceHtml(unit)}</small></td>
-                <td data-bid-line-qty>${qty}</td>
-                <td>${escapeBidWorkspaceHtml(unit)}</td>
-                <td><select class="form-input" data-bid-response="${baseId}-model" data-bid-workflow-required-response="true"><option value="">Select</option>${['Monthly Retainer', 'Unit Rate', 'Lump Sum', 'Hybrid', 'SLA-based'].map(option => `<option ${getBidWorkspaceSavedResponse(draft, `${baseId}-model`) === option ? 'selected' : ''}>${option}</option>`).join('')}</select></td>
-                <td><input class="form-input boq-input boq-number" type="number" min="0" step="1000" data-bid-rate data-bid-response="${baseId}-unit-rate" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(unitRate)}"></td>
-                <td><input class="form-input" data-bid-response="${baseId}-discount" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-discount`))}" placeholder="%"></td>
-                <td data-bid-line-amount>${formatBidWorkspaceMoney(qty * parseBidWorkspaceNumber(unitRate))}</td>
+                <td>${escapeBidWorkspaceHtml(item.item || item.category || `${index + 1}.1`)}</td>
+                <td><strong>${escapeBidWorkspaceHtml(item.description || item.serviceTask || `Service line ${index + 1}`)}</strong><small>${escapeBidWorkspaceHtml(item.slaLink || item.notes || 'Service pricing line')}</small></td>
+                <td><input class="form-input" data-bid-response="${baseId}-frequency" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-frequency`) || frequency)}"></td>
+                <td><input class="form-input" type="number" min="0" data-bid-line-qty data-bid-response="${baseId}-staff-count" value="${escapeBidWorkspaceHtml(staffCount || qty)}"></td>
+                <td><input class="form-input boq-input boq-number" type="number" min="0" step="1000" data-bid-rate data-bid-response="${baseId}-monthly-rate" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(monthlyRate)}"></td>
+                <td><input class="form-input" type="number" min="0" step="1000" data-bid-line-extra-cost data-bid-response="${baseId}-equipment-cost" value="${escapeBidWorkspaceHtml(equipmentCost)}"></td>
+                <td data-bid-line-amount>${formatBidWorkspaceMoney(((parseBidWorkspaceNumber(staffCount || qty) || 1) * parseBidWorkspaceNumber(monthlyRate)) + parseBidWorkspaceNumber(equipmentCost))}</td>
             </tr>
             <tr class="service-price-detail-row">
                 <td></td>
-                <td colspan="7">
+                <td colspan="6">
                     <div class="works-cost-grid service-cost-grid">
-                        <div class="form-group"><label class="form-label">Monthly Service Fee</label><input class="form-input" type="number" min="0" step="1000" data-bid-response="${baseId}-monthly-fee" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-monthly-fee`))}"></div>
+                        <div class="form-group"><label class="form-label">Pricing Model</label><select class="form-input" data-bid-response="${baseId}-model" data-bid-workflow-required-response="true"><option value="">Select</option>${['Monthly Retainer', 'Unit Rate', 'Lump Sum', 'Hybrid', 'SLA-based'].map(option => `<option ${getBidWorkspaceSavedResponse(draft, `${baseId}-model`) === option ? 'selected' : ''}>${option}</option>`).join('')}</select></div>
                         <div class="form-group"><label class="form-label">VAT / Taxes Included</label><select class="form-input" data-bid-response="${baseId}-tax-included" data-bid-workflow-required-response="true"><option value="">Select</option>${['Yes', 'No'].map(option => `<option ${getBidWorkspaceSavedResponse(draft, `${baseId}-tax-included`) === option ? 'selected' : ''}>${option}</option>`).join('')}</select></div>
+                        <div class="form-group"><label class="form-label">Discount</label><input class="form-input" data-bid-response="${baseId}-discount" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-discount`))}" placeholder="%"></div>
                         <div class="form-group"><label class="form-label">SLA Cost Linkage</label><input class="form-input" data-bid-response="${baseId}-sla-link" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-sla-link`))}" placeholder="KPI or SLA metric"></div>
                         <div class="form-group wide"><label class="form-label">Cost Breakdown</label><textarea class="form-input" rows="2" data-bid-response="${baseId}-breakdown">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-breakdown`))}</textarea></div>
                         <div class="form-group wide"><label class="form-label">Payment Milestones</label><textarea class="form-input" rows="2" data-bid-response="${baseId}-payment-milestones">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-payment-milestones`))}</textarea></div>
@@ -2205,6 +3052,206 @@ function renderServiceBidDeclaration(draft = {}) {
     `;
 }
 
+function renderConsultancyBidTorWorkbook(tender = {}, draft = {}) {
+    const fields = tender.requirements?.fields || {};
+    const objectiveRows = normalizeBidWorkspaceArray(fields.consultancySpecificObjectives);
+    const activityRows = normalizeBidWorkspaceArray(fields.consultancyAssignmentActivities);
+    const deliverableRows = normalizeBidWorkspaceArray(fields.consultancyDeliverables);
+    const expertRows = normalizeBidWorkspaceArray(fields.consultancyKeyExperts);
+    const supportingRows = normalizeBidWorkspaceArray(fields.consultancySupportingDocuments);
+    return `
+        <div class="consultancy-tor-workbook">
+            <section class="bid-dynamic-group consultancy-tor-section">
+                <div class="bid-dynamic-group-heading">
+                    <div>
+                        <h3>Terms of reference understanding</h3>
+                        <p>${escapeBidWorkspaceHtml(fields.consultancyGeneralObjective || fields.consultancyEntityBackground || tender.description || 'Respond to the buyer terms of reference.')}</p>
+                    </div>
+                    <span class="badge badge-warning">TOR response</span>
+                </div>
+                <div class="form-grid two">
+                    <div class="form-group wide"><label class="form-label">Understanding of Assignment</label><textarea class="form-input works-rich-textarea" rows="5" data-bid-response="consultancy-tor-understanding" data-bid-workflow-required-response="true">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'consultancy-tor-understanding'))}</textarea></div>
+                    <div class="form-group wide"><label class="form-label">Methodology and Approach</label><textarea class="form-input works-rich-textarea" rows="5" data-bid-response="consultancy-tor-methodology" data-bid-workflow-required-response="true">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'consultancy-tor-methodology'))}</textarea></div>
+                    <div class="form-group wide"><label class="form-label">Work Plan and Assignment Boundaries</label><textarea class="form-input" rows="3" data-bid-response="consultancy-tor-workplan" data-bid-workflow-required-response="true">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'consultancy-tor-workplan') || fields.consultancyAssignmentBoundaries || '')}</textarea></div>
+                    <div class="form-group wide">${renderBidWorkspaceUploadControl('consultancy-technical-proposal-upload', draft, 'Upload technical proposal', '.pdf,.doc,.docx', true)}</div>
+                </div>
+            </section>
+            <section class="bid-dynamic-group consultancy-tor-section">
+                <div class="bid-dynamic-group-heading">
+                    <div><h3>Objectives and activities response</h3><p>Map each TOR objective or activity to the proposed response, assumptions, and evidence.</p></div>
+                    <span class="badge badge-info">${objectiveRows.length + activityRows.length || 1} items</span>
+                </div>
+                <div class="data-table">
+                    <table>
+                        <thead><tr><th>TOR Item</th><th>Supplier Response</th><th>Evidence / Assumption</th></tr></thead>
+                        <tbody>
+                            ${(objectiveRows.length || activityRows.length ? [...objectiveRows, ...activityRows] : ['Assignment objective']).map((item, index) => {
+                                const baseId = `consultancy-objective-${index}`;
+                                const title = typeof item === 'string' ? item : (item.objective || item.activity || item.description || `TOR item ${index + 1}`);
+                                return `
+                                    <tr>
+                                        <td>${escapeBidWorkspaceHtml(title)}</td>
+                                        <td><textarea class="form-input" rows="2" data-bid-response="${baseId}-response" data-bid-workflow-required-response="true">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-response`))}</textarea></td>
+                                        <td><input class="form-input" data-bid-response="${baseId}-evidence" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-evidence`))}"></td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            <section class="bid-dynamic-group consultancy-tor-section">
+                <div class="bid-dynamic-group-heading">
+                    <div><h3>Deliverables and reporting schedule</h3><p>${escapeBidWorkspaceHtml(fields.consultancyReportingRequirements || 'Propose dates, owners, acceptance evidence, and reporting arrangements.')}</p></div>
+                    <span class="badge badge-warning">${deliverableRows.length || 1} deliverable${deliverableRows.length === 1 ? '' : 's'}</span>
+                </div>
+                <div class="data-table">
+                    <table>
+                        <thead><tr><th>Deliverable</th><th>Proposed Due Date</th><th>Acceptance Evidence</th><th>Responsible Expert</th></tr></thead>
+                        <tbody>
+                            ${(deliverableRows.length ? deliverableRows : ['Inception report', 'Draft final report', 'Final report']).map((item, index) => {
+                                const baseId = `consultancy-deliverable-${index}`;
+                                const title = typeof item === 'string' ? item : (item.deliverableName || item.description || `Deliverable ${index + 1}`);
+                                return `
+                                    <tr>
+                                        <td>${escapeBidWorkspaceHtml(title)}</td>
+                                        <td><input class="form-input" type="date" data-bid-response="${baseId}-date" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-date`))}"></td>
+                                        <td><input class="form-input" data-bid-response="${baseId}-evidence" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-evidence`))}"></td>
+                                        <td><input class="form-input" data-bid-response="${baseId}-expert" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-expert`))}"></td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            <section class="bid-dynamic-group consultancy-tor-section">
+                <div class="bid-dynamic-group-heading">
+                    <div><h3>Expert team and firm experience</h3><p>${escapeBidWorkspaceHtml(fields.consultancyFirmExperience || fields.consultancyIndividualQualifications || 'Provide expert CVs, firm experience, roles, availability, and reporting structure.')}</p></div>
+                    <span class="badge badge-warning">${expertRows.length || 2} experts</span>
+                </div>
+                <div class="service-staffing-grid">
+                    ${(expertRows.length ? expertRows : ['Team Leader', 'Subject Matter Expert']).map((item, index) => {
+                        const baseId = `consultancy-expert-${index}`;
+                        const title = typeof item === 'string' ? item : (item.position || item.role || item.expertRole || `Expert ${index + 1}`);
+                        return `
+                            <article class="service-staff-card">
+                                <div class="works-person-avatar">${escapeBidWorkspaceHtml(String(title).slice(0, 1).toUpperCase())}</div>
+                                <div>
+                                    <span class="section-kicker">${escapeBidWorkspaceHtml(title)}</span>
+                                    <div class="form-grid two">
+                                        <div class="form-group"><label class="form-label">Expert Name</label><input class="form-input" data-bid-response="${baseId}-name" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-name`))}"></div>
+                                        <div class="form-group"><label class="form-label">Role / Level of Effort</label><input class="form-input" data-bid-response="${baseId}-effort" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-effort`))}"></div>
+                                        <div class="form-group"><label class="form-label">Relevant Experience</label><input class="form-input" data-bid-response="${baseId}-experience" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-experience`))}"></div>
+                                        <div class="form-group">${renderBidWorkspaceUploadControl(`${baseId}-cv`, draft, 'Upload CV', '.pdf,.doc,.docx', true)}</div>
+                                    </div>
+                                </div>
+                            </article>
+                        `;
+                    }).join('')}
+                </div>
+            </section>
+            <section class="bid-dynamic-group consultancy-tor-section">
+                <div class="bid-dynamic-group-heading">
+                    <div><h3>Responsibilities, coordination, and supporting documents</h3><p>${escapeBidWorkspaceHtml(fields.consultancyCoordinationArrangements || fields.consultancyAdministrativeArrangements || 'Confirm responsibilities, reporting lines, and supporting documents.')}</p></div>
+                    <span class="badge badge-info">Coordination</span>
+                </div>
+                <div class="form-grid two">
+                    <div class="form-group wide"><label class="form-label">Consultant Responsibilities Response</label><textarea class="form-input" rows="3" data-bid-response="consultancy-responsibilities" data-bid-workflow-required-response="true">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'consultancy-responsibilities') || fields.consultancyConsultantResponsibilities || '')}</textarea></div>
+                    <div class="form-group wide"><label class="form-label">Procuring Entity Dependencies</label><textarea class="form-input" rows="2" data-bid-response="consultancy-buyer-dependencies">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'consultancy-buyer-dependencies') || fields.consultancyProcuringEntityResponsibilities || '')}</textarea></div>
+                    <div class="form-group wide"><label class="form-label">Reporting Structure</label><textarea class="form-input" rows="2" data-bid-response="consultancy-reporting-structure">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'consultancy-reporting-structure') || fields.consultancyReportingStructure || '')}</textarea></div>
+                    ${(supportingRows.length ? supportingRows : ['Firm profile', 'Relevant assignment references']).map((item, index) => `
+                        <div class="form-group">${renderBidWorkspaceUploadControl(`consultancy-supporting-${index}`, draft, typeof item === 'string' ? item : (item.documentName || item.title || `Supporting document ${index + 1}`), '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png', index === 0)}</div>
+                    `).join('')}
+                </div>
+            </section>
+        </div>
+    `;
+}
+
+function renderConsultancyBidPricingRows(items = [], draft = {}) {
+    if (!items.length) return '<tr><td colspan="8">No consultancy pricing schedule configured.</td></tr>';
+    return items.map((item, index) => {
+        const baseId = `consultancy-price-${index}`;
+        const qty = parseBidWorkspaceNumber(item.qty || item.quantity || item.duration) || 1;
+        const rate = getBidWorkspaceSavedResponse(draft, `${baseId}-rate`) || Math.round(parseBidWorkspaceNumber(item.rate || item.unitPrice || item.amount) * 0.98);
+        return `
+            <tr>
+                <td>${escapeBidWorkspaceHtml(item.item || `${index + 1}.1`)}</td>
+                <td><strong>${escapeBidWorkspaceHtml(item.description || item.deliverableName || item.serviceTask || `Consultancy line ${index + 1}`)}</strong><small>${escapeBidWorkspaceHtml(item.expertRole || item.category || 'Professional fees / reimbursables')}</small></td>
+                <td><input class="form-input" type="number" min="0" step="0.5" data-bid-line-qty data-bid-response="${baseId}-person-days" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-person-days`) || qty)}"></td>
+                <td><input class="form-input boq-input boq-number" type="number" min="0" step="1000" data-bid-rate data-bid-response="${baseId}-rate" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(rate)}"></td>
+                <td><input class="form-input" type="number" min="0" step="1000" data-bid-line-extra-cost data-bid-response="${baseId}-reimbursables" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-reimbursables`))}"></td>
+                <td><input class="form-input" data-bid-response="${baseId}-tax" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-tax`))}" placeholder="Tax / VAT"></td>
+                <td><input class="form-input" data-bid-response="${baseId}-assumption" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-assumption`))}" placeholder="Assumption"></td>
+                <td data-bid-line-amount>${formatBidWorkspaceMoney((qty * parseBidWorkspaceNumber(rate)) + parseBidWorkspaceNumber(getBidWorkspaceSavedResponse(draft, `${baseId}-reimbursables`)))}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function renderConsultancyBidCommercialTerms(draft = {}) {
+    return `
+        <section class="bid-dynamic-group">
+            <div class="bid-dynamic-group-heading">
+                <div><h3>Consultancy commercial terms</h3><p>Confirm fee basis, expenses, taxes, validity, and payment milestone assumptions.</p></div>
+                <span class="badge badge-warning">Response required</span>
+            </div>
+            <div class="form-grid two">
+                <div class="form-group"><label class="form-label">Fee Basis</label><select class="form-input" data-bid-response="consultancy-commercial-fee-basis" data-bid-workflow-required-response="true"><option value="">Select</option>${['Time based', 'Lump sum', 'Milestone based', 'Retainer'].map(option => `<option ${getBidWorkspaceSavedResponse(draft, 'consultancy-commercial-fee-basis') === option ? 'selected' : ''}>${option}</option>`).join('')}</select></div>
+                <div class="form-group"><label class="form-label">Price Validity (days)</label><input class="form-input" type="number" min="1" data-bid-response="consultancy-commercial-validity" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'consultancy-commercial-validity') || 90)}"></div>
+                <div class="form-group wide"><label class="form-label">Payment Milestone Assumptions</label><textarea class="form-input" rows="2" data-bid-response="consultancy-commercial-payment">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'consultancy-commercial-payment'))}</textarea></div>
+                <label class="bid-response-check"><input type="checkbox" data-bid-response="consultancy-commercial-tax-confirm" data-bid-workflow-required-response="true" ${getBidWorkspaceSavedResponse(draft, 'consultancy-commercial-tax-confirm') === true || getBidWorkspaceSavedResponse(draft, 'consultancy-commercial-tax-confirm') === 'true' ? 'checked' : ''}><span>I confirm taxes, reimbursables, and professional fees are reflected in the financial offer.</span></label>
+            </div>
+        </section>
+    `;
+}
+
+function renderBidWorkspaceCompletenessChecklist(tender = {}, profile = {}, draft = {}, context = {}) {
+    const typeId = profile.id || getBidWorkspaceTypeId(tender);
+    const stepOneCount = context.stepOneRequirements?.length || 0;
+    const dynamicCount = context.dynamicRequirements?.filter(isBidWorkspaceResponseRequirement).length || 0;
+    const commercialCount = context.commercialItems?.length || 0;
+    const checklist = [
+        ['Eligibility documents', stepOneCount ? `${stepOneCount} gate item${stepOneCount === 1 ? '' : 's'} reviewed` : 'No eligibility gate items configured'],
+        ['Technical response', dynamicCount ? `${dynamicCount} response item${dynamicCount === 1 ? '' : 's'} plus category workbook` : 'Structured technical workbook reviewed'],
+        ['Financial offer', commercialCount ? `${commercialCount} pricing line${commercialCount === 1 ? '' : 's'} reviewed` : 'No pricing lines configured'],
+        ['Evaluation criteria evidence', (tender.evaluation?.criteria || []).length ? `${tender.evaluation.criteria.length} criteria checked` : 'No scoring criteria published'],
+        ['Financial capacity', getBidWorkspaceFinancialCapacityRows(tender).length ? 'Capacity matrix completed' : 'No financial capacity matrix configured'],
+        ['Contract clauses', getBidWorkspaceContractClauses(tender).length ? 'Contract clause acknowledgement completed' : 'No contract clauses configured'],
+        ['Samples / site / category extras', typeId === 'goods'
+            ? (isGoodsBidSamplesRequired(tender) ? `${getGoodsBidSampleRows(tender).length} sample response${getGoodsBidSampleRows(tender).length === 1 ? '' : 's'} checked` : 'Samples not required')
+            : typeId === 'works'
+                ? 'Site visit and drawings response checked'
+                : typeId === 'services'
+                    ? 'Service category, SLA, staffing, and reporting checked'
+                    : 'Consultancy TOR and expert response checked']
+    ];
+    return `
+        <section class="bid-dynamic-group bid-validation-checklist">
+            <div class="bid-dynamic-group-heading">
+                <div>
+                    <h3>Bid validation checklist</h3>
+                    <p>Confirm the bid package is complete before the declaration and sealed submission.</p>
+                </div>
+                <span class="badge badge-warning">${checklist.length} checks</span>
+            </div>
+            <div class="bid-completeness-list">
+                ${checklist.map(([label, note]) => `
+                    <article class="bid-completeness-item">
+                        <strong>${escapeBidWorkspaceHtml(label)}</strong>
+                        <span>${escapeBidWorkspaceHtml(note)}</span>
+                    </article>
+                `).join('')}
+            </div>
+            <label class="bid-response-check">
+                <input type="checkbox" data-bid-response="bid-validation-checklist-confirm" data-bid-workflow-required-response="true" ${getBidWorkspaceSavedResponse(draft, 'bid-validation-checklist-confirm') === true || getBidWorkspaceSavedResponse(draft, 'bid-validation-checklist-confirm') === 'true' ? 'checked' : ''}>
+                <span>I have reviewed the validation checklist and corrected any incomplete bid sections.</span>
+            </label>
+        </section>
+    `;
+}
+
 function renderBiddingWorkspace() {
     const tender = getBidWorkspaceTender();
     const profile = getBidWorkspaceProfile(tender);
@@ -2235,14 +3282,17 @@ function renderBiddingWorkspace() {
     const worksFlow = profile.id === 'works';
     const serviceFlow = profile.id === 'services';
     const hasGoodsSamples = goodsFlow && isGoodsBidSamplesRequired(tender);
+    const goodsProductSpecStats = goodsFlow
+        ? getBidWorkspaceTendererCsvTemplateStats(tender)
+        : { hasBuyerSpecificationRows: false, rowCount: 0 };
     const steps = goodsFlow
         ? [
             ['01', 'Eligibility and Document Requirements', 'Licenses, certifications, submission files, and document uploads'],
             ['02', 'Technical Response', 'Fill the buyer product specification table'],
             ['03', 'Financial Offer', 'Quantity schedule, delivery, and commercial terms'],
             ...(hasGoodsSamples ? [['04', 'Samples', 'Sample dispatch and delivery evidence']] : []),
-            [hasGoodsSamples ? '05' : '04', 'Review & Validate', 'Check missing responses before declaration'],
-            [hasGoodsSamples ? '06' : '05', 'Declaration & Submit', 'Digital declaration and sealed submission']
+            [hasGoodsSamples ? '05' : '04', 'Review and Validate', 'Check missing responses before declaration'],
+            [hasGoodsSamples ? '06' : '05', 'Declaration and Submit', 'Digital declaration and sealed submission']
         ]
         : worksFlow
             ? [
@@ -2250,24 +3300,24 @@ function renderBiddingWorkspace() {
                 ['02', 'Technical Capacity', 'Experience, personnel, equipment, finance, and HSE'],
                 ['03', 'Technical Proposal', 'Methodology, schedule, drawings, and site response'],
                 ['04', 'Financial Proposal', 'BOQ pricing, cost breakdown, and commercial terms'],
-                ['05', 'Review & Validation', 'Check missing contractor response items'],
-                ['06', 'Declaration & Submission', 'Digital signing and final submission']
+                ['05', 'Review and Validation', 'Check missing contractor response items'],
+                ['06', 'Declaration and Submission', 'Digital signing and final submission']
             ]
             : serviceFlow
                 ? [
                     ['01', 'Eligibility and Document Requirements', 'Licenses, certifications, submission files, and document uploads'],
                     ['02', 'Methodology', 'Service understanding, workflow, QA, and risk approach'],
                     ['03', 'Delivery Plan', 'Schedule, locations, SLA timers, and milestones'],
-                    ['04', 'Staffing & Capacity', 'People, equipment, finance, and service capability'],
-                    ['05', 'SLA & Reporting', 'Performance metrics, reporting, ESG, and documents'],
+                    ['04', 'Staffing and Capacity', 'People, equipment, finance, and service capability'],
+                    ['05', 'SLA and Reporting', 'Performance metrics, reporting, ESG, and documents'],
                     ['06', 'Pricing', 'Service schedule, SLA-linked pricing, and commercial terms'],
-                    ['07', 'Review & Submit', 'Validate, declare, and submit service bid']
+                    ['07', 'Review and Submit', 'Validate, declare, and submit service bid']
                 ]
         : [
         ['01', 'Eligibility and Document Requirements', 'Licenses, certifications, submission files, and document uploads'],
         ['02', 'Dynamic Responses', 'Answer optional and technical tender requirements'],
         ['03', 'Financial Offer', `${profile.commercialName} rates and commercial schedule`],
-        ['04', 'Review & Submit', 'Validate, declare, and submit sealed bid'],
+        ['04', 'Review and Submit', 'Validate, declare, and submit sealed bid'],
         ['05', 'Receipt', 'Bid hash and post-submission actions']
     ];
 
@@ -2279,10 +3329,10 @@ function renderBiddingWorkspace() {
                     <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${escapeBidWorkspaceHtml(tender.title)}</div>
                 </div>
                 <ul class="sidebar-nav">
-                    <li><a href="#" data-navigate="supplier-tender-detail">Tender Detail</a></li>
+                    <li><a href="#" data-navigate="tender-detail">Tender Detail</a></li>
                     <li><a href="#" data-navigate="communication-center">Communication Center</a></li>
-                    <li><a href="#" data-navigate="supplier-marketplace">Marketplace</a></li>
-                    <li><a href="#" data-navigate="supplier-journey">Supplier Journey</a></li>
+                    <li><a href="#" data-navigate="marketplace">Marketplace</a></li>
+                    <li><a href="#" data-navigate="procurement-guide">Procurement Process Guide</a></li>
                     <li><a href="#" data-navigate="welcome">Logout</a></li>
                 </ul>
             </div>
@@ -2340,21 +3390,23 @@ function renderBiddingWorkspace() {
                                             ? `Complete ${mandatoryGateCount} mandatory eligibility item${mandatoryGateCount === 1 ? '' : 's'} to unlock the bid workflow.`
                                             : 'No mandatory eligibility upload is required for this tender. Optional documents can be attached here before continuing.'}
                                 </div>
-                                ${renderBidWorkspaceMandatoryGate(stepOneRequirements, draft)}
+                                ${renderBidWorkspaceMandatoryGate(stepOneRequirements, draft, tender)}
+                                ${renderBidWorkspaceFinancialCapacityMatrix(tender, draft)}
                             </section>
 
                             ${goodsFlow ? `
                             <section class="journey-panel" id="bid-step-2">
                                 <div class="panel-heading">
                                     <div><span class="section-kicker">Step 2</span><h2>Technical Response</h2></div>
-                                    <span class="badge badge-warning">${normalizeBidWorkspaceProductSpecificationTemplate(tender).rows.length} product rows</span>
+                                    <span class="badge badge-warning">${goodsProductSpecStats.rowCount} product row${goodsProductSpecStats.rowCount === 1 ? '' : 's'}</span>
                                 </div>
                                 <div class="bid-step-intro">
-                                    <strong>Complete the buyer's specification table</strong>
-                                    <span>Fill in your offered product specification against the buyer's required format. Do not change buyer columns, required rows, or the template structure.</span>
+                                    <strong>${goodsProductSpecStats.hasBuyerSpecificationRows ? `Complete the buyer's specification table` : 'Comment on each requested goods item'}</strong>
+                                    <span>${goodsProductSpecStats.hasBuyerSpecificationRows ? `Fill in your offered product specification against the buyer's required format. Do not change buyer columns, required rows, or the template structure.` : 'The buyer did not add item-specific specifications, so each quantity schedule item is shown for your offered specification, comments, and supporting evidence.'}</span>
                                 </div>
                                 ${renderBidWorkspaceTendererCsvTemplatePanel(tender)}
                                 ${renderBidWorkspaceClarificationPrompt('Need clarification about product specifications?', 'Technical', 'Question about goods product specifications or compliance')}
+                                ${renderBidWorkspaceScoringGuidance(tender, profile, draft, 'goods-evaluation')}
                                 ${renderGoodsBidProductSpecificationResponse(tender, draft)}
                             </section>
 
@@ -2402,13 +3454,13 @@ function renderBiddingWorkspace() {
 
                             <section class="journey-panel" id="bid-step-${hasGoodsSamples ? '5' : '4'}">
                                 <div class="panel-heading">
-                                    <div><span class="section-kicker">Step ${hasGoodsSamples ? '5' : '4'}</span><h2>Review & Validate</h2></div>
+                                    <div><span class="section-kicker">Step ${hasGoodsSamples ? '5' : '4'}</span><h2>Review and Validate</h2></div>
                                     <span class="badge badge-info" data-bid-review-total>${formatBidWorkspaceMoney(bidAmount)}</span>
                                 </div>
                                 <div class="record-summary evaluation-dashboard">
                                     <div><span>Bidder</span><strong>${escapeBidWorkspaceHtml(mockData.users?.supplier?.organization || 'Supplier organization')}</strong></div>
                                     <div><span>Eligibility status</span><strong data-bid-gate-summary>Pending validation</strong></div>
-                                    <div><span>Product specification status</span><strong>${normalizeBidWorkspaceProductSpecificationTemplate(tender).rows.length} required rows</strong></div>
+                                    <div><span>Product specification status</span><strong>${goodsProductSpecStats.rowCount} response row${goodsProductSpecStats.rowCount === 1 ? '' : 's'}</strong></div>
                                     <div><span>Quantity schedule</span><strong>${getGoodsBidQuantityRows(tender).length} priced lines</strong></div>
                                     <div class="${hasGoodsSamples ? '' : 'not-required'}"><span>Samples</span><strong>${hasGoodsSamples ? `${getGoodsBidSampleRows(tender).length} required` : 'Not required'}</strong></div>
                                     <div><span>Deadline</span><strong>${escapeBidWorkspaceHtml(tender.closingDate)}</strong></div>
@@ -2419,13 +3471,15 @@ function renderBiddingWorkspace() {
                                     <strong>Evaluation dashboard</strong>
                                     <span>Review the submitted bid package, confirm captured responses, and assess the bidder against the tender requirements.</span>
                                 </div>
+                                ${renderBidWorkspaceContractTerms(tender, profile, draft)}
+                                ${renderBidWorkspaceCompletenessChecklist(tender, profile, draft, { stepOneRequirements, dynamicRequirements, commercialItems })}
                                 <section class="bid-response-review" data-bid-response-review>
                                     ${renderBidWorkspaceResponseReviewPlaceholder()}
                                 </section>
                             </section>
 
                             <section class="journey-panel" id="bid-step-${hasGoodsSamples ? '6' : '5'}">
-                                <div class="panel-heading"><div><span class="section-kicker">Step ${hasGoodsSamples ? '6' : '5'}</span><h2>Supplier Declaration & Submit</h2></div><span class="badge badge-success">Final step</span></div>
+                                <div class="panel-heading"><div><span class="section-kicker">Step ${hasGoodsSamples ? '6' : '5'}</span><h2>Supplier Declaration and Submit</h2></div><span class="badge badge-success">Final step</span></div>
                                 <div class="form-grid two">
                                     <div class="form-group"><label class="form-label">Authorized Representative Name</label><input class="form-input" data-bid-response="goods-declaration-representative" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'goods-declaration-representative'))}"></div>
                                     <div class="form-group"><label class="form-label">Position / Title</label><input class="form-input" data-bid-response="goods-declaration-position" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'goods-declaration-position'))}"></div>
@@ -2455,7 +3509,7 @@ function renderBiddingWorkspace() {
                             ` : worksFlow ? `
                             <section class="journey-panel" id="bid-step-2">
                                 <div class="panel-heading">
-                                    <div><span class="section-kicker">Step 2</span><h2>Technical Capacity & Experience</h2></div>
+                                    <div><span class="section-kicker">Step 2</span><h2>Technical Capacity and Experience</h2></div>
                                     <span class="badge badge-warning">Contractor capability</span>
                                 </div>
                                 <div class="bid-step-intro">
@@ -2463,12 +3517,13 @@ function renderBiddingWorkspace() {
                                     <span>Prove relevant experience, available personnel, equipment capacity, financial capacity, and HSE readiness before writing the execution proposal.</span>
                                 </div>
                                 ${renderBidWorkspaceClarificationPrompt('Need clarification about personnel, equipment, experience, or HSE evidence?', 'Technical', 'Question about works technical capacity requirements')}
+                                ${renderBidWorkspaceScoringGuidance(tender, profile, draft, 'works-evaluation')}
                                 ${renderWorksBidCapacityResponse(tender, draft)}
                             </section>
 
                             <section class="journey-panel" id="bid-step-3">
                                 <div class="panel-heading">
-                                    <div><span class="section-kicker">Step 3</span><h2>Technical Proposal & Work Program</h2></div>
+                                    <div><span class="section-kicker">Step 3</span><h2>Technical Proposal and Work Program</h2></div>
                                     <span class="badge badge-warning">Methodology required</span>
                                 </div>
                                 <div class="bid-step-intro">
@@ -2509,7 +3564,7 @@ function renderBiddingWorkspace() {
 
                             <section class="journey-panel" id="bid-step-5">
                                 <div class="panel-heading">
-                                    <div><span class="section-kicker">Step 5</span><h2>Review & Validation</h2></div>
+                                    <div><span class="section-kicker">Step 5</span><h2>Review and Validation</h2></div>
                                     <span class="badge badge-info" data-bid-review-total>${formatBidWorkspaceMoney(bidAmount)}</span>
                                 </div>
                                 <div class="record-summary evaluation-dashboard">
@@ -2528,13 +3583,15 @@ function renderBiddingWorkspace() {
                                     <strong>Evaluation dashboard</strong>
                                     <span>Review the submitted bid package, confirm captured responses, and assess the bidder against the tender requirements.</span>
                                 </div>
+                                ${renderBidWorkspaceContractTerms(tender, profile, draft)}
+                                ${renderBidWorkspaceCompletenessChecklist(tender, profile, draft, { stepOneRequirements, dynamicRequirements, commercialItems })}
                                 <section class="bid-response-review" data-bid-response-review>
                                     ${renderBidWorkspaceResponseReviewPlaceholder()}
                                 </section>
                             </section>
 
                             <section class="journey-panel" id="bid-step-6">
-                                <div class="panel-heading"><div><span class="section-kicker">Step 6</span><h2>Declaration & Submission</h2></div><span class="badge badge-success">Final step</span></div>
+                                <div class="panel-heading"><div><span class="section-kicker">Step 6</span><h2>Declaration and Submission</h2></div><span class="badge badge-success">Final step</span></div>
                                 ${renderWorksBidDeclaration(draft)}
                                 <div class="review-summary-grid" style="margin-top: 18px;">
                                     <article class="review-card">
@@ -2559,7 +3616,7 @@ function renderBiddingWorkspace() {
                             ` : serviceFlow ? `
                             <section class="journey-panel" id="bid-step-2">
                                 <div class="panel-heading">
-                                    <div><span class="section-kicker">Step 2</span><h2>Service Understanding & Methodology</h2></div>
+                                    <div><span class="section-kicker">Step 2</span><h2>Service Understanding and Methodology</h2></div>
                                     <span class="badge badge-warning">Core service response</span>
                                 </div>
                                 <div class="bid-step-intro">
@@ -2567,12 +3624,13 @@ function renderBiddingWorkspace() {
                                     <span>Explain who will deliver the service, how the workflow runs, how quality is controlled, and what evidence proves each deliverable.</span>
                                 </div>
                                 ${renderBidWorkspaceClarificationPrompt('Need clarification about service scope, workflow, or deliverables?', 'Technical', 'Question about service methodology, deliverables, or workflow')}
+                                ${renderBidWorkspaceScoringGuidance(tender, profile, draft, 'service-evaluation')}
                                 ${renderServiceBidMethodology(tender, draft)}
                             </section>
 
                             <section class="journey-panel" id="bid-step-3">
                                 <div class="panel-heading">
-                                    <div><span class="section-kicker">Step 3</span><h2>Service Schedule & Delivery Plan</h2></div>
+                                    <div><span class="section-kicker">Step 3</span><h2>Service Schedule and Delivery Plan</h2></div>
                                     <span class="badge badge-warning">SLA timing</span>
                                 </div>
                                 <div class="bid-step-intro">
@@ -2585,7 +3643,7 @@ function renderBiddingWorkspace() {
 
                             <section class="journey-panel" id="bid-step-4">
                                 <div class="panel-heading">
-                                    <div><span class="section-kicker">Step 4</span><h2>Personnel, Staffing & Capacity</h2></div>
+                                    <div><span class="section-kicker">Step 4</span><h2>Personnel, Staffing and Capacity</h2></div>
                                     <span class="badge badge-warning">${getServiceBidPersonnelRows(tender).length} staff roles</span>
                                 </div>
                                 <div class="bid-step-intro">
@@ -2598,7 +3656,7 @@ function renderBiddingWorkspace() {
 
                             <section class="journey-panel" id="bid-step-5">
                                 <div class="panel-heading">
-                                    <div><span class="section-kicker">Step 5</span><h2>Performance, SLA, Reporting & Compliance</h2></div>
+                                    <div><span class="section-kicker">Step 5</span><h2>Performance, SLA, Reporting and Compliance</h2></div>
                                     <span class="badge badge-warning">Performance model</span>
                                 </div>
                                 <div class="bid-step-intro">
@@ -2620,7 +3678,7 @@ function renderBiddingWorkspace() {
                                 </div>
                                 <div class="data-table service-pricing-table">
                                     <table>
-                                        <thead><tr><th>Code</th><th>Service Line</th><th>Qty</th><th>Unit</th><th>Pricing Model</th><th>Unit Rate</th><th>Discount</th><th>Total</th></tr></thead>
+                                        <thead><tr><th>Code</th><th>Service Line</th><th>Frequency</th><th>Staff Count</th><th>Monthly Rate</th><th>Equipment Cost</th><th>Total</th></tr></thead>
                                         <tbody data-bid-commercial-body>${renderServiceBidPricingRows(tender, profile, draft)}</tbody>
                                     </table>
                                 </div>
@@ -2639,7 +3697,7 @@ function renderBiddingWorkspace() {
 
                             <section class="journey-panel" id="bid-step-7">
                                 <div class="panel-heading">
-                                    <div><span class="section-kicker">Step 7</span><h2>Review, Declaration & Submit</h2></div>
+                                    <div><span class="section-kicker">Step 7</span><h2>Review, Declaration and Submit</h2></div>
                                     <span class="badge badge-info" data-bid-review-total>${formatBidWorkspaceMoney(bidAmount)}</span>
                                 </div>
                                 <div class="record-summary evaluation-dashboard">
@@ -2658,6 +3716,8 @@ function renderBiddingWorkspace() {
                                     <strong>Evaluation dashboard</strong>
                                     <span>Review the submitted bid package, confirm captured responses, and assess the bidder against the tender requirements.</span>
                                 </div>
+                                ${renderBidWorkspaceContractTerms(tender, profile, draft)}
+                                ${renderBidWorkspaceCompletenessChecklist(tender, profile, draft, { stepOneRequirements, dynamicRequirements, commercialItems })}
                                 <section class="bid-response-review" data-bid-response-review>
                                     ${renderBidWorkspaceResponseReviewPlaceholder()}
                                 </section>
@@ -2693,6 +3753,8 @@ function renderBiddingWorkspace() {
                                     <span>Answer the requirements that need supplier input. Requirements marked for review are shown for context only.</span>
                                 </div>
                                 ${renderBidWorkspaceClarificationPrompt(profile.id === 'consultancy' ? 'Need clarification about methodology, work plan, or team CVs?' : 'Need clarification about your technical response?', profile.id === 'consultancy' ? 'Deliverables' : 'Technical', profile.id === 'consultancy' ? 'Question about methodology, work plan, team CVs, or expert qualifications' : 'Question about technical response requirements')}
+                                ${renderBidWorkspaceScoringGuidance(tender, profile, draft, 'dynamic-evaluation')}
+                                ${profile.id === 'consultancy' ? renderConsultancyBidTorWorkbook(tender, draft) : ''}
                                 ${renderBidWorkspaceDynamicResponses(dynamicRequirements, draft, responseFields, tender, profile)}
                             </section>
 
@@ -2703,16 +3765,18 @@ function renderBiddingWorkspace() {
                                 </div>
                                 <div class="data-table">
                                     <table>
-                                        <thead><tr><th>Code</th><th>Requirement</th><th>Qty / Duration</th><th>Bid rate / fee</th><th>Amount</th></tr></thead>
-                                        <tbody data-bid-commercial-body>${renderBidWorkspaceCommercialRows(commercialItems)}</tbody>
+                                        ${profile.id === 'consultancy'
+                                            ? `<thead><tr><th>Code</th><th>Consultancy Line</th><th>Person Days</th><th>Daily Rate / Fee</th><th>Reimbursables</th><th>Tax</th><th>Assumption</th><th>Amount</th></tr></thead><tbody data-bid-commercial-body>${renderConsultancyBidPricingRows(commercialItems, draft)}</tbody>`
+                                            : `<thead><tr><th>Code</th><th>Requirement</th><th>Qty / Duration</th><th>Bid rate / fee</th><th>Amount</th></tr></thead><tbody data-bid-commercial-body>${renderBidWorkspaceCommercialRows(commercialItems)}</tbody>`}
                                     </table>
                                 </div>
+                                ${profile.id === 'consultancy' ? renderConsultancyBidCommercialTerms(draft) : ''}
                                 ${renderBidWorkspaceClarificationPrompt('Question about pricing lines?', 'Commercial Schedule', 'Question about commercial schedule or pricing lines')}
                             </section>
 
                             <section class="journey-panel" id="bid-step-4">
                                 <div class="panel-heading">
-                                    <div><span class="section-kicker">Step 4</span><h2>Review & Submit</h2></div>
+                                    <div><span class="section-kicker">Step 4</span><h2>Review and Submit</h2></div>
                                     <span class="badge badge-info" data-bid-review-total>${formatBidWorkspaceMoney(bidAmount)}</span>
                                 </div>
                                 <div class="record-summary evaluation-dashboard">
@@ -2723,6 +3787,8 @@ function renderBiddingWorkspace() {
                                     <div class="bid-value-summary"><span>Bid value</span><strong>${formatBidWorkspaceMoney(bidAmount)}</strong></div>
                                     <div class="evaluation-state"><span>Evaluation status</span><strong>Ready for review</strong></div>
                                 </div>
+                                ${renderBidWorkspaceContractTerms(tender, profile, draft)}
+                                ${renderBidWorkspaceCompletenessChecklist(tender, profile, draft, { stepOneRequirements, dynamicRequirements, commercialItems })}
                                 <section class="bid-response-review" data-bid-response-review>
                                     ${renderBidWorkspaceResponseReviewPlaceholder()}
                                 </section>
@@ -2761,7 +3827,7 @@ function renderBiddingWorkspace() {
                                 </div>
                                 <div class="inline-actions" style="margin-top: 18px;">
                                     <button class="btn btn-secondary" type="button" data-bid-save-draft>Save Copy</button>
-                                    <button class="btn btn-primary" data-navigate="supplier-journey">View Outcome Center</button>
+                                    <button class="btn btn-primary" data-navigate="procurement-guide">View Outcome Center</button>
                                 </div>
                             </section>
                             `}
@@ -2806,6 +3872,38 @@ function initializeBiddingWorkspace() {
     let activeStepIndex = Number(existingDraft.step || 0);
     let bidReviewSourceSequence = 0;
 
+    const getBidFileManifest = () => Object.entries(uploadedFiles || {}).map(([responseId, file]) => ({
+        responseId,
+        name: file?.name || responseId,
+        type: file?.type || '',
+        size: file?.size || 0,
+        uploadedAt: file?.uploadedAt || '',
+        sha256: file?.sha256 || file?.hash || ''
+    }));
+
+    const computeBidWorkspaceFileHash = (responseId, file) => {
+        if (!responseId || !file || !window.crypto?.subtle || typeof file.arrayBuffer !== 'function') return;
+        file.arrayBuffer()
+            .then(buffer => window.crypto.subtle.digest('SHA-256', buffer))
+            .then(hashBuffer => {
+                const hash = Array.from(new Uint8Array(hashBuffer))
+                    .map(byte => byte.toString(16).padStart(2, '0'))
+                    .join('');
+                uploadedFiles[responseId] = {
+                    ...(uploadedFiles[responseId] || {}),
+                    sha256: hash
+                };
+                refreshBidResponseReviews();
+                saveDraft();
+            })
+            .catch(() => {
+                uploadedFiles[responseId] = {
+                    ...(uploadedFiles[responseId] || {}),
+                    sha256: uploadedFiles[responseId]?.sha256 || 'Hash unavailable'
+                };
+            });
+    };
+
     const getRequiredInputsByPriority = () => {
         const groups = { licenses: [], evidence: [], confirmations: [] };
         wizard.querySelectorAll('[data-bid-required-response]').forEach(input => {
@@ -2843,6 +3941,8 @@ function initializeBiddingWorkspace() {
             }
             return response;
         });
+        const reviewPanel = panels.find(panel => panel.querySelector('[data-bid-response-review]'));
+        const reviewSections = typeof collectBidReviewSections === 'function' && reviewPanel ? collectBidReviewSections(reviewPanel) : [];
         return {
             ...getBidWorkspaceDraft(tenderId),
             step: activeStepIndex,
@@ -2850,6 +3950,9 @@ function initializeBiddingWorkspace() {
             freeResponses,
             productSpecificationResponses,
             uploadedFiles,
+            fileManifest: getBidFileManifest(),
+            reviewSections,
+            completeness: getProcurexBidPackageCompleteness(reviewSections),
             total: wizard.querySelector('[data-bid-review-total]')?.textContent || ''
         };
     };
@@ -2898,8 +4001,11 @@ function initializeBiddingWorkspace() {
         uploadedFiles[responseId] = {
             name: file.name,
             type: file.type || 'application/octet-stream',
-            size: file.size || 0
+            size: file.size || 0,
+            uploadedAt: new Date().toISOString(),
+            sha256: 'Hash pending'
         };
+        computeBidWorkspaceFileHash(responseId, file);
 
         if (file.size > bidWorkspaceUploadPreviewMaxBytes) {
             saveDraft();
@@ -2957,6 +4063,90 @@ function initializeBiddingWorkspace() {
         if (!input) return false;
         if (input.type === 'checkbox') return input.checked;
         return String(input.value || '').trim().length > 0;
+    };
+
+    const getWorkflowCompletion = () => {
+        const requiredInputs = Array.from(wizard.querySelectorAll('[data-bid-workflow-required-response]'));
+        const completed = requiredInputs.filter(isResponseComplete).length;
+        return {
+            completed,
+            total: requiredInputs.length,
+            percent: requiredInputs.length ? Math.round((completed / requiredInputs.length) * 100) : 100
+        };
+    };
+
+    const refreshBidProgress = () => {
+        if (!progressOutput) return;
+        const completion = getWorkflowCompletion();
+        progressOutput.textContent = `Step ${activeStepIndex + 1} of ${panels.length} - ${completion.percent}% complete`;
+    };
+
+    const markBidSemanticInvalid = (input, invalid, show = false) => {
+        const container = input?.closest('[data-bid-requirement-card], [data-bid-product-spec-row], .form-group, .bid-response-check, .goods-compliance-card, .goods-offer-row, .goods-sample-card, .works-capacity-card, .works-person-card, .works-accordion-card, .works-boq-row, .works-drawing-card, .service-accordion-card, .service-staff-card, .service-pricing-row, .service-document-card, .service-kpi-card') || input;
+        container?.classList.toggle('invalid', Boolean(show && invalid));
+    };
+
+    const validateSemanticResponses = (show = false, root = wizard) => {
+        const issues = [];
+        const addIssue = (input, message) => {
+            if (!input) return;
+            issues.push({ input, message });
+            markBidSemanticInvalid(input, true, show);
+        };
+        const clearInput = (input) => markBidSemanticInvalid(input, false, show);
+
+        Array.from(root.querySelectorAll('[data-bid-response$="validity"], [data-bid-response$="bid-validity"]')).forEach(input => {
+            const days = parseBidWorkspaceNumber(input.value);
+            clearInput(input);
+            if (days <= 0 || days > 730) addIssue(input, 'Bid validity period must be between 1 and 730 days.');
+        });
+
+        const advanceRequested = root.querySelector('[data-bid-response="works-commercial-advance-requested"]');
+        const advancePercent = root.querySelector('[data-bid-response="works-commercial-advance-percent"]');
+        if (advancePercent) {
+            const requested = String(advanceRequested?.value || '').toLowerCase() === 'yes';
+            const value = String(advancePercent.value || '').trim();
+            const percent = parseBidWorkspaceNumber(value);
+            clearInput(advancePercent);
+            if (requested && !value) addIssue(advancePercent, 'Proposed advance percentage is required when advance payment is requested.');
+            if (value && (percent < 0 || percent > 100)) addIssue(advancePercent, 'Proposed advance percentage must be between 0 and 100.');
+        }
+
+        Array.from(root.querySelectorAll('[data-bid-rate], [data-bid-line-qty], [data-bid-line-extra-cost]')).forEach(input => {
+            clearInput(input);
+            if (String(input.value || '').trim() && parseBidWorkspaceNumber(input.value) < 0) {
+                addIssue(input, 'Commercial rates, quantities, and extra costs must be non-negative.');
+            }
+        });
+
+        Array.from(root.querySelectorAll('[data-bid-commercial-body] tr')).forEach(row => {
+            const rateInput = row.querySelector('[data-bid-rate]');
+            const output = row.querySelector('[data-bid-line-amount]');
+            if (!rateInput || !output) return;
+            const qtyInput = row.querySelector('[data-bid-line-qty]');
+            const rate = parseBidWorkspaceNumber(rateInput.value);
+            const qty = parseBidWorkspaceNumber(qtyInput?.value || qtyInput?.textContent || row.children[2]?.textContent || '1') || 1;
+            const extraCost = Array.from(row.querySelectorAll('[data-bid-line-extra-cost]'))
+                .reduce((sum, input) => sum + parseBidWorkspaceNumber(input.value), 0);
+            const expectedAmount = Math.round((rate * qty) + extraCost);
+            const displayedAmount = parseBidWorkspaceNumber(output.textContent);
+            if (Number.isFinite(displayedAmount) && Math.abs(expectedAmount - displayedAmount) > 1) {
+                addIssue(rateInput, 'Commercial line total is out of sync with quantity, rate, or extra cost. Recalculate totals before submitting.');
+            }
+        });
+
+        const performanceGuarantee = root.querySelector('[data-bid-response="works-commercial-performance-guarantee"]');
+        if (performanceGuarantee) {
+            clearInput(performanceGuarantee);
+            if (!String(performanceGuarantee.value || '').trim()) addIssue(performanceGuarantee, 'Performance guarantee availability must be confirmed.');
+        }
+
+        return {
+            valid: issues.length === 0,
+            remaining: issues.length,
+            firstIncomplete: issues[0]?.input || null,
+            messages: issues.map(issue => issue.message)
+        };
     };
 
     const focusBidWorkspaceInput = (input) => {
@@ -3099,6 +4289,24 @@ function initializeBiddingWorkspace() {
         return input.value;
     };
 
+    const isBidReviewInputMandatory = (input) => input.matches('[data-bid-required-response], [data-bid-workflow-required-response]');
+
+    const isBidReviewDeviationInput = (input) => {
+        const key = String(input.dataset.bidResponse || input.dataset.bidFreeResponse || input.dataset.bidProductSpecField || '').toLowerCase();
+        const label = getBidReviewInputLabel(input).toLowerCase();
+        const value = String(getBidReviewInputValue(input) || '').trim();
+        if (!value) return false;
+        if (/deviation|exception|alternative/.test(`${key} ${label}`)) return true;
+        return Boolean(input.closest('.contract-terms-review') && /deviation|exception|change|not accept|cannot accept/i.test(value));
+    };
+
+    const getBidReviewInputFile = (input) => {
+        const responseId = input.dataset.bidResponse || '';
+        if (!responseId || !input.closest('[data-bid-upload-control]')) return null;
+        const file = uploadedFiles[responseId];
+        return file ? { responseId, ...file } : null;
+    };
+
     const shouldIncludeBidReviewInput = (input) => {
         if (input.closest('[data-bid-response-review]')) return false;
         if (input.closest('[data-bid-declaration], .confirm-action')) return false;
@@ -3111,134 +4319,63 @@ function initializeBiddingWorkspace() {
 
     const collectBidReviewSections = (reviewPanel) => {
         const reviewIndex = panels.indexOf(reviewPanel);
-        return panels.slice(0, Math.max(reviewIndex, 0)).map(panel => {
+        const rows = [];
+        panels.slice(0, Math.max(reviewIndex, 0)).forEach(panel => {
             const panelTitle = panel.querySelector('.panel-heading h2')?.textContent.trim()
                 || panel.querySelector('h2, h3')?.textContent.trim()
                 || 'Bid section';
+            const category = getProcurexBidPackageCategoryFromPanel(panelTitle);
             const seen = new Set();
-            const rows = Array.from(panel.querySelectorAll('[data-bid-response], [data-bid-free-response], [data-bid-product-spec-field]'))
+            Array.from(panel.querySelectorAll('[data-bid-response], [data-bid-free-response], [data-bid-product-spec-field]'))
                 .filter(shouldIncludeBidReviewInput)
-                .map(input => {
+                .forEach(input => {
                     const key = `${input.dataset.bidResponse || input.dataset.bidFreeResponse || input.dataset.bidProductSpecField || ''}::${getBidReviewInputLabel(input)}`;
-                    if (seen.has(key)) return null;
+                    if (seen.has(key)) return;
                     seen.add(key);
-                    return {
+                    const mandatory = isBidReviewInputMandatory(input);
+                    const pending = !isResponseComplete(input);
+                    rows.push({
                         label: getBidReviewInputLabel(input),
-                        value: formatBidWorkspaceReviewValue(getBidReviewInputValue(input)),
-                        pending: !isResponseComplete(input),
+                        value: formatBidWorkspaceReviewValue(getBidReviewInputValue(input), { mandatory }),
+                        pending,
                         sourceId: getBidReviewSourceId(input),
                         editable: true,
-                        upload: Boolean(input.closest('[data-bid-upload-control]'))
-                    };
-                })
-                .filter(Boolean);
-            return { title: panelTitle, rows };
-        }).filter(section => section.rows.length);
+                        upload: Boolean(input.closest('[data-bid-upload-control]')),
+                        mandatory,
+                        category,
+                        deviation: isBidReviewDeviationInput(input),
+                        file: getBidReviewInputFile(input)
+                    });
+                });
+        });
+        return createProcurexBidPackageSectionsFromRows(rows);
     };
 
     const renderBidReviewSections = (sections = []) => {
-        const totalRows = sections.reduce((total, section) => total + section.rows.length, 0);
-        const submittedBidder = mockData.users?.supplier?.organization || 'Supplier organization';
         const reviewTotal = wizard.querySelector('[data-bid-review-total]')?.textContent || wizard.querySelector('[data-bid-total]')?.textContent || '';
-        const offerLabel = profile.id === 'goods'
-            ? 'Goods Offer'
-            : profile.id === 'works'
-                ? 'Works Offer'
-                : profile.id === 'services'
-                    ? 'Service Offer'
-                    : profile.responseTitle || 'Bid Offer';
-        return `
-            <div class="bid-response-download-panel">
-                <div>
-                    <span class="section-kicker">Document download</span>
-                    <strong>Bid response preview</strong>
-                    <p>Download or print the current generated document preview after corrections are captured.</p>
-                </div>
-                <div class="bid-response-download-actions">
-                    <button class="btn btn-secondary" type="button" data-bid-download-review-document>Download HTML</button>
-                    <button class="btn btn-primary" type="button" data-bid-print-review-document>Print / Save PDF</button>
-                </div>
-            </div>
-            <div class="bid-response-document">
-                <div class="bid-response-document-masthead">
-                    <div class="bid-response-document-mark">PX</div>
-                    <div>
-                        <span>ProcureX e-Procurement</span>
-                        <strong>Bid Response Document</strong>
-                    </div>
-                    <em>Generated PDF preview</em>
-                </div>
-                <header class="bid-response-document-cover">
-                    <div>
-                        <span class="section-kicker">Official submitted bid package</span>
-                        <h3>${escapeBidWorkspaceHtml(tender.title || 'Tender bid response')}</h3>
-                        <p>Evaluator review copy generated from the bidder's submitted eligibility, technical, commercial, and supporting response sections.</p>
-                    </div>
-                    <div class="bid-response-document-status">
-                        <span class="bid-status-chip review">Evaluation review</span>
-                        <span class="bid-status-chip editable">Corrections enabled</span>
-                        <span class="bid-status-chip offer">${escapeBidWorkspaceHtml(offerLabel)}</span>
-                    </div>
-                </header>
-                <div class="bid-response-document-meta">
-                    <article><span>Tender ID</span><strong>${escapeBidWorkspaceHtml(tenderId)}</strong><em>Tender reference</em></article>
-                    <article><span>Bidder</span><strong>${escapeBidWorkspaceHtml(submittedBidder)}</strong><em>Registered supplier</em></article>
-                    <article><span>Closing date</span><strong>${escapeBidWorkspaceHtml(tender.closingDate || 'Not set')}</strong><em>Submission deadline</em></article>
-                    <article class="bid-value-card"><span>Bid value</span><strong>${escapeBidWorkspaceHtml(reviewTotal || 'Pending')}</strong><em>Financial offer</em></article>
-                    <article><span>Responses captured</span><strong>${totalRows}</strong><em>Evaluation scope</em></article>
-                    <article><span>Prepared date</span><strong>${escapeBidWorkspaceHtml(new Date().toISOString().slice(0, 10))}</strong><em>System generated</em></article>
-                </div>
-                ${sections.length ? `
-                    <div class="bid-response-document-sections">
-                        ${sections.map((section, sectionIndex) => {
-                            const pendingCount = section.rows.filter(row => row.pending).length;
-                            const complete = pendingCount === 0;
-                            return `
-                            <article class="bid-response-document-section">
-                                <div class="bid-response-document-section-heading">
-                                    <span>${String(sectionIndex + 1).padStart(2, '0')}</span>
-                                    <div>
-                                        <h4>${escapeBidWorkspaceHtml(section.title)}</h4>
-                                        <small>${section.rows.length} item${section.rows.length === 1 ? '' : 's'} reviewed</small>
-                                    </div>
-                                    <em class="bid-section-status ${complete ? 'complete' : 'review'}">${complete ? 'Complete' : `${pendingCount} review item${pendingCount === 1 ? '' : 's'}`}</em>
-                                </div>
-                                <div class="bid-response-document-table">
-                                    <table>
-                                        <thead>
-                                            <tr><th>Tender requirement / bid content</th><th>Bidder response</th><th>Evaluation status</th><th>Correction</th></tr>
-                                        </thead>
-                                        <tbody>
-                                            ${section.rows.map(row => `
-                                                <tr class="${row.pending ? 'pending' : ''}">
-                                                    <td>${escapeBidWorkspaceHtml(row.label)}</td>
-                                                    <td>${escapeBidWorkspaceHtml(row.value)}</td>
-                                                    <td><span class="bid-table-status ${row.pending ? 'review' : 'captured'}">${row.pending ? 'Review' : 'Captured'}</span></td>
-                                                    <td>
-                                                        <button class="bid-review-edit-button" type="button" data-bid-review-edit="${escapeBidWorkspaceHtml(row.sourceId)}">
-                                                            ${row.upload ? 'Replace file' : 'Change'}
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            `).join('')}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </article>
-                        `; }).join('')}
-                    </div>
-                ` : '<div class="scope-empty">No bidder responses have been entered yet.</div>'}
-                <footer class="bid-response-document-footer">
-                    <span>System generated bid response preview</span>
-                    <strong>ProcureX</strong>
-                </footer>
-            </div>
-        `;
+        return renderProcurexBidPackageDocument({
+            tender: { ...tender, reference: tenderId },
+            profile,
+            sections,
+            supplier: {
+                name: mockData.users?.supplier?.organization || 'Supplier organization',
+                contact: mockData.users?.supplier?.name || '',
+                total: reviewTotal || 'Pending',
+                status: 'Draft package'
+            },
+            editable: true,
+            includeActions: true,
+            fileManifest: getBidFileManifest(),
+            documentLabel: 'Evaluation Copy',
+            actionsTitle: 'Bid response package preview',
+            actionsDescription: 'Download or print the current tenderer bid submission after corrections are captured.',
+            description: 'Evaluation copy generated from the tender information and the tenderer responses captured across administrative, technical, financial, and declaration sections.'
+        });
     };
 
     const getExportableBidResponseDocument = (trigger) => {
         const review = trigger?.closest('[data-bid-response-review]');
-        const documentNode = review?.querySelector('.bid-response-document');
+        const documentNode = review?.querySelector('.bid-response-document') || wizard.querySelector('.wizard-workspace > .journey-panel.active .bid-response-document');
         if (!documentNode) return '';
         const clone = documentNode.cloneNode(true);
         clone.querySelectorAll('.bid-status-chip.editable').forEach(node => node.remove());
@@ -3276,16 +4413,20 @@ body { margin: 0; padding: 32px; background: #eef2f7; color: #0f172a; font-famil
 .bid-response-document-cover h3 { margin: 0; color: #071a33; font-size: 28px; line-height: 1.16; }
 .bid-response-document-cover p { margin: 8px 0 0; color: #475569; line-height: 1.5; }
 .bid-response-document-status { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
-.bid-status-chip, .bid-section-status, .bid-table-status { display: inline-flex; align-items: center; width: max-content; min-height: 24px; padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
-.bid-status-chip.review, .bid-section-status.review, .bid-table-status.review { background: #dbeafe; color: #1e40af; }
+.bid-status-chip { display: inline-flex; align-items: center; width: max-content; min-height: 24px; padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+.bid-status-chip.review { background: #dbeafe; color: #1e40af; }
 .bid-status-chip.offer { background: #e0f2fe; color: #075985; }
-.bid-section-status.complete, .bid-table-status.captured { background: #dcfce7; color: #166534; }
 .bid-response-document-meta { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid #cbd5e1; margin: 24px 0; }
 .bid-response-document-meta article { padding: 15px 16px; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
 .bid-response-document-meta strong { display: block; margin-top: 6px; color: #071a33; font-size: 16px; }
 .bid-response-document-meta em { display: block; margin-top: 4px; color: #94a3b8; font-size: 12px; font-style: normal; }
+.bid-completeness-summary { display: grid; gap: 10px; padding: 14px; border: 1px solid #bbf7d0; background: #f0fdf4; }
+.bid-completeness-summary strong { display: block; margin-top: 4px; color: #0d7c3d; font-size: 28px; line-height: 1; }
+.bid-completeness-summary p { margin: 6px 0 0; color: #334155; font-size: 13px; }
+.bid-completeness-meter { overflow: hidden; height: 8px; border-radius: 999px; background: #dcfce7; }
+.bid-completeness-meter span { display: block; height: 100%; border-radius: inherit; background: #0d7c3d; }
 .bid-response-document-sections { display: grid; gap: 22px; }
-.bid-response-document-section-heading { display: grid; grid-template-columns: 36px 1fr auto; gap: 12px; align-items: center; padding-bottom: 10px; border-bottom: 1px solid #cbd5e1; }
+.bid-response-document-section-heading { display: grid; grid-template-columns: 36px 1fr; gap: 12px; align-items: center; padding-bottom: 10px; border-bottom: 1px solid #cbd5e1; }
 .bid-response-document-section-heading > span { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 4px; background: #071a33; color: #fff; font-size: 12px; font-weight: 900; }
 .bid-response-document-section-heading h4 { margin: 0; color: #071a33; font-size: 17px; }
 .bid-response-document-section-heading small { color: #64748b; font-size: 12px; }
@@ -3293,13 +4434,119 @@ body { margin: 0; padding: 32px; background: #eef2f7; color: #0f172a; font-famil
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 13px 14px; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: top; font-size: 14px; line-height: 1.4; }
 th { background: #f1f5f9; color: #334155; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+td strong { display: block; color: #0f172a; }
+td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; line-height: 1.35; }
+.bid-requirement-marker, .bid-deviation-marker { display: inline-flex; width: max-content; max-width: 100%; min-height: 22px; margin: 0 5px 5px 0; padding: 4px 7px; border-radius: 999px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.required-complete { background: #e8f5e9; color: #0d7c3d; }
+.required-incomplete { background: #fff1f1; color: #b00020; }
+.optional-complete { background: #e0f2fe; color: #075985; }
+.optional-empty { background: #f1f5f9; color: #64748b; }
+.bid-deviation-marker { background: #fff8e1; color: #7a4d00; }
+.is-incomplete td { background: #fffafa; }
+.is-deviation td { background: #fffbeb; }
+.bid-file-manifest code { white-space: normal; overflow-wrap: anywhere; color: #334155; font-size: 12px; }
+.bid-review-readonly { display: inline-flex; align-items: center; min-height: 28px; color: #64748b; font-size: 12px; font-weight: 800; text-transform: uppercase; }
 .bid-response-document-footer { display: flex; justify-content: space-between; margin-top: 28px; padding-top: 14px; border-top: 1px solid #cbd5e1; color: #64748b; font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
-@media print { body { padding: 0; background: #fff; } .bid-response-document { box-shadow: none; border: 0; } }
+@media print { body { padding: 0; background: #fff; } .bid-response-document { box-shadow: none; border: 0; } .bid-response-download-panel, .bid-review-edit-button, .bid-status-chip.editable { display: none !important; } .bid-response-document-section, .bid-deviation-log, .bid-file-manifest { break-before: page; page-break-before: always; } th, td { padding: 8px 9px; font-size: 11px; } }
 </style>
 </head>
 <body>${documentHtml}</body>
 </html>`;
     };
+
+    const getStoredSubmittedBids = () => {
+        try {
+            const parsed = JSON.parse(localStorage.getItem(bidWorkspaceSubmittedStorageKey) || '[]');
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+            return [];
+        }
+    };
+
+    const saveStoredSubmittedBids = (items = []) => {
+        localStorage.setItem(bidWorkspaceSubmittedStorageKey, JSON.stringify(items));
+    };
+
+    const isBidWorkspaceBeforeClosing = () => {
+        const timestamp = Date.parse(tender.closingDate || tender.deadline || '');
+        return Number.isFinite(timestamp) && Date.now() < timestamp;
+    };
+
+    const withdrawSubmittedBid = () => {
+        saveStoredSubmittedBids(getStoredSubmittedBids().filter(item => item.tenderId !== tenderId));
+        if (finalStatus) finalStatus.textContent = 'Draft until submitted';
+        const receiptPanel = panels[panels.length - 1];
+        if (receiptPanel) {
+            receiptPanel.innerHTML = `
+                <div class="panel-heading"><div><span class="section-kicker">Submission withdrawn</span><h2>Draft reopened</h2></div><span class="badge badge-warning">Withdrawn</span></div>
+                <section class="bid-submission-confirmation">
+                    <div class="bid-submission-confirmation-mark">OK</div>
+                    <div>
+                        <span class="section-kicker">Pre-deadline withdrawal</span>
+                        <h3>Your local submitted bid record was withdrawn</h3>
+                        <p>You can update the draft and submit again before the tender closing date.</p>
+                    </div>
+                    <div class="inline-actions">
+                        <button class="btn btn-primary" type="button" data-bid-jump-submit>Return to submission</button>
+                    </div>
+                </section>
+            `;
+        }
+        setActiveStep(Math.max(panels.length - 2, 0), true);
+        saveDraft();
+    };
+
+    const renderBidSubmissionConfirmation = (receipt = {}) => `
+        <div class="panel-heading">
+            <div><span class="section-kicker">Step 5</span><h2>Submission Receipt</h2></div>
+            <span class="badge badge-success">Submitted</span>
+        </div>
+        <section class="bid-submission-confirmation">
+            <div class="bid-submission-confirmation-mark">OK</div>
+            <div>
+                <span class="section-kicker">Bid submitted successfully</span>
+                <h3>Submission receipt</h3>
+                <p>Your bid is sealed and cannot be modified after submission. Use the Communication Center for any formal modification or withdrawal request before the tender closing rules allow it.</p>
+            </div>
+            <div class="record-summary">
+                <div><span>Tender</span><strong>${escapeBidWorkspaceHtml(receipt.tenderId || tenderId)}</strong></div>
+                <div><span>Submitted</span><strong>${escapeBidWorkspaceHtml(receipt.submittedAtLabel || '')}</strong></div>
+                <div><span>Submission Receipt No</span><strong>${escapeBidWorkspaceHtml(receipt.receiptHash || '')}</strong></div>
+                <div><span>Bid total</span><strong>${escapeBidWorkspaceHtml(receipt.total || '')}</strong></div>
+                <div><span>Files</span><strong>${receipt.fileCount || 0} document${receipt.fileCount === 1 ? '' : 's'} uploaded</strong></div>
+                <div><span>Completeness</span><strong>${receipt.completeness?.percent || 0}%</strong></div>
+            </div>
+            <div class="inline-actions">
+                <button class="btn btn-secondary" type="button" data-bid-download-review-document>Download Bid Record</button>
+                <button class="btn btn-secondary" type="button" data-bid-print-review-document>Print Submission Receipt</button>
+                ${isBidWorkspaceBeforeClosing() ? '<button class="btn btn-secondary" type="button" data-bid-withdraw-submission>Withdraw Submission</button>' : ''}
+                <button class="btn btn-primary" type="button" data-navigate="workspace-dashboard">Return to Dashboard</button>
+            </div>
+        </section>
+        <section class="bid-response-review" data-bid-response-review>
+            ${renderProcurexBidPackageDocument({
+                tender: { ...tender, reference: tenderId },
+                profile,
+                sections: receipt.reviewSections || [],
+                supplier: {
+                    name: mockData.users?.supplier?.organization || 'Supplier organization',
+                    contact: mockData.users?.supplier?.name || '',
+                    submittedAt: receipt.submittedAtLabel || '',
+                    receiptHash: receipt.receiptHash || '',
+                    total: receipt.total || '',
+                    status: 'Submitted'
+                },
+                editable: false,
+                includeActions: true,
+                fileManifest: receipt.fileManifest || [],
+                completeness: receipt.completeness,
+                documentLabel: 'Evaluation Copy',
+                actionsTitle: 'Sealed bid record',
+                actionsDescription: 'Download or print the sealed tenderer bid submission and receipt.',
+                description: 'System-generated bid record captured at submission with response status, deviations, and uploaded evidence integrity metadata.'
+            })}
+        </section>
+    `;
 
     const downloadBidResponseDocument = (trigger) => {
         const documentHtml = getExportableBidResponseDocument(trigger);
@@ -3321,6 +4568,81 @@ th { background: #f1f5f9; color: #334155; font-size: 12px; font-weight: 800; tex
         printWindow.document.close();
         printWindow.focus();
         window.setTimeout(() => printWindow.print(), 250);
+    };
+
+    const importTendererTechnicalResponseCsv = (fileInput) => {
+        const file = fileInput.files?.[0];
+        const status = wizard.querySelector('[data-bid-import-tenderer-csv-status]');
+        if (!file) return;
+        const setStatus = (message, type = 'info') => {
+            if (!status) return;
+            status.textContent = message;
+            status.dataset.status = type;
+        };
+        const reader = new FileReader();
+        reader.onload = () => {
+            const rows = parseBidWorkspaceCsv(reader.result || '');
+            const headers = rows[0] || [];
+            const normalizedHeaders = headers.map(normalizeBidWorkspaceCsvHeader);
+            const requiredHeaders = ['itemno', 'requestedproduct', 'compliancestatus', 'supplierofferedspecification'];
+            const hasRequiredShape = requiredHeaders.every(header => normalizedHeaders.includes(header))
+                || (normalizedHeaders.includes('itemno') && normalizedHeaders.includes('buyerrequirement') && normalizedHeaders.includes('compliancestatus'));
+            if (!hasRequiredShape) {
+                setStatus('CSV rejected: use the downloaded tenderer technical response template.', 'error');
+                fileInput.value = '';
+                return;
+            }
+
+            const getCell = (row, header) => row[normalizedHeaders.indexOf(header)] || '';
+            const template = normalizeBidWorkspaceProductSpecificationTemplate(tender);
+            const itemGroups = groupBidWorkspaceProductSpecRowsByItem(template.rows);
+            let imported = 0;
+            rows.slice(1).forEach((row, index) => {
+                const templateRow = template.rows[index];
+                if (!templateRow) return;
+                const compliance = getCell(row, 'compliancestatus');
+                const offeredSpec = getCell(row, 'supplierofferedspecification');
+                const evidenceFile = getCell(row, 'supportingevidencefile');
+                const remarks = getCell(row, 'remarks');
+                const rowNode = wizard.querySelector(`[data-bid-product-spec-row="${CSS.escape(templateRow.id)}"]`);
+                const complianceInput = rowNode?.querySelector('[data-bid-product-spec-field="complianceStatus"]');
+                if (complianceInput && /not/i.test(compliance)) {
+                    complianceInput.value = 'Not Compliant';
+                    imported += 1;
+                } else if (complianceInput && /comply|compliant|yes/i.test(compliance)) {
+                    complianceInput.value = 'Compliant';
+                    imported += 1;
+                }
+                const group = itemGroups.find(item => (item.rows || []).some(groupRow => groupRow.id === templateRow.id));
+                const offeredInput = group ? wizard.querySelector(`[data-bid-response="${CSS.escape(getBidWorkspaceProductSpecItemResponseId(group, 'short-specification'))}"]`) : null;
+                if (offeredInput && (offeredSpec || remarks)) {
+                    offeredInput.value = [offeredSpec, remarks].filter(Boolean).join('\n');
+                    imported += 1;
+                }
+                const evidenceInput = group ? wizard.querySelector(`[data-bid-response="${CSS.escape(getBidWorkspaceProductSpecItemResponseId(group, 'attachment'))}"]`) : null;
+                if (evidenceInput && evidenceFile) {
+                    evidenceInput.value = evidenceFile;
+                    imported += 1;
+                }
+            });
+            if (!imported) {
+                setStatus('CSV parsed, but no matching specification rows were found.', 'warning');
+                fileInput.value = '';
+                return;
+            }
+            setStatus(`Imported ${imported} response field${imported === 1 ? '' : 's'} from CSV.`, 'success');
+            validateWorkflowResponses(false);
+            validateSemanticResponses(false);
+            refreshBidProgress();
+            refreshBidResponseReviews();
+            saveDraft();
+            fileInput.value = '';
+        };
+        reader.onerror = () => {
+            setStatus('CSV import failed. Select the template again and retry.', 'error');
+            fileInput.value = '';
+        };
+        reader.readAsText(file);
     };
 
     const refreshBidResponseReviews = () => {
@@ -3355,7 +4677,7 @@ th { background: #f1f5f9; color: #334155; font-size: 12px; font-weight: 800; tex
             nextButton.hidden = activeStepIndex === panels.length - 1;
             nextButton.disabled = activeStepIndex === 0 && !validateMandatoryGate(false);
         }
-        if (progressOutput) progressOutput.textContent = `Step ${activeStepIndex + 1} of ${panels.length}`;
+        refreshBidProgress();
         if (stepTitleOutput) stepTitleOutput.textContent = railSteps.find(step => Number(step.dataset.bidStepIndex) === activeStepIndex)?.querySelector('span')?.textContent || '';
         refreshBidResponseReviews();
         saveDraft();
@@ -3386,7 +4708,9 @@ th { background: #f1f5f9; color: #334155; font-size: 12px; font-weight: 800; tex
             const rate = parseBidWorkspaceNumber(rateInput.value);
             const qtyInput = row.querySelector('[data-bid-line-qty]');
             const qty = parseBidWorkspaceNumber(qtyInput?.value || qtyInput?.textContent || row.children[2]?.textContent || '1') || 1;
-            const amount = rate * qty;
+            const extraCost = Array.from(row.querySelectorAll('[data-bid-line-extra-cost]'))
+                .reduce((sum, input) => sum + parseBidWorkspaceNumber(input.value), 0);
+            const amount = (rate * qty) + extraCost;
             total += amount;
             const output = row.querySelector('[data-bid-line-amount]');
             if (output) output.textContent = formatBidWorkspaceMoney(amount);
@@ -3396,25 +4720,41 @@ th { background: #f1f5f9; color: #334155; font-size: 12px; font-weight: 800; tex
     };
 
     const storeSubmittedBid = () => {
-        const submitted = (() => {
-            try {
-                const parsed = JSON.parse(localStorage.getItem(bidWorkspaceSubmittedStorageKey) || '[]');
-                return Array.isArray(parsed) ? parsed : [];
-            } catch (error) {
-                return [];
-            }
-        })();
+        const submitted = getStoredSubmittedBids();
         const hash = `0x${Date.now().toString(16)}${Math.random().toString(16).slice(2, 10)}`;
         const draftSnapshot = collectDraft();
+        const compactUploads = Object.fromEntries(Object.entries(draftSnapshot.uploadedFiles || {}).map(([key, file]) => [key, {
+            name: file?.name || '',
+            type: file?.type || '',
+            size: file?.size || 0,
+            uploadedAt: file?.uploadedAt || '',
+            sha256: file?.sha256 || file?.hash || ''
+        }]));
+        const submittedAt = new Date().toISOString();
         const bid = {
             tenderId,
-            submittedAt: new Date().toISOString(),
+            submittedAt,
             receiptHash: hash,
-            draft: draftSnapshot
+            supplier: mockData.users?.supplier?.organization || 'Supplier organization',
+            draft: {
+                ...draftSnapshot,
+                uploadedFiles: compactUploads,
+                fileManifest: getBidFileManifest()
+            }
         };
-        localStorage.setItem(bidWorkspaceSubmittedStorageKey, JSON.stringify([bid, ...submitted.filter(item => item.tenderId !== tenderId)]));
+        saveStoredSubmittedBids([bid, ...submitted.filter(item => item.tenderId !== tenderId)]);
         if (finalStatus) finalStatus.textContent = 'Submitted and sealed';
-        return hash;
+        return {
+            receiptHash: hash,
+            submittedAt,
+            submittedAtLabel: new Date(submittedAt).toLocaleString(),
+            tenderId,
+            total: draftSnapshot.total || wizard.querySelector('[data-bid-review-total]')?.textContent || '',
+            fileCount: getBidFileManifest().length,
+            fileManifest: getBidFileManifest(),
+            reviewSections: draftSnapshot.reviewSections || [],
+            completeness: draftSnapshot.completeness || getProcurexBidPackageCompleteness(draftSnapshot.reviewSections || [])
+        };
     };
 
     pageRoot.addEventListener('click', (event) => {
@@ -3434,6 +4774,13 @@ th { background: #f1f5f9; color: #334155; font-size: 12px; font-weight: 800; tex
                     if (!panelValidation.valid) {
                         alert(`Complete ${panelValidation.remaining} required response${panelValidation.remaining === 1 ? '' : 's'} in this section before continuing.`);
                         focusBidWorkspaceInput(panelValidation.firstIncomplete);
+                        return;
+                    }
+                    refreshBidTotals();
+                    const semanticValidation = validateSemanticResponses(true, panels[activeStepIndex] || wizard);
+                    if (!semanticValidation.valid) {
+                        alert(semanticValidation.messages[0] || 'Correct the highlighted bid values before continuing.');
+                        focusBidWorkspaceInput(semanticValidation.firstIncomplete);
                         return;
                     }
                 }
@@ -3464,6 +4811,13 @@ th { background: #f1f5f9; color: #334155; font-size: 12px; font-weight: 800; tex
                     focusBidWorkspaceInput(panelValidation.firstIncomplete);
                     return;
                 }
+                refreshBidTotals();
+                const semanticValidation = validateSemanticResponses(true, panels[activeStepIndex] || wizard);
+                if (!semanticValidation.valid) {
+                    alert(semanticValidation.messages[0] || 'Correct the highlighted bid values before continuing.');
+                    focusBidWorkspaceInput(semanticValidation.firstIncomplete);
+                    return;
+                }
             }
             setActiveStep(activeStepIndex + 1);
             return;
@@ -3476,7 +4830,7 @@ th { background: #f1f5f9; color: #334155; font-size: 12px; font-weight: 800; tex
 
         if (target.matches('[data-bid-view-tender-detail]')) {
             if (typeof selectProcurexTender === 'function') selectProcurexTender(tenderId);
-            const targetUrl = `${window.location.pathname || 'index.html'}#supplier-tender-detail`;
+            const targetUrl = `${window.location.pathname || 'index.html'}#tender-detail`;
             window.open?.(targetUrl, '_blank', 'noopener');
             return;
         }
@@ -3489,7 +4843,7 @@ th { background: #f1f5f9; color: #334155; font-size: 12px; font-weight: 800; tex
                 createdAt: new Date().toISOString()
             }));
             if (typeof selectProcurexTender === 'function') selectProcurexTender(tenderId);
-            window.app?.navigateTo?.('supplier-tender-detail');
+            window.app?.navigateTo?.('tender-detail');
             return;
         }
 
@@ -3538,6 +4892,15 @@ th { background: #f1f5f9; color: #334155; font-size: 12px; font-weight: 800; tex
             return;
         }
 
+        if (target.matches('[data-bid-withdraw-submission]')) {
+            if (!isBidWorkspaceBeforeClosing()) {
+                alert('This bid can no longer be withdrawn because the tender closing date has passed.');
+                return;
+            }
+            withdrawSubmittedBid();
+            return;
+        }
+
         if (target.matches('[data-bid-submit]')) {
             if (!validateMandatoryGate(true)) {
                 setActiveStep(0, true);
@@ -3551,22 +4914,31 @@ th { background: #f1f5f9; color: #334155; font-size: 12px; font-weight: 800; tex
                 focusBidWorkspaceInput(workflowValidation.firstIncomplete);
                 return;
             }
+            refreshBidTotals();
+            const semanticValidation = validateSemanticResponses(true);
+            if (!semanticValidation.valid) {
+                const firstInvalidPanelIndex = panels.findIndex(panel => panel.contains(semanticValidation.firstIncomplete));
+                setActiveStep(firstInvalidPanelIndex > -1 ? firstInvalidPanelIndex : 1, true);
+                alert(semanticValidation.messages[0] || 'Correct the highlighted bid values before submitting.');
+                focusBidWorkspaceInput(semanticValidation.firstIncomplete);
+                return;
+            }
             const declaration = wizard.querySelector('[data-bid-declaration]');
             if (declaration && !declaration.checked) {
                 alert('Confirm the bid declaration before submitting.');
                 return;
             }
-            refreshBidTotals();
-            const receiptHashValue = storeSubmittedBid();
+            const submissionReceipt = storeSubmittedBid();
+            const receiptHashValue = submissionReceipt.receiptHash;
             window.addProcurexCommunicationItem?.({
                 kind: 'notification',
                 category: 'Bid Submission',
                 subject: 'Bid Submitted Successfully',
-                body: `Your sealed bid for ${tenderId} has been submitted successfully. Receipt: ${receiptHashValue}.`,
+                body: `Your sealed bid for ${tenderId} has been submitted successfully. Submission Receipt No: ${receiptHashValue}.`,
                 senderType: 'System',
                 senderName: 'ProcureX System',
-                recipientType: 'Supplier',
-                recipientName: mockData.users?.supplier?.organization || 'Supplier organization',
+                recipientType: 'User',
+                recipientName: mockData.users?.current?.organization || mockData.users?.supplier?.organization || 'Supplier organization',
                 tenderId,
                 tenderReference: tenderId,
                 tenderTitle: tender?.title || 'Tender',
@@ -3575,17 +4947,17 @@ th { background: #f1f5f9; color: #334155; font-size: 12px; font-weight: 800; tex
                 read: false,
                 actionLabel: 'View Submission',
                 actionPage: 'bidding-workspace',
-                audience: ['supplier', 'all']
+                audience: ['user', 'all']
             });
             window.addProcurexCommunicationItem?.({
                 kind: 'notification',
                 category: 'Bid Submission',
                 subject: 'New Bid Received',
-                body: `${mockData.users?.supplier?.organization || 'A supplier'} has submitted a sealed bid for ${tenderId}. Bid details remain locked until the configured opening time.`,
+                body: `${mockData.users?.current?.organization || mockData.users?.supplier?.organization || 'A tenderer'} has submitted a sealed bid for ${tenderId}. Bid details remain locked until the configured opening time.`,
                 senderType: 'System',
                 senderName: 'ProcureX System',
-                recipientType: 'Buyer',
-                recipientName: tender?.organization || mockData.users?.buyer?.organization || 'Buyer organization',
+                recipientType: 'User',
+                recipientName: tender?.organization || 'Tender owner',
                 tenderId,
                 tenderReference: tenderId,
                 tenderTitle: tender?.title || 'Tender',
@@ -3594,25 +4966,35 @@ th { background: #f1f5f9; color: #334155; font-size: 12px; font-weight: 800; tex
                 read: false,
                 actionLabel: 'Open Evaluation',
                 actionPage: 'bid-evaluation',
-                audience: ['buyer', 'admin', 'all']
+                audience: ['user', 'admin', 'all']
             });
             saveDraft();
             setActiveStep(panels.length - 1, true);
-            alert('Bid submitted successfully.');
+            const receiptPanel = panels[panels.length - 1];
+            if (receiptPanel) {
+                receiptPanel.innerHTML = renderBidSubmissionConfirmation(submissionReceipt);
+            }
         }
     });
 
     wizard.addEventListener('input', (event) => {
-        if (event.target?.matches('[data-bid-rate], [data-works-cost]')) refreshBidTotals();
+        if (event.target?.matches('[data-bid-rate], [data-works-cost], [data-bid-line-qty], [data-bid-line-extra-cost]')) refreshBidTotals();
         if (event.target?.matches('[data-bid-response], [data-bid-free-response], [data-bid-product-spec-field]')) {
             validateMandatoryGate(false);
             validateWorkflowResponses(false);
+            validateSemanticResponses(false);
+            refreshBidProgress();
             refreshBidResponseReviews();
             saveDraft();
         }
     });
 
     wizard.addEventListener('change', (event) => {
+        if (event.target?.matches('[data-bid-import-tenderer-csv]')) {
+            importTendererTechnicalResponseCsv(event.target);
+            return;
+        }
+
         if (event.target?.matches('[data-bid-file-input]')) {
             const uploadControl = event.target.closest('[data-bid-upload-control]');
             const hiddenInput = uploadControl?.querySelector('[data-bid-response]');
@@ -3629,6 +5011,8 @@ th { background: #f1f5f9; color: #334155; font-size: 12px; font-weight: 800; tex
             updateBidUploadControlState(uploadControl);
             validateMandatoryGate(false);
             validateWorkflowResponses(false);
+            validateSemanticResponses(false);
+            refreshBidProgress();
             refreshBidResponseReviews();
             saveDraft();
             return;
@@ -3637,6 +5021,8 @@ th { background: #f1f5f9; color: #334155; font-size: 12px; font-weight: 800; tex
         if (event.target?.matches('[data-bid-response], [data-bid-free-response], [data-bid-product-spec-field]')) {
             validateMandatoryGate(false);
             validateWorkflowResponses(false);
+            validateSemanticResponses(false);
+            refreshBidProgress();
             refreshBidResponseReviews();
             saveDraft();
         }
@@ -3646,6 +5032,8 @@ th { background: #f1f5f9; color: #334155; font-size: 12px; font-weight: 800; tex
     refreshBidUploadControls();
     validateMandatoryGate(false);
     validateWorkflowResponses(false);
+    validateSemanticResponses(false);
+    refreshBidProgress();
     refreshBidResponseReviews();
     setActiveStep(activeStepIndex);
     wizard.dataset.ready = 'true';
@@ -3657,3 +5045,8 @@ if (window.app) {
 
 window.getBidWorkspaceRequirementSet = getBidWorkspaceRequirementSet;
 window.initializeBiddingWorkspace = initializeBiddingWorkspace;
+window.renderProcurexBidPackageDocument = renderProcurexBidPackageDocument;
+window.createProcurexBidPackageSectionsFromRows = createProcurexBidPackageSectionsFromRows;
+window.createProcurexBidPackageSectionsFromDraft = createProcurexBidPackageSectionsFromDraft;
+window.createProcurexBidPackageSectionsFromEvaluationBid = createProcurexBidPackageSectionsFromEvaluationBid;
+window.getProcurexSubmittedBidsForTender = getProcurexSubmittedBidsForTender;

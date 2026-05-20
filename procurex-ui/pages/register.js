@@ -221,13 +221,13 @@ function renderRegister() {
                             <div class="screen-header-new">
                                 <div class="success-icon-new success-large">Done</div>
                                 <h2>Account Created</h2>
-                                <p>Your login credentials are ready. Sign in to continue with eKYC.</p>
+                                <p>Your login credentials are ready. Sign in to continue with identity verification.</p>
                             </div>
 
                             <div class="success-card-new">
                                 <div class="success-detail">
                                     <strong>Next step: Sign in</strong>
-                                    <p>After sign-in, new users complete eKYC onboarding before entering the platform.</p>
+                                    <p>After sign-in, new users complete identity verification before entering the platform.</p>
                                 </div>
                             </div>
 
