@@ -715,6 +715,109 @@ function isBidWorkspacePlanDocumentRequirement(requirement = {}) {
     return /technical proposal|methodology|method statement|work plan|delivery plan|implementation plan|project plan|quality plan|hse|health and safety|environmental|staffing|personnel|equipment|schedule|timeline|mobilization|mobilisation|approach/.test(text);
 }
 
+function isBidWorkspaceFinancialCapacityUploadRequirement(requirement = {}) {
+    const text = getBidWorkspaceRequirementSearchText(requirement);
+    return /bank statement|bank statements|credit facility|financial capacity/.test(text);
+}
+
+function isBidWorkspaceFinancialOrCommercialUploadRequirement(requirement = {}) {
+    const text = getBidWorkspaceRequirementSearchText(requirement);
+    return isBidWorkspaceFinancialCapacityUploadRequirement(requirement)
+        || /financial proposal|financial offer|commercial offer|commercial schedule|priced|boq|bill of quantities|quantity schedule|pricing schedule|price schedule|rate schedule|service rate|monthly rate|signed financial/.test(text);
+}
+
+function isBidWorkspaceTechnicalEvidenceRequirement(requirement = {}) {
+    const text = getBidWorkspaceRequirementSearchText(requirement);
+    return /technical proposal|technical response|methodology|method statement|work plan|delivery plan|implementation plan|project plan|quality plan|hse|health and safety|environmental|schedule|timeline|mobilization|mobilisation|approach|sample|catalogue|catalog|brochure|specification|warranty|inspection|testing|reporting|deliverable|tor understanding|staffing|personnel|cv|curriculum|key expert|team composition|experience matrix|equipment|proof/.test(text);
+}
+
+function isBidWorkspaceAdministrativeSubmissionUploadRequirement(requirement = {}) {
+    if (!isBidWorkspaceSubmissionDocumentRequirement(requirement)) return false;
+    return !isBidWorkspaceTechnicalEvidenceRequirement(requirement)
+        && !isBidWorkspaceFinancialOrCommercialUploadRequirement(requirement);
+}
+
+function isBidWorkspaceTechnicalUploadAlreadyStructured(requirement = {}, profile = {}) {
+    const text = getBidWorkspaceRequirementSearchText(requirement);
+    if (profile.id === 'works') {
+        return /similar completed projects|completed projects|experience|key personnel cv|personnel|staffing|equipment proof|equipment|hse|health and safety|work methodology|construction schedule|technical proposal|method statement|gantt|work program|work programme|drawing|site visit/.test(text);
+    }
+    if (profile.id === 'services') {
+        return /personnel|staffing|staff qualification|cv|equipment|service equipment|service locations|service deliverables|service milestones|service schedule|supporting document rows|sla|reporting template|environmental|labor|labour|worker safety/.test(text);
+    }
+    if (profile.id === 'goods') {
+        return /product specification|quantity schedule|sample requirement rows/.test(text);
+    }
+    return false;
+}
+
+function getBidWorkspaceRequirementTitleDedupeKey(requirement = {}) {
+    return String(requirement.title || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function dedupeBidWorkspaceRequirementsByTitle(requirements = []) {
+    const seen = new Map();
+    requirements.forEach(requirement => {
+        const key = getBidWorkspaceRequirementTitleDedupeKey(requirement);
+        if (!key) return;
+        const existing = seen.get(key);
+        if (!existing) {
+            seen.set(key, requirement);
+            return;
+        }
+        if (!existing.mandatory && requirement.mandatory) {
+            seen.set(key, requirement);
+            return;
+        }
+        if (!existing.description && requirement.description) {
+            seen.set(key, { ...existing, description: requirement.description });
+        }
+    });
+    return Array.from(seen.values());
+}
+
+function getBidWorkspaceTechnicalUploadRequirements(requirements = [], profile = {}) {
+    return dedupeBidWorkspaceRequirementsByTitle(requirements.filter(requirement => (
+        requirement.responseType === 'upload'
+        && !isBidWorkspaceLicenseDocumentRequirement(requirement)
+        && !isBidWorkspaceFinancialOrCommercialUploadRequirement(requirement)
+        && !isBidWorkspaceAdministrativeSubmissionUploadRequirement(requirement)
+        && !isBidWorkspaceTechnicalUploadAlreadyStructured(requirement, profile)
+    ))).map(requirement => ({
+        ...requirement,
+        category: isBidWorkspaceSubmissionDocumentRequirement(requirement)
+            ? 'Technical requirement'
+            : requirement.category,
+        description: requirement.description || `Upload ${requirement.title} requested by the buyer for the technical response.`
+    }));
+}
+
+function renderBidWorkspaceTechnicalUploadSection(requirements = [], draft = {}, title = 'Technical supporting uploads', description = 'Upload buyer-required technical evidence that is not a license, certificate, administrative submission document, or financial capacity document.') {
+    const technicalRequirements = sortBidWorkspaceRequirements(requirements);
+    if (!technicalRequirements.length) return '';
+    const mandatoryCount = technicalRequirements.filter(requirement => Boolean(requirement.mandatory)).length;
+    const optionalCount = Math.max(technicalRequirements.length - mandatoryCount, 0);
+    return `
+        <section class="bid-dynamic-group technical-upload-group">
+            <div class="bid-dynamic-group-heading">
+                <div>
+                    <h3>${escapeBidWorkspaceHtml(title)}</h3>
+                    <p>${escapeBidWorkspaceHtml(description)}</p>
+                </div>
+                <span class="badge ${mandatoryCount ? 'badge-warning' : 'badge-info'}">${mandatoryCount} mandatory / ${optionalCount} optional</span>
+            </div>
+            <div class="bid-requirement-list">
+                ${renderBidWorkspaceRequirementCards(technicalRequirements, draft)}
+            </div>
+        </section>
+    `;
+}
+
 function renderBidWorkspaceGateDocumentSection(index, kicker, title, description, requirements = [], draft = {}, emptyMessage = 'No documents were configured for this section.') {
     const mandatoryCount = requirements.filter(requirement => Boolean(requirement.mandatory)).length;
     const optionalCount = Math.max(requirements.length - mandatoryCount, 0);
@@ -740,38 +843,43 @@ function renderBidWorkspaceGateDocumentSection(index, kicker, title, description
 
 function renderBidWorkspaceMandatoryGate(requirements = [], draft = {}, tender = {}) {
     const sorted = sortBidWorkspaceRequirements(requirements);
-    const uploadRequirements = sorted.filter(requirement => requirement.responseType === 'upload');
-    const licenseRequirements = uploadRequirements.filter(isBidWorkspaceLicenseDocumentRequirement);
-    const submissionRequirements = uploadRequirements.filter(requirement => (
-        !licenseRequirements.includes(requirement) && isBidWorkspaceSubmissionDocumentRequirement(requirement)
+    const uploadRequirements = sorted.filter(requirement => (
+        requirement.responseType === 'upload'
+        && !isBidWorkspaceFinancialOrCommercialUploadRequirement(requirement)
     ));
-    const planRequirements = uploadRequirements.filter(requirement => (
-        !licenseRequirements.includes(requirement)
-        && !submissionRequirements.includes(requirement)
-        && isBidWorkspacePlanDocumentRequirement(requirement)
+    const matrixLicenseRows = getBidWorkspaceRegulatoryLicenseRows(tender);
+    const hasLicenseMatrix = matrixLicenseRows.length > 0;
+    const licenseRequirements = hasLicenseMatrix
+        ? []
+        : uploadRequirements.filter(isBidWorkspaceLicenseDocumentRequirement);
+    const submissionRequirements = uploadRequirements.filter(requirement => (
+        !isBidWorkspaceLicenseDocumentRequirement(requirement) && isBidWorkspaceAdministrativeSubmissionUploadRequirement(requirement)
     ));
     const otherDocumentRequirements = uploadRequirements.filter(requirement => (
-        !licenseRequirements.includes(requirement)
+        !isBidWorkspaceLicenseDocumentRequirement(requirement)
         && !submissionRequirements.includes(requirement)
-        && !planRequirements.includes(requirement)
+        && !isBidWorkspaceTechnicalEvidenceRequirement(requirement)
     ));
     const declarationRequirements = sorted.filter(requirement => requirement.responseType !== 'upload');
     const mandatoryDeclarationCount = declarationRequirements.filter(requirement => Boolean(requirement.mandatory)).length;
+    const documentSectionOffset = 2;
+    const documentSections = [
+        submissionRequirements.length ? renderBidWorkspaceGateDocumentSection(documentSectionOffset, 'Submission documents', 'Bid submission documents', 'Tender submission forms, signed bid documents, authorization letters, and buyer-required administrative submission files.', submissionRequirements, draft) : '',
+        otherDocumentRequirements.length ? renderBidWorkspaceGateDocumentSection(documentSectionOffset + (submissionRequirements.length ? 1 : 0), 'Other documents', 'Other administrative supporting documents', 'Additional administrative evidence that is not a license, certification, technical upload, or financial capacity document.', otherDocumentRequirements, draft) : ''
+    ].filter(Boolean).join('');
+    const declarationIndex = documentSectionOffset + (submissionRequirements.length ? 1 : 0) + (otherDocumentRequirements.length ? 1 : 0);
 
     return `
         <div class="bid-prequalification-note">
             <strong>Eligibility and document requirements</strong>
-            <span>Upload mandatory eligibility documents and complete required confirmations before moving forward. Documents are grouped so licenses and certifications are separate from plans and other supporting files.</span>
+            <span>Upload administrative eligibility documents and complete required confirmations before moving forward. Technical uploads are completed in the technical response steps, and financial capacity uploads are completed in the financial offer.</span>
         </div>
-        ${renderBidWorkspaceGateDocumentSection(1, 'Licenses and certifications', 'License and certification documents', 'Business licenses, regulatory permits, registration certificates, tax/VAT evidence, and other eligibility certificates.', licenseRequirements, draft, 'No license or certification document is required for this tender.')}
-        ${renderBidWorkspaceLicenseComplianceMatrix(tender, draft)}
-        ${renderBidWorkspaceGateDocumentSection(2, 'Submission documents', 'Bid submission documents', 'Tender submission forms, signed bid documents, authorization letters, and buyer-required submission files.', submissionRequirements, draft, 'No separate submission document upload was configured for this tender.')}
-        ${renderBidWorkspaceGateDocumentSection(3, 'Other documents', 'Other supporting documents', 'Additional evidence or supporting uploads that are not licenses, certifications, submission files, or plan documents.', otherDocumentRequirements, draft, 'No other supporting document upload was configured for this tender.')}
-        ${renderBidWorkspaceGateDocumentSection(4, 'Plan documents', 'Technical and delivery plan documents', 'Methodology, work plan, delivery plan, quality/HSE plan, staffing, equipment, schedule, and other planning documents.', planRequirements, draft, 'No plan document upload was configured for this tender.')}
+        ${renderBidWorkspaceLicenseEvidenceSection(licenseRequirements, draft, tender)}
+        ${documentSections}
         <div class="bid-gate-group">
             <div class="bid-gate-group-heading">
                 <div>
-                    <span class="section-kicker">5. Eligibility declarations/confirmations</span>
+                    <span class="section-kicker">${declarationIndex}. Eligibility declarations/confirmations</span>
                     <h3>Administrative confirmations</h3>
                 </div>
                 <span class="badge ${mandatoryDeclarationCount ? 'badge-warning' : 'badge-info'}">${mandatoryDeclarationCount} mandatory</span>
@@ -1195,6 +1303,10 @@ function getBidWorkspaceRegulatoryLicenseRows(tender = {}) {
     ];
 }
 
+function getBidWorkspaceLicenseTitle(item = {}, index = 0) {
+    return item.license || item.licenseName || item.registrationType || item.regulatoryBody || item.name || item.title || item.requirement || `License ${index + 1}`;
+}
+
 function renderBidWorkspaceLicenseComplianceMatrix(tender = {}, draft = {}) {
     const rows = getBidWorkspaceRegulatoryLicenseRows(tender);
     if (!rows.length) return '';
@@ -1202,30 +1314,25 @@ function renderBidWorkspaceLicenseComplianceMatrix(tender = {}, draft = {}) {
         <div class="bid-gate-group license-compliance-matrix">
             <div class="bid-gate-group-heading">
                 <div>
-                    <span class="section-kicker">License compliance matrix</span>
-                    <h3>Regulatory license details</h3>
-                    <p>Match each buyer-required license to your license number, status, validity, and copy upload.</p>
+                    <span class="section-kicker">1. Licenses and certifications</span>
+                    <h3>Regulatory license evidence</h3>
+                    <p>Upload the required license evidence in the table below. Each row shows the license name first and the issuing board or authority below it.</p>
                 </div>
                 <span class="badge badge-warning">${rows.length} license${rows.length === 1 ? '' : 's'}</span>
             </div>
             <div class="data-table">
                 <table>
-                    <thead><tr><th>Required License</th><th>License No.</th><th>Validity</th><th>Status</th><th>Evidence</th></tr></thead>
+                    <thead><tr><th>Required license / issuing board</th><th>Status</th><th>Evidence</th></tr></thead>
                     <tbody>
                         ${rows.map((row, index) => {
                             const item = typeof row === 'string' ? { licenseName: row } : row;
                             const baseId = `license-compliance-${index}`;
-                            const title = item.licenseName || item.name || item.title || item.requirement || `License ${index + 1}`;
+                            const title = getBidWorkspaceLicenseTitle(item, index);
                             return `
                                 <tr>
-                                    <td><strong>${escapeBidWorkspaceHtml(title)}</strong><small>${escapeBidWorkspaceHtml(item.issuingAuthority || item.description || item.notes || 'Buyer-required regulatory license')}</small></td>
-                                    <td><input class="form-input" data-bid-response="${baseId}-number" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-number`))}" placeholder="License number"></td>
-                                    <td>
-                                        <input class="form-input" type="date" data-bid-response="${baseId}-expiry" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-expiry`))}">
-                                        <input class="form-input" style="margin-top: 8px;" data-bid-response="${baseId}-class" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-class`) || item.class || item.grade || '')}" placeholder="Class / grade">
-                                    </td>
+                                    <td><strong>${escapeBidWorkspaceHtml(title)}</strong><small>Issuing board / authority: ${escapeBidWorkspaceHtml(item.body || item.issuingAuthority || item.description || item.notes || item.group || 'Not specified')}</small></td>
                                     <td><select class="form-input" data-bid-response="${baseId}-status" data-bid-workflow-required-response="true"><option value="">Select</option>${['Valid', 'Renewal in progress', 'Not applicable'].map(option => `<option ${getBidWorkspaceSavedResponse(draft, `${baseId}-status`) === option ? 'selected' : ''}>${option}</option>`).join('')}</select></td>
-                                    <td>${renderBidWorkspaceUploadControl(`${baseId}-copy`, draft, 'Upload license copy', '.pdf,.jpg,.jpeg,.png', true)}</td>
+                                    <td>${renderBidWorkspaceUploadControl(`${baseId}-copy`, draft, 'Upload license evidence', '.pdf,.jpg,.jpeg,.png', true)}</td>
                                 </tr>
                             `;
                         }).join('')}
@@ -1234,6 +1341,20 @@ function renderBidWorkspaceLicenseComplianceMatrix(tender = {}, draft = {}) {
             </div>
         </div>
     `;
+}
+
+function renderBidWorkspaceLicenseEvidenceSection(licenseRequirements = [], draft = {}, tender = {}) {
+    const matrix = renderBidWorkspaceLicenseComplianceMatrix(tender, draft);
+    if (matrix) return matrix;
+    return renderBidWorkspaceGateDocumentSection(
+        1,
+        'Licenses and certifications',
+        'License and certification documents',
+        'Business licenses, regulatory permits, registration certificates, and other eligibility certificates.',
+        licenseRequirements,
+        draft,
+        'No license or certification document is required for this tender.'
+    );
 }
 
 function getBidWorkspaceFinancialCapacityRows(tender = {}) {
@@ -2417,7 +2538,6 @@ function renderWorksBidEquipmentCards(tender = {}, draft = {}) {
 
 function renderWorksBidCapacityResponse(tender = {}, draft = {}) {
     const fields = tender.requirements?.fields || {};
-    const bankRequired = normalizeBidWorkspaceFlag(fields.bankStatementsRequired);
     const hseRequired = [
         fields.hseRequired,
         fields.requireHsePlan,
@@ -2430,22 +2550,6 @@ function renderWorksBidCapacityResponse(tender = {}, draft = {}) {
             ${renderWorksBidExperienceCards(tender, draft)}
             ${renderWorksBidPersonnelCards(tender, draft)}
             ${renderWorksBidEquipmentCards(tender, draft)}
-            <section class="works-response-section">
-                <div class="bid-dynamic-group-heading">
-                    <div>
-                        <h3>Financial capacity</h3>
-                        <p>${escapeBidWorkspaceHtml(tender.requirements?.fields?.bankStatementPeriod || 'Provide turnover, credit facility, bank statements, and audited accounts if required by the buyer.')}</p>
-                    </div>
-                    <span class="badge ${bankRequired ? 'badge-warning' : 'badge-info'}">${bankRequired ? 'Required' : 'Conditional'}</span>
-                </div>
-                <div class="form-grid two">
-                    <div class="form-group"><label class="form-label">Annual Turnover</label><input class="form-input" type="number" min="0" step="1000" data-bid-response="works-financial-turnover" ${bankRequired ? 'data-bid-workflow-required-response="true"' : ''} value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-financial-turnover'))}"></div>
-                    <div class="form-group"><label class="form-label">Available Credit Facility</label><input class="form-input" type="number" min="0" step="1000" data-bid-response="works-financial-credit" ${bankRequired ? 'data-bid-workflow-required-response="true"' : ''} value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-financial-credit'))}"></div>
-                    <div class="form-group">${renderBidWorkspaceUploadControl('works-financial-bank-statements', draft, 'Upload bank statements', '.pdf,.doc,.docx,.xls,.xlsx', bankRequired)}</div>
-                    <div class="form-group">${renderBidWorkspaceUploadControl('works-financial-audited-accounts', draft, 'Upload audited financial statements', '.pdf,.doc,.docx,.xls,.xlsx', bankRequired)}</div>
-                    <div class="form-group wide"><label class="form-label">Financial Capacity Notes</label><textarea class="form-input" rows="3" data-bid-response="works-financial-notes">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-financial-notes'))}</textarea></div>
-                </div>
-            </section>
             <section class="works-response-section">
                 <div class="bid-dynamic-group-heading">
                     <div>
@@ -2963,7 +3067,6 @@ function renderServiceBidDeliveryPlan(tender = {}, draft = {}) {
 function renderServiceBidStaffingCapacity(tender = {}, draft = {}) {
     const personnelRows = getServiceBidPersonnelRows(tender);
     const equipmentRows = getServiceBidEquipmentRows(tender);
-    const financialRows = getServiceBidFinancialRows(tender);
     return `
         <div class="service-workbook">
             <section class="service-response-section">
@@ -3028,21 +3131,6 @@ function renderServiceBidStaffingCapacity(tender = {}, draft = {}) {
                     </div>
                 </section>
             ` : ''}
-            <section class="service-response-section">
-                <div class="bid-dynamic-group-heading">
-                    <div><h3>Financial capacity</h3><p>Show that service operations can be sustained through the contract period.</p></div>
-                    <span class="badge ${financialRows.length ? 'badge-warning' : 'badge-info'}">${financialRows.length ? 'Required' : 'Standard'}</span>
-                </div>
-                <div class="form-grid two">
-                    <div class="form-group"><label class="form-label">Annual Revenue</label><input class="form-input" type="number" min="0" step="1000" data-bid-response="service-financial-revenue" ${financialRows.length ? 'data-bid-workflow-required-response="true"' : ''} value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'service-financial-revenue'))}"></div>
-                    <div class="form-group"><label class="form-label">Cash Flow Availability</label><input class="form-input" type="number" min="0" step="1000" data-bid-response="service-financial-cashflow" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'service-financial-cashflow'))}"></div>
-                    <div class="form-group"><label class="form-label">Credit Facility Available</label><select class="form-input" data-bid-response="service-financial-credit"><option value="">Select</option>${['Yes', 'No'].map(option => `<option ${getBidWorkspaceSavedResponse(draft, 'service-financial-credit') === option ? 'selected' : ''}>${option}</option>`).join('')}</select></div>
-                    <div class="form-group">${renderBidWorkspaceUploadControl('service-financial-bank-statement', draft, 'Bank statement upload', '.pdf,.doc,.docx,.xls,.xlsx', financialRows.length > 0)}</div>
-                    <div class="form-group">${renderBidWorkspaceUploadControl('service-financial-audited', draft, 'Audited financials upload', '.pdf,.doc,.docx,.xls,.xlsx', financialRows.length > 0)}</div>
-                    <div class="form-group">${renderBidWorkspaceUploadControl('service-financial-insurance', draft, 'Insurance coverage upload', '.pdf,.doc,.docx', false)}</div>
-                    <div class="form-group wide"><label class="form-label">Financial Stability Notes</label><textarea class="form-input" rows="2" data-bid-response="service-financial-notes">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'service-financial-notes'))}</textarea></div>
-                </div>
-            </section>
         </div>
     `;
 }
@@ -3459,6 +3547,7 @@ function renderBiddingWorkspace() {
             !stepOneRequirementIds.has(requirement.id)
             && !stepOneRequirementKeys.has(getBidWorkspaceRequirementDedupeKey(requirement))
         ));
+    const technicalUploadRequirements = getBidWorkspaceTechnicalUploadRequirements(dynamicRequirements, profile);
     const gateRequirementCount = stepOneRequirements.length;
     const mandatoryGateCount = stepOneRequirements.filter(requirement => requirement.mandatory).length;
     const deferredMandatoryCount = dynamicRequirements.filter(isBidWorkspaceResponseRequirement).length;
@@ -3577,7 +3666,6 @@ function renderBiddingWorkspace() {
                                             : 'No mandatory eligibility upload is required for this tender. Optional documents can be attached here before continuing.'}
                                 </div>
                                 ${renderBidWorkspaceMandatoryGate(stepOneRequirements, draft, tender)}
-                                ${renderBidWorkspaceFinancialCapacityMatrix(tender, draft)}
                             </section>
 
                             ${goodsFlow ? `
@@ -3594,6 +3682,7 @@ function renderBiddingWorkspace() {
                                 ${renderBidWorkspaceClarificationPrompt('Need clarification about product specifications?', 'Technical', 'Question about goods product specifications or compliance')}
                                 
                                 ${renderGoodsBidProductSpecificationResponse(tender, draft)}
+                                ${renderBidWorkspaceTechnicalUploadSection(technicalUploadRequirements, draft, 'Technical requirement uploads', 'Upload goods-related technical evidence requested by the buyer, excluding licenses, administrative submission documents, and financial capacity documents.')}
                             </section>
 
                             <section class="journey-panel" id="bid-step-3">
@@ -3605,6 +3694,7 @@ function renderBiddingWorkspace() {
                                     <strong>Editable supplier pricing table</strong>
                                     <span>For each requested item, confirm whether you bid and complete the commercial price, tax, and discount details.</span>
                                 </div>
+                                ${renderBidWorkspaceFinancialCapacityMatrix(tender, draft, 'goods-financial-capacity')}
                                 <div class="data-table goods-offer-table">
                                     <table>
                                         <thead><tr><th>Item</th><th>Requested Item</th><th>Qty</th><th>Unit</th><th>Status</th><th>Unit Price</th><th>Tax Included?</th><th>Discount</th><th>Total</th></tr></thead>
@@ -3700,7 +3790,7 @@ function renderBiddingWorkspace() {
                                 </div>
                                 <div class="bid-step-intro">
                                     <strong>Project-oriented contractor evidence</strong>
-                                    <span>Prove relevant experience, available personnel, equipment capacity, financial capacity, and HSE readiness before writing the execution proposal.</span>
+                                    <span>Prove relevant experience, available personnel, equipment capacity, and HSE readiness before writing the execution proposal.</span>
                                 </div>
                                 ${renderBidWorkspaceClarificationPrompt('Need clarification about personnel, equipment, experience, or HSE evidence?', 'Technical', 'Question about works technical capacity requirements')}
                                
@@ -3718,6 +3808,7 @@ function renderBiddingWorkspace() {
                                 </div>
                                 ${renderBidWorkspaceClarificationPrompt('Need clarification about drawings, site visit, milestones, or methodology?', 'Timeline', 'Question about works methodology, drawings, site visit, or work program')}
                                 ${renderWorksBidTechnicalProposal(tender, draft)}
+                                ${renderBidWorkspaceTechnicalUploadSection(technicalUploadRequirements, draft, 'Additional technical uploads', 'Upload any buyer-required works technical evidence that is not already captured in personnel, equipment, HSE, method statement, work program, licenses, or financial capacity.')}
                             </section>
 
                             <section class="journey-panel" id="bid-step-4">
@@ -3729,6 +3820,7 @@ function renderBiddingWorkspace() {
                                     <strong>Editable construction pricing grid</strong>
                                     <span>Price labor, materials, equipment, overheads, and margin for each work item. The unit rate and total are recalculated automatically.</span>
                                 </div>
+                                ${renderBidWorkspaceFinancialCapacityMatrix(tender, draft, 'works-financial-capacity')}
                                 <div class="data-table works-boq-table">
                                     <table>
                                         <thead><tr><th>Code</th><th>Work Item</th><th>Qty</th><th>Unit</th><th>Status</th><th>Unit Rate</th><th>Total</th></tr></thead>
@@ -3812,6 +3904,7 @@ function renderBiddingWorkspace() {
                                 ${renderBidWorkspaceClarificationPrompt('Need clarification about service scope, workflow, or deliverables?', 'Technical', 'Question about service methodology, deliverables, or workflow')}
                                
                                 ${renderServiceBidMethodology(tender, draft)}
+                                ${renderBidWorkspaceTechnicalUploadSection(technicalUploadRequirements, draft, 'Service technical uploads', 'Upload service methodology, workflow, deliverable, or other buyer-required technical evidence that is not a license, administrative document, or financial capacity document.')}
                             </section>
 
                             <section class="journey-panel" id="bid-step-3">
@@ -3834,9 +3927,9 @@ function renderBiddingWorkspace() {
                                 </div>
                                 <div class="bid-step-intro">
                                     <strong>People and operational sustainability</strong>
-                                    <span>Assign staff, upload CVs, prove tools or systems where required, and show financial capacity to sustain service delivery.</span>
+                                    <span>Assign staff, upload CVs, and prove tools or systems where required.</span>
                                 </div>
-                                ${renderBidWorkspaceClarificationPrompt('Need clarification about staffing, certifications, equipment, or financial capacity?', 'Technical', 'Question about service staffing, equipment, or financial capacity')}
+                                ${renderBidWorkspaceClarificationPrompt('Need clarification about staffing, certifications, or equipment?', 'Technical', 'Question about service staffing, certifications, or equipment')}
                                 ${renderServiceBidStaffingCapacity(tender, draft)}
                             </section>
 
@@ -3862,6 +3955,7 @@ function renderBiddingWorkspace() {
                                     <strong>Service pricing calculator</strong>
                                     <span>Price the schedule using monthly retainers, unit rates, lump sums, hybrid pricing, or SLA-based assumptions.</span>
                                 </div>
+                                ${renderBidWorkspaceFinancialCapacityMatrix(tender, draft, 'service-financial-capacity')}
                                 <div class="data-table service-pricing-table">
                                     <table>
                                         <thead><tr><th>Code</th><th>Service Line</th><th>Status</th><th>Frequency</th><th>Staff Count</th><th>Monthly Rate</th><th>Equipment Cost</th><th>Total</th></tr></thead>
@@ -3950,6 +4044,7 @@ function renderBiddingWorkspace() {
                                     <div><span class="section-kicker">Step 3</span><h2>${escapeBidWorkspaceHtml(profile.commercialTitle || 'Financial Offer')}</h2></div>
                                     <span class="badge badge-info" data-bid-total>${formatBidWorkspaceMoney(bidAmount)}</span>
                                 </div>
+                                ${renderBidWorkspaceFinancialCapacityMatrix(tender, draft, `${profile.id || 'general'}-financial-capacity`)}
                                 <div class="data-table">
                                     <table>
                                         ${profile.id === 'consultancy'

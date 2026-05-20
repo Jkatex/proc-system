@@ -219,7 +219,6 @@ const mockData = {
                 },
                 lists: {
                     mandatoryDeclarations: [
-                        { text: 'Declare no conflict of interest with the procuring entity.' },
                         { text: 'Confirm acceptance of defects liability and retention provisions.' }
                     ],
                     safetyRequirements: [

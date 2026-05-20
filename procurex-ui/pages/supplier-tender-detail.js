@@ -660,6 +660,10 @@ function isSupplierTenderTimelineRequirement(requirement = {}) {
     return /milestone rows|works milestone|milestone:|target date|liquidated damages|programme and key dates|tender timeline/.test(text);
 }
 
+function isSupplierTenderConflictDeclarationRequirement(requirement = {}) {
+    return /conflict of interest/.test(getSupplierTenderRequirementText(requirement));
+}
+
 function isSupplierTenderDocumentRequirement(requirement = {}) {
     if (isSupplierTenderCommercialScheduleRequirement(requirement) || isSupplierTenderTimelineRequirement(requirement)) return false;
     return requirement.responseType === 'upload'
@@ -907,6 +911,7 @@ function getSupplierTenderOtherResponseGuideItems(tender = {}, requirementSet = 
     [...(requirementSet.mandatory || []), ...(requirementSet.optional || [])]
         .filter(requirement => !isSupplierTenderCommercialScheduleRequirement(requirement))
         .filter(requirement => !isSupplierTenderTimelineRequirement(requirement))
+        .filter(requirement => !isSupplierTenderConflictDeclarationRequirement(requirement))
         .filter(requirement => !isSupplierTenderDocumentRequirement(requirement))
         .filter(requirement => !isSupplierTenderLicenseRequirement(requirement))
         .filter(requirement => !isSupplierTenderCvRequirement(requirement))
@@ -1268,18 +1273,6 @@ function renderSupplierTenderMonitoringTab(tender = {}, profile = {}, requiremen
                     </table>
                 </div>
             `, '<span class="badge badge-success">Published</span>')
-        },
-        {
-            id: 'award-reporting',
-            label: 'Award reporting',
-            content: renderProcurexTenderDocumentSection('4', 'Award Reporting', 'Reports', `
-                <div class="record-summary tender-detail-summary">
-                    <div><span>Submission progress</span><strong>${daysRemaining}d remaining</strong></div>
-                    <div><span>Mandatory before bid</span><strong>${requirementSet.mandatory.length} items</strong></div>
-                    <div><span>Additional responses</span><strong>${requirementSet.optional.length} items</strong></div>
-                    <div><span>Award target</span><strong>${escapeSupplierTenderDetailHtml((tender.milestones || []).find(item => /award/i.test(item.name || item.title || ''))?.date || 'Not set')}</strong></div>
-                </div>
-            `)
         }
     ], 'timeline');
 }
