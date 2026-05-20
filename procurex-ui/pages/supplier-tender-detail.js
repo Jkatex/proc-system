@@ -730,63 +730,6 @@ function addSupplierTenderGuideItem(items, seen, item = {}) {
     });
 }
 
-function getSupplierTenderDefaultCvRoles(tender = {}) {
-    if (tender.type === 'Works') {
-        return [
-            {
-                role: 'Project Manager',
-                description: 'Upload the proposed Project Manager CV showing health facility or building renovation experience, contract management capability, and relevant qualifications.'
-            },
-            {
-                role: 'Site Engineer',
-                description: 'Upload the proposed Site Engineer CV showing construction supervision experience, technical qualifications, and any professional registration or certification.'
-            },
-            {
-                role: 'Site Supervisor',
-                description: 'Upload the proposed Site Supervisor CV showing site coordination, quality control, safety supervision, and similar renovation experience.'
-            }
-        ];
-    }
-    if (tender.type === 'Service') {
-        return [
-            {
-                role: 'Contract Manager',
-                description: 'Upload the proposed Contract Manager CV showing service management experience and relevant qualifications.'
-            },
-            {
-                role: 'Service Supervisor',
-                description: 'Upload the proposed Service Supervisor CV showing supervision experience for the required service scope.'
-            },
-            {
-                role: 'Key Technical Staff',
-                description: 'Upload CVs for key technical staff who will perform or supervise the service, including qualifications and relevant certifications.'
-            }
-        ];
-    }
-    if (tender.type === 'Consultancy') {
-        return [
-            {
-                role: 'Team Leader',
-                description: 'Upload the proposed Team Leader CV showing relevant assignment leadership experience, qualifications, and professional registrations where applicable.'
-            },
-            {
-                role: 'Key Expert',
-                description: 'Upload CVs for each proposed key expert named in the technical proposal, including qualifications and relevant assignment evidence.'
-            }
-        ];
-    }
-    return [
-        {
-            role: 'Technical Lead',
-            description: 'Upload the proposed Technical Lead CV showing experience with the offered goods or technical solution.'
-        },
-        {
-            role: 'Delivery or Warranty Coordinator',
-            description: 'Upload the proposed delivery or warranty coordinator CV showing logistics, after-sales support, or warranty management experience.'
-        }
-    ];
-}
-
 function getSupplierTenderCvGuideItems(tender = {}, requirementSet = {}) {
     const fields = tender.requirements?.fields || {};
     const items = [];
@@ -837,18 +780,10 @@ function getSupplierTenderCvGuideItems(tender = {}, requirementSet = {}) {
     [...(requirementSet.mandatory || []), ...(requirementSet.optional || [])]
         .filter(isSupplierTenderCvRequirement)
         .filter(requirement => !(isSupplierTenderTruthy(fields.keyPersonnelCvsRequired) && /key personnel/i.test(requirement.title || '')))
+        .filter(requirement => !((fields.personnelRequirementRows || []).length && /personnel requirement rows/i.test(`${requirement.title || ''} ${requirement.category || ''}`)))
         .forEach(requirement => {
-            const specificDescription = /key personnel/i.test(requirement.title || '') && tender.type === 'Works'
-                ? 'Upload CVs for the project manager, site engineer, and site supervisor, including qualifications, registrations, and relevant renovation or construction experience.'
-                : '';
-            addCv(requirement.title, specificDescription || requirement.description || getSupplierTenderDocumentDescription(requirement.title), requirement.mandatory !== false);
+            addCv(requirement.title, requirement.description || getSupplierTenderDocumentDescription(requirement.title), requirement.mandatory !== false);
         });
-
-    if (!items.length && isSupplierTenderTruthy(fields.keyPersonnelCvsRequired)) {
-        getSupplierTenderDefaultCvRoles(tender).forEach(item => {
-            addCv(`${item.role} CV`, item.description);
-        });
-    }
 
     return items;
 }
