@@ -6,7 +6,7 @@ function renderBuyerJourney() {
         ['Tender Design', 'Tender ready to publish', 'Create the tender, scope, attachments, BOQ, evaluation criteria, timeline, and procuring entity review.', 'create-tender', 'In progress'],
         ['Publication', 'Active tender detail', 'Reviewed tender goes live in the marketplace with procuring entity detail controls.', 'marketplace', 'Next'],
         ['Clarifications', 'Tenderer QandA handled', 'Review inbox, answer questions, create amendments, and update tender documents.', 'tender-details', '3 open'],
-        ['Evaluation', 'Oversight dashboard', 'Monitor evaluator progress, score variance, conflicts, and bid ranking intelligence.', 'bid-evaluation', '72%'],
+        ['Evaluation', 'Buyer evaluation workspace', 'Evaluate bidder responses, manage conflict declaration, compare bids, and prepare the recommendation.', 'bid-evaluation', '72%'],
         ['Award Approval', 'Approved recommendation', 'Submit award recommendation, route approvals, and notify successful bidder.', 'award-recommendation', 'Pending'],
         ['Standstill', 'No unresolved challenge', 'Run standstill period, review challenges, resolve outcomes, and continue contracting.', 'award-recommendation', '14 days'],
         ['Contracting', 'Active signed contract', 'Draft contract, negotiate changes, digitally sign, and activate contract summary.', 'contract-negotiation', 'Draft'],
@@ -103,15 +103,15 @@ function renderBuyerJourney() {
 
                     <section class="journey-grid three-col">
                         <div class="journey-panel control-panel">
-                            <span class="section-kicker">Evaluation oversight</span>
-                            <h2>Evaluator Progress</h2>
+                            <span class="section-kicker">Buyer evaluation</span>
+                            <h2>Evaluation Progress</h2>
                             <div class="progress-stack">
                                 <div><span>Technical</span><strong>82%</strong></div>
                                 <div class="progress-bar"><div class="progress-fill" style="width: 82%"></div></div>
                                 <div><span>Financial</span><strong>64%</strong></div>
                                 <div class="progress-bar"><div class="progress-fill" style="width: 64%"></div></div>
                             </div>
-                            <button class="btn btn-secondary" data-navigate="bid-evaluation">Monitor</button>
+                            <button class="btn btn-secondary" data-navigate="bid-evaluation">Evaluate</button>
                         </div>
 
                         <div class="journey-panel control-panel">

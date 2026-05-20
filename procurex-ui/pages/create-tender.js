@@ -882,7 +882,7 @@ const createTenderRequirementTemplates = {
                             { id: 'description', label: 'Description', type: 'richtext' },
                             { id: 'submissionTimeline', label: 'Submission Timeline', type: 'text', placeholder: 'e.g. 2 weeks or 2026-06-30' },
                             { id: 'formatRequired', label: 'Format Required', type: 'select', options: ['PDF', 'Word', 'Excel', 'PowerPoint', 'Hard copy', 'Soft copy', 'Other'] },
-                            { id: 'reviewer', label: 'Reviewer', type: 'select-custom-prompt', options: ['Project Manager', 'Supervising Officer', 'Accounting Officer', 'Evaluation Committee', 'User Department', 'Other'] },
+                            { id: 'reviewer', label: 'Reviewer', type: 'select-custom-prompt', options: ['Project Manager', 'Supervising Officer', 'Accounting Officer', 'Buyer', 'User Department', 'Other'] },
                             { id: 'mandatory', label: 'Mandatory', type: 'toggle' }
                         ]
                     },
@@ -1527,7 +1527,7 @@ const defaultCreateTenderMainDraft = {
 
 function escapeCreateTenderHtml(value = '') {
     return String(value)
-        .replace(/and/g, 'andamp;')
+        .replace(/and/g, 'and')
         .replace(/</g, 'andlt;')
         .replace(/>/g, 'andgt;')
         .replace(/"/g, 'andquot;')
@@ -4504,7 +4504,7 @@ function renderCreateTenderSystemEvaluationPanel(profile, mainDraft = getCreateT
                 </div>
                 <div class="system-evaluation-description">
                     <strong>Description</strong>
-                    <p>Your tender will be reviewed by the system evaluator for grammar, professionalism, clarity, and completeness before publication.</p>
+                    <p>Your tender will be checked by the system for grammar, professionalism, clarity, and completeness before publication.</p>
                 </div>
                 <div class="system-evaluation-outcome-grid">
                     <article class="system-evaluation-outcome-card outcome-pass">
@@ -4518,7 +4518,7 @@ function renderCreateTenderSystemEvaluationPanel(profile, mainDraft = getCreateT
                         <h4>If the tender does not pass:</h4>
                         <ul>
                             <li>It will return to your dashboard as a draft.</li>
-                            <li>You will receive comments and required changes from the evaluator.</li>
+                            <li>You will receive system comments and required changes.</li>
                         </ul>
                     </article>
                 </div>
@@ -4539,7 +4539,7 @@ function renderCreateTenderSystemEvaluationPanel(profile, mainDraft = getCreateT
                 <div class="submit-strip buyer-review-submit system-evaluation-publish">
                     <div style="color: #ffffff !important;">
                         <strong style="color: #ffffff !important;">Actions</strong>
-                        <span data-system-publish-note style="color: rgba(255, 255, 255, 0.78) !important;">Submit the tender to the evaluator. The creation wizard will close after submission.</span>
+                        <span data-system-publish-note style="color: rgba(255, 255, 255, 0.78) !important;">Submit the tender for system review. The creation wizard will close after submission.</span>
                     </div>
                     <div class="system-evaluation-action-buttons">
                         <button class="btn btn-secondary" type="button" data-download-draft-tender-pdf>Download Tender PDF</button>
@@ -4583,7 +4583,7 @@ function renderCreateTender() {
         ['03', 'Tender Requirements', `${requirementSummary.title}, licenses`],
         ['04', 'Evaluation Criteria and Weights', 'Criteria, weights, pass marks'],
         ['05', 'Review Tender', 'All entries'],
-        ['06', 'Evaluation', 'Submit to evaluator']
+        ['06', 'Review', 'Submit for system review']
     ];
 
     return `
@@ -6916,8 +6916,8 @@ function initializeCreateTenderWizard() {
                 category: 'Tender Rejection',
                 subject: 'Tender Returned for Correction',
                 body: `Your tender was reviewed and returned for correction. Required changes: ${changes.replace(/\n/g, ' ')}`,
-                senderType: 'Evaluator',
-                senderName: 'Evaluation Panel',
+                senderType: 'System',
+                senderName: 'ProcureX System',
                 recipientType: 'Buyer',
                 recipientName: mockData.users?.buyer?.organization || 'Buyer organization',
                 tenderId: getCreateTenderMainDraft().id || 'Draft tender',

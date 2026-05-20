@@ -8,7 +8,7 @@ const supplierTenderClarificationCategories = ['Technical', 'Financial', 'Delive
 function escapeSupplierTenderDetailHtml(value = '') {
     if (typeof escapeBidWorkspaceHtml === 'function') return escapeBidWorkspaceHtml(value);
     return String(value)
-        .replace(/and/g, 'andamp;')
+        .replace(/and/g, 'and')
         .replace(/</g, 'andlt;')
         .replace(/>/g, 'andgt;')
         .replace(/"/g, 'andquot;')
@@ -653,10 +653,10 @@ function renderSupplierTenderSubmissionChecklist(tender = {}, profile = {}, requ
     const mandatory = requirementSet.mandatory || [];
     const optional = requirementSet.optional || [];
     const checklist = [
-        ['Volume 1: Administrative Compliance', `${mandatory.length} mandatory eligibility, license, registration, and evidence item${mandatory.length === 1 ? '' : 's'}`, 'Step 0: Eligibility gate'],
-        ['Volume 2: Technical Response', profile.responseTitle || 'Technical response, methodology, personnel, equipment, and specification compliance', 'Step 1: Technical'],
-        ['Volume 3: Financial Offer', tender.commercialModel || profile.commercialName || 'Priced commercial schedule and bid value', 'Step 2: Financial'],
-        ['Volume 4: Declarations and Contract Terms', 'Clause acknowledgements, deviations, anti-corruption declaration, and authorized signatory', 'Step 3 and Step 4'],
+        ['Step 1: Administrative Compliance', `${mandatory.length} mandatory eligibility, license, registration, and evidence item${mandatory.length === 1 ? '' : 's'}`, 'Step 0: Eligibility gate'],
+        ['Step 2: Technical Response', profile.responseTitle || 'Technical response, methodology, personnel, equipment, and specification compliance', 'Step 1: Technical'],
+        ['Step 3: Financial Offer', tender.commercialModel || profile.commercialName || 'Priced commercial schedule and bid value', 'Step 2: Financial'],
+        ['Step 4: Declarations and Contract Terms', 'Clause acknowledgements, deviations, anti-corruption declaration, and authorized signatory', 'Step 3 and Step 4'],
         ['Annex: Uploaded Evidence Files', `${optional.length} optional item${optional.length === 1 ? '' : 's'} plus all mandatory upload files with integrity metadata`, 'Upload controls throughout workspace']
     ];
     return `
@@ -666,7 +666,7 @@ function renderSupplierTenderSubmissionChecklist(tender = {}, profile = {}, requ
                     <span class="section-kicker">Bid submission checklist</span>
                     <h2>How this tender maps to the bidding workspace</h2>
                 </div>
-                <span class="badge badge-info">${checklist.length} volumes</span>
+                <span class="badge badge-info">${checklist.length} steps</span>
             </div>
             <div class="bid-completeness-list">
                 ${checklist.map(([label, note, step]) => `

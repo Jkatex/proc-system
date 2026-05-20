@@ -4,89 +4,92 @@ const contractNegotiationClauseCatalog = {
     goods: {
         label: 'Goods',
         clauses: [
-            ['Delivery Clause', 'Delivery location, delivery timeline, and partial vs full delivery.'],
+            ['Delivery Clause', 'Delivery location, timeline, and partial vs full delivery allowed.'],
             ['Payment Terms', 'Payment after delivery or inspection, invoice requirements, and payment timeline.'],
-            ['Inspection and Acceptance Clause', 'Inspection process, rejection conditions, and replacement rules.'],
+            ['Inspection and Acceptance', 'Inspection process, rejection conditions, replacement rules, and acceptance certificate.'],
             ['Warranty Clause', 'Warranty period, repair or replacement obligations, and defect handling.'],
             ['Penalty for Delay', 'Liquidated damages per day or week and maximum penalty cap.'],
             ['Risk and Ownership Transfer', 'When risk passes to the buyer, usually upon delivery or acceptance.'],
-            ['Packaging and Transport Clause', 'Packaging standards and transport responsibility, including Incoterms where applicable.'],
-            ['Termination Clause', 'Breach conditions and cancellation rights.']
+            ['Packaging and Transport', 'Packaging standards, transport responsibility, and Incoterms where applicable.'],
+            ['Termination Clause', 'Breach conditions, cancellation rights, and notice period.']
         ]
     },
     works: {
         label: 'Works',
         clauses: [
-            ['Scope of Works Clause', 'Project scope, drawings or specifications reference, and bill of quantities.'],
-            ['Contract Price and Payment Schedule', 'Milestone-based payments, interim certificates, and retention money.'],
-            ['Time for Completion Clause', 'Project duration, start date, and completion deadline.'],
-            ['Liquidated Damages Clause', 'Penalty per delay day or week and maximum cap, often 10% of contract value.'],
-            ['Defects Liability Clause', 'Post-completion defect period and contractor responsibility for repairs.'],
-            ['Variation Clause', 'How changes to works are approved and how price adjustments are handled.'],
+            ['Scope of Works Clause', 'Project scope, drawings reference, specifications, and BOQ reference.'],
+            ['Contract Price and Payment Schedule', 'Milestone payments, interim certificates, and retention money percentage.'],
+            ['Time for Completion', 'Project duration, start date, completion deadline, and extension process.'],
+            ['Liquidated Damages', 'Penalty per delay day or week and maximum cap, often 10% of contract value.'],
+            ['Defects Liability', 'Post-completion defect period, usually 12-24 months, and repair obligations.'],
+            ['Variation Clause', 'How scope changes are approved and price adjustments are handled.'],
             ['Site and Access Clause', 'Site handover rules, access rights, and utility responsibilities.'],
-            ['Health, Safety and Environment Clause', 'Safety compliance, environmental protection, and worker safety obligations.'],
-            ['Performance Security Clause', 'Bank guarantee requirement and percentage such as 5-10%.']
+            ['Health, Safety and Environment', 'Safety compliance, environmental protection, and worker safety obligations.'],
+            ['Performance Security', 'Bank guarantee requirement and percentage such as 5-10% before signing or effectiveness.']
         ]
     },
     services: {
         label: 'Services',
         clauses: [
-            ['Service Scope Clause', 'Detailed service description and service boundaries.'],
-            ['Service Level Agreement (SLA)', 'Performance standards, uptime or response time, and service quality metrics.'],
-            ['KPI and Performance Monitoring Clause', 'KPIs, measurement method, and reporting mechanism.'],
-            ['Payment Terms Clause', 'Monthly or periodic payments and deductions for poor performance.'],
+            ['Service Scope Clause', 'Detailed service description, boundaries, and exclusions.'],
+            ['Service Level Agreement', 'Performance standards, uptime, response times, and quality metrics.'],
+            ['KPI and Performance Monitoring', 'KPIs, measurement method, reporting mechanism, and remedies.'],
+            ['Payment Terms', 'Monthly or periodic payments and deductions for poor performance.'],
             ['Penalty Clause', 'SLA breach penalties, service credit deductions, and escalation rules.'],
-            ['Staffing and Personnel Clause', 'Required staff, qualifications, and replacement rules.'],
-            ['Equipment and Resources Clause', 'Tools or equipment required and ownership responsibilities.'],
-            ['Reporting Requirements Clause', 'Reporting frequency, format, and submission channels.'],
-            ['Termination Clause', 'Poor performance termination, notice period, and breach triggers.'],
-            ['Renewal Clause', 'Extension conditions and performance-based renewal.'],
-            ['Confidentiality Clause', 'Data protection and non-disclosure obligations.']
+            ['Staffing and Personnel', 'Required staff roles, qualifications, and replacement approval.'],
+            ['Equipment and Resources', 'Tools or equipment required and ownership responsibilities.'],
+            ['Reporting Requirements', 'Reporting frequency, format, and submission channels.'],
+            ['Termination Clause', 'Poor performance termination triggers and notice period.'],
+            ['Renewal Clause', 'Extension conditions and performance-based renewal.']
         ]
     },
     consultancy: {
         label: 'Consultancy',
         clauses: [
-            ['Scope of Services Clause', 'Deliverables such as reports, studies, designs, and methodology boundaries.'],
-            ['Deliverables and Milestones Clause', 'Outputs required, submission timeline, and approval process.'],
-            ['Payment Terms Clause', 'Milestone-based and acceptance-linked payments.'],
-            ['Personnel Clause', 'Key experts, CV approval requirement, and substitution restrictions.'],
-            ['Performance and Evaluation Clause', 'Quality evaluation of deliverables and acceptance criteria.'],
-            ['Intellectual Property Clause', 'Ownership of reports or data and usage rights.'],
-            ['Confidentiality Clause', 'Data protection and non-disclosure obligations.'],
-            ['Time Schedule Clause', 'Assignment duration and submission deadlines.'],
+            ['Scope of Services', 'Deliverables, methodology boundaries, reports, studies, or designs.'],
+            ['Deliverables and Milestones', 'Outputs required, submission timeline, approval, and revision process.'],
+            ['Payment Terms', 'Milestone-based and acceptance-linked payments.'],
+            ['Personnel Clause', 'Key experts named, CV approval, and substitution restrictions.'],
+            ['Performance and Evaluation', 'Quality evaluation of deliverables and acceptance criteria.'],
+            ['Intellectual Property', 'Ownership of reports, data, designs, usage rights, and reproduction limits.'],
+            ['Time Schedule', 'Assignment duration and submission deadlines per deliverable.'],
             ['Termination Clause', 'Termination for unsatisfactory performance and withdrawal rules.'],
-            ['Conflict of Interest Clause', 'Disclosure obligations and restrictions on bias.']
+            ['Conflict of Interest', 'Disclosure obligations and restrictions on engaging competing parties.'],
+            ['Knowledge Transfer', 'Training, mentorship, manuals, and handover documentation.'],
+            ['Data Ownership', 'Client data usage limits, return obligations, and confidential data handling.']
         ]
     }
 };
 
 const contractNegotiationEthicalClauses = [
-    ['Conflict of Interest Clause', 'Disclosure duties, conflict restrictions, and remediation steps.'],
-    ['Confidentiality Clause', 'Non-disclosure duties for procurement, technical, commercial, and personal data.'],
+    ['Conflict of Interest Clause', 'Disclosure duties, restrictions, and remediation steps.'],
+    ['Confidentiality Clause', 'Non-disclosure of procurement, technical, commercial, and personal data.'],
     ['Anti-Corruption Clause', 'Prohibits bribery, collusion, coercion, and fraudulent conduct during execution.'],
     ['Data Protection Clause', 'Data handling, access control, retention, and incident reporting obligations.']
 ];
 
-const contractNegotiationConsultancyGovernanceClauses = [
-    ['Knowledge Transfer Clause', 'Training, mentorship, manuals, and handover documentation obligations.'],
-    ['Intellectual Property Clause', 'Ownership and permitted use of reports, data, designs, methods, and deliverables.'],
-    ['Data Ownership Clause', 'Client data usage limits, return obligations, and confidential data handling.']
-];
-
 function escapeContractNegotiationHtml(value = '') {
     return String(value)
-        .replace(/and/g, 'andamp;')
-        .replace(/</g, 'andlt;')
-        .replace(/>/g, 'andgt;')
-        .replace(/"/g, 'andquot;')
-        .replace(/'/g, 'and#039;');
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function formatContractNegotiationMoney(value, currency = 'TZS') {
+    if (typeof formatEvaluationMoney === 'function') return formatEvaluationMoney(value, currency);
+    const amount = Number(value);
+    return Number.isFinite(amount) ? `${currency} ${amount.toLocaleString()}` : escapeContractNegotiationHtml(value || '-');
+}
+
+function renderContractNegotiationBadge(value = '') {
+    if (typeof renderEvaluationStatusBadge === 'function') return renderEvaluationStatusBadge(value);
+    return `<span class="badge badge-info">${escapeContractNegotiationHtml(value)}</span>`;
 }
 
 function getContractNegotiationTender() {
-    if (typeof getProcurexSelectedTender === 'function') {
-        return getProcurexSelectedTender();
-    }
+    if (typeof getProcurexSelectedTender === 'function') return getProcurexSelectedTender();
     return mockData.tenders?.[0] || {};
 }
 
@@ -98,33 +101,23 @@ function getContractNegotiationTypeId(tender = {}) {
     return 'works';
 }
 
-function renderContractNegotiationClauseCards(typeId, activeTypeId) {
-    const category = contractNegotiationClauseCatalog[typeId];
-    if (!category) return '';
-    const isActive = typeId === activeTypeId;
-
-    return `
-        <section class="contract-clause-category ${isActive ? 'active' : ''}">
-            <div class="contract-clause-category-heading">
-                <div>
-                    <span class="section-kicker">${isActive ? 'Selected tender category' : 'Contract template'}</span>
-                    <h4>${escapeContractNegotiationHtml(category.label)} clauses</h4>
-                </div>
-                <span class="badge ${isActive ? 'badge-success' : 'badge-info'}">${category.clauses.length} clauses</span>
-            </div>
-            <div class="contract-clause-grid">
-                ${category.clauses.map(([title, detail]) => `
-                    <article class="contract-clause-card">
-                        <strong>${escapeContractNegotiationHtml(title)}</strong>
-                        <span>${escapeContractNegotiationHtml(detail)}</span>
-                    </article>
-                `).join('')}
-            </div>
-        </section>
-    `;
+function getContractNegotiationRecommendation() {
+    return mockData.bidEvaluation?.recommendation || {};
 }
 
-function renderContractNegotiationClauseGroup(title, kicker, clauses = [], badgeText = '') {
+function getContractNegotiationWinner() {
+    const recommendation = getContractNegotiationRecommendation();
+    const bids = mockData.bidEvaluation?.bids || [];
+    return bids.find(bid => bid.supplier === recommendation.supplier)
+        || bids.slice().sort((a, b) => (a.financial?.ranking || 99) - (b.financial?.ranking || 99))[0]
+        || {};
+}
+
+function getContractNegotiationClauseStatus(index = 0) {
+    return index % 7 === 2 ? 'Disputed' : index % 3 === 0 ? 'Agreed' : 'Pending';
+}
+
+function renderContractNegotiationClauseGroup(title, kicker, clauses = [], options = {}) {
     return `
         <section class="contract-clause-category active">
             <div class="contract-clause-category-heading">
@@ -132,15 +125,21 @@ function renderContractNegotiationClauseGroup(title, kicker, clauses = [], badge
                     <span class="section-kicker">${escapeContractNegotiationHtml(kicker)}</span>
                     <h4>${escapeContractNegotiationHtml(title)}</h4>
                 </div>
-                <span class="badge badge-success">${escapeContractNegotiationHtml(badgeText || `${clauses.length} clauses`)}</span>
+                <span class="badge badge-info">${escapeContractNegotiationHtml(options.badge || `${clauses.length} clauses`)}</span>
             </div>
             <div class="contract-clause-grid">
-                ${clauses.map(([clauseTitle, detail]) => `
-                    <article class="contract-clause-card">
-                        <strong>${escapeContractNegotiationHtml(clauseTitle)}</strong>
-                        <span>${escapeContractNegotiationHtml(detail)}</span>
-                    </article>
-                `).join('')}
+                ${clauses.map(([clauseTitle, detail], index) => {
+                    const status = options.fixedStatus || getContractNegotiationClauseStatus(index);
+                    return `
+                        <article class="contract-clause-card">
+                            <div class="contract-clause-card-head">
+                                <strong>${escapeContractNegotiationHtml(clauseTitle)}</strong>
+                                ${renderContractNegotiationBadge(status)}
+                            </div>
+                            <span>${escapeContractNegotiationHtml(detail)}</span>
+                        </article>
+                    `;
+                }).join('')}
             </div>
         </section>
     `;
@@ -148,212 +147,312 @@ function renderContractNegotiationClauseGroup(title, kicker, clauses = [], badge
 
 function renderContractNegotiationClauseLibrary(tender = {}) {
     const activeTypeId = getContractNegotiationTypeId(tender);
-    const orderedTypeIds = [
-        activeTypeId,
-        ...Object.keys(contractNegotiationClauseCatalog).filter(typeId => typeId !== activeTypeId)
+    const category = contractNegotiationClauseCatalog[activeTypeId] || contractNegotiationClauseCatalog.works;
+
+    return `
+        <section class="procurement-panel evaluation-panel contract-clause-library">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Contract clause definition</span>
+                    <h2>${escapeContractNegotiationHtml(category.label)} contract clauses</h2>
+                </div>
+                ${renderContractNegotiationBadge(`${category.clauses.length + contractNegotiationEthicalClauses.length} clauses`)}
+            </div>
+            <p class="contract-clause-note">Buyer-defined contract clauses are managed after award. They do not reopen tender evaluation or supplier responsiveness.</p>
+            <div class="contract-clause-library-stack">
+                ${renderContractNegotiationClauseGroup('Ethical Clauses', 'Mandatory for all procurement types', contractNegotiationEthicalClauses, { fixedStatus: 'Mandatory' })}
+                ${renderContractNegotiationClauseGroup(`${category.label} Clauses`, 'Selected procurement type', category.clauses)}
+            </div>
+        </section>
+    `;
+}
+
+function renderContractNegotiationFlow() {
+    const steps = [
+        ['01', 'Internal approval confirmed', 'Award package is approved before negotiation.'],
+        ['02', 'Standstill satisfied', 'Complaints and debrief requests are closed.'],
+        ['03', 'Supplier accepts award', 'Winner confirms willingness to proceed.'],
+        ['04', 'Buyer shares draft v1', 'Clause catalog and contract body are issued.'],
+        ['05', 'Supplier counter-proposal v2', 'Supplier proposes clause amendments in chat.'],
+        ['06', 'Buyer revised draft v3', 'Buyer accepts, rejects, or counter-proposes.'],
+        ['07', 'Final agreed version', 'All clauses marked agreed before signing.'],
+        ['08', 'Signed hash and activation', 'Dual signature creates immutable audit record.']
     ];
 
     return `
-        <div class="card contract-clause-library" style="margin-bottom: 32px;">
+        <section class="award-workflow-map contract-workflow-map">
             <div class="panel-heading">
                 <div>
-                    <span class="section-kicker">Contract management</span>
-                    <h3>Category Contract Clauses</h3>
+                    <span class="section-kicker">Contracting workflow</span>
+                    <h2>Negotiation opens only after award controls are satisfied</h2>
                 </div>
-                <span class="badge badge-info">${escapeContractNegotiationHtml(tender.title || 'Contract template')}</span>
+                ${renderContractNegotiationBadge('Controlled sequence')}
             </div>
-            <p class="contract-clause-note">Clause templates are managed after award as part of contract finalization, separate from supplier tender requirements.</p>
-            <div class="contract-clause-library-stack">
-                ${renderContractNegotiationClauseGroup('Ethical Contract Clauses', 'All procurement types', contractNegotiationEthicalClauses)}
-                ${activeTypeId === 'consultancy'
-                    ? renderContractNegotiationClauseGroup('Consultancy Knowledge, IP and Data Clauses', 'Consultancy contract controls', contractNegotiationConsultancyGovernanceClauses)
-                    : ''}
-                ${orderedTypeIds.map(typeId => renderContractNegotiationClauseCards(typeId, activeTypeId)).join('')}
+            <div class="award-workflow-grid">
+                ${steps.map(([step, title, note]) => `
+                    <article>
+                        <strong>${step}</strong>
+                        <span>${escapeContractNegotiationHtml(title)}</span>
+                        <em>${escapeContractNegotiationHtml(note)}</em>
+                    </article>
+                `).join('')}
             </div>
-        </div>
+        </section>
+    `;
+}
+
+function renderContractVersionHistory() {
+    const versions = [
+        ['Draft v1', 'Buyer initial contract draft', '2026-07-01 09:00', 'Issued'],
+        ['Counter v2', 'Supplier payment schedule clarification', '2026-07-02 11:15', 'Reviewed'],
+        ['Revised v3', 'Buyer revised milestone wording', '2026-07-02 14:20', 'Current'],
+        ['Final agreed version', 'All clauses agreed, pending signatures', 'Pending', 'Next'],
+        ['Final signed version hash', 'SHA-256 stored after digital signing', 'Pending', 'Locked after signing']
+    ];
+
+    return `
+        <section class="procurement-panel evaluation-panel">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Contract version history</span>
+                    <h2>Every negotiation round is auditable</h2>
+                </div>
+                ${renderContractNegotiationBadge('Version controlled')}
+            </div>
+            <div class="data-table evaluation-table-scroll">
+                <table>
+                    <thead><tr><th>Version</th><th>Change</th><th>Timestamp</th><th>Status</th></tr></thead>
+                    <tbody>
+                        ${versions.map(row => `
+                            <tr>
+                                <td><strong>${escapeContractNegotiationHtml(row[0])}</strong></td>
+                                <td>${escapeContractNegotiationHtml(row[1])}</td>
+                                <td>${escapeContractNegotiationHtml(row[2])}</td>
+                                <td>${renderContractNegotiationBadge(row[3])}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    `;
+}
+
+function renderNegotiationRules() {
+    const canNegotiate = [
+        ['Payment schedule / milestone dates', 'Allowed when it does not alter evaluated value or scope.'],
+        ['Minor delivery or mobilization dates', 'Allowed within evaluated delivery period.'],
+        ['Clause wording', 'Allowed when risk allocation remains lawful and transparent.'],
+        ['Penalty rates', 'Limited and capped by procurement standards.'],
+        ['Staffing confirmation', 'Allowed for mobilization, named personnel, and substitutions under approval.'],
+        ['Warranty / defects period', 'Limited; cannot fall below tender minimum standard.']
+    ];
+    const cannotNegotiate = [
+        ['Evaluated bid price', 'No material change; only approved arithmetic corrections, tax clarification, or lawful method-specific adjustments.'],
+        ['Technical scope or deliverables', 'Changing scope after award would create a new bid.'],
+        ['Evaluation criteria or result', 'Fixed, audited, and outside negotiation.'],
+        ['Supplier identity', 'Award cannot be transferred to another entity.']
+    ];
+
+    return `
+        <section class="procurement-panel evaluation-panel">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Negotiation boundaries</span>
+                    <h2>Contract negotiation must not reopen competition</h2>
+                </div>
+                ${renderContractNegotiationBadge('No material change')}
+            </div>
+            <div class="contract-rules-grid">
+                <article>
+                    <h3>Can be negotiated</h3>
+                    ${canNegotiate.map(([title, note]) => `<div><strong>${escapeContractNegotiationHtml(title)}</strong><span>${escapeContractNegotiationHtml(note)}</span></div>`).join('')}
+                </article>
+                <article>
+                    <h3>Cannot be negotiated</h3>
+                    ${cannotNegotiate.map(([title, note]) => `<div><strong>${escapeContractNegotiationHtml(title)}</strong><span>${escapeContractNegotiationHtml(note)}</span></div>`).join('')}
+                </article>
+            </div>
+        </section>
+    `;
+}
+
+function renderDigitalSignaturePanel(typeId = 'works') {
+    const securityRequired = typeId === 'works';
+    return `
+        <section class="procurement-panel evaluation-panel">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Digital contract signing</span>
+                    <h2>Signatures, security verification, and activation</h2>
+                </div>
+                ${renderContractNegotiationBadge('Signature pending')}
+            </div>
+            <div class="contract-prerequisite-grid">
+                <article>
+                    <strong>Performance security</strong>
+                    <span>${securityRequired ? 'Required before signing/effectiveness for this works contract.' : 'Not required for this procurement type unless buyer configured it.'}</span>
+                    ${renderContractNegotiationBadge(securityRequired ? 'Verify before signing' : 'Conditional')}
+                </article>
+                <article>
+                    <strong>Signing order</strong>
+                    <span>Configurable: buyer first, supplier first, or parallel signing.</span>
+                    ${renderContractNegotiationBadge('Configurable')}
+                </article>
+                <article>
+                    <strong>Activation rule</strong>
+                    <span>Contract activates only after agreed clauses, required security, and both signatures.</span>
+                    ${renderContractNegotiationBadge('Controlled')}
+                </article>
+            </div>
+            <div class="contract-signature-grid">
+                ${[
+                    ['Buyer Signature Block', 'Procurement Officer', 'Full name, title, digital signature, timestamp.'],
+                    ['Supplier Signature Block', 'Managing Director', 'Full name, title, digital signature, timestamp.']
+                ].map(([title, role, note]) => `
+                    <article class="contract-signature-card">
+                        <h3>${escapeContractNegotiationHtml(title)}</h3>
+                        <div class="signature-preview"><strong>Signature Area</strong><span>Click to sign digitally</span></div>
+                        <input class="form-input" placeholder="Full Name">
+                        <input class="form-input" value="${escapeContractNegotiationHtml(role)}" placeholder="Position / Title">
+                        <button class="btn btn-secondary" type="button">Apply Digital Signature</button>
+                        <small>${escapeContractNegotiationHtml(note)}</small>
+                    </article>
+                `).join('')}
+            </div>
+            <div class="evaluation-notice success">Signature audit records signer identity, document hash, timestamp, certificate metadata, and final signed version hash. The audit record is permanent and cannot be modified.</div>
+            <div class="inline-actions">
+                <button class="btn btn-secondary" type="button" data-navigate="award-recommendation">Back to Award</button>
+                <button class="btn btn-primary" type="button" data-navigate="post-award-tracking">Activate Contract Tracking</button>
+            </div>
+        </section>
+    `;
+}
+
+function renderNegotiationChat(negotiation = {}) {
+    return `
+        <aside class="contract-chat-panel">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Negotiation chat</span>
+                    <h3>Clause positions</h3>
+                </div>
+                ${renderContractNegotiationBadge('Round 3')}
+            </div>
+            <div class="chat-messages">
+                ${(negotiation.messages || []).map(msg => `
+                    <article class="contract-chat-message ${msg.from === 'buyer' ? 'buyer' : 'supplier'}">
+                        <div>
+                            <strong>${msg.from === 'buyer' ? 'Procurement Officer' : 'Winning Supplier'}</strong>
+                            <span>${escapeContractNegotiationHtml(msg.timestamp)}</span>
+                        </div>
+                        <p>${escapeContractNegotiationHtml(msg.message)}</p>
+                    </article>
+                `).join('')}
+            </div>
+            <div class="chat-input">
+                <input class="form-input" type="text" placeholder="Type your message...">
+                <button class="btn btn-primary" type="button">Send</button>
+            </div>
+            <div class="contract-quick-actions">
+                <h4>Quick actions</h4>
+                <button class="btn btn-secondary" type="button">Request Clarification</button>
+                <button class="btn btn-secondary" type="button">Counter Proposal</button>
+                <button class="btn btn-secondary" type="button">Accept Terms</button>
+            </div>
+        </aside>
     `;
 }
 
 function renderContractNegotiation() {
-    const negotiation = mockData.contractNegotiation;
+    const negotiation = mockData.contractNegotiation || {};
     const tender = getContractNegotiationTender();
+    const typeId = getContractNegotiationTypeId(tender);
+    const recommendation = getContractNegotiationRecommendation();
+    const winner = getContractNegotiationWinner();
+    const contractAmount = recommendation.amount || winner.financial?.correctedPrice || winner.price || 0;
+    const supplier = recommendation.supplier || winner.supplier || 'Winning Supplier';
+    const activeType = contractNegotiationClauseCatalog[typeId] || contractNegotiationClauseCatalog.works;
 
     return `
-        <div class="negotiation-layout">
-            <!-- Main Content -->
-            <div class="contract-content">
-                <div style="margin-bottom: 24px;">
-                    <h1 style="margin-bottom: 8px;">Contract Negotiation</h1>
-                    <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px;">
-                        <span class="badge badge-info">Draft Version 2.1</span>
-                        <span style="font-size: 14px; color: var(--text-secondary);">Contract #${negotiation.contractId}</span>
-                    </div>
-
-                    <!-- Status Indicators -->
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px;">
-                        <div style="text-align: center; padding: 16px; background: var(--success-green); color: white; border-radius: 8px;">
-                            <div style="font-size: 18px; font-weight: 600; margin-bottom: 4px;">OK</div>
-                            <div style="font-size: 14px;">PO Matched</div>
-                        </div>
-                        <div style="text-align: center; padding: 16px; background: var(--success-green); color: white; border-radius: 8px;">
-                            <div style="font-size: 18px; font-weight: 600; margin-bottom: 4px;">OK</div>
-                            <div style="font-size: 14px;">Budget Verified</div>
-                        </div>
-                        <div style="text-align: center; padding: 16px; background: var(--warning-amber); color: white; border-radius: 8px;">
-                            <div style="font-size: 18px; font-weight: 600; margin-bottom: 4px;">⏳</div>
-                            <div style="font-size: 14px;">Signature Pending</div>
-                        </div>
-                    </div>
+        <div class="main-layout procurement-layout evaluation-app-layout contract-page">
+            <aside class="sidebar evaluation-sidebar">
+                <div class="evaluation-sidebar-head">
+                    <h3>Contracting</h3>
+                    <span>Contract #${escapeContractNegotiationHtml(negotiation.contractId || 'Draft')}</span>
                 </div>
+                <ul class="sidebar-nav">
+                    <li><a href="#" data-navigate="award-recommendation">Back to Award</a></li>
+                    <li><a href="#" data-navigate="post-award-tracking">Post-Award Tracking</a></li>
+                    <li><a href="#" data-navigate="workspace-dashboard">Workspace Dashboard</a></li>
+                    <li><a href="#" data-navigate="welcome">Logout</a></li>
+                </ul>
+            </aside>
 
-                <!-- Contract Title -->
-                <div style="text-align: center; margin-bottom: 32px;">
-                    <h2>Contract Finalization</h2>
-                    <p style="color: var(--text-secondary);">Formal Agreement for Construction of Rural Health Centers</p>
-                </div>
-
-                <!-- Contract Body -->
-                <div class="card" style="margin-bottom: 32px;">
-                    <h3 style="margin-bottom: 20px;">Formal Contract Agreement</h3>
-
-                    <!-- Section 1 -->
-                    <div style="margin-bottom: 24px;">
-                        <h4 style="margin-bottom: 12px;">1. Parties to the Agreement</h4>
-                        <div style="background: var(--background); padding: 16px; border-radius: 6px; margin-bottom: 12px;">
-                            <strong>Employer:</strong> Ministry of Health, United Republic of Tanzania<br>
-                            <strong>Contractor:</strong> ABC Construction Ltd<br>
-                            <strong>Contract Price:</strong> TZS 4,800,000,000 (Four Billion Eight Hundred Million Only)<br>
-                            <strong>Contract Duration:</strong> 12 months from contract signing
-                        </div>
+            <main class="main-content procurement-content contract-negotiation-workspace">
+                <section class="procurement-hero evaluation-hero-panel award-hero-panel">
+                    <div>
+                        <span class="section-kicker">Contract negotiation</span>
+                        <h1>${escapeContractNegotiationHtml(tender.title || 'Contract finalization')}</h1>
+                        <p>Finalize the ${escapeContractNegotiationHtml(activeType.label.toLowerCase())} contract after internal approval, standstill completion, and supplier acceptance. Negotiation is clause-level and cannot materially change the evaluated bid.</p>
                     </div>
-
-                    <!-- Section 2 -->
-                    <div style="margin-bottom: 24px;">
-                        <h4 style="margin-bottom: 12px;">2. Scope of Works</h4>
-                        <div style="background: var(--background); padding: 16px; border-radius: 6px; margin-bottom: 12px;">
-                            The Contractor shall construct 5 rural health centers in Dodoma region including:
-                            <ul style="margin-top: 8px; margin-left: 20px;">
-                                <li>Site preparation and foundation works</li>
-                                <li>Structural construction (walls, roof, floors)</li>
-                                <li>Electrical and plumbing installations</li>
-                                <li>Medical equipment installation</li>
-                                <li>Finishing works and landscaping</li>
-                            </ul>
-                        </div>
+                    <div class="evaluation-hero-stats">
+                        <div><strong>${formatContractNegotiationMoney(contractAmount, recommendation.currency || winner.financial?.currency || 'TZS')}</strong><span>Contract value</span></div>
+                        <div><strong>${escapeContractNegotiationHtml(recommendation.contractDuration || 'To confirm')}</strong><span>Duration</span></div>
+                        <div><strong>${escapeContractNegotiationHtml(negotiation.status || 'Negotiation')}</strong><span>Status</span></div>
                     </div>
+                </section>
 
-                    <!-- Section 3 -->
-                    <div style="margin-bottom: 24px;">
-                        <h4 style="margin-bottom: 12px;">3. Payment Terms</h4>
-                        <div style="background: var(--background); padding: 16px; border-radius: 6px; margin-bottom: 12px;">
-                            <div style="display: grid; grid-template-columns: 1fr auto; gap: 16px;">
+                <section class="evaluation-top-summary">
+                    <div><span>Buyer</span><strong>${escapeContractNegotiationHtml(tender.organization || 'Procuring Entity')}</strong></div>
+                    <div><span>Supplier</span><strong>${escapeContractNegotiationHtml(supplier)}</strong></div>
+                    <div><span>Contract type</span><strong>${escapeContractNegotiationHtml(activeType.label)}</strong></div>
+                    <div><span>PO Matched</span>${renderContractNegotiationBadge(negotiation.poMatched ? 'Verified' : 'Pending')}</div>
+                    <div><span>Budget</span>${renderContractNegotiationBadge(negotiation.budgetVerified ? 'Verified' : 'Pending')}</div>
+                    <div><span>Signature</span>${renderContractNegotiationBadge(negotiation.signaturePending ? 'Pending' : 'Complete')}</div>
+                </section>
+
+                ${renderContractNegotiationFlow()}
+
+                <div class="contract-negotiation-grid">
+                    <div class="contract-main-column">
+                        <section class="procurement-panel evaluation-panel">
+                            <div class="panel-heading">
                                 <div>
-                                    <strong>Milestone 1:</strong> Foundation completion (20%) - TZS 960,000,000<br>
-                                    <strong>Milestone 2:</strong> Structural completion (30%) - TZS 1,440,000,000<br>
-                                    <strong>Milestone 3:</strong> MEP completion (25%) - TZS 1,200,000,000<br>
-                                    <strong>Milestone 4:</strong> Final completion (25%) - TZS 1,200,000,000
+                                    <span class="section-kicker">Contract document</span>
+                                    <h2>Formal agreement draft</h2>
                                 </div>
-                                <div style="text-align: right;">
-                                    <div style="color: var(--success-green); font-weight: 600;">Agreed</div>
-                                    <div style="color: var(--text-secondary); font-size: 12px;">Last updated: 2 hours ago</div>
-                                </div>
+                                ${renderContractNegotiationBadge('Draft v3')}
                             </div>
-                        </div>
+                            <div class="contract-document-grid">
+                                <article>
+                                    <strong>Parties to the Agreement</strong>
+                                    <span>Employer: ${escapeContractNegotiationHtml(tender.organization || 'Procuring Entity')}</span>
+                                    <span>Supplier: ${escapeContractNegotiationHtml(supplier)}</span>
+                                    <span>Contract price: ${formatContractNegotiationMoney(contractAmount, recommendation.currency || winner.financial?.currency || 'TZS')}</span>
+                                    <span>Duration: ${escapeContractNegotiationHtml(recommendation.contractDuration || 'To confirm')}</span>
+                                </article>
+                                <article>
+                                    <strong>Scope / Deliverables</strong>
+                                    <span>${escapeContractNegotiationHtml(tender.description || 'Scope follows the evaluated tender and accepted bid. Scope cannot be materially changed during negotiation.')}</span>
+                                </article>
+                                <article>
+                                    <strong>Payment Terms</strong>
+                                    <span>Milestone or acceptance-linked payment schedule is agreed here without changing the evaluated contract value.</span>
+                                    ${renderContractNegotiationBadge('Negotiable timing')}
+                                </article>
+                            </div>
+                        </section>
+
+                        ${renderNegotiationRules()}
+                        ${renderContractNegotiationClauseLibrary(tender)}
+                        ${renderContractVersionHistory()}
+                        ${renderDigitalSignaturePanel(typeId)}
                     </div>
+
+                    ${renderNegotiationChat(negotiation)}
                 </div>
-
-                ${renderContractNegotiationClauseLibrary(tender)}
-
-                <!-- Digital Signature Panel -->
-                <div class="card">
-                    <h3 style="margin-bottom: 20px;">Digital Signatures</h3>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-                        <!-- Buyer Signature -->
-                        <div style="border: 2px solid var(--border); border-radius: 8px; padding: 20px; text-align: center;">
-                            <h4 style="margin-bottom: 16px;">Procurement Officer</h4>
-                            <div style="margin-bottom: 16px;">
-                                <div style="width: 120px; height: 60px; border: 1px dashed var(--border); border-radius: 4px; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary);">
-                                    Signature Area
-                                </div>
-                                <div style="font-size: 12px; color: var(--text-secondary);">Click to sign digitally</div>
-                            </div>
-                            <div style="margin-bottom: 12px;">
-                                <input type="text" class="form-input" placeholder="Full Name" style="text-align: center;">
-                            </div>
-                            <div style="margin-bottom: 12px;">
-                                <input type="text" class="form-input" placeholder="Position/Title" style="text-align: center;" value="Procurement Officer">
-                            </div>
-                            <button class="btn btn-primary">Apply Digital Signature</button>
-                        </div>
-
-                        <!-- Supplier Signature -->
-                        <div style="border: 2px solid var(--border); border-radius: 8px; padding: 20px; text-align: center;">
-                            <h4 style="margin-bottom: 16px;">Contractor Representative</h4>
-                            <div style="margin-bottom: 16px;">
-                                <div style="width: 120px; height: 60px; border: 1px dashed var(--border); border-radius: 4px; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary);">
-                                    Signature Area
-                                </div>
-                                <div style="font-size: 12px; color: var(--text-secondary);">Click to sign digitally</div>
-                            </div>
-                            <div style="margin-bottom: 12px;">
-                                <input type="text" class="form-input" placeholder="Full Name" style="text-align: center;">
-                            </div>
-                            <div style="margin-bottom: 12px;">
-                                <input type="text" class="form-input" placeholder="Position/Title" style="text-align: center;" value="Managing Director">
-                            </div>
-                            <button class="btn btn-secondary" disabled>Waiting for Buyer</button>
-                        </div>
-                    </div>
-
-                    <div style="margin-top: 24px; padding: 16px; background: var(--primary-blue-light); border-radius: 6px;">
-                        <p style="font-size: 14px; color: var(--primary-blue); margin: 0;">
-                            <strong>Digital signature audit:</strong> This agreement records signer identity, document hash, timestamp, and certificate metadata once both parties sign.
-                            After signatures are complete, the contract moves to post-award milestone tracking.
-                        </p>
-                    </div>
-                    <div class="inline-actions" style="margin-top: 20px;">
-                        <button class="btn btn-secondary" data-navigate="award-recommendation">Back to Award</button>
-                        <button class="btn btn-primary" data-navigate="post-award-tracking">Activate Contract Tracking</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Chat Sidebar -->
-            <div class="chat-sidebar">
-                <h4 style="margin-bottom: 16px;">Negotiation Chat</h4>
-
-                <!-- Messages -->
-                <div class="chat-messages">
-                    ${negotiation.messages.map(msg => `
-                        <div style="margin-bottom: 16px; padding: 12px; background: ${msg.from === 'buyer' ? 'var(--primary-blue-light)' : 'var(--background)'}; border-radius: 8px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                                <span style="font-weight: 500; font-size: 12px;">${msg.from === 'buyer' ? 'Procurement Officer' : 'ABC Construction'}</span>
-                                <span style="font-size: 10px; color: var(--text-secondary);">${msg.timestamp}</span>
-                            </div>
-                            <p style="font-size: 14px; margin: 0;">${msg.message}</p>
-                        </div>
-                    `).join('')}
-                </div>
-
-                <!-- Input -->
-                <div class="chat-input">
-                    <div style="display: flex; gap: 8px;">
-                        <input type="text" placeholder="Type your message..." style="flex: 1; border: 1px solid var(--border); border-radius: 4px; padding: 8px;">
-                        <button class="btn btn-primary" style="padding: 8px 16px;">Send</button>
-                    </div>
-                </div>
-
-                <!-- Quick Actions -->
-                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
-                    <h5 style="margin-bottom: 8px; font-size: 14px;">Quick Actions</h5>
-                    <div style="display: flex; flex-direction: column; gap: 4px;">
-                        <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;">Request Clarification</button>
-                        <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;">Counter Proposal</button>
-                        <button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;">Accept Terms</button>
-                    </div>
-                </div>
-            </div>
+            </main>
         </div>
     `;
 }

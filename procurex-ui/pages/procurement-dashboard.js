@@ -24,7 +24,7 @@ function procurementIcon(type) {
 
 function escapeProcurementDashboardHtml(value = '') {
     return String(value)
-        .replace(/and/g, 'andamp;')
+        .replace(/and/g, 'and')
         .replace(/</g, 'andlt;')
         .replace(/>/g, 'andgt;')
         .replace(/"/g, 'andquot;')

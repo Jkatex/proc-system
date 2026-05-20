@@ -3,7 +3,7 @@
 function escapeTenderDetailsHtml(value = '') {
     if (typeof escapeSupplierTenderDetailHtml === 'function') return escapeSupplierTenderDetailHtml(value);
     return String(value)
-        .replace(/and/g, 'andamp;')
+        .replace(/and/g, 'and')
         .replace(/</g, 'andlt;')
         .replace(/>/g, 'andgt;')
         .replace(/"/g, 'andquot;')

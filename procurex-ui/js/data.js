@@ -33,7 +33,7 @@ function createMockProductSpecificationTemplate(customColumns = [], rows = [], o
 }
 
 const mockData = {
-    // One company account can create tenders and bid. Admin Evaluator is a separate platform account.
+    // One company account can create tenders, bid, evaluate its tenders, and award. Admin is a separate platform compliance account.
     accountTypes: ['user', 'admin'],
     registrationDraft: {
         email: '',
@@ -115,7 +115,7 @@ const mockData = {
             bidLimit: 2000000
         },
         admin: {
-            name: 'Admin Evaluator',
+            name: 'Platform Admin',
             organization: 'ProcureX Platform',
             permissions: ['compliance:review', 'compliance:approve', 'compliance:hold', 'compliance:return', 'audit:read']
         }
@@ -1456,7 +1456,7 @@ const mockData = {
                     ],
                     consultancyAssignmentActivities: [
                         { activityTitle: 'Stakeholder mapping and readiness assessment', detailedDescription: 'Map user groups, readiness gaps, and training needs.', expectedOutput: 'Readiness assessment report', location: 'National sample', duration: 25, mandatory: true },
-                        { activityTitle: 'Training curriculum and facilitation toolkit', detailedDescription: 'Develop buyer, supplier, evaluator, and administrator materials.', expectedOutput: 'Training toolkit', location: 'Dar es Salaam', duration: 35, mandatory: true },
+                        { activityTitle: 'Training curriculum and facilitation toolkit', detailedDescription: 'Develop buyer, supplier, and administrator materials.', expectedOutput: 'Training toolkit', location: 'Dar es Salaam', duration: 35, mandatory: true },
                         { activityTitle: 'Pilot workshops and feedback integration', detailedDescription: 'Run pilot sessions and refine materials.', expectedOutput: 'Pilot report', location: 'Four zones', duration: 30, mandatory: true }
                     ],
                     consultancyClientResponsibilities: [
@@ -1594,7 +1594,7 @@ const mockData = {
                     ],
                     consultancyDeliverables: [
                         { deliverableName: 'Inception report', description: 'Methodology, schedule, and stakeholder plan.', submissionTimeline: '2 weeks from contract start', formatRequired: 'PDF', reviewer: 'Project Manager', mandatory: true },
-                        { deliverableName: 'Draft ESIA and ESMP', description: 'Full draft assessment and mitigation plan.', submissionTimeline: '10 weeks from contract start', formatRequired: 'PDF', reviewer: 'Evaluation Committee', mandatory: true },
+                        { deliverableName: 'Draft ESIA and ESMP', description: 'Full draft assessment and mitigation plan.', submissionTimeline: '10 weeks from contract start', formatRequired: 'PDF', reviewer: 'Buyer', mandatory: true },
                         { deliverableName: 'Final ESIA disclosure package', description: 'Final documents incorporating comments.', submissionTimeline: 'End of assignment', formatRequired: 'PDF', reviewer: 'Accounting Officer', mandatory: true }
                     ],
                     consultancyReportingRequirements: [
@@ -4311,7 +4311,7 @@ const mockData = {
         totalBids: 4,
         validSubmissions: 4,
         priceOutliers: 0,
-        evaluatorsActive: 3,
+        buyerEvaluationsActive: 1,
         currentStage: 'technical',
         minimumTechnicalPassMark: 70,
         emptyStates: {
@@ -4329,9 +4329,9 @@ const mockData = {
             status: 'Technical Evaluation Ongoing',
             stage: 'Technical Evaluation',
             bidders: 4,
-            conflictStatus: '3 of 3 declared',
+            conflictStatus: 'Buyer declaration complete',
             method: 'Lowest evaluated substantially responsive bid',
-            committee: ['Mary Komba', 'Joseph Mrema', 'Asha Msuya']
+            buyerReviewer: 'Ministry of Health'
         },
         readyTenders: [
             {
@@ -4342,7 +4342,7 @@ const mockData = {
                 bidsReceived: 4,
                 status: 'Technical Evaluation Ongoing',
                 deadline: 'June 28, 2026',
-                evaluators: 'Mary Komba, Joseph Mrema, Asha Msuya',
+                buyerReviewer: 'Buyer',
                 conflictStatus: 'Complete',
                 draftStatus: 'Saved as draft',
                 progress: 58
@@ -4355,7 +4355,7 @@ const mockData = {
                 bidsReceived: 6,
                 status: 'Opening Completed',
                 deadline: 'July 03, 2026',
-                evaluators: 'Procurement panel pending assignment',
+                buyerReviewer: 'Buyer',
                 conflictStatus: 'Pending',
                 draftStatus: 'Not started',
                 progress: 18
@@ -4376,9 +4376,8 @@ const mockData = {
             { id: 'audit', label: 'Audit Trail', status: 'active' }
         ],
         roles: [
-            { role: 'Evaluation Chairperson', access: 'Manage evaluation process, assign tasks, submit report' },
-            { role: 'Evaluator', access: 'Review bids, score, comment' },
-            { role: 'Procurement Officer', access: 'Monitor process, support documentation' },
+            { role: 'Buyer', access: 'Review bids, score criteria, comment, and submit report' },
+            { role: 'Procurement Officer', access: 'Maintain tender record and support documentation' },
             { role: 'Approver', access: 'Review final report and approve or reject recommendation' },
             { role: 'Observer / Auditor', access: 'Read-only access' },
             { role: 'System Admin', access: 'Manage access, not change scores' }
@@ -4393,12 +4392,12 @@ const mockData = {
         ],
         openingReport: {
             openingTime: 'June 12, 2026, 10:00 EAT',
-            authorizedBy: ['Mary Komba', 'Joseph Mrema'],
+            authorizedBy: ['Ministry of Health buyer account'],
             envelope: 'Technical envelope',
             hashStatus: '4 of 4 verified',
             auditReference: 'AUD-BIDOPEN-2026-014',
             disclosureStatus: 'Financial envelope locked until technical scores are finalized',
-            message: 'This tender received 4 submissions before the deadline. All submissions are locked and ready for evaluation. Evaluators can now continue the structured review.',
+            message: 'This tender received 4 submissions before the deadline. All submissions are locked and ready for the buyer evaluation review.',
             submissions: [
                 { supplier: 'ABC Construction Ltd', time: 'June 11, 2026, 14:38 EAT', status: 'Submitted', documents: ['Technical proposal', 'Method statement', 'Tax clearance', 'Bid security'], technicalOffer: 'Yes', financialOffer: 'Yes', bidSecurity: 'Submitted', deadline: 'Before deadline', remarks: 'Complete opening record.' },
                 { supplier: 'XYZ Builders', time: 'June 11, 2026, 15:21 EAT', status: 'Submitted', documents: ['Technical proposal', 'Company registration', 'Financial offer'], technicalOffer: 'Yes', financialOffer: 'Yes', bidSecurity: 'Submitted', deadline: 'Before deadline', remarks: 'Minor document naming issue.' },
@@ -4407,9 +4406,7 @@ const mockData = {
             ]
         },
         conflictDeclarations: [
-            { evaluator: 'Mary Komba', role: 'Chairperson', declaration: 'No conflict of interest', supplier: 'None', action: 'May evaluate', submittedAt: 'June 12, 2026, 10:25 EAT', status: 'Cleared' },
-            { evaluator: 'Joseph Mrema', role: 'Evaluator', declaration: 'No conflict of interest', supplier: 'None', action: 'May evaluate', submittedAt: 'June 12, 2026, 10:27 EAT', status: 'Cleared' },
-            { evaluator: 'Asha Msuya', role: 'Evaluator', declaration: 'Potential conflict disclosed', supplier: 'Prime Contractors', action: 'Review by chairperson; exclude from Prime scoring', submittedAt: 'June 12, 2026, 10:32 EAT', status: 'Managed' }
+            { buyerUser: 'Ministry of Health buyer account', role: 'Buyer', declaration: 'No conflict of interest', supplier: 'None', action: 'May evaluate', submittedAt: 'June 12, 2026, 10:25 EAT', status: 'Cleared' }
         ],
         technicalCriteria: [
             { id: 'experience', name: 'Relevant experience', maxScore: 20, description: 'Similar completed healthcare works contracts' },
@@ -4419,12 +4416,12 @@ const mockData = {
             { id: 'quality', name: 'Quality assurance', maxScore: 10, description: 'Inspection, health, safety, and environmental controls' }
         ],
         clarifications: [
-            { supplier: 'XYZ Builders', subject: 'Clarification on equipment evidence', requirement: 'Equipment capacity', message: 'Please confirm whether the attached lease agreement covers the required concrete mixer for the full contract period.', deadline: 'June 18, 2026, 15:00 EAT', attachment: 'equipment-query.pdf', status: 'Responded', evaluatorNote: 'Response confirms lease validity; no bid substance changed.' },
-            { supplier: 'Prime Contractors', subject: 'Key personnel certificate validity', requirement: 'Professional registration', message: 'Please confirm whether the attached professional registration certificate for the proposed site engineer is valid for the current year.', deadline: 'June 19, 2026, 12:00 EAT', attachment: 'personnel-certificate.pdf', status: 'Sent', evaluatorNote: 'Await response before final eligibility close.' }
+            { supplier: 'XYZ Builders', subject: 'Clarification on equipment evidence', requirement: 'Equipment capacity', message: 'Please confirm whether the attached lease agreement covers the required concrete mixer for the full contract period.', deadline: 'June 18, 2026, 15:00 EAT', attachment: 'equipment-query.pdf', status: 'Responded', buyerNote: 'Buyer note: response confirms lease validity; no bid substance changed.' },
+            { supplier: 'Prime Contractors', subject: 'Key personnel certificate validity', requirement: 'Professional registration', message: 'Please confirm whether the attached professional registration certificate for the proposed site engineer is valid for the current year.', deadline: 'June 19, 2026, 12:00 EAT', attachment: 'personnel-certificate.pdf', status: 'Sent', buyerNote: 'Buyer note: await response before final eligibility close.' }
         ],
         reportSections: [
             'Tender information',
-            'Evaluation committee members',
+            'Buyer evaluation declaration',
             'Conflict of interest declarations',
             'List of bidders',
             'Bid opening summary',
@@ -4435,7 +4432,7 @@ const mockData = {
             'Evaluation comparison matrix',
             'Recommended bidder',
             'Reasons for recommendation',
-            'Dissenting opinions',
+            'Buyer notes',
             'Attachments reviewed',
             'Approval section',
             'Audit trail'
@@ -4452,16 +4449,16 @@ const mockData = {
             summary: 'Four bids were opened. All were received before the deadline. Three bidders passed the technical threshold; BuildRight Ltd ranks first after corrected price review.'
         },
         approvals: [
-            { actor: 'Evaluation Chairperson', status: 'Draft report in progress', date: 'June 24, 2026', action: 'Complete report' },
+            { actor: 'Buyer', status: 'Draft report in progress', date: 'June 24, 2026', action: 'Complete report' },
             { actor: 'Procurement Officer', status: 'Pending recommendation submission', date: 'June 25, 2026', action: 'Route to approver' },
             { actor: 'Approver', status: 'Waiting', date: 'After submission', action: 'Approve or return for review' }
         ],
         auditTrail: [
-            { time: '2026-06-12 10:00', event: 'Bid opening authorized by two users', actor: 'Mary Komba, Joseph Mrema', ref: 'AUD-BIDOPEN-2026-014' },
+            { time: '2026-06-12 10:00', event: 'Bid opening authorized by buyer', actor: 'Ministry of Health buyer account', ref: 'AUD-BIDOPEN-2026-014' },
             { time: '2026-06-12 10:01', event: 'Four technical envelopes decrypted and hash verified', actor: 'System', ref: 'HASH-SET-9042' },
-            { time: '2026-06-12 10:32', event: 'Conflict declaration recorded for Prime Contractors', actor: 'Asha Msuya', ref: 'COI-2026-017' },
-            { time: '2026-06-18 09:15', event: 'Clarification sent to XYZ Builders', actor: 'Joseph Mrema', ref: 'CLAR-2026-022' },
-            { time: '2026-06-24 16:30', event: 'Consensus score report prepared for locking', actor: 'Evaluation Committee', ref: 'EVAL-LOCK-2026-014' }
+            { time: '2026-06-12 10:32', event: 'Buyer conflict declaration recorded', actor: 'Ministry of Health buyer account', ref: 'COI-2026-017' },
+            { time: '2026-06-18 09:15', event: 'Clarification sent to XYZ Builders', actor: 'Ministry of Health buyer account', ref: 'CLAR-2026-022' },
+            { time: '2026-06-24 16:30', event: 'Buyer score report prepared for locking', actor: 'Ministry of Health buyer account', ref: 'EVAL-LOCK-2026-014' }
         ],
         benchmark: {
             buyerEstimate: 4800000000,
@@ -4714,7 +4711,7 @@ const mockData = {
             'Deadline Reminder',
             'Admin Announcement'
         ],
-        senderTypes: ['Buyer', 'Supplier', 'System', 'Admin', 'Evaluator'],
+        senderTypes: ['Buyer', 'Supplier', 'System', 'Admin'],
         clarificationCategories: [
             'Technical Specification',
             'BOQ / Pricing',
@@ -4792,9 +4789,9 @@ const mockData = {
                 folder: 'inbox',
                 category: 'Tender Rejection',
                 subject: 'Tender Returned for Correction',
-                body: 'Your tender has been reviewed and returned for correction. Please review evaluator comments and update the required sections before resubmission.',
-                senderType: 'Evaluator',
-                senderName: 'Evaluation Panel',
+                body: 'Your tender has been reviewed and returned for correction. Please review system comments and update the required sections before resubmission.',
+                senderType: 'System',
+                senderName: 'ProcureX System',
                 recipientType: 'Buyer',
                 recipientName: 'Ministry of Health',
                 tenderId: 'PX-WRK-2026-002',
@@ -4908,7 +4905,7 @@ const mockData = {
         insights: [
             { type: 'Suggested tenderer', title: '3 tenderers match Office IT Procurement', detail: 'Two have low risk and recent delivery capacity.', urgency: 78, nav: 'marketplace', audience: ['buyer', 'all'] },
             { type: 'Price insight', title: 'Network equipment prices up 4.2%', detail: 'Use the updated benchmark before publishing.', urgency: 72, nav: 'create-tender', audience: ['buyer', 'all'] },
-            { type: 'Risk alert', title: 'One evaluator conflict needs review', detail: 'Resolve before award recommendation is locked.', urgency: 90, nav: 'award-recommendation', audience: ['buyer', 'all'] },
+            { type: 'Risk alert', title: 'Buyer conflict declaration needs review', detail: 'Resolve before award recommendation is locked.', urgency: 90, nav: 'award-recommendation', audience: ['buyer', 'all'] },
             { type: 'Matching tender', title: 'New ICT tender matches your profile', detail: 'Closes soon and accepts digital service providers.', urgency: 84, nav: 'marketplace', audience: ['supplier', 'all'] },
             { type: 'Partnership', title: 'Logistics partner available in Dodoma', detail: 'Could improve bid feasibility for rural delivery.', urgency: 70, nav: 'marketplace', audience: ['supplier', 'all'] },
             { type: 'Market trend', title: 'Healthcare works liquidity is improving', detail: 'Average eligible supplier count rose this month.', urgency: 64, nav: 'workspace-dashboard', audience: ['buyer', 'supplier', 'all'] }

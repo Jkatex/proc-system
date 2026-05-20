@@ -53,6 +53,12 @@ function getEvaluationCriteriaForTender(tender, fallbackCriteria = []) {
     return source.map((criterion, index) => normalizeEvaluationCriterion(criterion, index));
 }
 
+function getEvaluationScoringCriteriaForTender(tender, fallbackCriteria = []) {
+    const allCriteria = getEvaluationCriteriaForTender(tender, fallbackCriteria);
+    const technicalCriteria = allCriteria.filter(criterion => criterion.type !== 'financial');
+    return technicalCriteria.length ? technicalCriteria : allCriteria;
+}
+
 function getEvaluationBadgeClass(value = '') {
     const status = String(value).toLowerCase();
     if (status.includes('fail') || status.includes('rejected') || status.includes('overdue') || status.includes('not eligible') || status.includes('escalate')) return 'badge-error';
@@ -156,10 +162,21 @@ function getEvaluationTenderProfileId(tender = {}) {
 
 function getEvaluationDefaultFlowForTender(tender = {}) {
     const profile = getEvaluationTenderProfileId(tender);
-    if (profile === 'consultancy') return ['Technical evaluation', 'Financial evaluation', 'Combined ranking or method-specific selection', 'Award recommendation'];
-    if (profile === 'services') return ['Technical evaluation', 'Financial evaluation', 'Award recommendation'];
-    if (profile === 'goods') return ['Preliminary examination', 'Technical evaluation', 'Financial evaluation', 'Award recommendation'];
-    return ['Administrative evaluation', 'Technical evaluation', 'Financial evaluation', 'Post qualification', 'Award recommendation'];
+    const fields = (tender.sourceTender || tender).requirements?.fields || {};
+    const postQualificationRequired = profile === 'works'
+        || ['postQualificationRequired', 'requirePostQualification', 'stockVerificationRequired', 'sampleVerificationRequired', 'staffVerificationRequired', 'equipmentVerificationRequired']
+            .some(key => /yes|required|true/i.test(String(fields[key] || '')));
+    return [
+        'Preliminary examination',
+        'Eligibility evaluation',
+        'Technical evaluation',
+        'Technical pass/fail approval',
+        'Financial evaluation',
+        profile === 'consultancy' ? 'Combined ranking or method-specific selection' : 'Comparison matrix',
+        ...(postQualificationRequired ? ['Post qualification'] : []),
+        'Award recommendation',
+        'Evaluation report'
+    ];
 }
 
 function getEvaluationStagesForTender(tender = {}, defaultStages = []) {
@@ -169,9 +186,12 @@ function getEvaluationStagesForTender(tender = {}, defaultStages = []) {
         'preliminary examination': { id: 'preliminary', label: 'Preliminary', status: 'done' },
         'eligibility evaluation': { id: 'eligibility', label: 'Eligibility', status: 'done' },
         'technical evaluation': { id: 'technical', label: 'Technical', status: 'current' },
+        'technical pass/fail approval': { id: 'technical-gate', label: 'Technical Gate', status: 'pending' },
         'financial evaluation': { id: 'financial', label: 'Financial', status: 'pending' },
         'post qualification': { id: 'postqual', label: 'Post-Qualification', status: 'pending' },
         'combined ranking or method-specific selection': { id: 'comparison', label: 'Combined Ranking', status: 'pending' },
+        'comparison matrix': { id: 'comparison', label: 'Comparison', status: 'pending' },
+        'evaluation report': { id: 'report', label: 'Report', status: 'pending' },
         'award recommendation': { id: 'recommendation', label: 'Recommendation', status: 'pending' }
     };
     const base = Array.isArray(flow) && flow.length ? flow : [];
@@ -180,13 +200,13 @@ function getEvaluationStagesForTender(tender = {}, defaultStages = []) {
         return mapped || { id: slugEvaluationId(step), label: step, status: 'pending' };
     });
     const profile = getEvaluationTenderProfileId(tender.sourceTender || tender);
-    const hasLicenseGate = Boolean((tender.sourceTender?.regulatoryLicenses || tender.regulatoryLicenses || []).length);
     const stageIds = new Set(dynamic.map(stage => stage.id));
-    const dynamicWithEligibility = hasLicenseGate && ['works', 'goods'].includes(profile) && !stageIds.has('eligibility')
+    const technicalIndex = Math.max(0, dynamic.findIndex(stage => stage.id === 'technical'));
+    const dynamicWithEligibility = !stageIds.has('eligibility')
         ? [
-            ...dynamic.slice(0, Math.max(1, dynamic.findIndex(stage => stage.id === 'technical'))),
+            ...dynamic.slice(0, technicalIndex),
             { id: 'eligibility', label: 'Eligibility', status: 'done' },
-            ...dynamic.slice(Math.max(1, dynamic.findIndex(stage => stage.id === 'technical')))
+            ...dynamic.slice(technicalIndex)
         ]
         : dynamic;
     const dynamicIds = new Set(dynamicWithEligibility.map(stage => stage.id));
@@ -293,14 +313,23 @@ function getEvaluationRequirementFlag(tender = {}, keys = []) {
     return keys.some(key => fields[key] === true || fields[key] === 'Yes' || fields[key] === 'Required');
 }
 
+function getEvaluationOpeningSubmissionForBid(tender = {}, bid = {}, bidderIndex = 0) {
+    const opening = mockData.bidEvaluation?.openingReport || {};
+    const supplier = String(bid.supplier || '').toLowerCase();
+    return (opening.submissions || []).find(item => String(item.supplier || '').toLowerCase() === supplier)
+        || opening.submissions?.[bidderIndex]
+        || null;
+}
+
 function generateEvaluationPreliminaryChecklist(tender = {}, bid = {}, bidderIndex = 0) {
     const source = tender.sourceTender || tender;
+    const openingRow = getEvaluationOpeningSubmissionForBid(tender, bid, bidderIndex);
     const hasTenderDocuments = getEvaluationRequiredSubmissionDocuments(source).length > 0;
     const hasTenderFlags = getEvaluationRequirementFlag(source, ['bidSecurityRequired', 'requiresBidSecurity', 'bidSecurity']);
     const checklist = [
-        { requirement: 'Bid submitted before deadline', source: 'system', labels: ['before deadline', bid.submissionTime], document: false },
-        { requirement: 'Technical offer submitted', source: 'opening record', labels: ['technical proposal', 'technical offer', 'technical response'], document: true },
-        { requirement: 'Financial offer submitted', source: 'opening record', labels: ['financial offer', 'priced', 'boq', 'pricing schedule'], document: true }
+        { requirement: 'Bid submitted before deadline', source: 'system', labels: ['before deadline', bid.submissionTime], document: false, mandatory: true, openingField: 'deadline' },
+        { requirement: 'Technical offer submitted', source: 'opening record', labels: ['technical proposal', 'technical offer', 'technical response'], document: true, mandatory: true, openingField: 'technicalOffer' },
+        { requirement: 'Financial offer submitted', source: 'opening record', labels: ['financial offer', 'priced', 'boq', 'pricing schedule'], document: true, mandatory: true, openingField: 'financialOffer' }
     ];
     if (!hasTenderDocuments && !hasTenderFlags) {
         checklist.push({
@@ -312,10 +341,10 @@ function generateEvaluationPreliminaryChecklist(tender = {}, bid = {}, bidderInd
         });
     }
     if (hasTenderFlags) {
-        checklist.push({ requirement: 'Bid security submitted', source: 'tender.requirements', labels: ['bid security', 'security'], document: true });
+        checklist.push({ requirement: 'Bid security submitted', source: 'tender.requirements', labels: ['bid security', 'security'], document: true, mandatory: true, openingField: 'bidSecurity' });
     }
     getEvaluationRequiredSubmissionDocuments(source).forEach(doc => {
-        checklist.push({ requirement: `${doc} submitted`, source: 'tender.requiredSubmissionDocuments', labels: [doc], document: true });
+        checklist.push({ requirement: `${doc} submitted`, source: 'tender.requiredSubmissionDocuments', labels: [doc], document: true, mandatory: true });
     });
     const fallbackByRequirement = new Map((bid.preliminaryChecks || []).map(item => [String(item.requirement || '').toLowerCase(), item]));
     return checklist.map(item => {
@@ -330,12 +359,38 @@ function generateEvaluationPreliminaryChecklist(tender = {}, bid = {}, bidderInd
                 comment: 'The tender design does not define additional preliminary document checks.'
             };
         }
+        const openingValue = item.openingField ? String(openingRow?.[item.openingField] || '') : '';
+        const openingPass = item.openingField === 'deadline'
+            ? /before|on time|submitted/i.test(openingValue) && !/late|after/i.test(openingValue)
+            : /yes|submitted|present|included|available/i.test(openingValue);
+        const openingFail = item.openingField === 'deadline'
+            ? /late|after deadline|missed/i.test(openingValue)
+            : /no|missing|absent|not submitted/i.test(openingValue);
+        const fallbackResult = fallback?.result || '';
+        const normalizedFallback = /fail|rejected/i.test(fallbackResult)
+            ? 'Failed'
+            : /not applicable|n\/a/i.test(fallbackResult)
+                ? 'Not Applicable'
+                : /pass/i.test(fallbackResult)
+                    ? 'Passed'
+                    : fallbackResult;
+        const result = openingFail || /failed/i.test(normalizedFallback)
+            ? 'Failed'
+            : openingPass || hasEvidence || /passed/i.test(normalizedFallback)
+                ? 'Passed'
+                : /not applicable/i.test(normalizedFallback)
+                    ? 'Not Applicable'
+                    : 'Requires Clarification';
         return {
             requirement: item.requirement,
             source: item.source,
             document: item.document,
-            result: hasEvidence || fallback?.result === 'Passed' ? 'Passed' : fallback?.result || 'Requires Clarification',
-            comment: hasEvidence ? `Evidence studied from ${item.source}.` : fallback?.comment || `Derived from ${item.source}; evidence needs evaluator confirmation.`
+            result,
+            comment: openingFail
+                ? `Opening record shows ${openingValue || 'non-compliance'}; this may fail preliminary review.`
+                : hasEvidence || openingPass
+                    ? `Evidence studied from ${item.source}.`
+                    : fallback?.comment || `Derived from ${item.source}; evidence needs buyer confirmation.`
         };
     });
 }
@@ -453,6 +508,20 @@ function getEvaluationDraftScore(draft, bidderName, criterionId, field, fallback
     return draft?.scores?.[bidderName]?.[criterionId]?.[field] ?? fallback;
 }
 
+function isEvaluationScoreCommentRequired(row = {}, criterion = {}) {
+    const result = String(row.result || '').toLowerCase();
+    const maxScore = Number(criterion.maxScore || row.maxScore || 0);
+    const score = Number(row.score);
+    return /fail|clarification/.test(result)
+        || (Number.isFinite(score) && maxScore > 0 && score < (maxScore / 2));
+}
+
+function isEvaluationScoreComplete(row = {}, criterion = {}) {
+    if (!row?.result) return false;
+    if (row.score === undefined || row.score === null || String(row.score).trim() === '') return false;
+    return !isEvaluationScoreCommentRequired(row, criterion) || String(row.comment || '').trim().length > 0;
+}
+
 function getDefaultEvaluationScore(bid, criterion) {
     if (criterion.type === 'financial') {
         return bid.financialScore || Math.max(0, Math.min(criterion.maxScore, Math.round((criterion.maxScore || 10) * 0.85)));
@@ -467,7 +536,7 @@ function getEvaluationDraftProgress(draft, criteria = [], bids = []) {
     const completed = criteria.reduce((sum, criterion) => (
         sum + bids.filter(bid => {
             const row = draft?.scores?.[bid.supplier]?.[criterion.id];
-            return row && row.result && String(row.comment || '').trim();
+            return isEvaluationScoreComplete(row, criterion);
         }).length
     ), 0);
     return Math.max(draft?.progress || 0, Math.round((completed / total) * 100));
@@ -764,7 +833,10 @@ function collectEvaluationDraftFromDom(reference, status = 'Saved as draft') {
         scores[bidder][criterion] = scores[bidder][criterion] || {};
 
         if (field.matches('[data-eval-result]')) scores[bidder][criterion].result = field.value;
-        if (field.matches('[data-eval-score]')) scores[bidder][criterion].score = Number(field.value || 0);
+        if (field.matches('[data-eval-score]')) {
+            scores[bidder][criterion].score = field.value === '' ? '' : Number(field.value || 0);
+            scores[bidder][criterion].maxScore = Number(field.getAttribute('max') || field.dataset.maxScore || 0);
+        }
         if (field.matches('[data-eval-comment]')) scores[bidder][criterion].comment = field.value;
         if (field.matches('[data-eval-evidence]')) scores[bidder][criterion].evidence = field.value;
     });
@@ -773,7 +845,7 @@ function collectEvaluationDraftFromDom(reference, status = 'Saved as draft') {
     const currentBidderIndex = Number(panel?.getAttribute('data-current-bidder-index') || existing.currentBidderIndex || 0);
     const totalItems = Number(panel?.getAttribute('data-total-items') || 1);
     const completedItems = Object.values(scores).reduce((sum, bidderScores) => (
-        sum + Object.values(bidderScores || {}).filter(row => row?.result && String(row?.comment || '').trim()).length
+        sum + Object.values(bidderScores || {}).filter(row => isEvaluationScoreComplete(row)).length
     ), 0);
     const progress = status === 'Completed' ? 100 : Math.min(99, Math.max(existing.progress || 0, Math.round((completedItems / Math.max(1, totalItems)) * 100)));
 
@@ -908,7 +980,8 @@ function renderBidEvaluation() {
     const tender = getEvaluationTenderModel(evaluation, selectedReference);
     const bids = evaluation.bids || [];
     const stages = getEvaluationStagesForTender(tender, evaluation.stages || []);
-    const criteria = getEvaluationCriteriaForTender(tender.sourceTender, evaluation.technicalCriteria || []);
+    const allCriteria = getEvaluationCriteriaForTender(tender.sourceTender, evaluation.technicalCriteria || []);
+    const criteria = getEvaluationScoringCriteriaForTender(tender.sourceTender, evaluation.technicalCriteria || []);
     const opening = evaluation.openingReport || {};
     const benchmark = evaluation.benchmark || {};
     const recommended = evaluation.recommendation || {};
@@ -937,10 +1010,11 @@ function renderBidEvaluation() {
     const completedEvaluationItems = criteria.reduce((sum, criterion) => (
         sum + bids.filter(bid => {
             const row = savedDraft?.scores?.[bid.supplier]?.[criterion.id];
-            return row?.result && String(row?.comment || '').trim();
+            return isEvaluationScoreComplete(row, criterion);
         }).length
     ), 0);
     const canCompleteEvaluation = requiredEvaluationItems > 0 && completedEvaluationItems >= requiredEvaluationItems;
+    const conflictCleared = /complete|cleared|submitted|approved/i.test(String(tender.conflictStatus || ''));
 
     const renderReportPage = () => `
         <div class="main-layout procurement-layout evaluation-app-layout">
@@ -1053,7 +1127,7 @@ function renderBidEvaluation() {
                 <article>
                     <span>Evaluation criteria</span>
                     <strong>${criteria.length}</strong>
-                    <em>${escapeEvaluationHtml(criteria.slice(0, 3).map(item => item.name).join(', ') || 'No criteria configured')}</em>
+                    <em>${escapeEvaluationHtml(criteria.slice(0, 3).map(item => item.name).join(', ') || 'No technical criteria configured')}${allCriteria.length !== criteria.length ? '; price criteria handled in financial stage.' : ''}</em>
                 </article>
                 <article>
                     <span>Technical pass mark</span>
@@ -1066,6 +1140,47 @@ function renderBidEvaluation() {
                     <em>Recommendation logic follows this studied method.</em>
                 </article>
             </div>
+        </section>
+    `;
+
+    const renderEvaluationWorkflowOverview = () => `
+        <section class="evaluation-workflow-map">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Systematic buyer evaluation workflow</span>
+                    <h3>Required order for this tender</h3>
+                </div>
+                ${renderEvaluationStatusBadge(`${stages.length} stages`)}
+            </div>
+            <div class="evaluation-workflow-grid">
+                ${stages.map((stage, index) => `
+                    <article>
+                        <strong>${String(index + 1).padStart(2, '0')}</strong>
+                        <span>${escapeEvaluationHtml(stage.label)}</span>
+                        <em>${escapeEvaluationHtml(stage.id === 'conflict'
+                            ? 'Must be cleared before bid contents are studied.'
+                            : stage.id === 'financial'
+                                ? 'Unlocked after technical pass mark.'
+                                : stage.id === 'comparison'
+                                    ? 'Ranking and side-by-side decision view.'
+                                    : 'Tender-driven evaluation step.')}</em>
+                    </article>
+                `).join('')}
+            </div>
+        </section>
+    `;
+
+    const renderEvaluationAccessLock = (title = 'Evaluation access locked') => `
+        <section class="procurement-panel evaluation-panel evaluation-access-lock">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Conflict declaration required</span>
+                    <h2>${escapeEvaluationHtml(title)}</h2>
+                </div>
+                ${renderEvaluationStatusBadge(tender.conflictStatus || 'COI pending')}
+            </div>
+            <div class="evaluation-notice warning">The buyer cannot access supplier bid contents until the buyer conflict of interest declaration is submitted and cleared for this tender.</div>
+            <button class="btn btn-primary" type="button" data-tab-jump="conflict">Go to Conflict Declaration</button>
         </section>
     `;
 
@@ -1177,7 +1292,7 @@ function renderBidEvaluation() {
                 </div>
                 ${renderEvaluationStatusBadge(tender.conflictStatus || 'Pending')}
             </div>
-            <p class="evaluation-lead">Before participating in this evaluation, each evaluator must confirm whether they have any personal, financial, professional, or other relationship with any bidder that may affect impartial judgment.</p>
+            <p class="evaluation-lead">Before evaluating this tender, the buyer must confirm whether they have any personal, financial, professional, or other relationship with any bidder that may affect impartial judgment. Supplier details and bid documents remain locked until this declaration is submitted and cleared.</p>
             <div class="evaluation-option-row">
                 <label><input type="radio" name="conflict-option" checked> I have no conflict of interest.</label>
                 <label><input type="radio" name="conflict-option"> I have a potential conflict of interest.</label>
@@ -1185,16 +1300,16 @@ function renderBidEvaluation() {
             <div class="evaluation-form-grid">
                 <label>Supplier involved <input class="form-input" type="text" value="Prime Contractors"></label>
                 <label>Type of conflict <input class="form-input" type="text" value="Professional"></label>
-                <label>Recommended action <input class="form-input" type="text" value="Review by chairperson"></label>
-                <label>Explanation <textarea class="form-input" rows="3">Prior project relationship disclosed for committee review.</textarea></label>
+                <label>Recommended action <input class="form-input" type="text" value="Record and manage before evaluation"></label>
+                <label>Explanation <textarea class="form-input" rows="3">Prior project relationship disclosed for buyer review.</textarea></label>
             </div>
             <div class="data-table">
                 <table>
-                    <thead><tr><th>Evaluator</th><th>Role</th><th>Declaration</th><th>Supplier</th><th>Action</th><th>Submitted</th><th>Status</th></tr></thead>
+                    <thead><tr><th>Buyer user</th><th>Role</th><th>Declaration</th><th>Supplier</th><th>Action</th><th>Submitted</th><th>Status</th></tr></thead>
                     <tbody>
                         ${(evaluation.conflictDeclarations || []).map(item => `
                             <tr>
-                                <td>${escapeEvaluationHtml(item.evaluator)}</td>
+                                <td>${escapeEvaluationHtml(item.buyerUser)}</td>
                                 <td>${escapeEvaluationHtml(item.role)}</td>
                                 <td>${escapeEvaluationHtml(item.declaration)}</td>
                                 <td>${escapeEvaluationHtml(item.supplier)}</td>
@@ -1209,7 +1324,7 @@ function renderBidEvaluation() {
         </section>
     `;
 
-    const renderPreliminary = () => `
+    const renderPreliminary = () => !conflictCleared ? renderEvaluationAccessLock('Preliminary evaluation locked') : `
         <section class="procurement-panel evaluation-panel">
             <div class="panel-heading">
                 <div>
@@ -1218,7 +1333,7 @@ function renderBidEvaluation() {
                 </div>
                 ${renderEvaluationStatusBadge('Opening Completed')}
             </div>
-            <p class="evaluation-lead">Confirm that each bidder submitted required documents and complied with basic tender instructions before technical evaluation. Checklist items are generated from the selected tender's submission documents and requirements.</p>
+            <p class="evaluation-lead">Confirm that each bidder submitted required documents and complied with basic tender instructions before technical evaluation. Checklist items are generated from the selected tender's submission documents and requirements. Result options are Passed, Failed, Requires Clarification, and Not Applicable.</p>
             <div class="evaluation-supplier-grid">
                 ${bids.map((bid, bidderIndex) => `
                     <article class="evaluation-supplier-card">
@@ -1236,7 +1351,7 @@ function renderBidEvaluation() {
         </section>
     `;
 
-    const renderEligibility = () => `
+    const renderEligibility = () => !conflictCleared ? renderEvaluationAccessLock('Eligibility evaluation locked') : `
         <section class="procurement-panel evaluation-panel">
             <div class="panel-heading">
                 <div>
@@ -1263,25 +1378,26 @@ function renderBidEvaluation() {
     `;
 
     const renderTechnical = () => {
+        if (!conflictCleared) return renderEvaluationAccessLock('Technical evaluation locked');
         const criterion = criteria[currentCriterionIndex] || criteria[0] || {};
         const bid = bids[currentBidderIndex] || bids[0] || {};
         const savedResult = getEvaluationDraftScore(savedDraft, bid.supplier, criterion.id, 'result', 'Pass');
         const savedScore = getEvaluationDraftScore(savedDraft, bid.supplier, criterion.id, 'score', getDefaultEvaluationScore(bid, criterion));
-        const savedComment = getEvaluationDraftScore(savedDraft, bid.supplier, criterion.id, 'comment', `${bid.supplier || 'Bidder'} reviewed against ${criterion.name || 'criterion'}.`);
+        const savedComment = getEvaluationDraftScore(savedDraft, bid.supplier, criterion.id, 'comment', '');
         const savedEvidence = getEvaluationDraftScore(savedDraft, bid.supplier, criterion.id, 'evidence', (criterion.subcriteria || []).slice(0, 2).join(', '));
         const completedCount = criteria.reduce((sum, item) => (
-            sum + bids.filter(candidate => savedDraft?.scores?.[candidate.supplier]?.[item.id]?.result).length
+            sum + bids.filter(candidate => isEvaluationScoreComplete(savedDraft?.scores?.[candidate.supplier]?.[item.id], item)).length
         ), 0);
         const totalItems = Math.max(1, criteria.length * bids.length);
         const bidDocument = renderEvaluationSupplierBidDocument(tender, bid, currentBidderIndex, criteria);
         const criterionEvidence = getEvaluationCriterionEvidence(tender, bid, currentBidderIndex, criterion);
-        const lowScoreNeedsComment = Number(savedScore) < ((Number(criterion.maxScore) || 0) / 2);
+        const commentRequired = isEvaluationScoreCommentRequired({ result: savedResult, score: savedScore }, criterion);
 
         return `
             <section class="procurement-panel evaluation-panel">
                 <div class="panel-heading">
                     <div>
-                        <span class="section-kicker">Buyer evaluator workspace</span>
+                        <span class="section-kicker">Buyer evaluation workspace</span>
                         <h2>Evaluate one criterion and one bidder at a time</h2>
                     </div>
                     ${renderEvaluationStatusBadge(`${completedCount} of ${totalItems} items recorded`)}
@@ -1289,12 +1405,11 @@ function renderBidEvaluation() {
                 <div class="evaluation-notice success">This evaluation studies the tender design to understand what should be scored. Same-browser bid submissions are optional evidence; when unavailable, mock evaluation data is clearly labelled.</div>
                 <div class="evaluation-assignment-grid">
                     ${criteria.map((item, index) => {
-                        const evaluator = (tender.committee || evaluation.activeTender?.committee || evaluation.roles || [])[index % Math.max(1, (tender.committee || evaluation.activeTender?.committee || []).length)] || 'Evaluation committee';
                         return `
                             <article>
                                 <span>${escapeEvaluationHtml(item.name)}</span>
-                                <strong>${escapeEvaluationHtml(typeof evaluator === 'string' ? evaluator : evaluator.role || 'Evaluator')}</strong>
-                                <small>${escapeEvaluationHtml(savedDraft?.scoringMode || 'Consensus scoring')}</small>
+                                <strong>${escapeEvaluationHtml(tender.organization || mockData.users?.buyer?.organization || 'Buyer')}</strong>
+                                <small>${escapeEvaluationHtml(savedDraft?.scoringMode || 'Buyer scoring')}</small>
                             </article>
                         `;
                     }).join('')}
@@ -1314,7 +1429,7 @@ function renderBidEvaluation() {
                             <div>
                                 <span class="section-kicker">Criterion ${currentCriterionIndex + 1} of ${criteria.length}</span>
                                 <h3>${escapeEvaluationHtml(criterion.name)}</h3>
-                                <p>Weight / maximum score: ${escapeEvaluationHtml(criterion.weight || criterion.maxScore)}. Evaluation type: ${criterion.type === 'financial' ? 'Financial / price review' : 'Technical or compliance review'}.</p>
+                                <p>Weight / maximum score: ${escapeEvaluationHtml(criterion.weight || criterion.maxScore)}. Evaluation type: Technical or compliance review. Price ranking is handled separately in Financial Evaluation.</p>
                             </div>
                             <div class="evaluation-bidder-switcher">
                                 <span>Bidder ${currentBidderIndex + 1} of ${bids.length}</span>
@@ -1365,14 +1480,14 @@ function renderBidEvaluation() {
                                 </select>
                             </label>
                             <label>Score
-                                <input class="form-input" type="number" min="0" max="${escapeEvaluationHtml(criterion.maxScore)}" value="${escapeEvaluationHtml(savedScore)}" data-eval-score data-bidder="${escapeEvaluationHtml(bid.supplier)}" data-criterion="${escapeEvaluationHtml(criterion.id)}">
+                                <input class="form-input" type="number" min="0" max="${escapeEvaluationHtml(criterion.maxScore)}" data-max-score="${escapeEvaluationHtml(criterion.maxScore)}" value="${escapeEvaluationHtml(savedScore)}" data-eval-score data-bidder="${escapeEvaluationHtml(bid.supplier)}" data-criterion="${escapeEvaluationHtml(criterion.id)}">
                             </label>
                             <label>Evidence / document note
                                 <input class="form-input" value="${escapeEvaluationHtml(savedEvidence)}" data-eval-evidence data-bidder="${escapeEvaluationHtml(bid.supplier)}" data-criterion="${escapeEvaluationHtml(criterion.id)}">
                             </label>
-                            <label>Buyer evaluator comment
-                                <textarea class="form-input" rows="4" ${lowScoreNeedsComment ? 'required' : ''} data-eval-comment data-bidder="${escapeEvaluationHtml(bid.supplier)}" data-criterion="${escapeEvaluationHtml(criterion.id)}">${escapeEvaluationHtml(savedComment)}</textarea>
-                                ${lowScoreNeedsComment ? '<small class="evaluation-field-help">Justification required because the score is below 50% of the maximum.</small>' : ''}
+                            <label>Buyer evaluation comment
+                                <textarea class="form-input" rows="4" ${commentRequired ? 'required' : ''} data-eval-comment data-bidder="${escapeEvaluationHtml(bid.supplier)}" data-criterion="${escapeEvaluationHtml(criterion.id)}">${escapeEvaluationHtml(savedComment)}</textarea>
+                                ${commentRequired ? '<small class="evaluation-field-help">Justification required for Fail, Requires Clarification, or a score below 50% of the maximum.</small>' : '<small class="evaluation-field-help">Comment is optional when result and score are complete.</small>'}
                             </label>
                         </div>
 
@@ -1392,7 +1507,40 @@ function renderBidEvaluation() {
         `;
     };
 
-    const renderFinancial = () => `
+    const renderTechnicalGate = () => !conflictCleared ? renderEvaluationAccessLock('Technical pass approval locked') : `
+        <section class="procurement-panel evaluation-panel">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Technical pass/fail approval</span>
+                    <h2>Confirm which bidders can proceed to financial evaluation</h2>
+                </div>
+                ${renderEvaluationStatusBadge(`${passedTechnical.length} qualified`)}
+            </div>
+            <div class="evaluation-notice success">Financial opening and ranking use only bidders that meet or exceed the ${passMark}% technical pass mark. Below-threshold bidders remain visible for audit but are blocked from financial ranking.</div>
+            <div class="data-table evaluation-table-scroll">
+                <table>
+                    <thead><tr><th>Supplier</th><th>Technical score</th><th>Pass mark</th><th>Gate result</th><th>Document completeness</th><th>Risk signal</th></tr></thead>
+                    <tbody>
+                        ${bids.map((bid, index) => {
+                            const technicalPercent = getEvaluationTechnicalPercentForBid(bid, criteria, savedDraft);
+                            return `
+                                <tr>
+                                    <td>${escapeEvaluationHtml(bid.supplier)}</td>
+                                    <td><strong>${technicalPercent}%</strong></td>
+                                    <td>${passMark}%</td>
+                                    <td>${renderEvaluationStatusBadge(technicalPercent >= passMark ? 'Pass to financial' : 'Blocked from financial')}</td>
+                                    <td>${getEvaluationDocumentCompleteness(tender, bid, index)}%</td>
+                                    <td>${renderEvaluationStatusBadge(getEvaluationRiskSummary(tender, bid, index, criteria, savedDraft))}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    `;
+
+    const renderFinancial = () => !conflictCleared ? renderEvaluationAccessLock('Financial evaluation locked') : `
         <section class="procurement-panel evaluation-panel">
             <div class="panel-heading">
                 <div>
@@ -1490,7 +1638,7 @@ function renderBidEvaluation() {
                 </div>
                 ${renderEvaluationStatusBadge(`${(evaluation.clarifications || []).length} active`)}
             </div>
-            <div class="evaluation-notice warning">Clarification must not be used to allow bidders to change price, replace major documents, or submit a new bid after closing.</div>
+            <div class="evaluation-notice warning">Clarifications must not materially alter the original bid. They cannot change price, replace major documents, or introduce new bid information after closing.</div>
             <div class="evaluation-clarification-list">
                 ${(evaluation.clarifications || []).map(item => `
                     <article class="evaluation-clarification">
@@ -1502,7 +1650,7 @@ function renderBidEvaluation() {
                         </div>
                         <div>
                             ${renderEvaluationStatusBadge(item.status)}
-                            <p>${escapeEvaluationHtml(item.evaluatorNote)}</p>
+                            <p>${escapeEvaluationHtml(item.buyerNote)}</p>
                         </div>
                     </article>
                 `).join('')}
@@ -1510,7 +1658,7 @@ function renderBidEvaluation() {
         </section>
     `;
 
-    const renderPostQualification = () => `
+    const renderPostQualification = () => !conflictCleared ? renderEvaluationAccessLock('Post-qualification locked') : `
         <section class="procurement-panel evaluation-panel">
             <div class="panel-heading">
                 <div>
@@ -1521,10 +1669,11 @@ function renderBidEvaluation() {
             </div>
             <div class="evaluation-postqual-grid">
                 ${[
+                    ['Goods or sample verification', 'Confirm distributor authorization, sample outcome, warranty, and stock availability where required.'],
                     ['Site or reference verification', 'Confirm similar contract references and visit evidence where required.'],
-                    ['Key personnel availability', 'Verify that nominated staff remain committed for contract execution.'],
+                    ['Key personnel availability', 'Verify that nominated staff remain committed for delivery or contract execution.'],
                     ['Equipment and resources', 'Confirm owned, leased, or committed resources for delivery.'],
-                    ['Performance security readiness', 'Confirm ability to provide security before contract signing.']
+                    ['Performance security readiness', 'Confirm ability to provide security before contract signing where required.']
                 ].map(([title, note]) => `
                     <article>
                         <strong>${escapeEvaluationHtml(title)}</strong>
@@ -1536,7 +1685,7 @@ function renderBidEvaluation() {
         </section>
     `;
 
-    const renderComparison = () => `
+    const renderComparison = () => !conflictCleared ? renderEvaluationAccessLock('Comparison matrix locked') : `
         <section class="procurement-panel evaluation-panel">
             <div class="panel-heading">
                 <div>
@@ -1607,7 +1756,7 @@ function renderBidEvaluation() {
             <div class="panel-heading">
                 <div>
                     <span class="section-kicker">Recommendation for award</span>
-                    <h2>Submit the buyer evaluator decision</h2>
+                    <h2>Submit the buyer evaluation decision</h2>
                 </div>
                 ${renderEvaluationStatusBadge(recommended.decision || 'Draft')}
             </div>
@@ -1615,7 +1764,7 @@ function renderBidEvaluation() {
                 <label>Recommended tenderer <input class="form-input" value="${escapeEvaluationHtml(savedDraft?.recommendation?.supplier || topBid)}"></label>
                 <label>Evaluation method used <input class="form-input" value="${escapeEvaluationHtml(selectionMethod)}"></label>
                 <label>Recommended amount <input class="form-input" value="${formatEvaluationMoney(savedDraft?.recommendation?.amount || topBidRecord.financial?.correctedPrice || topBidRecord.price || recommended.amount, recommended.currency)}"></label>
-                <label>Buyer evaluator decision <input class="form-input" value="${escapeEvaluationHtml(recommended.decision)}"></label>
+                <label>Buyer evaluation decision <input class="form-input" value="${escapeEvaluationHtml(recommended.decision)}"></label>
                 <label>Reason for recommendation <textarea class="form-input" rows="4">${escapeEvaluationHtml(savedDraft?.recommendation?.reason || `${topBid} is recommended using ${selectionMethod}; the technical pass mark gate and financial ranking were applied.`)}</textarea></label>
                 <label>Conditions <textarea class="form-input" rows="4">${escapeEvaluationHtml(recommended.conditions)}</textarea></label>
             </div>
@@ -1639,7 +1788,7 @@ function renderBidEvaluation() {
             <div class="panel-heading">
                 <div>
                     <span class="section-kicker">Approvals and audit trail</span>
-                    <h2>Traceability, roles, and locked records</h2>
+                    <h2>Traceability and locked records</h2>
                 </div>
                 ${renderEvaluationStatusBadge('Audit recording')}
             </div>
@@ -1697,7 +1846,7 @@ function renderBidEvaluation() {
                     <div>
                         <span class="section-kicker">Evaluation app</span>
                         <h1>${escapeEvaluationHtml(tender.title)}</h1>
-                        <p>This workspace is scoped to one tender posted by the buyer. The buyer evaluator can save draft progress, return later, evaluate each criterion for each bidder, generate the report, and complete the tender evaluation.</p>
+                        <p>This workspace is scoped to one tender posted by the buyer. The buyer can save draft progress, return later, evaluate each criterion for each bidder, generate the report, and complete the tender evaluation.</p>
                     </div>
                     <div class="evaluation-hero-stats">
                         <div><strong>${evaluation.totalBids || bids.length}</strong><span>Total bids</span></div>
@@ -1738,6 +1887,7 @@ function renderBidEvaluation() {
                             </div>
                             ${renderTenderReadiness()}
                             ${renderEvaluationBasisSummary()}
+                            ${renderEvaluationWorkflowOverview()}
                             <div class="evaluation-controls-grid">
                                 ${(evaluation.controls || []).map(item => `
                                     <article>
@@ -1755,6 +1905,7 @@ function renderBidEvaluation() {
                     <div class="tab-content" data-tab="preliminary" style="display: none;">${renderPreliminary()}</div>
                     <div class="tab-content" data-tab="eligibility" style="display: none;">${renderEligibility()}</div>
                     <div class="tab-content" data-tab="technical" style="display: none;">${renderTechnical()}</div>
+                    <div class="tab-content" data-tab="technical-gate" style="display: none;">${renderTechnicalGate()}</div>
                     <div class="tab-content" data-tab="financial" style="display: none;">${renderFinancial()}</div>
                     <div class="tab-content" data-tab="postqual" style="display: none;">${renderPostQualification()}</div>
                     <div class="tab-content" data-tab="clarifications" style="display: none;">${renderClarifications()}</div>
@@ -1825,7 +1976,7 @@ if (typeof document !== 'undefined' && !window.procurexEvaluationSelectionListen
             const reference = downloadReportButton.getAttribute('data-evaluation-download-report');
             const sourceTender = getEvaluationSourceTender(reference);
             const tender = getEvaluationTenderModel(mockData.bidEvaluation || {}, reference);
-            const criteria = getEvaluationCriteriaForTender(sourceTender, mockData.bidEvaluation?.technicalCriteria || []);
+            const criteria = getEvaluationScoringCriteriaForTender(sourceTender, mockData.bidEvaluation?.technicalCriteria || []);
             const draft = getEvaluationDraft(reference);
             const html = renderEvaluationReportDocument(tender, criteria, mockData.bidEvaluation?.bids || [], draft, mockData.bidEvaluation?.auditTrail || []);
             const reportNode = document.createElement('div');
@@ -1875,7 +2026,7 @@ if (typeof document !== 'undefined' && !window.procurexEvaluationSelectionListen
                 const reference = completeButton.getAttribute('data-evaluation-complete');
                 const payload = collectEvaluationDraftFromDom(reference, 'Completed');
                 const sourceTender = getEvaluationSourceTender(reference);
-                const criteria = getEvaluationCriteriaForTender(sourceTender, mockData.bidEvaluation?.technicalCriteria || []);
+                const criteria = getEvaluationScoringCriteriaForTender(sourceTender, mockData.bidEvaluation?.technicalCriteria || []);
                 const tender = getEvaluationTenderModel(mockData.bidEvaluation || {}, reference);
                 const recommendedBid = getEvaluationRecommendedBid(tender, mockData.bidEvaluation?.bids || [], criteria, payload, {
                     passMark: mockData.bidEvaluation?.minimumTechnicalPassMark || 70,

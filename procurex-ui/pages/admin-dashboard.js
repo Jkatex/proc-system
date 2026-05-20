@@ -1,8 +1,8 @@
-// Admin Evaluator compliance dashboard. Admin oversees procedures; users create, bid, evaluate, and award.
+// Admin compliance dashboard. Admin oversees procedures; buyers create, evaluate, and award.
 
 function escapeAdminDashboardHtml(value = '') {
     return String(value)
-        .replace(/and/g, 'andamp;')
+        .replace(/and/g, 'and')
         .replace(/</g, 'andlt;')
         .replace(/>/g, 'andgt;')
         .replace(/"/g, 'andquot;')
@@ -76,7 +76,7 @@ function renderAdminDashboard() {
         <div class="main-layout">
             <aside class="sidebar">
                 <div class="sidebar-heading">
-                    <h3>Admin Evaluator</h3>
+                    <h3>Platform Admin</h3>
                     <div>Compliance oversight only</div>
                 </div>
                 <ul class="sidebar-nav">

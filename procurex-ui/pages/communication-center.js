@@ -5,7 +5,7 @@ const communicationCenterComposeDraftStorageKey = 'procurex.communicationCenter.
 
 function escapeCommunicationHtml(value = '') {
     return String(value)
-        .replace(/and/g, 'andamp;')
+        .replace(/and/g, 'and')
         .replace(/</g, 'andlt;')
         .replace(/>/g, 'andgt;')
         .replace(/"/g, 'andquot;')

@@ -3195,7 +3195,8 @@ textarea.form-input {
     color: #475569;
 }
 
-.evaluation-dashboard {
+.evaluation-dashboard,
+.submission-readiness-dashboard {
     position: relative;
     border-color: rgba(148, 163, 184, 0.55);
     background:
@@ -3203,8 +3204,9 @@ textarea.form-input {
         #f8fafc;
 }
 
-.evaluation-dashboard::before {
-    content: "Evaluation dashboard";
+.evaluation-dashboard::before,
+.submission-readiness-dashboard::before {
+    content: "Submission readiness dashboard";
     grid-column: 1 / -1;
     color: #0f172a;
     font-size: 13px;
@@ -3213,29 +3215,34 @@ textarea.form-input {
     text-transform: uppercase;
 }
 
-.evaluation-dashboard .bid-value-summary {
+.evaluation-dashboard .bid-value-summary,
+.submission-readiness-dashboard .bid-value-summary {
     border-color: rgba(14, 116, 144, 0.22);
     background: linear-gradient(180deg, #f0fdfa 0%, #ffffff 100%);
 }
 
-.evaluation-dashboard .bid-value-summary strong {
+.evaluation-dashboard .bid-value-summary strong,
+.submission-readiness-dashboard .bid-value-summary strong {
     color: #0f766e;
     font-size: 18px;
 }
 
-.evaluation-dashboard .bid-value-summary::after {
+.evaluation-dashboard .bid-value-summary::after,
+.submission-readiness-dashboard .bid-value-summary::after {
     content: "Financial";
     background: #ccfbf1;
     color: #115e59;
 }
 
-.evaluation-dashboard .evaluation-state {
+.evaluation-dashboard .evaluation-state,
+.submission-readiness-dashboard .submission-state {
     border-color: rgba(29, 78, 216, 0.2);
     background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
 }
 
-.evaluation-dashboard .evaluation-state::after {
-    content: "Under Review";
+.evaluation-dashboard .evaluation-state::after,
+.submission-readiness-dashboard .submission-state::after {
+    content: "Supplier Review";
     background: #dbeafe;
     color: #1e40af;
 }
@@ -3829,6 +3836,91 @@ textarea.form-input {
 .bid-deviation-marker {
     background: #fff8e1;
     color: #7a4d00;
+}
+
+.bid-action-summary,
+.bid-financial-summary {
+    margin: 18px 0;
+}
+
+.bid-action-priority {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 850;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.bid-action-priority.high {
+    background: #fff1f1;
+    color: #b00020;
+}
+
+.bid-action-priority.medium {
+    background: #fff8e1;
+    color: #7a4d00;
+}
+
+.bid-action-priority.low {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.bid-review-positive-note,
+.bid-review-warning-note {
+    margin: 14px 0 0;
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.bid-review-positive-note {
+    border: 1px solid #bbf7d0;
+    background: #f0fdf4;
+    color: #166534;
+}
+
+.bid-review-warning-note {
+    border: 1px solid #fed7aa;
+    background: #fff7ed;
+    color: #9a3412;
+}
+
+.bid-financial-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.bid-financial-summary-grid article {
+    min-height: 84px;
+    padding: 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.bid-financial-summary-grid span {
+    display: block;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 850;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.bid-financial-summary-grid strong {
+    display: block;
+    margin-top: 8px;
+    color: #0f172a;
+    font-size: 15px;
+    line-height: 1.3;
 }
 
 .bid-response-document-table tr.is-incomplete td {
@@ -18411,7 +18503,294 @@ textarea:focus-visible,
         gap: 6px;
     }
 
-    .dashboard-deadline-item {
+.dashboard-deadline-item {
+    grid-template-columns: 1fr;
+}
+}
+
+.evaluation-workflow-map {
+    margin-top: 18px;
+    padding: 18px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-md);
+    background: var(--surface-soft);
+}
+
+.evaluation-workflow-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+}
+
+.evaluation-workflow-grid article {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 8px 12px;
+    align-items: start;
+    padding: 12px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-sm);
+    background: var(--card-bg);
+}
+
+.evaluation-workflow-grid strong {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border-radius: var(--radius-sm);
+    background: var(--primary-blue-light);
+    color: var(--primary-blue);
+    font-size: 13px;
+}
+
+.evaluation-workflow-grid span {
+    color: var(--text-primary);
+    font-weight: 800;
+}
+
+.evaluation-workflow-grid em {
+    grid-column: 2;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-style: normal;
+    line-height: 1.45;
+}
+
+.evaluation-access-lock {
+    border-color: var(--warning-amber);
+}
+
+.evaluation-access-lock .btn {
+    margin-top: 14px;
+}
+
+.award-workflow-map {
+    margin-top: 18px;
+    padding: 18px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-md);
+    background: var(--surface-soft);
+}
+
+.award-workflow-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 10px;
+}
+
+.award-workflow-grid article {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 8px 12px;
+    padding: 12px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-sm);
+    background: var(--card-bg);
+}
+
+.award-workflow-grid strong {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border-radius: var(--radius-sm);
+    background: var(--primary-blue-light);
+    color: var(--primary-blue);
+    font-size: 13px;
+}
+
+.award-workflow-grid span {
+    color: var(--text-primary);
+    font-weight: 800;
+}
+
+.award-workflow-grid em {
+    grid-column: 2;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-style: normal;
+    line-height: 1.45;
+}
+
+.award-package-grid,
+.award-control-grid,
+.contract-prerequisite-grid,
+.contract-document-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+}
+
+.award-package-grid article,
+.award-control-grid article,
+.contract-prerequisite-grid article,
+.contract-document-grid article {
+    display: grid;
+    gap: 8px;
+    padding: 14px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-sm);
+    background: var(--card-bg);
+}
+
+.award-package-grid strong,
+.award-control-grid strong,
+.contract-prerequisite-grid strong,
+.contract-document-grid strong {
+    color: var(--text-primary);
+}
+
+.award-package-grid span,
+.award-control-grid span,
+.contract-prerequisite-grid span,
+.contract-document-grid span {
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.contract-negotiation-workspace {
+    display: grid;
+    gap: 18px;
+}
+
+.contract-negotiation-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+    gap: 18px;
+    align-items: start;
+}
+
+.contract-main-column {
+    display: grid;
+    gap: 18px;
+}
+
+.contract-workflow-map {
+    margin-top: 0;
+}
+
+.contract-rules-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.contract-rules-grid article {
+    display: grid;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-sm);
+    background: var(--card-bg);
+}
+
+.contract-rules-grid h3 {
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.contract-rules-grid div {
+    display: grid;
+    gap: 4px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-soft);
+}
+
+.contract-rules-grid span {
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.contract-clause-card-head {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.contract-signature-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin: 16px 0;
+}
+
+.contract-signature-card {
+    display: grid;
+    gap: 10px;
+    padding: 16px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-sm);
+    background: var(--card-bg);
+}
+
+.contract-signature-card h3 {
+    margin: 0;
+}
+
+.contract-signature-card small {
+    color: var(--text-secondary);
+}
+
+.contract-chat-panel {
+    position: sticky;
+    top: 18px;
+    display: grid;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-md);
+    background: var(--card-bg);
+}
+
+.contract-chat-message {
+    display: grid;
+    gap: 6px;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-soft);
+}
+
+.contract-chat-message.buyer {
+    background: var(--primary-blue-light);
+}
+
+.contract-chat-message div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.contract-chat-message p {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.contract-chat-panel .chat-input {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+}
+
+.contract-quick-actions {
+    display: grid;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-soft);
+}
+
+@media (max-width: 1100px) {
+    .contract-negotiation-grid,
+    .contract-rules-grid,
+    .contract-signature-grid {
         grid-template-columns: 1fr;
+    }
+
+    .contract-chat-panel {
+        position: static;
     }
 }

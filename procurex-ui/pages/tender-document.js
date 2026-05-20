@@ -10,7 +10,7 @@ const procurexTenderPdfDefaults = {
 
 function escapeProcurexTenderPdfHtml(value = '') {
     return String(value ?? '')
-        .replace(/and/g, 'andamp;')
+        .replace(/and/g, 'and')
         .replace(/</g, 'andlt;')
         .replace(/>/g, 'andgt;')
         .replace(/"/g, 'andquot;')
@@ -385,14 +385,14 @@ function renderProcurexTenderPdfResponseInstructions(tender = {}, profile = {}) 
         ? tender.requiredSubmissionDocuments
         : (profile.submissionDocuments || []);
     return `
-        <p>Tenderers must structure the bid submission as the following volumes. Each volume should be complete, clearly labelled, and supported by uploaded evidence where required.</p>
+        <p>Tenderers must structure the bid submission as the following steps. Each step should be complete, clearly labelled, and supported by uploaded evidence where required.</p>
         <table class="procurex-pdf-table">
-            <thead><tr><th>Volume</th><th>Contents</th><th>Primary evidence</th></tr></thead>
+            <thead><tr><th>Step</th><th>Contents</th><th>Primary evidence</th></tr></thead>
             <tbody>
-                <tr><td>Volume 1</td><td>Administrative Compliance</td><td>Bid submission letter, registrations, tax compliance, licenses, bid security, and authorizations.</td></tr>
-                <tr><td>Volume 2</td><td>Technical Response</td><td>Specification compliance matrix, methodology, personnel, equipment, experience, quality plan, and delivery approach.</td></tr>
-                <tr><td>Volume 3</td><td>Financial Offer</td><td>${escapeProcurexTenderPdfHtml(profile.commercialName || tender.commercialModel || 'Commercial schedule')}, price summary, taxes, currency, and bid validity.</td></tr>
-                <tr><td>Volume 4</td><td>Declarations and Contract Terms</td><td>Clause acknowledgements, deviation log, anti-corruption declaration, and authorized signatory confirmation.</td></tr>
+                <tr><td>Step 1</td><td>Administrative Compliance</td><td>Bid submission letter, registrations, tax compliance, licenses, bid security, and authorizations.</td></tr>
+                <tr><td>Step 2</td><td>Technical Response</td><td>Specification compliance matrix, methodology, personnel, equipment, experience, quality plan, and delivery approach.</td></tr>
+                <tr><td>Step 3</td><td>Financial Offer</td><td>${escapeProcurexTenderPdfHtml(profile.commercialName || tender.commercialModel || 'Commercial schedule')}, price summary, taxes, currency, and bid validity.</td></tr>
+                <tr><td>Step 4</td><td>Declarations and Contract Terms</td><td>Clause acknowledgements, deviation log, anti-corruption declaration, and authorized signatory confirmation.</td></tr>
                 <tr><td>Annex</td><td>Uploaded Evidence Files</td><td>File manifest with names, sizes, upload timestamps, and integrity hashes.</td></tr>
             </tbody>
         </table>

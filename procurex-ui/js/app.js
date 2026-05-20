@@ -95,7 +95,7 @@ class ProcureXApp {
         this.renderPage();
     }
 
-    isAdminEvaluatorSession() {
+    isAdminSession() {
         return mockData.pendingAccount?.accountType === 'admin' || mockData.session?.accountType === 'admin';
     }
 
@@ -104,7 +104,7 @@ class ProcureXApp {
         if (pagesWithoutAppBar.includes(this.currentPage)) return '';
 
         const currentAppName = this.getCurrentAppName();
-        const isAdmin = this.isAdminEvaluatorSession();
+        const isAdmin = this.isAdminSession();
         const homePage = isAdmin ? 'admin-dashboard' : 'workspace-dashboard';
         const userApps = `
             <button class="app-menu-card app-menu-iam" data-navigate="account-profile">
@@ -139,7 +139,7 @@ class ProcureXApp {
             </button>
             <button class="app-menu-card app-menu-iam" data-navigate="account-profile">
                 <span class="app-menu-icon">${this.getAppMenuIcon('iam')}</span>
-                <span><strong>Admin Profile</strong><em>Evaluator identity and verification</em></span>
+                <span><strong>Admin Profile</strong><em>Platform compliance identity and verification</em></span>
             </button>
             <button class="app-menu-card app-menu-communication" data-navigate="communication-center">
                 <span class="app-menu-icon">${this.getAppMenuIcon('communication')}</span>
@@ -179,7 +179,7 @@ class ProcureXApp {
                             ${renderPlatformLogo('platform-logo platform-logo-sm')}
                             <strong>ProcureX Apps</strong>
                         </div>
-                        <span>${isAdmin ? 'Admin Evaluator tools' : 'Company account tools'}</span>
+                        <span>${isAdmin ? 'Platform admin tools' : 'Company account tools'}</span>
                     </div>
                     ${isAdmin ? adminApps : userApps}
                 </div>
