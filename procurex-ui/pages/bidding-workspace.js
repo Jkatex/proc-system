@@ -2033,40 +2033,66 @@ function renderProcurexBidPackageDocument(config = {}) {
                                 <span>${String(sectionIndex + 1).padStart(2, '0')}</span>
                                 <div>
                                     <h4>${escapeBidWorkspaceHtml(section.title)}</h4>
-                                    <small>${section.rows.length} tender requirement${section.rows.length === 1 ? '' : 's'} and supplier response${section.rows.length === 1 ? '' : 's'}</small>
+                                    <small>${section.financialOfferRows?.length || section.rows.length} tender requirement${(section.financialOfferRows?.length || section.rows.length) === 1 ? '' : 's'} and supplier response${(section.financialOfferRows?.length || section.rows.length) === 1 ? '' : 's'}</small>
                                 </div>
                             </div>
                             <div class="bid-response-document-table">
-                                <table>
-                                    <thead>
-                                        <tr><th>Status</th><th>Requirement</th><th>Supplier response</th><th>Action needed</th></tr>
-                                    </thead>
-                                    <tbody>
-                                        ${section.rows.map(row => `
-                                            <tr class="${row.pending ? 'is-incomplete' : ''} ${row.deviation ? 'is-deviation' : ''}">
-                                                <td>
-                                                    <span class="bid-requirement-marker ${row.mandatory ? (row.pending ? 'required-incomplete' : 'required-complete') : (row.pending ? 'optional-empty' : 'optional-complete')}">
-                                                        ${escapeBidWorkspaceHtml(getProcurexBidReviewRowStatus(row))}
-                                                    </span>
-                                                    ${row.deviation ? '<span class="bid-deviation-marker">Deviation</span>' : ''}
-                                                </td>
-                                                <td>
-                                                    <strong>${escapeBidWorkspaceHtml(row.label)}</strong>
-                                                    ${row.requirement ? `<small>${escapeBidWorkspaceHtml(row.requirement)}</small>` : ''}
-                                                </td>
-                                                <td>${escapeBidWorkspaceHtml(row.value)}</td>
-                                                <td>
-                                                    <span>${escapeBidWorkspaceHtml(getProcurexBidReviewAction(row))}</span>
-                                                    ${editable ? (row.editable === false ? '<span class="bid-review-readonly">Read only</span>' : `
-                                                        <button class="bid-review-edit-button" type="button" data-bid-review-edit="${escapeBidWorkspaceHtml(row.sourceId)}">
-                                                            ${row.upload ? 'Replace file' : 'Change'}
-                                                        </button>
-                                                    `) : ''}
-                                                </td>
-                                            </tr>
-                                        `).join('')}
-                                    </tbody>
-                                </table>
+                                ${section.financialOfferRows?.length ? `
+                                    <table>
+                                        <thead>
+                                            <tr><th>Item</th><th>Work item</th><th>Qty</th><th>Unit</th><th>Status</th><th>Labor</th><th>Material</th><th>Equipment</th><th>Overheads</th><th>Profit %</th><th>Unit rate</th><th>Total</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            ${section.financialOfferRows.map(row => `
+                                                <tr>
+                                                    <td>${escapeBidWorkspaceHtml(row.item)}</td>
+                                                    <td>${escapeBidWorkspaceHtml(row.workItem)}</td>
+                                                    <td>${escapeBidWorkspaceHtml(row.quantity)}</td>
+                                                    <td>${escapeBidWorkspaceHtml(row.unit)}</td>
+                                                    <td>${escapeBidWorkspaceHtml(row.status)}</td>
+                                                    <td>${escapeBidWorkspaceHtml(row.labor)}</td>
+                                                    <td>${escapeBidWorkspaceHtml(row.material)}</td>
+                                                    <td>${escapeBidWorkspaceHtml(row.equipment)}</td>
+                                                    <td>${escapeBidWorkspaceHtml(row.overheads)}</td>
+                                                    <td>${escapeBidWorkspaceHtml(row.profit)}</td>
+                                                    <td>${escapeBidWorkspaceHtml(row.unitRate)}</td>
+                                                    <td>${escapeBidWorkspaceHtml(row.total)}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                ` : `
+                                    <table>
+                                        <thead>
+                                            <tr><th>Status</th><th>Requirement</th><th>Supplier response</th><th>Action needed</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            ${section.rows.map(row => `
+                                                <tr class="${row.pending ? 'is-incomplete' : ''} ${row.deviation ? 'is-deviation' : ''}">
+                                                    <td>
+                                                        <span class="bid-requirement-marker ${row.mandatory ? (row.pending ? 'required-incomplete' : 'required-complete') : (row.pending ? 'optional-empty' : 'optional-complete')}">
+                                                            ${escapeBidWorkspaceHtml(getProcurexBidReviewRowStatus(row))}
+                                                        </span>
+                                                        ${row.deviation ? '<span class="bid-deviation-marker">Deviation</span>' : ''}
+                                                    </td>
+                                                    <td>
+                                                        <strong>${escapeBidWorkspaceHtml(row.label)}</strong>
+                                                        ${row.requirement ? `<small>${escapeBidWorkspaceHtml(row.requirement)}</small>` : ''}
+                                                    </td>
+                                                    <td>${escapeBidWorkspaceHtml(row.value)}</td>
+                                                    <td>
+                                                        <span>${escapeBidWorkspaceHtml(getProcurexBidReviewAction(row))}</span>
+                                                        ${editable ? (row.editable === false ? '<span class="bid-review-readonly">Read only</span>' : `
+                                                            <button class="bid-review-edit-button" type="button" data-bid-review-edit="${escapeBidWorkspaceHtml(row.sourceId)}">
+                                                                ${row.upload ? 'Replace file' : 'Change'}
+                                                            </button>
+                                                        `) : ''}
+                                                    </td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                `}
                             </div>
                         </article>
                     `).join('')}
@@ -2780,8 +2806,6 @@ function renderWorksBidFinancialRows(tender = {}, draft = {}) {
                         <div class="form-group"><label class="form-label">Equipment Cost</label><input class="form-input" type="number" min="0" step="1000" data-works-cost data-bid-response="${baseId}-equipment" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(equipment)}"></div>
                         <div class="form-group"><label class="form-label">Overheads</label><input class="form-input" type="number" min="0" step="1000" data-works-cost data-bid-response="${baseId}-overheads" value="${escapeBidWorkspaceHtml(overheads)}"></div>
                         <div class="form-group"><label class="form-label">Profit Margin (%)</label><input class="form-input" type="number" min="0" max="100" step="0.5" data-works-cost data-bid-response="${baseId}-profit" value="${escapeBidWorkspaceHtml(profit)}"></div>
-                        <div class="form-group wide"><label class="form-label">Alternative Proposal</label><textarea class="form-input" rows="2" data-bid-response="${baseId}-alternative">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-alternative`))}</textarea></div>
-                        <div class="form-group wide"><label class="form-label">Remarks</label><textarea class="form-input" rows="2" data-bid-response="${baseId}-remarks">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-remarks`))}</textarea></div>
                     </div>
                 </td>
             </tr>
@@ -2790,13 +2814,17 @@ function renderWorksBidFinancialRows(tender = {}, draft = {}) {
 }
 
 function renderWorksBidCommercialTerms(draft = {}) {
+    const bidSecuritySubmitted = getBidWorkspaceSavedResponse(draft, 'works-commercial-bid-security-submitted') === true || getBidWorkspaceSavedResponse(draft, 'works-commercial-bid-security-submitted') === 'true';
     return `
         <div class="goods-commercial-terms works-commercial-terms">
             <div class="form-grid two">
                 <div class="form-group"><label class="form-label">Bid Validity Period (days)</label><input class="form-input" type="number" min="1" data-bid-response="works-commercial-bid-validity" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-commercial-bid-validity') || 120)}"></div>
                 <div class="form-group"><label class="form-label">Currency</label><select class="form-input" data-bid-response="works-commercial-currency" data-bid-workflow-required-response="true">${['TZS', 'USD', 'EUR', 'GBP'].map(option => `<option ${getBidWorkspaceSavedResponse(draft, 'works-commercial-currency') === option ? 'selected' : ''}>${option}</option>`).join('')}</select></div>
                 <div class="form-group wide"><label class="form-label">Commercial Clarifications</label><textarea class="form-input" rows="2" data-bid-response="works-commercial-clarifications" placeholder="Optional BOQ pricing assumptions only. Contract terms are handled after award.">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-commercial-clarifications'))}</textarea></div>
-                <label class="bid-response-check"><input type="checkbox" data-bid-response="works-commercial-bid-security-submitted" ${getBidWorkspaceSavedResponse(draft, 'works-commercial-bid-security-submitted') === true || getBidWorkspaceSavedResponse(draft, 'works-commercial-bid-security-submitted') === 'true' ? 'checked' : ''}><span>Bid security submitted, if required by this tender.</span></label>
+                <label class="bid-response-check"><input type="checkbox" data-bid-response="works-commercial-bid-security-submitted" data-bid-security-toggle ${bidSecuritySubmitted ? 'checked' : ''}><span>Bid security submitted, if required by this tender.</span></label>
+                <div class="form-group wide bid-security-upload-panel" data-bid-security-upload-panel ${bidSecuritySubmitted ? '' : 'hidden'}>
+                    ${renderBidWorkspaceUploadControl('works-commercial-bid-security-document', draft, 'Bid security document', '.pdf,.doc,.docx,.jpg,.jpeg,.png', bidSecuritySubmitted)}
+                </div>
             </div>
         </div>
     `;
@@ -4335,6 +4363,18 @@ function initializeBiddingWorkspace() {
         wizard.querySelectorAll('[data-bid-upload-control]').forEach(updateBidUploadControlState);
     };
 
+    const syncBidSecurityUploadPanel = () => {
+        const checkbox = wizard.querySelector('[data-bid-security-toggle]');
+        const panel = wizard.querySelector('[data-bid-security-upload-panel]');
+        const uploadResponse = panel?.querySelector('[data-bid-response]');
+        const submitted = Boolean(checkbox?.checked);
+        if (panel) panel.hidden = !submitted;
+        if (uploadResponse) {
+            if (submitted) uploadResponse.setAttribute('data-bid-workflow-required-response', 'true');
+            else uploadResponse.removeAttribute('data-bid-workflow-required-response');
+        }
+    };
+
     const storeBidUploadPreview = (responseId, file) => {
         if (!responseId || !file) return;
         if (sessionUploadUrls[responseId]) URL.revokeObjectURL(sessionUploadUrls[responseId]);
@@ -4569,6 +4609,7 @@ function initializeBiddingWorkspace() {
 
     const isWorkflowRequiredInputActive = (input) => {
         if (!input?.matches?.('[data-bid-workflow-required-response]')) return false;
+        if (input.closest('[hidden]')) return false;
         if (input.matches('[data-bid-line-status]')) return true;
         if (isBidWorkspaceCommercialLineNotBid(input)) return false;
         return true;
@@ -4663,12 +4704,39 @@ function initializeBiddingWorkspace() {
     const shouldIncludeBidReviewInput = (input) => {
         if (input.closest('[data-bid-response-review]')) return false;
         if (input.closest('[data-bid-declaration], .confirm-action')) return false;
+        if (input.closest('[hidden]')) return false;
+        if ((profile.id || getBidWorkspaceTypeId(tender)) === 'works' && input.closest('.works-boq-row, .works-cost-detail-row')) return false;
         const required = input.matches('[data-bid-required-response], [data-bid-workflow-required-response]');
         const uploadControl = input.closest('[data-bid-upload-control]');
         if (input.type === 'hidden' && !uploadControl) return String(input.value || '').trim().length > 0;
         if (input.type === 'checkbox') return input.checked || required || Boolean(getBidReviewInputLabel(input));
         return Boolean(uploadControl) || Boolean(getBidReviewInputLabel(input)) || String(input.value || '').trim().length > 0 || required;
     };
+
+    const getWorksFinancialInputValue = (detailRow, suffix) => {
+        const input = detailRow?.querySelector(`[data-bid-response$="${suffix}"]`);
+        return input ? formatBidWorkspaceMoney(parseBidWorkspaceNumber(input.value)) : 'Not provided';
+    };
+
+    const collectWorksFinancialOfferRows = () => Array.from(wizard.querySelectorAll('[data-works-boq-row]')).map((row, index) => {
+        const detailRow = row.nextElementSibling?.classList.contains('works-cost-detail-row') ? row.nextElementSibling : null;
+        const statusSelect = row.querySelector('[data-bid-line-status]');
+        const status = statusSelect?.selectedOptions?.[0]?.textContent.trim() || statusSelect?.value || 'Not selected';
+        return {
+            item: row.children[0]?.textContent.trim() || String(index + 1),
+            workItem: row.children[1]?.querySelector('strong')?.textContent.trim() || row.children[1]?.textContent.trim() || `Work item ${index + 1}`,
+            quantity: row.querySelector('[data-bid-line-qty]')?.textContent.trim() || row.children[2]?.textContent.trim() || '1',
+            unit: row.children[3]?.textContent.trim() || 'Lot',
+            status,
+            labor: getWorksFinancialInputValue(detailRow, '-labor'),
+            material: getWorksFinancialInputValue(detailRow, '-material'),
+            equipment: getWorksFinancialInputValue(detailRow, '-equipment'),
+            overheads: getWorksFinancialInputValue(detailRow, '-overheads'),
+            profit: detailRow?.querySelector('[data-bid-response$="-profit"]')?.value || 'Not provided',
+            unitRate: row.querySelector('[data-works-unit-rate]')?.childNodes?.[0]?.textContent?.trim() || row.querySelector('[data-bid-rate]')?.value || 'Not calculated',
+            total: row.querySelector('[data-bid-line-amount]')?.textContent.trim() || 'Not calculated'
+        };
+    });
 
     const collectBidReviewSections = (reviewPanel) => {
         const reviewIndex = panels.indexOf(reviewPanel);
@@ -4701,7 +4769,28 @@ function initializeBiddingWorkspace() {
                     });
                 });
         });
-        return createProcurexBidPackageSectionsFromRows(rows);
+        const sections = createProcurexBidPackageSectionsFromRows(rows);
+        const worksFinancialOfferRows = (profile.id || getBidWorkspaceTypeId(tender)) === 'works'
+            ? collectWorksFinancialOfferRows()
+            : [];
+        if (worksFinancialOfferRows.length) {
+            const financialRows = worksFinancialOfferRows.map(row => ({
+                label: row.workItem,
+                value: row.total,
+                mandatory: row.status !== 'Not Bid',
+                pending: row.status !== 'Not Bid' && /not provided|not selected|not calculated/i.test(Object.values(row).join(' ')),
+                editable: true
+            }));
+            const existingIndex = sections.findIndex(section => normalizeProcurexBidPackageCategory(section.title) === 'Step 3: Financial Offer');
+            const financialSection = {
+                title: 'Step 3: Financial Offer',
+                rows: existingIndex > -1 ? [...sections[existingIndex].rows, ...financialRows] : financialRows,
+                financialOfferRows: worksFinancialOfferRows
+            };
+            if (existingIndex > -1) sections[existingIndex] = financialSection;
+            else sections.push(financialSection);
+        }
+        return sections;
     };
 
     const renderBidReviewSections = (sections = []) => {
@@ -5474,6 +5563,7 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
         }
 
         if (event.target?.matches('[data-bid-response], [data-bid-free-response], [data-bid-product-spec-field]')) {
+            if (event.target?.matches('[data-bid-security-toggle]')) syncBidSecurityUploadPanel();
             if (event.target?.matches('[data-bid-line-status]')) refreshBidTotals();
             validateMandatoryGate(false);
             validateWorkflowResponses(false);
@@ -5485,6 +5575,7 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
     });
 
     refreshBidTotals();
+    syncBidSecurityUploadPanel();
     refreshBidUploadControls();
     validateMandatoryGate(false);
     validateWorkflowResponses(false);
