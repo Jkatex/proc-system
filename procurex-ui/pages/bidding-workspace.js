@@ -2788,13 +2788,17 @@ function renderWorksBidFinancialRows(tender = {}, draft = {}) {
 }
 
 function renderWorksBidCommercialTerms(draft = {}) {
+    const bidSecuritySubmitted = getBidWorkspaceSavedResponse(draft, 'works-commercial-bid-security-submitted') === true || getBidWorkspaceSavedResponse(draft, 'works-commercial-bid-security-submitted') === 'true';
     return `
         <div class="goods-commercial-terms works-commercial-terms">
             <div class="form-grid two">
                 <div class="form-group"><label class="form-label">Bid Validity Period (days)</label><input class="form-input" type="number" min="1" data-bid-response="works-commercial-bid-validity" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-commercial-bid-validity') || 120)}"></div>
                 <div class="form-group"><label class="form-label">Currency</label><select class="form-input" data-bid-response="works-commercial-currency" data-bid-workflow-required-response="true">${['TZS', 'USD', 'EUR', 'GBP'].map(option => `<option ${getBidWorkspaceSavedResponse(draft, 'works-commercial-currency') === option ? 'selected' : ''}>${option}</option>`).join('')}</select></div>
                 <div class="form-group wide"><label class="form-label">Commercial Clarifications</label><textarea class="form-input" rows="2" data-bid-response="works-commercial-clarifications" placeholder="Optional BOQ pricing assumptions only. Contract terms are handled after award.">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-commercial-clarifications'))}</textarea></div>
-                <label class="bid-response-check"><input type="checkbox" data-bid-response="works-commercial-bid-security-submitted" ${getBidWorkspaceSavedResponse(draft, 'works-commercial-bid-security-submitted') === true || getBidWorkspaceSavedResponse(draft, 'works-commercial-bid-security-submitted') === 'true' ? 'checked' : ''}><span>Bid security submitted, if required by this tender.</span></label>
+                <label class="bid-response-check"><input type="checkbox" data-bid-response="works-commercial-bid-security-submitted" data-bid-security-toggle ${bidSecuritySubmitted ? 'checked' : ''}><span>Bid security submitted, if required by this tender.</span></label>
+                <div class="form-group wide bid-security-upload-panel" data-bid-security-upload-panel ${bidSecuritySubmitted ? '' : 'hidden'}>
+                    ${renderBidWorkspaceUploadControl('works-commercial-bid-security-document', draft, 'Bid security document', '.pdf,.doc,.docx,.jpg,.jpeg,.png', bidSecuritySubmitted)}
+                </div>
             </div>
         </div>
     `;
@@ -4333,6 +4337,18 @@ function initializeBiddingWorkspace() {
         wizard.querySelectorAll('[data-bid-upload-control]').forEach(updateBidUploadControlState);
     };
 
+    const syncBidSecurityUploadPanel = () => {
+        const checkbox = wizard.querySelector('[data-bid-security-toggle]');
+        const panel = wizard.querySelector('[data-bid-security-upload-panel]');
+        const uploadResponse = panel?.querySelector('[data-bid-response]');
+        const submitted = Boolean(checkbox?.checked);
+        if (panel) panel.hidden = !submitted;
+        if (uploadResponse) {
+            if (submitted) uploadResponse.setAttribute('data-bid-workflow-required-response', 'true');
+            else uploadResponse.removeAttribute('data-bid-workflow-required-response');
+        }
+    };
+
     const storeBidUploadPreview = (responseId, file) => {
         if (!responseId || !file) return;
         if (sessionUploadUrls[responseId]) URL.revokeObjectURL(sessionUploadUrls[responseId]);
@@ -4567,6 +4583,7 @@ function initializeBiddingWorkspace() {
 
     const isWorkflowRequiredInputActive = (input) => {
         if (!input?.matches?.('[data-bid-workflow-required-response]')) return false;
+        if (input.closest('[hidden]')) return false;
         if (input.matches('[data-bid-line-status]')) return true;
         if (isBidWorkspaceCommercialLineNotBid(input)) return false;
         return true;
@@ -4661,6 +4678,7 @@ function initializeBiddingWorkspace() {
     const shouldIncludeBidReviewInput = (input) => {
         if (input.closest('[data-bid-response-review]')) return false;
         if (input.closest('[data-bid-declaration], .confirm-action')) return false;
+        if (input.closest('[hidden]')) return false;
         const required = input.matches('[data-bid-required-response], [data-bid-workflow-required-response]');
         const uploadControl = input.closest('[data-bid-upload-control]');
         if (input.type === 'hidden' && !uploadControl) return String(input.value || '').trim().length > 0;
@@ -5472,6 +5490,7 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
         }
 
         if (event.target?.matches('[data-bid-response], [data-bid-free-response], [data-bid-product-spec-field]')) {
+            if (event.target?.matches('[data-bid-security-toggle]')) syncBidSecurityUploadPanel();
             if (event.target?.matches('[data-bid-line-status]')) refreshBidTotals();
             validateMandatoryGate(false);
             validateWorkflowResponses(false);
@@ -5483,6 +5502,7 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
     });
 
     refreshBidTotals();
+    syncBidSecurityUploadPanel();
     refreshBidUploadControls();
     validateMandatoryGate(false);
     validateWorkflowResponses(false);
