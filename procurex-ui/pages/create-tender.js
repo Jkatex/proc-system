@@ -119,6 +119,14 @@ const createTenderFixedConsultancyCardControlIds = new Set([
     'consultancyAdministrativeArrangements'
 ]);
 
+const createTenderLegacyDefaultMainConstructionActivities = [
+    'Site preparation',
+    'Foundation works',
+    'Structural works',
+    'Roofing works',
+    'Electrical installation'
+];
+
 const createTenderProfessionalRegistrationCertificationOptions = [
     'ERB',
     'PSPTB',
@@ -385,18 +393,16 @@ const createTenderRequirementTemplates = {
                     },
                     {
                         id: 'mainConstructionActivities',
-                        label: 'Main Activities *',
+                        label: 'Main Activities',
                         type: 'list',
-                        required: true,
-                        defaultValue: [
-                            { text: 'Site preparation' },
-                            { text: 'Foundation works' },
-                            { text: 'Structural works' },
-                            { text: 'Roofing works' },
-                            { text: 'Electrical installation' }
+                        itemPlaceholders: [
+                            'Example: Site preparation',
+                            'Example: Excavation and foundation works',
+                            'Example: Structural works',
+                            'Example: Roofing, electrical, plumbing, or finishing works'
                         ],
                         addLabel: '+ Add Activity',
-                        emptyText: 'No activities added yet.',
+                        emptyText: 'Add the key works activities expected, such as site preparation, foundation works, structural works, roofing, electrical installation, plumbing, finishing, or external works.',
                         helperText: 'List the major construction activities to be carried out.'
                     },
                 ]
@@ -490,8 +496,7 @@ const createTenderRequirementTemplates = {
                         emptyText: 'No works milestones added yet.',
                         columns: [
                             { id: 'milestone', label: 'Milestone', type: 'text' },
-                            { id: 'targetDate', label: 'Target date', type: 'date' },
-                            { id: 'liquidatedDamagesTrigger', label: 'LD trigger', type: 'toggle' }
+                            { id: 'targetDate', label: 'Target date', type: 'date' }
                         ]
                     }
                 ]
@@ -1625,6 +1630,16 @@ function sanitizeCreateTenderRequirementFields(profileId = 'works', fields = {})
     createTenderLegacyContractClauseFieldIds.forEach(fieldId => delete sanitizedFields[fieldId]);
     delete sanitizedFields.fundingSource;
 
+    if (
+        profileId === 'works' &&
+        isCreateTenderLegacyDefaultTextList(
+            sanitizedFields.mainConstructionActivities,
+            createTenderLegacyDefaultMainConstructionActivities
+        )
+    ) {
+        sanitizedFields.mainConstructionActivities = [];
+    }
+
     if (profileId === 'consultancy') {
         createTenderLegacyConsultancyRequirementFieldIds.forEach(fieldId => delete sanitizedFields[fieldId]);
         createTenderFixedConsultancyCardControlIds.forEach(controlId => {
@@ -1729,6 +1744,11 @@ function normalizeCreateTenderRequirementTextItems(items = [], controlId = 'item
             text: String(item.text || '')
         };
     });
+}
+
+function isCreateTenderLegacyDefaultTextList(value = [], defaultTexts = []) {
+    if (!Array.isArray(value) || value.length !== defaultTexts.length) return false;
+    return value.every((item, index) => String(typeof item === 'string' ? item : item?.text || '').trim() === defaultTexts[index]);
 }
 
 function normalizeCreateTenderRequirementTableRows(rows = [], columns = [], controlId = 'table') {
@@ -2177,12 +2197,19 @@ function renderCreateTenderRequirementControlListItems(control, value) {
         return `<div class="scope-empty">${escapeCreateTenderHtml(control.emptyText || 'No items added yet.')}</div>`;
     }
 
-    return items.map(item => `
+    return items.map((item, index) => {
+        const placeholder = Array.isArray(control.itemPlaceholders)
+            ? control.itemPlaceholders[index % control.itemPlaceholders.length]
+            : control.placeholder;
+        const placeholderAttribute = placeholder ? ` placeholder="${escapeCreateTenderHtml(placeholder)}"` : '';
+
+        return `
         <div class="requirement-control-row" data-requirement-control-row="${escapeCreateTenderHtml(item.id)}" data-requirement-control="${escapeCreateTenderHtml(control.id)}">
-            <input class="form-input requirement-list-input" value="${escapeCreateTenderHtml(item.text)}" data-requirement-list-item aria-label="${escapeCreateTenderHtml(control.label)} item">
+            <input class="form-input requirement-list-input" value="${escapeCreateTenderHtml(item.text)}"${placeholderAttribute} data-requirement-list-item aria-label="${escapeCreateTenderHtml(control.label)} item">
             <button class="boq-row-action icon-delete-btn" type="button" data-requirement-control-delete="${escapeCreateTenderHtml(control.id)}" aria-label="Remove ${escapeCreateTenderHtml(control.label)}" title="Remove item">${renderCreateTenderTrashIcon()}</button>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 function renderCreateTenderScopeActivityRows(control, value) {
@@ -2191,13 +2218,20 @@ function renderCreateTenderScopeActivityRows(control, value) {
         return `<div class="scope-empty">${escapeCreateTenderHtml(control.emptyText || 'No activities added yet.')}</div>`;
     }
 
-    return items.map(item => `
+    return items.map((item, index) => {
+        const placeholder = Array.isArray(control.itemPlaceholders)
+            ? control.itemPlaceholders[index % control.itemPlaceholders.length]
+            : control.placeholder;
+        const placeholderAttribute = placeholder ? ` placeholder="${escapeCreateTenderHtml(placeholder)}"` : '';
+
+        return `
         <div class="scope-activity-row" data-requirement-control-row="${escapeCreateTenderHtml(item.id)}" data-requirement-control="${escapeCreateTenderHtml(control.id)}">
             <span class="scope-activity-handle" aria-hidden="true">::</span>
-            <input class="scope-activity-input" value="${escapeCreateTenderHtml(item.text)}" data-requirement-list-item aria-label="${escapeCreateTenderHtml(control.label)} item">
+            <input class="scope-activity-input" value="${escapeCreateTenderHtml(item.text)}"${placeholderAttribute} data-requirement-list-item aria-label="${escapeCreateTenderHtml(control.label)} item">
             <button class="boq-row-action icon-delete-btn scope-activity-delete" type="button" data-requirement-control-delete="${escapeCreateTenderHtml(control.id)}" aria-label="Remove ${escapeCreateTenderHtml(control.label)}" title="Remove activity">${renderCreateTenderTrashIcon()}</button>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 function renderCreateTenderScopeDescriptionSection(section, requirementDraft, profileId = '') {
