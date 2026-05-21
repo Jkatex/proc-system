@@ -1799,6 +1799,7 @@ function renderProcurexBidPackageActionSummary(actionRows = []) {
 }
 
 function renderProcurexBidPackageFinancialSummary(sections = [], supplier = {}) {
+    if (sections.some(section => section.financialOfferRows?.length)) return '';
     const financialRows = sections
         .filter(section => /financial|commercial|price|pricing|offer/i.test(section.title || ''))
         .flatMap(section => section.rows || []);
@@ -1827,6 +1828,129 @@ function renderProcurexBidPackageFinancialSummary(sections = [], supplier = {}) 
             </div>
             ${missingPrices ? '<p class="bid-review-warning-note">Some required prices are missing. Complete them or mark the line as Not Bid where the tender allows it.</p>' : ''}
         </section>
+    `;
+}
+
+function getProcurexFinancialReviewStatusClass(value = '') {
+    const raw = String(value || '').toLowerCase();
+    if (/complete|accepted|applied|submitted|ready|required|no issues/.test(raw)) return 'complete';
+    if (/pending|issue|missing/.test(raw)) return 'pending';
+    return 'neutral';
+}
+
+function getProcurexFinancialReviewData(section = {}, supplier = {}) {
+    const boqRows = section.financialOfferRows || [];
+    const total = boqRows.reduce((sum, row) => sum + parseBidWorkspaceNumber(row.total), 0);
+    const labor = boqRows.reduce((sum, row) => sum + parseBidWorkspaceNumber(row.labor), 0);
+    const material = boqRows.reduce((sum, row) => sum + parseBidWorkspaceNumber(row.material), 0);
+    const equipment = boqRows.reduce((sum, row) => sum + parseBidWorkspaceNumber(row.equipment), 0);
+    const overheads = boqRows.reduce((sum, row) => sum + parseBidWorkspaceNumber(row.overheads), 0);
+    const residual = Math.max(total - labor - material - equipment - overheads, 0);
+    const pricedCount = boqRows.filter(row => String(row.status || '').toLowerCase() === 'bid').length;
+    const totalCount = boqRows.length;
+    const profitValues = boqRows.map(row => parseBidWorkspaceNumber(row.profit)).filter(value => value > 0);
+    const commonProfit = profitValues.length ? Math.round(profitValues.reduce((sum, value) => sum + value, 0) / profitValues.length) : 0;
+    const totalValue = total ? formatBidWorkspaceMoney(total) : (supplier.total || 'Pending');
+    return {
+        summaryCards: [
+            { label: 'Total Bid Value', value: totalValue, status: total ? 'Complete' : 'Pending' },
+            { label: 'Pricing Model', value: 'Fixed Price', status: 'Accepted' },
+            { label: 'Profit Margin', value: commonProfit ? `${commonProfit}%` : 'Not stated', status: commonProfit ? 'Applied' : 'Pending' },
+            { label: 'BOQ Items Priced', value: `${pricedCount} / ${totalCount} Items`, status: pricedCount === totalCount ? 'Complete' : 'Pending' },
+            { label: 'Bid Security', value: 'Submitted', status: 'Required' },
+            { label: 'Financial Status', value: pricedCount === totalCount && total ? 'Ready' : 'Pending', status: pricedCount === totalCount && total ? 'No issues found' : 'Review required' }
+        ],
+        costRows: [
+            ['Labour Cost', labor],
+            ['Material Cost', material],
+            ['Equipment Cost', equipment],
+            ['Overheads', overheads],
+            ['VAT', residual],
+            ['TOTAL BID VALUE', total]
+        ],
+        boqRows
+    };
+}
+
+function renderProcurexFinancialOfferReview(section = {}, supplier = {}) {
+    const review = getProcurexFinancialReviewData(section, supplier);
+    return `
+        <div class="financial-review-section">
+            <div class="financial-review-copy">
+                <strong>Step 3: Financial Offer</strong>
+                <span>Review the key financial details of your bid before final submission.</span>
+            </div>
+            <div class="summary-grid financial-review-summary-grid">
+                ${review.summaryCards.map((card, index) => `
+                    <article class="summary-card financial-review-summary-card">
+                        <span class="financial-review-icon">${index + 1}</span>
+                        <div>
+                            <small>${escapeBidWorkspaceHtml(card.label)}</small>
+                            <strong>${escapeBidWorkspaceHtml(card.value)}</strong>
+                            <em class="financial-review-status-text ${getProcurexFinancialReviewStatusClass(card.status)}">${escapeBidWorkspaceHtml(card.status)}</em>
+                        </div>
+                    </article>
+                `).join('')}
+            </div>
+            <div class="financial-review-block">
+                <h5>Cost Breakdown</h5>
+                <table class="financial-review-compact-table financial-cost-breakdown-table">
+                    <thead><tr><th>Cost Component</th><th>Amount (TZS)</th></tr></thead>
+                    <tbody>
+                        ${review.costRows.map(([label, value], index) => `
+                            <tr class="${index === review.costRows.length - 1 ? 'is-total-row' : ''}">
+                                <td>${escapeBidWorkspaceHtml(label)}</td>
+                                <td>${escapeBidWorkspaceHtml(formatBidWorkspaceMoney(value))}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+            <div class="financial-review-block">
+                <h5>BOQ Line Summary</h5>
+                <table class="financial-review-compact-table financial-boq-summary-table">
+                    <thead><tr><th>Item</th><th>Work Item</th><th>Qty</th><th>Unit</th><th>Total (TZS)</th></tr></thead>
+                    <tbody>
+                        ${review.boqRows.map(row => `
+                            <tr>
+                                <td>${escapeBidWorkspaceHtml(row.item)}</td>
+                                <td>${escapeBidWorkspaceHtml(row.workItem)}</td>
+                                <td>${escapeBidWorkspaceHtml(row.quantity)}</td>
+                                <td>${escapeBidWorkspaceHtml(row.unit)}</td>
+                                <td>${escapeBidWorkspaceHtml(row.total)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+            <button class="btn btn-secondary view-full-boq-button no-print" type="button" data-bid-toggle-full-boq>View Full BOQ Breakdown</button>
+            <div class="financial-full-boq-panel" data-financial-full-boq hidden>
+                <div class="financial-review-block">
+                    <h5>Full BOQ Pricing Details</h5>
+                    <table class="financial-review-compact-table financial-full-boq-table">
+                        <thead><tr><th>Item</th><th>Work Item</th><th>Qty</th><th>Unit</th><th>Status</th><th>Labour</th><th>Material</th><th>Equipment</th><th>Overheads</th><th>Profit %</th><th>Unit Rate</th><th>Total</th></tr></thead>
+                        <tbody>
+                            ${review.boqRows.map(row => `
+                                <tr>
+                                    <td>${escapeBidWorkspaceHtml(row.item)}</td>
+                                    <td>${escapeBidWorkspaceHtml(row.workItem)}</td>
+                                    <td>${escapeBidWorkspaceHtml(row.quantity)}</td>
+                                    <td>${escapeBidWorkspaceHtml(row.unit)}</td>
+                                    <td>${escapeBidWorkspaceHtml(row.status)}</td>
+                                    <td>${escapeBidWorkspaceHtml(row.labor)}</td>
+                                    <td>${escapeBidWorkspaceHtml(row.material)}</td>
+                                    <td>${escapeBidWorkspaceHtml(row.equipment)}</td>
+                                    <td>${escapeBidWorkspaceHtml(row.overheads)}</td>
+                                    <td>${escapeBidWorkspaceHtml(row.profit)}</td>
+                                    <td>${escapeBidWorkspaceHtml(row.unitRate)}</td>
+                                    <td>${escapeBidWorkspaceHtml(row.total)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     `;
 }
 
@@ -2052,32 +2176,9 @@ function renderProcurexBidPackageDocument(config = {}) {
                                     <small>${section.financialOfferRows?.length || section.rows.length} tender requirement${(section.financialOfferRows?.length || section.rows.length) === 1 ? '' : 's'} and supplier response${(section.financialOfferRows?.length || section.rows.length) === 1 ? '' : 's'}</small>
                                 </div>
                             </div>
-                            <div class="bid-response-document-table">
+                            <div class="bid-response-document-table ${section.financialOfferRows?.length ? 'financial-review-table-shell' : ''}">
                                 ${section.financialOfferRows?.length ? `
-                                    <table class="financial-offer-review-table">
-                                        <thead>
-                                            <tr><th>Item</th><th>Work item</th><th>Qty</th><th>Unit</th><th>Status</th><th>Labor</th><th>Material</th><th>Equipment</th><th>Overheads</th><th>Profit %</th><th>Unit rate</th><th>Total</th>${editable ? '<th>Action</th>' : ''}</tr>
-                                        </thead>
-                                        <tbody>
-                                            ${section.financialOfferRows.map(row => `
-                                                <tr>
-                                                    <td>${escapeBidWorkspaceHtml(row.item)}</td>
-                                                    <td>${escapeBidWorkspaceHtml(row.workItem)}</td>
-                                                    <td>${escapeBidWorkspaceHtml(row.quantity)}</td>
-                                                    <td>${escapeBidWorkspaceHtml(row.unit)}</td>
-                                                    <td><span class="financial-review-status ${row.status === 'Bid' ? 'is-bid' : row.status === 'Not Bid' ? 'is-not-bid' : 'is-pending'}">${escapeBidWorkspaceHtml(row.status)}</span></td>
-                                                    <td>${escapeBidWorkspaceHtml(row.labor)}</td>
-                                                    <td>${escapeBidWorkspaceHtml(row.material)}</td>
-                                                    <td>${escapeBidWorkspaceHtml(row.equipment)}</td>
-                                                    <td>${escapeBidWorkspaceHtml(row.overheads)}</td>
-                                                    <td>${escapeBidWorkspaceHtml(row.profit)}</td>
-                                                    <td>${escapeBidWorkspaceHtml(row.unitRate)}</td>
-                                                    <td>${escapeBidWorkspaceHtml(row.total)}</td>
-                                                    ${editable ? `<td class="financial-review-action-cell">${row.sourceId ? `<button class="bid-review-edit-button financial-review-edit-button" type="button" data-bid-review-edit="${escapeBidWorkspaceHtml(row.sourceId)}">Edit</button>` : '<span class="bid-review-readonly">Read only</span>'}</td>` : ''}
-                                                </tr>
-                                            `).join('')}
-                                        </tbody>
-                                    </table>
+                                    ${renderProcurexFinancialOfferReview(section, supplier)}
                                 ` : `
                                     <table>
                                         <thead>
@@ -5195,6 +5296,32 @@ body { margin: 0; padding: 32px; background: #eef2f7; color: #0f172a; font-famil
 .bid-financial-summary-grid article { min-height: 74px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; }
 .bid-financial-summary-grid span { display: block; color: #64748b; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
 .bid-financial-summary-grid strong { display: block; margin-top: 8px; color: #0f172a; font-size: 14px; line-height: 1.3; }
+.financial-review-section { display: grid; gap: 18px; width: 100%; max-width: 100%; padding: 18px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08); }
+.bid-response-document-table.financial-review-table-shell { overflow: visible; border: 0; }
+.financial-review-copy { display: grid; gap: 4px; }
+.financial-review-copy strong { color: #0f172a; font-size: 18px; }
+.financial-review-copy span { color: #64748b; font-size: 13px; line-height: 1.5; }
+.summary-grid.financial-review-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.summary-card.financial-review-summary-card { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 12px; align-items: center; min-width: 0; padding: 14px; border: 1px solid #dbe7e4; border-radius: 10px; background: #fff; box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06); }
+.financial-review-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 999px; background: #e0f7f1; color: #047857; font-size: 13px; font-weight: 900; }
+.financial-review-summary-card small { display: block; color: #64748b; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.financial-review-summary-card strong { display: block; margin-top: 5px; color: #0f172a; font-size: 16px; line-height: 1.25; }
+.financial-review-status-text { display: inline-flex; width: max-content; max-width: 100%; margin-top: 8px; padding: 4px 8px; border-radius: 999px; font-size: 10px; font-style: normal; font-weight: 800; line-height: 1; }
+.financial-review-status-text.complete { background: #dcfce7; color: #166534; }
+.financial-review-status-text.pending { background: #fff7ed; color: #9a3412; }
+.financial-review-status-text.neutral { background: #f1f5f9; color: #475569; }
+.financial-review-block { display: grid; gap: 10px; min-width: 0; }
+.financial-review-block h5 { margin: 0; color: #0f172a; font-size: 14px; }
+.financial-review-compact-table { width: 100%; table-layout: fixed; border-collapse: collapse; border: 1px solid #e2e8f0; background: #fff; }
+.financial-review-compact-table th, .financial-review-compact-table td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #334155; font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; text-align: left; vertical-align: top; }
+.financial-review-compact-table th { background: #f8fafc; color: #0f172a; font-size: 11px; font-weight: 900; text-transform: uppercase; }
+.financial-cost-breakdown-table td:last-child, .financial-boq-summary-table td:last-child { color: #0f172a; font-weight: 800; }
+.financial-cost-breakdown-table .is-total-row td { background: #e0f7f1; color: #064e3b; font-weight: 900; }
+.view-full-boq-button { justify-self: start; min-height: 38px; padding: 9px 14px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: #0f172a; font-weight: 800; }
+.financial-full-boq-panel[hidden] { display: none !important; }
+.financial-full-boq-table th, .financial-full-boq-table td { font-size: 11px; padding: 8px; }
+@media (max-width: 980px) { .summary-grid.financial-review-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .summary-grid.financial-review-summary-grid { grid-template-columns: 1fr; } .financial-review-section { padding: 14px; } .financial-review-compact-table th, .financial-review-compact-table td { padding: 8px; font-size: 12px; } }
 .bid-response-document-sections { display: grid; gap: 22px; }
 .bid-response-document-section-heading { display: grid; grid-template-columns: 36px 1fr; gap: 12px; align-items: center; padding-bottom: 10px; border-bottom: 1px solid #cbd5e1; }
 .bid-response-document-section-heading > span { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 4px; background: #071a33; color: #fff; font-size: 12px; font-weight: 900; }
@@ -5204,23 +5331,6 @@ body { margin: 0; padding: 32px; background: #eef2f7; color: #0f172a; font-famil
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 13px 14px; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: top; font-size: 14px; line-height: 1.4; }
 th { background: #f1f5f9; color: #334155; font-size: 12px; font-weight: 800; text-transform: uppercase; }
-.financial-offer-review-table { min-width: 1450px; table-layout: fixed; }
-.financial-offer-review-table th { background: #eef3f8; color: #071a33; }
-.financial-offer-review-table th, .financial-offer-review-table td { padding: 12px 14px; white-space: normal; overflow-wrap: normal; }
-.financial-offer-review-table th:nth-child(1), .financial-offer-review-table td:nth-child(1) { width: 70px; }
-.financial-offer-review-table td:nth-child(2) { width: 250px; min-width: 250px; }
-.financial-offer-review-table th:nth-child(3), .financial-offer-review-table td:nth-child(3), .financial-offer-review-table th:nth-child(4), .financial-offer-review-table td:nth-child(4) { width: 74px; }
-.financial-offer-review-table th:nth-child(5), .financial-offer-review-table td:nth-child(5) { width: 124px; }
-.financial-offer-review-table th:nth-child(n + 6):nth-child(-n + 9), .financial-offer-review-table td:nth-child(n + 6):nth-child(-n + 9) { width: 130px; }
-.financial-offer-review-table th:nth-child(10), .financial-offer-review-table td:nth-child(10) { width: 82px; }
-.financial-offer-review-table th:nth-child(13), .financial-offer-review-table td:nth-child(13) { width: 96px; }
-.financial-offer-review-table td:nth-child(6), .financial-offer-review-table td:nth-child(7), .financial-offer-review-table td:nth-child(8), .financial-offer-review-table td:nth-child(9), .financial-offer-review-table td:nth-child(11), .financial-offer-review-table td:nth-child(12) { color: #071a33; font-weight: 900; white-space: nowrap; }
-.financial-offer-review-table tbody tr:nth-child(even) td { background: #fbfdff; }
-.financial-review-status { display: inline-flex; align-items: center; min-height: 26px; padding: 5px 9px; border-radius: 999px; font-size: 11px; font-weight: 800; line-height: 1; white-space: nowrap; }
-.financial-review-status.is-bid { background: #e8f5e9; color: #0d7c3d; }
-.financial-review-status.is-not-bid { background: #fff1f1; color: #b00020; }
-.financial-review-status.is-pending { background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; }
-.financial-review-action-cell { text-align: right; white-space: nowrap; }
 td strong { display: block; color: #0f172a; }
 td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; line-height: 1.35; }
 .license-permit-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 220px; }
@@ -5238,8 +5348,8 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
 .bid-file-manifest code { white-space: normal; overflow-wrap: anywhere; color: #334155; font-size: 12px; }
 .bid-review-readonly { display: inline-flex; align-items: center; min-height: 28px; color: #64748b; font-size: 12px; font-weight: 800; text-transform: uppercase; }
 .bid-response-document-footer { display: flex; justify-content: space-between; margin-top: 28px; padding-top: 14px; border-top: 1px solid #cbd5e1; color: #64748b; font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
-@page { margin: 14mm; }
-@media print { body { padding: 0; background: #fff; } .bid-response-document { width: auto; max-width: none; margin: 0; padding: 0; box-shadow: none; border: 0; } .bid-response-download-panel, .bid-review-edit-button, .bid-status-chip.editable { display: none !important; } .bid-response-document-section, .bid-deviation-log, .bid-file-manifest, table, tr { break-inside: avoid; page-break-inside: avoid; } th, td { padding: 8px 9px; font-size: 11px; } }
+@page { size: A4 portrait; margin: 16mm; }
+@media print { body { padding: 0; background: #fff; } .bid-response-document { width: auto; max-width: none; margin: 0; padding: 0; box-shadow: none; border: 0; } .bid-response-download-panel, .bid-review-edit-button, .bid-status-chip.editable, .no-print, button, .view-full-boq-button, .edit-button, .action-column { display: none !important; } .financial-review-section { width: 100%; max-width: 100%; box-shadow: none; border: 1px solid #ddd; background: #fff; break-inside: avoid; page-break-inside: avoid; } .summary-grid.financial-review-summary-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; } .summary-card.financial-review-summary-card, .bid-response-document-section, .bid-deviation-log, .bid-file-manifest, table, tr { break-inside: avoid; page-break-inside: avoid; box-shadow: none; } .bid-response-document-table { overflow: visible; } table { width: 100%; max-width: 100%; table-layout: fixed; border-collapse: collapse; } th, td, .financial-review-compact-table th, .financial-review-compact-table td { word-wrap: break-word; overflow-wrap: anywhere; padding: 6px; font-size: 11px; } }
 </style>
 </head>
 <body>${documentHtml}</body>
@@ -5777,6 +5887,16 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
 
         if (target.matches('[data-bid-print-review-document]')) {
             printBidResponseDocument(target);
+            return;
+        }
+
+        if (target.matches('[data-bid-toggle-full-boq]')) {
+            const section = target.closest('.financial-review-section');
+            const panel = section?.querySelector('[data-financial-full-boq]');
+            if (!panel) return;
+            const shouldOpen = panel.hidden;
+            panel.hidden = !shouldOpen;
+            target.textContent = shouldOpen ? 'Hide Full BOQ Breakdown' : 'View Full BOQ Breakdown';
             return;
         }
 
