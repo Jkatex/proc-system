@@ -2388,6 +2388,177 @@ function renderBidWorkspaceUploadControl(responseId, draft = {}, label = 'Upload
     `;
 }
 
+function formatBidWorkspaceFileSize(size = 0) {
+    const bytes = Number(size || 0);
+    if (!Number.isFinite(bytes) || bytes <= 0) return 'Size pending';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 102.4) / 10} KB`;
+    return `${Math.round(bytes / (1024 * 102.4)) / 10} MB`;
+}
+
+function getBidWorkspaceUploadedFilesForResponse(draft = {}, responseId = '') {
+    return Object.entries(draft.uploadedFiles || {})
+        .filter(([key, file]) => key === responseId || key.startsWith(`${responseId}::`) || file?.parentResponseId === responseId)
+        .map(([key, file]) => ({ key, ...file }));
+}
+
+function getWorksSiteVisitEvidenceFiles(draft = {}, responseId = 'works-site-visit-evidence') {
+    return getBidWorkspaceUploadedFilesForResponse(draft, responseId);
+}
+
+function getWorksSiteVisitCompletion(draft = {}, siteVisitMandatory = false) {
+    const conducted = getBidWorkspaceSavedResponse(draft, 'works-site-visit-conducted');
+    const evidenceFiles = getWorksSiteVisitEvidenceFiles(draft);
+    const hasRepresentative = Boolean(
+        getBidWorkspaceSavedResponse(draft, 'works-site-visit-date')
+        && getBidWorkspaceSavedResponse(draft, 'works-site-representative')
+        && getBidWorkspaceSavedResponse(draft, 'works-site-representative-position')
+        && getBidWorkspaceSavedResponse(draft, 'works-site-representative-contact')
+    );
+    const hasSiteNotes = Boolean(
+        getBidWorkspaceSavedResponse(draft, 'works-site-observations')
+        && getBidWorkspaceSavedResponse(draft, 'works-site-constraints')
+    );
+    const noVisitAccepted = getBidWorkspaceSavedResponse(draft, 'works-site-no-visit-responsibility') === true || getBidWorkspaceSavedResponse(draft, 'works-site-no-visit-responsibility') === 'true';
+    const noVisitComplete = Boolean(getBidWorkspaceSavedResponse(draft, 'works-site-no-visit-reason') && noVisitAccepted);
+    if (!conducted && siteVisitMandatory) return { label: 'Needs attention', className: 'badge-warning' };
+    if (conducted === 'Yes' && !evidenceFiles.length) return { label: 'Missing evidence', className: 'badge-warning' };
+    if (conducted === 'Yes' && hasRepresentative && hasSiteNotes) return { label: 'Complete', className: 'badge-success' };
+    if (conducted === 'No' && noVisitComplete) return { label: 'Complete', className: 'badge-success' };
+    if (conducted === 'Not required' || conducted === 'Not applicable') return { label: 'Complete', className: 'badge-success' };
+    return { label: 'Needs attention', className: siteVisitMandatory ? 'badge-warning' : 'badge-info' };
+}
+
+function renderWorksSiteVisitEvidenceUpload(draft = {}, workflowRequired = false) {
+    return renderBidWorkspaceMultipleUploadControl({
+        responseId: 'works-site-visit-evidence',
+        draft,
+        label: 'Upload Site Visit Evidence / Attendance Proof',
+        helper: 'Upload signed attendance sheets, site visit certificates, site photos, buyer-issued confirmation, or representative authorization letters.',
+        accept: '.pdf,.jpg,.jpeg,.png,.docx',
+        workflowRequired,
+        emptyText: 'No evidence uploaded yet.'
+    });
+}
+
+function renderBidWorkspaceMultipleUploadControl(config = {}) {
+    const responseId = config.responseId || 'multi-upload';
+    const files = getBidWorkspaceUploadedFilesForResponse(config.draft || {}, responseId);
+    const savedValue = files.map(file => file.name).join(', ') || getBidWorkspaceSavedResponse(config.draft || {}, responseId);
+    return `
+        <div class="site-visit-upload" data-bid-upload-control data-bid-multiple-upload-control>
+            <div class="site-visit-upload-heading">
+                <div>
+                    <span class="form-label">${escapeBidWorkspaceHtml(config.label || 'Upload supporting documents')} ${config.workflowRequired ? '<em>*</em>' : ''}</span>
+                    <small>${escapeBidWorkspaceHtml(config.helper || 'Upload supporting files for this response.')}</small>
+                </div>
+                <button class="btn btn-secondary btn-sm" type="button" data-bid-add-multiple-upload>Add files</button>
+            </div>
+            <input class="site-visit-file-input" type="file" multiple data-bid-file-input accept="${escapeBidWorkspaceHtml(config.accept || '.pdf,.doc,.docx,.jpg,.jpeg,.png')}" aria-label="${escapeBidWorkspaceHtml(config.label || 'Upload supporting documents')}">
+            <input type="hidden" data-bid-response="${escapeBidWorkspaceHtml(responseId)}" ${config.workflowRequired ? 'data-bid-workflow-required-response="true"' : ''} value="${escapeBidWorkspaceHtml(savedValue)}">
+            <div class="site-visit-file-list" data-bid-multiple-file-list>
+                ${files.length ? files.map(file => `
+                    <article class="site-visit-file-row" data-bid-upload-key="${escapeBidWorkspaceHtml(file.key)}">
+                        <div>
+                            <strong>${escapeBidWorkspaceHtml(file.name || 'Uploaded evidence')}</strong>
+                            <small>${escapeBidWorkspaceHtml(formatBidWorkspaceFileSize(file.size))}</small>
+                        </div>
+                        <div class="site-visit-file-actions">
+                            <button class="btn btn-secondary btn-sm" type="button" data-bid-view-multiple-upload>View</button>
+                            <button class="btn btn-secondary btn-sm" type="button" data-bid-replace-multiple-upload>Replace</button>
+                            <button class="btn btn-secondary btn-sm" type="button" data-bid-delete-multiple-upload>Delete</button>
+                        </div>
+                    </article>
+                `).join('') : `<div class="site-visit-file-empty">${escapeBidWorkspaceHtml(config.emptyText || 'No files uploaded yet.')}</div>`}
+            </div>
+            <small data-bid-file-name>${files.length ? `${files.length} file${files.length === 1 ? '' : 's'} uploaded.` : 'No file selected yet.'}</small>
+        </div>
+    `;
+}
+
+function renderWorksBidSiteVisitResponse(tender = {}, draft = {}, siteVisitMandatory = false) {
+    const status = getWorksSiteVisitCompletion(draft, siteVisitMandatory);
+    const requirementBadge = siteVisitMandatory ? 'Required' : 'Conditionally Required';
+    const conducted = getBidWorkspaceSavedResponse(draft, 'works-site-visit-conducted');
+    const showYes = conducted === 'Yes';
+    const showNo = conducted === 'No';
+    return `
+        <section class="site-visit-response" data-works-site-visit-section>
+            <div class="site-visit-response-header">
+                <div>
+                    <span class="section-kicker">Site investigation</span>
+                    <h3>Site Visit and Site Investigation Response</h3>
+                    <p>Confirm your site visit status, upload evidence where applicable, and explain the site observations and constraints considered in your bid.</p>
+                </div>
+                <div class="site-visit-badge-stack">
+                    <span class="badge ${siteVisitMandatory ? 'badge-warning' : 'badge-info'}">${requirementBadge}</span>
+                    <span class="badge ${status.className}" data-site-visit-completion>${status.label}</span>
+                </div>
+            </div>
+
+            <article class="site-visit-card">
+                <div class="site-visit-card-heading">
+                    <div>
+                        <h4>Site visit confirmation</h4>
+                        <p>Select the bidder position for this tender and complete the applicable fields.</p>
+                    </div>
+                </div>
+                <div class="site-visit-grid">
+                    <div class="form-group">
+                        <label class="form-label">Site Visit Conducted? ${siteVisitMandatory ? '<em>*</em>' : ''}</label>
+                        <select class="form-input" data-works-site-visit-select data-bid-response="works-site-visit-conducted" ${siteVisitMandatory ? 'data-bid-workflow-required-response="true"' : ''}>
+                            <option value="">Select</option>
+                            ${['Yes', 'No', 'Not required', 'Not applicable'].map(option => `<option ${conducted === option ? 'selected' : ''}>${option}</option>`).join('')}
+                        </select>
+                        <small class="form-hint">Choose the option that matches the tender instruction and your bidder action.</small>
+                    </div>
+                </div>
+                <div class="site-visit-grid" data-site-visit-when="Yes" ${showYes ? '' : 'hidden'}>
+                    <div class="form-group"><label class="form-label">Site Visit Date <em>*</em></label><input class="form-input" type="date" data-bid-response="works-site-visit-date" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-site-visit-date'))}"></div>
+                    <div class="form-group"><label class="form-label">Representative Name <em>*</em></label><input class="form-input" data-bid-response="works-site-representative" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-site-representative'))}" placeholder="Full name of attendee"></div>
+                    <div class="form-group"><label class="form-label">Representative Position <em>*</em></label><input class="form-input" data-bid-response="works-site-representative-position" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-site-representative-position'))}" placeholder="e.g. Site Engineer"></div>
+                    <div class="form-group"><label class="form-label">Representative Phone/Email <em>*</em></label><input class="form-input" data-bid-response="works-site-representative-contact" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-site-representative-contact'))}" placeholder="Phone number or email address"></div>
+                </div>
+                <div class="site-visit-grid" data-site-visit-when="No" ${showNo ? '' : 'hidden'}>
+                    <div class="form-group wide">
+                        <label class="form-label">Reason for not conducting site visit <em>*</em></label>
+                        <textarea class="form-input" rows="3" data-bid-response="works-site-no-visit-reason" data-bid-workflow-required-response="true" placeholder="Explain why a site visit was not conducted and identify the tender documents or clarifications used to price the works.">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-site-no-visit-reason'))}</textarea>
+                    </div>
+                    <label class="bid-response-check site-visit-declaration-line">
+                        <input type="checkbox" data-bid-response="works-site-no-visit-responsibility" data-bid-workflow-required-response="true" ${getBidWorkspaceSavedResponse(draft, 'works-site-no-visit-responsibility') === true || getBidWorkspaceSavedResponse(draft, 'works-site-no-visit-responsibility') === 'true' ? 'checked' : ''}>
+                        <span>We accept responsibility for pricing based on the available tender documents.</span>
+                    </label>
+                </div>
+            </article>
+
+            <article class="site-visit-card" data-site-visit-when="Yes" ${showYes ? '' : 'hidden'}>
+                ${renderWorksSiteVisitEvidenceUpload(draft, true)}
+            </article>
+
+            <article class="site-visit-card" data-site-visit-when="Yes" ${showYes ? '' : 'hidden'}>
+                <div class="site-visit-card-heading">
+                    <div>
+                        <h4>Site visit observations and constraints</h4>
+                        <p>Record the site conditions that influenced your methodology, resources, risk planning, and price.</p>
+                    </div>
+                </div>
+                <div class="site-understanding-grid">
+                    <div class="form-group wide">
+                        <label class="form-label">Site Visit Observations <em>*</em></label>
+                        <textarea class="form-input site-visit-textarea" rows="5" data-bid-response="works-site-observations" data-bid-workflow-required-response="true" placeholder="Summarize observations from the site visit, including existing building condition, affected areas, access routes, utilities, visible defects, repair needs, and issues considered in your methodology and price.">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-site-observations'))}</textarea>
+                        <small class="form-hint">Summarize what your representative observed and how it affects execution.</small>
+                    </div>
+                    <div class="form-group wide">
+                        <label class="form-label">Site Constraints Identified <em>*</em></label>
+                        <textarea class="form-input site-visit-textarea" rows="5" data-bid-response="works-site-constraints" data-bid-workflow-required-response="true" placeholder="Describe any constraints identified, such as limited access, occupied buildings, restricted working hours, storage limitations, existing utilities, safety risks, dust/noise restrictions, or the need to maintain clinic operations.">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-site-constraints'))}</textarea>
+                        <small class="form-hint">Include conditions that may affect safety, logistics, access, storage, sequencing, or work hours.</small>
+                    </div>
+                </div>
+            </article>
+        </section>
+    `;
+}
+
 function renderBidWorkspaceTrashIcon() {
     return `
         <svg class="trash-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -2660,15 +2831,13 @@ function renderWorksBidTechnicalProposal(tender = {}, draft = {}) {
     const proposalSections = [
         ['understanding', 'Project Understanding', 'Understanding of buyer scope, site conditions, drawings, constraints, and deliverables.'],
         ['methodology', 'Construction Methodology', 'Construction sequence, methods, supervision controls, testing, and handover approach.'],
-        ['work-plan', 'Proposed Work Plan', 'Work breakdown, sequencing, mobilization, subcontractors, materials, and site logistics.'],
-        ['site-strategy', 'Site Execution Strategy', 'Site establishment, access, hoarding, storage, utilities, and coordination.'],
         ['risk-plan', 'Risk Mitigation Plan', 'Technical, schedule, safety, environmental, and commercial risk controls.'],
-        ['quality-plan', 'Quality Assurance Approach', 'Inspection test plans, material approvals, workmanship control, and QA/QC records.'],
-        ['environment-safety', 'Environmental and Safety Measures', 'Worker safety, public safety, environmental safeguards, and incident response.']
+        ['quality-plan', 'Quality Assurance Approach', 'Inspection test plans, material approvals, workmanship control, and QA/QC records.']
     ];
     const milestones = getWorksBidMilestoneRows(tender);
     const drawings = getWorksBidDrawingRows(tender);
     const siteVisitMandatory = /mandatory|required/i.test(String(fields.siteVisitRequirement || ''));
+    const alternativeDesignProposed = getBidWorkspaceSavedResponse(draft, 'works-design-alternative-proposed') === 'Yes';
     return `
         <div class="works-proposal-workbook">
             <section class="works-response-section">
@@ -2690,54 +2859,28 @@ function renderWorksBidTechnicalProposal(tender = {}, draft = {}) {
                         `;
                     }).join('')}
                 </div>
-                <div class="form-grid two">
-                    <div class="form-group wide"><label class="form-label">Traffic / Operational Continuity Plan</label><textarea class="form-input" rows="3" data-bid-response="works-proposal-continuity">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-proposal-continuity'))}</textarea></div>
-                    <div class="form-group wide"><label class="form-label">Assumptions and Clarifications</label><textarea class="form-input" rows="3" data-bid-response="works-proposal-assumptions">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-proposal-assumptions'))}</textarea></div>
-                    <div class="form-group">${renderBidWorkspaceUploadControl('works-proposal-upload', draft, 'Technical proposal upload', '.pdf,.doc,.docx', true)}</div>
-                    <div class="form-group">${renderBidWorkspaceUploadControl('works-method-statement-upload', draft, 'Method statement upload', '.pdf,.doc,.docx', methodStatementRequired)}</div>
-                </div>
             </section>
             <section class="works-response-section">
                 <div class="bid-dynamic-group-heading">
                     <div>
                         <h3>Construction schedule / work program</h3>
-                        <p>Prove milestone feasibility through start date, completion period, critical path, resources, and uploaded program.</p>
+                        <p>Provide the proposed start date, completion period, resource allocation, and uploaded work program. Milestones, Gantt details, and working hours should be included in the work program file.</p>
                     </div>
-                    <span class="badge badge-warning">${milestones.length} milestones</span>
+                    <span class="badge badge-warning">Work program required</span>
                 </div>
                 <div class="form-grid two">
                     <div class="form-group"><label class="form-label">Proposed Start Date</label><input class="form-input" type="date" data-bid-response="works-schedule-start-date" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-schedule-start-date'))}"></div>
                     <div class="form-group"><label class="form-label">Proposed Completion Period</label><input class="form-input" data-bid-response="works-schedule-completion-period" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-schedule-completion-period') || tender.requirements?.fields?.completionPeriod || '')}" placeholder="e.g. 14 months"></div>
+                    <div class="form-group wide"><label class="form-label">Proposed Work Plan</label><textarea class="form-input" rows="4" data-bid-response="works-proposal-work-plan" data-bid-workflow-required-response="true" placeholder="Describe the work breakdown, sequencing, mobilization, subcontractors, materials, site logistics, and how the uploaded work program will be executed.">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-proposal-work-plan'))}</textarea></div>
                     <div class="form-group wide"><label class="form-label">Resource Allocation Plan</label><textarea class="form-input" rows="3" data-bid-response="works-schedule-resources" data-bid-workflow-required-response="true">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-schedule-resources'))}</textarea></div>
-                    <div class="form-group wide"><label class="form-label">Shift / Working Hours Plan</label><textarea class="form-input" rows="2" data-bid-response="works-schedule-shifts">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-schedule-shifts'))}</textarea></div>
-                    <div class="form-group">${renderBidWorkspaceUploadControl('works-gantt-chart-upload', draft, 'Upload Gantt chart', '.pdf,.doc,.docx,.xls,.xlsx,.mpp', ganttRequired)}</div>
-                    <div class="form-group">${renderBidWorkspaceUploadControl('works-program-upload', draft, 'Upload work program', '.pdf,.doc,.docx,.xls,.xlsx,.mpp', ganttRequired)}</div>
-                </div>
-                <div class="works-milestone-table">
-                    <table>
-                        <thead><tr><th>Milestone</th><th>Buyer Target</th><th>Proposed Date</th><th>Duration</th><th>Dependencies</th></tr></thead>
-                        <tbody>
-                            ${(milestones.length ? milestones : [{ milestone: 'Practical completion', targetDate: tender.closingDate }]).map((milestone, index) => {
-                                const baseId = `works-milestone-${index}`;
-                                return `
-                                    <tr>
-                                        <td>${escapeBidWorkspaceHtml(milestone.milestone || milestone.name || `Milestone ${index + 1}`)}</td>
-                                        <td>${escapeBidWorkspaceHtml(milestone.targetDate || milestone.date || 'Not set')}</td>
-                                        <td><input class="form-input" type="date" data-bid-response="${baseId}-date" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-date`))}"></td>
-                                        <td><input class="form-input" data-bid-response="${baseId}-duration" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-duration`))}" placeholder="e.g. 6 weeks"></td>
-                                        <td><input class="form-input" data-bid-response="${baseId}-dependencies" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-dependencies`))}"></td>
-                                    </tr>
-                                `;
-                            }).join('')}
-                        </tbody>
-                    </table>
+                    <div class="form-group wide">${renderBidWorkspaceUploadControl('works-program-upload', draft, 'Upload work program', '.pdf,.doc,.docx,.xls,.xlsx,.mpp', ganttRequired)}</div>
                 </div>
             </section>
             <section class="works-response-section">
                 <div class="bid-dynamic-group-heading">
                     <div>
-                        <h3>Drawings, design, and site investigation</h3>
-                        <p>Acknowledge buyer drawings, submit design queries or alternatives, and record site visit evidence.</p>
+                        <h3>Drawing and Design Section</h3>
+                        <p>Acknowledge buyer drawings and upload proposed alternative designs where applicable.</p>
                     </div>
                     <span class="badge ${siteVisitMandatory ? 'badge-warning' : 'badge-info'}">${siteVisitMandatory ? 'Site visit required' : 'Site visit response'}</span>
                 </div>
@@ -2752,20 +2895,22 @@ function renderWorksBidTechnicalProposal(tender = {}, draft = {}) {
                         `).join('')}
                     </div>
                 ` : '<div class="scope-empty">No drawing rows were configured by the buyer.</div>'}
-                <div class="form-grid two">
+                <article class="works-drawing-review-panel">
+                    <label class="bid-response-check">
+                        <input type="checkbox" data-bid-response="works-drawings-reviewed-acknowledgement" data-bid-workflow-required-response="true" ${getBidWorkspaceSavedResponse(draft, 'works-drawings-reviewed-acknowledgement') === true || getBidWorkspaceSavedResponse(draft, 'works-drawings-reviewed-acknowledgement') === 'true' ? 'checked' : ''}>
+                        <span>We acknowledge that we have reviewed the buyer drawings, schedules, specifications, and design information provided for this tender.</span>
+                    </label>
+                    <small>${drawings.length ? 'Tick this after reviewing all configured buyer drawing rows above.' : 'Tick this after reviewing all drawing or design documents included in the tender package.'}</small>
+                </article>
+                <div class="form-grid two works-design-response-grid">
                     <div class="form-group"><label class="form-label">Design Clarification Needed</label><select class="form-input" data-bid-response="works-design-clarification"><option value="">Select</option>${['Yes', 'No'].map(option => `<option ${getBidWorkspaceSavedResponse(draft, 'works-design-clarification') === option ? 'selected' : ''}>${option}</option>`).join('')}</select></div>
-                    <div class="form-group">${renderBidWorkspaceUploadControl('works-alternative-drawings', draft, 'Upload alternative drawings', '.pdf,.dwg,.dxf,.jpg,.jpeg,.png', false)}</div>
-                    <div class="form-group wide"><label class="form-label">Proposed Design Alternative</label><textarea class="form-input" rows="2" data-bid-response="works-design-alternative">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-design-alternative'))}</textarea></div>
-                    <div class="form-group wide"><label class="form-label">Technical Queries</label><textarea class="form-input" rows="2" data-bid-response="works-technical-queries">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-technical-queries'))}</textarea></div>
-                    <div class="form-group"><label class="form-label">Site Visit Conducted?</label><select class="form-input" data-bid-response="works-site-visit-conducted" ${siteVisitMandatory ? 'data-bid-workflow-required-response="true"' : ''}><option value="">Select</option>${['Yes', 'No'].map(option => `<option ${getBidWorkspaceSavedResponse(draft, 'works-site-visit-conducted') === option ? 'selected' : ''}>${option}</option>`).join('')}</select></div>
-                    <div class="form-group"><label class="form-label">Site Visit Date</label><input class="form-input" type="date" data-bid-response="works-site-visit-date" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-site-visit-date'))}"></div>
-                    <div class="form-group"><label class="form-label">Representative Name</label><input class="form-input" data-bid-response="works-site-representative" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-site-representative'))}"></div>
-                    <div class="form-group"><label class="form-label">Representative Position</label><input class="form-input" data-bid-response="works-site-representative-position" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-site-representative-position'))}"></div>
-                    <div class="form-group">${renderBidWorkspaceUploadControl('works-site-visit-evidence', draft, 'Upload site visit evidence', '.pdf,.doc,.docx,.jpg,.jpeg,.png', siteVisitMandatory)}</div>
-                    <div class="form-group wide"><label class="form-label">Site Constraints Identified</label><textarea class="form-input" rows="2" data-bid-response="works-site-constraints">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-site-constraints'))}</textarea></div>
-                    <div class="form-group wide"><label class="form-label">Site Visit Observations</label><textarea class="form-input" rows="2" data-bid-response="works-site-observations">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-site-observations'))}</textarea></div>
-                    <div class="form-group wide"><label class="form-label">Site Understanding Notes</label><textarea class="form-input" rows="2" data-bid-response="works-site-notes">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-site-notes'))}</textarea></div>
+                    <div class="form-group"><label class="form-label">Alternative Design Proposed?</label><select class="form-input" data-works-alternative-design-select data-bid-response="works-design-alternative-proposed"><option value="">Select</option>${['Yes', 'No'].map(option => `<option ${getBidWorkspaceSavedResponse(draft, 'works-design-alternative-proposed') === option ? 'selected' : ''}>${option}</option>`).join('')}</select><small class="form-hint">Select Yes if your bid includes a proposed alternative design or drawing set.</small></div>
+                    <div class="form-group wide works-design-alternative-panel" data-works-alternative-design-panel ${alternativeDesignProposed ? '' : 'hidden'}>
+                        ${renderBidWorkspaceUploadControl('works-alternative-drawings', draft, 'Upload proposed alternative designs', '.pdf,.doc,.docx,.dwg,.dxf,.jpg,.jpeg,.png', false)}
+                    </div>
+                    <div class="form-group wide works-design-alternative-panel" data-works-alternative-design-panel ${alternativeDesignProposed ? '' : 'hidden'}><label class="form-label">Proposed Design Alternative</label><textarea class="form-input" rows="4" data-bid-response="works-design-alternative" placeholder="Describe the proposed alternative design, affected drawings, technical rationale, compliance basis, assumptions, and any buyer approval required.">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'works-design-alternative'))}</textarea></div>
                 </div>
+                ${renderWorksBidSiteVisitResponse(tender, draft, siteVisitMandatory)}
             </section>
         </div>
     `;
@@ -4329,8 +4474,49 @@ function initializeBiddingWorkspace() {
 
     const getBidUploadResponseId = (uploadControl) => uploadControl?.querySelector('[data-bid-response]')?.dataset.bidResponse || '';
 
+    const getBidMultipleUploadFiles = (responseId) => Object.entries(uploadedFiles || {})
+        .filter(([key, file]) => key === responseId || key.startsWith(`${responseId}::`) || file?.parentResponseId === responseId)
+        .map(([key, file]) => ({ key, ...file }));
+
+    const syncBidMultipleUploadValue = (uploadControl) => {
+        const responseInput = uploadControl?.querySelector('[data-bid-response]');
+        const fileNameOutput = uploadControl?.querySelector('[data-bid-file-name]');
+        const responseId = getBidUploadResponseId(uploadControl);
+        const files = getBidMultipleUploadFiles(responseId);
+        if (responseInput) responseInput.value = files.map(file => file.name || '').filter(Boolean).join(', ');
+        if (fileNameOutput) fileNameOutput.textContent = files.length ? `${files.length} file${files.length === 1 ? '' : 's'} uploaded.` : 'No file selected yet.';
+        uploadControl?.classList.toggle('has-upload', files.length > 0);
+    };
+
+    const updateBidMultipleUploadControlState = (uploadControl) => {
+        if (!uploadControl) return;
+        const responseId = getBidUploadResponseId(uploadControl);
+        const files = getBidMultipleUploadFiles(responseId);
+        const list = uploadControl.querySelector('[data-bid-multiple-file-list]');
+        if (list) {
+            list.innerHTML = files.length ? files.map(file => `
+                <article class="site-visit-file-row" data-bid-upload-key="${escapeBidWorkspaceHtml(file.key)}">
+                    <div>
+                        <strong>${escapeBidWorkspaceHtml(file.name || 'Uploaded evidence')}</strong>
+                        <small>${escapeBidWorkspaceHtml(formatBidWorkspaceFileSize(file.size))}</small>
+                    </div>
+                    <div class="site-visit-file-actions">
+                        <button class="btn btn-secondary btn-sm" type="button" data-bid-view-multiple-upload>View</button>
+                        <button class="btn btn-secondary btn-sm" type="button" data-bid-replace-multiple-upload>Replace</button>
+                        <button class="btn btn-secondary btn-sm" type="button" data-bid-delete-multiple-upload>Delete</button>
+                    </div>
+                </article>
+            `).join('') : '<div class="site-visit-file-empty">No evidence uploaded yet.</div>';
+        }
+        syncBidMultipleUploadValue(uploadControl);
+    };
+
     const updateBidUploadControlState = (uploadControl) => {
         if (!uploadControl) return;
+        if (uploadControl.matches('[data-bid-multiple-upload-control]')) {
+            updateBidMultipleUploadControlState(uploadControl);
+            return;
+        }
         const responseInput = uploadControl.querySelector('[data-bid-response]');
         const responseId = getBidUploadResponseId(uploadControl);
         const value = String(responseInput?.value || '').trim();
@@ -4374,6 +4560,50 @@ function initializeBiddingWorkspace() {
         }
     };
 
+    const syncWorksSiteVisitSection = () => {
+        const section = wizard.querySelector('[data-works-site-visit-section]');
+        if (!section) return;
+        const select = section.querySelector('[data-works-site-visit-select]');
+        const value = select?.value || '';
+        section.querySelectorAll('[data-site-visit-when]').forEach(panel => {
+            panel.hidden = panel.dataset.siteVisitWhen !== value;
+        });
+        const evidenceInput = section.querySelector('[data-bid-multiple-upload-control] [data-bid-response]');
+        if (evidenceInput) {
+            if (value === 'Yes') evidenceInput.setAttribute('data-bid-workflow-required-response', 'true');
+            else evidenceInput.removeAttribute('data-bid-workflow-required-response');
+        }
+        const completion = section.querySelector('[data-site-visit-completion]');
+        if (completion) {
+            const evidenceComplete = Boolean(String(evidenceInput?.value || '').trim());
+            const hasRepresentative = ['works-site-visit-date', 'works-site-representative', 'works-site-representative-position', 'works-site-representative-contact']
+                .every(id => String(section.querySelector(`[data-bid-response="${id}"]`)?.value || '').trim());
+            const hasSiteNotes = ['works-site-observations', 'works-site-constraints']
+                .every(id => String(section.querySelector(`[data-bid-response="${id}"]`)?.value || '').trim());
+            const noVisitComplete = Boolean(String(section.querySelector('[data-bid-response="works-site-no-visit-reason"]')?.value || '').trim())
+                && Boolean(section.querySelector('[data-bid-response="works-site-no-visit-responsibility"]')?.checked);
+            const complete = (value === 'Yes' && evidenceComplete && hasRepresentative && hasSiteNotes)
+                || (value === 'No' && noVisitComplete)
+                || value === 'Not required'
+                || value === 'Not applicable';
+            const missingEvidence = value === 'Yes' && !evidenceComplete;
+            completion.textContent = complete ? 'Complete' : missingEvidence ? 'Missing evidence' : 'Needs attention';
+            completion.className = `badge ${complete ? 'badge-success' : missingEvidence ? 'badge-warning' : 'badge-info'}`;
+        }
+    };
+
+    const syncWorksAlternativeDesignSection = () => {
+        const select = wizard.querySelector('[data-works-alternative-design-select]');
+        const proposed = select?.value === 'Yes';
+        wizard.querySelectorAll('[data-works-alternative-design-panel]').forEach(panel => {
+            panel.hidden = !proposed;
+            panel.querySelectorAll('[data-bid-response]').forEach(input => {
+                if (proposed) input.setAttribute('data-bid-workflow-required-response', 'true');
+                else input.removeAttribute('data-bid-workflow-required-response');
+            });
+        });
+    };
+
     const storeBidUploadPreview = (responseId, file) => {
         if (!responseId || !file) return;
         if (sessionUploadUrls[responseId]) URL.revokeObjectURL(sessionUploadUrls[responseId]);
@@ -4402,6 +4632,64 @@ function initializeBiddingWorkspace() {
             saveDraft();
         };
         reader.readAsDataURL(file);
+    };
+
+    const storeBidMultipleUploadPreview = (uploadControl, file, existingKey = '') => {
+        const responseId = getBidUploadResponseId(uploadControl);
+        if (!responseId || !file) return;
+        const slug = String(file.name || 'evidence').toLowerCase().replace(/[^a-z0-9.]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 44) || 'evidence';
+        const key = existingKey || `${responseId}::${Date.now()}-${Math.random().toString(16).slice(2, 8)}-${slug}`;
+        if (sessionUploadUrls[key]) URL.revokeObjectURL(sessionUploadUrls[key]);
+        sessionUploadUrls[key] = URL.createObjectURL(file);
+        uploadedFiles[key] = {
+            parentResponseId: responseId,
+            name: file.name,
+            type: file.type || 'application/octet-stream',
+            size: file.size || 0,
+            uploadedAt: new Date().toISOString(),
+            sha256: 'Hash pending'
+        };
+        computeBidWorkspaceFileHash(key, file);
+        updateBidMultipleUploadControlState(uploadControl);
+        validateWorkflowResponses(false);
+        refreshBidProgress();
+        refreshBidResponseReviews();
+        saveDraft();
+
+        if (file.size > bidWorkspaceUploadPreviewMaxBytes) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            uploadedFiles[key] = {
+                ...uploadedFiles[key],
+                dataUrl: String(reader.result || '')
+            };
+            updateBidMultipleUploadControlState(uploadControl);
+            refreshBidResponseReviews();
+            saveDraft();
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const clearBidMultipleUpload = (uploadControl, key = '') => {
+        if (!uploadControl || !key) return;
+        if (sessionUploadUrls[key]) URL.revokeObjectURL(sessionUploadUrls[key]);
+        delete sessionUploadUrls[key];
+        delete uploadedFiles[key];
+        updateBidMultipleUploadControlState(uploadControl);
+        validateWorkflowResponses(false);
+        refreshBidProgress();
+        refreshBidResponseReviews();
+        saveDraft();
+    };
+
+    const viewBidMultipleUpload = (uploadControl, key = '') => {
+        const file = uploadedFiles[key];
+        const previewUrl = file?.dataUrl || sessionUploadUrls[key] || '';
+        if (!previewUrl) {
+            alert('This upload was saved by filename only. Select the file again to preview it, or delete it if it is no longer needed.');
+            return;
+        }
+        window.open(previewUrl, '_blank', 'noopener');
     };
 
     const clearBidUpload = (uploadControl) => {
@@ -4463,7 +4751,7 @@ function initializeBiddingWorkspace() {
     };
 
     const markBidSemanticInvalid = (input, invalid, show = false) => {
-        const container = input?.closest('[data-bid-requirement-card], [data-bid-product-spec-row], .form-group, .bid-response-check, .goods-compliance-card, .goods-offer-row, .goods-sample-card, .works-capacity-card, .works-person-card, .works-accordion-card, .works-boq-row, .works-drawing-card, .service-accordion-card, .service-staff-card, .service-pricing-row, .service-document-card, .service-kpi-card') || input;
+        const container = input?.closest('[data-bid-requirement-card], [data-bid-product-spec-row], .form-group, .bid-response-check, .goods-compliance-card, .goods-offer-row, .goods-sample-card, .works-capacity-card, .works-person-card, .works-accordion-card, .works-boq-row, .works-drawing-card, .site-visit-card, .site-visit-response, .service-accordion-card, .service-staff-card, .service-pricing-row, .service-document-card, .service-kpi-card') || input;
         container?.classList.toggle('invalid', Boolean(show && invalid));
     };
 
@@ -4551,7 +4839,7 @@ function initializeBiddingWorkspace() {
         if (!input) return;
         const targetPanelIndex = panels.findIndex(panel => panel.contains(input));
         if (targetPanelIndex > -1) setActiveStep(targetPanelIndex, true);
-        const container = input.closest('[data-bid-upload-control], [data-bid-requirement-card], [data-bid-product-spec-row], .form-group, .bid-response-check, .goods-compliance-card, .goods-offer-row, .goods-sample-card, .works-capacity-card, .works-person-card, .works-accordion-card, .works-boq-row, .works-drawing-card, .service-accordion-card, .service-sla-card, .service-staff-card, .service-pricing-row, .service-document-card, .service-kpi-card') || input;
+        const container = input.closest('[data-bid-upload-control], [data-bid-requirement-card], [data-bid-product-spec-row], .form-group, .bid-response-check, .goods-compliance-card, .goods-offer-row, .goods-sample-card, .works-capacity-card, .works-person-card, .works-accordion-card, .works-boq-row, .works-drawing-card, .site-visit-card, .site-visit-response, .service-accordion-card, .service-sla-card, .service-staff-card, .service-pricing-row, .service-document-card, .service-kpi-card') || input;
         container.classList.add('bid-review-edit-target');
         window.setTimeout(() => container.classList.remove('bid-review-edit-target'), 2200);
         window.setTimeout(() => {
@@ -4600,7 +4888,7 @@ function initializeBiddingWorkspace() {
     };
 
     const markWorkflowInputState = (input, show = false) => {
-        const container = input.closest('[data-bid-requirement-card], [data-bid-product-spec-row], .form-group, .bid-response-check, .goods-compliance-card, .goods-offer-row, .goods-sample-card, .works-capacity-card, .works-person-card, .works-accordion-card, .works-boq-row, .works-drawing-card, .service-accordion-card, .service-sla-card, .service-staff-card, .service-pricing-row, .service-document-card, .service-kpi-card');
+        const container = input.closest('[data-bid-requirement-card], [data-bid-product-spec-row], .form-group, .bid-response-check, .goods-compliance-card, .goods-offer-row, .goods-sample-card, .works-capacity-card, .works-person-card, .works-accordion-card, .works-boq-row, .works-drawing-card, .site-visit-card, .site-visit-response, .service-accordion-card, .service-sla-card, .service-staff-card, .service-pricing-row, .service-document-card, .service-kpi-card');
         const complete = isResponseComplete(input);
         container?.classList.toggle('completed', complete);
         container?.classList.toggle('invalid', show && !complete);
@@ -5351,6 +5639,37 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
             return;
         }
 
+        if (target.matches('[data-bid-add-multiple-upload]')) {
+            const uploadControl = target.closest('[data-bid-multiple-upload-control]');
+            if (!uploadControl) return;
+            delete uploadControl.dataset.replaceUploadKey;
+            uploadControl.querySelector('[data-bid-file-input]')?.click?.();
+            return;
+        }
+
+        if (target.matches('[data-bid-view-multiple-upload]')) {
+            const row = target.closest('[data-bid-upload-key]');
+            viewBidMultipleUpload(target.closest('[data-bid-multiple-upload-control]'), row?.dataset.bidUploadKey || '');
+            return;
+        }
+
+        if (target.matches('[data-bid-replace-multiple-upload]')) {
+            const uploadControl = target.closest('[data-bid-multiple-upload-control]');
+            const row = target.closest('[data-bid-upload-key]');
+            if (!uploadControl || !row?.dataset.bidUploadKey) return;
+            uploadControl.dataset.replaceUploadKey = row.dataset.bidUploadKey;
+            uploadControl.querySelector('[data-bid-file-input]')?.click?.();
+            return;
+        }
+
+        if (target.matches('[data-bid-delete-multiple-upload]')) {
+            const uploadControl = target.closest('[data-bid-multiple-upload-control]');
+            const row = target.closest('[data-bid-upload-key]');
+            clearBidMultipleUpload(uploadControl, row?.dataset.bidUploadKey || '');
+            syncWorksSiteVisitSection();
+            return;
+        }
+
         if (target.matches('[data-add-similar-project]')) {
             const list = wizard.querySelector('[data-works-similar-project-list]');
             if (!list) return;
@@ -5544,6 +5863,8 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
         if (event.target?.matches('[data-bid-rate], [data-works-cost], [data-bid-line-qty], [data-bid-line-extra-cost]')) refreshBidTotals();
         if (event.target?.matches('[data-bid-response], [data-bid-free-response], [data-bid-product-spec-field]')) {
             if (event.target?.matches('[data-bid-line-status]')) refreshBidTotals();
+            if (event.target?.closest('[data-works-site-visit-section]')) syncWorksSiteVisitSection();
+            if (event.target?.matches('[data-works-alternative-design-select]')) syncWorksAlternativeDesignSection();
             validateMandatoryGate(false);
             validateWorkflowResponses(false);
             validateSemanticResponses(false);
@@ -5561,6 +5882,25 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
 
         if (event.target?.matches('[data-bid-file-input]')) {
             const uploadControl = event.target.closest('[data-bid-upload-control]');
+            if (uploadControl?.matches('[data-bid-multiple-upload-control]')) {
+                const files = Array.from(event.target.files || []);
+                const replaceKey = uploadControl.dataset.replaceUploadKey || '';
+                if (replaceKey && files[0]) {
+                    storeBidMultipleUploadPreview(uploadControl, files[0], replaceKey);
+                    delete uploadControl.dataset.replaceUploadKey;
+                } else {
+                    files.forEach(file => storeBidMultipleUploadPreview(uploadControl, file));
+                }
+                event.target.value = '';
+                syncWorksSiteVisitSection();
+                validateMandatoryGate(false);
+                validateWorkflowResponses(false);
+                validateSemanticResponses(false);
+                refreshBidProgress();
+                refreshBidResponseReviews();
+                saveDraft();
+                return;
+            }
             const hiddenInput = uploadControl?.querySelector('[data-bid-response]');
             const fileNameOutput = uploadControl?.querySelector('[data-bid-file-name]');
             const file = event.target.files?.[0] || null;
@@ -5585,6 +5925,8 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
         if (event.target?.matches('[data-bid-response], [data-bid-free-response], [data-bid-product-spec-field]')) {
             if (event.target?.matches('[data-bid-security-toggle]')) syncBidSecurityUploadPanel();
             if (event.target?.matches('[data-bid-line-status]')) refreshBidTotals();
+            if (event.target?.closest('[data-works-site-visit-section]')) syncWorksSiteVisitSection();
+            if (event.target?.matches('[data-works-alternative-design-select]')) syncWorksAlternativeDesignSection();
             validateMandatoryGate(false);
             validateWorkflowResponses(false);
             validateSemanticResponses(false);
@@ -5596,6 +5938,8 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
 
     refreshBidTotals();
     syncBidSecurityUploadPanel();
+    syncWorksSiteVisitSection();
+    syncWorksAlternativeDesignSection();
     refreshBidUploadControls();
     validateMandatoryGate(false);
     validateWorkflowResponses(false);

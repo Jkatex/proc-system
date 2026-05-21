@@ -6910,6 +6910,33 @@ textarea.form-input {
     color: var(--text-primary);
 }
 
+.works-drawing-review-panel,
+.works-design-response-grid {
+    margin-top: 16px;
+}
+
+.works-drawing-review-panel {
+    display: grid;
+    gap: 8px;
+    padding: 16px;
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.works-drawing-review-panel .bid-response-check {
+    margin: 0;
+}
+
+.works-drawing-review-panel small {
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.works-design-alternative-panel[hidden] {
+    display: none !important;
+}
+
 .works-boq-row td {
     vertical-align: top;
 }
@@ -7038,9 +7065,180 @@ textarea.form-input {
 .works-person-card.invalid,
 .works-accordion-card.invalid,
 .works-boq-row.invalid,
-.works-drawing-card.invalid {
+.works-drawing-card.invalid,
+.site-visit-card.invalid,
+.site-visit-response.invalid {
     outline: 2px solid rgba(220, 38, 38, 0.35);
     outline-offset: 2px;
+}
+
+.site-visit-response {
+    display: grid;
+    gap: 16px;
+    margin-top: 18px;
+}
+
+.site-visit-response [hidden] {
+    display: none !important;
+}
+
+.site-visit-response-header,
+.site-visit-card {
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.site-visit-response-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 18px;
+    border-top: 3px solid var(--primary-teal);
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+}
+
+.site-visit-response-header h3,
+.site-visit-card-heading h4 {
+    margin: 0;
+    color: var(--text-primary);
+    letter-spacing: 0;
+}
+
+.site-visit-response-header h3 {
+    margin-top: 4px;
+    font-size: 22px;
+}
+
+.site-visit-response-header p,
+.site-visit-card-heading p,
+.site-visit-upload-heading small,
+.site-visit-file-row small,
+.form-hint {
+    margin: 6px 0 0;
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.site-visit-badge-stack {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: 220px;
+}
+
+.site-visit-card {
+    display: grid;
+    gap: 16px;
+    padding: 18px;
+}
+
+.site-visit-card-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.site-visit-grid,
+.site-understanding-grid {
+    display: grid;
+    gap: 14px;
+}
+
+.site-visit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.site-visit-grid .wide,
+.site-understanding-grid .wide,
+.site-visit-declaration-line {
+    grid-column: 1 / -1;
+}
+
+.site-visit-response .form-label em,
+.site-visit-upload-heading em {
+    color: var(--error-red);
+    font-style: normal;
+}
+
+.site-visit-response .form-group {
+    margin-bottom: 0;
+}
+
+.site-visit-textarea {
+    min-height: 136px;
+    resize: vertical;
+}
+
+.site-visit-upload {
+    display: grid;
+    gap: 14px;
+}
+
+.site-visit-upload-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.site-visit-file-input {
+    display: none;
+}
+
+.site-visit-file-list {
+    display: grid;
+    gap: 10px;
+}
+
+.site-visit-file-empty,
+.site-visit-file-row {
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    background: var(--surface-soft);
+}
+
+.site-visit-file-empty {
+    padding: 14px;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.site-visit-file-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 12px 14px;
+}
+
+.site-visit-file-row strong {
+    display: block;
+    color: var(--text-primary);
+    font-size: 14px;
+    overflow-wrap: anywhere;
+}
+
+.site-visit-file-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.site-visit-declaration-card {
+    background: #f8fafc;
+}
+
+.site-visit-declaration-card .bid-response-check,
+.site-visit-declaration-line {
+    margin: 0;
 }
 
 .service-workbook,
@@ -8828,6 +9026,7 @@ textarea.form-input {
     .works-person-card,
     .works-drawing-list,
     .works-cost-grid,
+    .site-visit-grid,
     .service-sla-card-grid,
     .service-document-grid,
     .service-kpi-grid,
@@ -8845,6 +9044,20 @@ textarea.form-input {
 
     .tender-wizard-page .wizard-flow-controls {
         grid-template-columns: 1fr;
+    }
+
+    .site-visit-response-header,
+    .site-visit-card-heading,
+    .site-visit-upload-heading,
+    .site-visit-file-row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .site-visit-badge-stack,
+    .site-visit-file-actions {
+        justify-content: flex-start;
+        min-width: 0;
     }
 
     .tender-wizard-page .system-evaluation-submit-header {
