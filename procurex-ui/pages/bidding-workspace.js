@@ -1331,8 +1331,8 @@ function renderBidWorkspaceLicenseComplianceMatrix(tender = {}, draft = {}) {
                             return `
                                 <tr>
                                     <td><strong>${escapeBidWorkspaceHtml(title)}</strong><small>Issuing board / authority: ${escapeBidWorkspaceHtml(item.body || item.issuingAuthority || item.description || item.notes || item.group || 'Not specified')}</small></td>
-                                    <td><select class="form-input" data-bid-response="${baseId}-status" data-bid-workflow-required-response="true"><option value="">Select</option>${['Valid', 'Renewal in progress', 'Not applicable'].map(option => `<option ${getBidWorkspaceSavedResponse(draft, `${baseId}-status`) === option ? 'selected' : ''}>${option}</option>`).join('')}</select></td>
-                                    <td>${renderBidWorkspaceUploadControl(`${baseId}-copy`, draft, 'Upload license evidence', '.pdf,.jpg,.jpeg,.png', true)}</td>
+                                    <td><select class="form-input" data-bid-response="${baseId}-status" data-bid-required-response="true" data-bid-workflow-required-response="true"><option value="">Select</option>${['Valid', 'Renewal in progress', 'Not applicable'].map(option => `<option ${getBidWorkspaceSavedResponse(draft, `${baseId}-status`) === option ? 'selected' : ''}>${option}</option>`).join('')}</select></td>
+                                    <td>${renderBidWorkspaceUploadControl(`${baseId}-copy`, draft, 'Upload license evidence', '.pdf,.jpg,.jpeg,.png', true, true)}</td>
                                 </tr>
                             `;
                         }).join('')}
@@ -2376,13 +2376,13 @@ function renderGoodsBidCommercialTerms(draft = {}) {
     `;
 }
 
-function renderBidWorkspaceUploadControl(responseId, draft = {}, label = 'Upload evidence', accept = '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png', workflowRequired = false) {
+function renderBidWorkspaceUploadControl(responseId, draft = {}, label = 'Upload evidence', accept = '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png', workflowRequired = false, required = false) {
     const value = getBidWorkspaceSavedResponse(draft, responseId);
     return `
         <div class="bid-upload-response" data-bid-upload-control>
             <span>${escapeBidWorkspaceHtml(label)}</span>
             <input class="form-input" type="file" data-bid-file-input accept="${escapeBidWorkspaceHtml(accept)}" aria-label="${escapeBidWorkspaceHtml(label)}">
-            <input type="hidden" data-bid-response="${escapeBidWorkspaceHtml(responseId)}" ${workflowRequired ? 'data-bid-workflow-required-response="true"' : ''} value="${escapeBidWorkspaceHtml(value)}">
+            <input type="hidden" data-bid-response="${escapeBidWorkspaceHtml(responseId)}" ${required ? 'data-bid-required-response="true"' : ''} ${workflowRequired ? 'data-bid-workflow-required-response="true"' : ''} value="${escapeBidWorkspaceHtml(value)}">
             <small data-bid-file-name>${value ? `Selected: ${escapeBidWorkspaceHtml(value)}` : 'No file selected yet.'}</small>
         </div>
     `;
@@ -5249,7 +5249,11 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
             if (requestedStep > activeStepIndex) {
                 if (activeStepIndex === 0 && !validateMandatoryGate(true)) {
                     const incompleteGateInput = Array.from(wizard.querySelectorAll('[data-bid-required-response]')).find(input => !isResponseComplete(input));
-                    alert('Upload or confirm every mandatory eligibility document before continuing.');
+                    const card = incompleteGateInput?.closest('[data-bid-requirement-card]');
+                    const status = incompleteGateInput?.closest('select') ? ' (License status)' : incompleteGateInput?.type === 'checkbox' ? ' (Confirmation)' : ' (Document upload)';
+                    const fieldLabel = card?.querySelector('h3')?.textContent || 'Required field';
+                    console.warn('Incomplete field:', fieldLabel, incompleteGateInput);
+                    alert(`Complete all mandatory eligibility requirements before continuing.\n\nIncomplete: ${fieldLabel}${status}`);
                     focusBidWorkspaceInput(incompleteGateInput);
                     return;
                 }
@@ -5284,7 +5288,11 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
         if (target.matches('[data-bid-next]')) {
             if (activeStepIndex === 0 && !validateMandatoryGate(true)) {
                 const incompleteGateInput = Array.from(wizard.querySelectorAll('[data-bid-required-response]')).find(input => !isResponseComplete(input));
-                alert('Upload or confirm every mandatory eligibility document before continuing.');
+                const card = incompleteGateInput?.closest('[data-bid-requirement-card]');
+                const status = incompleteGateInput?.closest('select') ? ' (License status)' : incompleteGateInput?.type === 'checkbox' ? ' (Confirmation)' : ' (Document upload)';
+                const fieldLabel = card?.querySelector('h3')?.textContent || 'Required field';
+                console.warn('Incomplete field:', fieldLabel, incompleteGateInput);
+                alert(`Complete all mandatory eligibility requirements before continuing.\n\nIncomplete: ${fieldLabel}${status}`);
                 focusBidWorkspaceInput(incompleteGateInput);
                 return;
             }
