@@ -2780,8 +2780,6 @@ function renderWorksBidFinancialRows(tender = {}, draft = {}) {
                         <div class="form-group"><label class="form-label">Equipment Cost</label><input class="form-input" type="number" min="0" step="1000" data-works-cost data-bid-response="${baseId}-equipment" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(equipment)}"></div>
                         <div class="form-group"><label class="form-label">Overheads</label><input class="form-input" type="number" min="0" step="1000" data-works-cost data-bid-response="${baseId}-overheads" value="${escapeBidWorkspaceHtml(overheads)}"></div>
                         <div class="form-group"><label class="form-label">Profit Margin (%)</label><input class="form-input" type="number" min="0" max="100" step="0.5" data-works-cost data-bid-response="${baseId}-profit" value="${escapeBidWorkspaceHtml(profit)}"></div>
-                        <div class="form-group wide"><label class="form-label">Alternative Proposal</label><textarea class="form-input" rows="2" data-bid-response="${baseId}-alternative">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-alternative`))}</textarea></div>
-                        <div class="form-group wide"><label class="form-label">Remarks</label><textarea class="form-input" rows="2" data-bid-response="${baseId}-remarks">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-remarks`))}</textarea></div>
                     </div>
                 </td>
             </tr>
