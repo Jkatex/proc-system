@@ -5027,6 +5027,13 @@ function initializeBiddingWorkspace() {
         });
     };
 
+    const syncConditionalWorkflowSections = () => {
+        syncBidSecurityUploadPanel();
+        syncWorksSiteVisitSection();
+        syncWorksAlternativeDesignSection();
+        syncConsultancySubmissionModePanels();
+    };
+
     const storeBidUploadPreview = (responseId, file) => {
         if (!responseId || !file) return;
         if (sessionUploadUrls[responseId]) URL.revokeObjectURL(sessionUploadUrls[responseId]);
@@ -5244,8 +5251,15 @@ function initializeBiddingWorkspace() {
     };
 
     const focusBidWorkspaceInput = (input) => {
+        let parentDetails = input?.closest?.('details');
+        while (parentDetails) {
+            parentDetails.open = true;
+            parentDetails = parentDetails.parentElement?.closest?.('details');
+        }
+        const context = input?.closest?.('[data-bid-upload-control], [data-bid-requirement-card], [data-bid-product-spec-row], .form-group, .bid-response-check, .goods-compliance-card, .goods-offer-row, .goods-sample-card, .works-capacity-card, .works-person-card, .works-accordion-card, .works-boq-row, .works-drawing-card, .site-visit-card, .site-visit-response, .service-accordion-card, .service-sla-card, .service-staff-card, .service-pricing-row, .service-document-card, .service-kpi-card');
+        context?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
         const uploadInput = input?.closest('[data-bid-upload-control]')?.querySelector('[data-bid-file-input]');
-        (uploadInput || input)?.focus?.();
+        window.setTimeout(() => (uploadInput || input)?.focus?.(), 80);
     };
 
     const getBidReviewSourceId = (input) => {
@@ -5307,7 +5321,11 @@ function initializeBiddingWorkspace() {
             gateBadge.className = `badge ${valid ? 'badge-success' : 'badge-warning'}`;
         }
         if (gateSummary) gateSummary.textContent = valid ? 'Complete' : `${remaining} pre-qualification item(s) pending`;
-        if (nextButton && activeStepIndex === 0 && usesMandatoryGate) nextButton.disabled = !valid;
+        if (nextButton && activeStepIndex === 0 && usesMandatoryGate) {
+            nextButton.disabled = false;
+            nextButton.setAttribute('aria-disabled', valid ? 'false' : 'true');
+            nextButton.classList.toggle('is-validation-blocked', !valid);
+        }
         return valid;
     };
 
@@ -5869,7 +5887,10 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
         if (previousButton) previousButton.disabled = activeStepIndex === 0;
         if (nextButton) {
             nextButton.hidden = activeStepIndex === panels.length - 1;
-            nextButton.disabled = usesMandatoryGate && activeStepIndex === 0 && !validateMandatoryGate(false);
+            nextButton.disabled = false;
+            const gateBlocked = usesMandatoryGate && activeStepIndex === 0 && !validateMandatoryGate(false);
+            nextButton.setAttribute('aria-disabled', gateBlocked ? 'true' : 'false');
+            nextButton.classList.toggle('is-validation-blocked', gateBlocked);
         }
         refreshBidProgress();
         if (stepTitleOutput) stepTitleOutput.textContent = railSteps.find(step => Number(step.dataset.bidStepIndex) === activeStepIndex)?.querySelector('span')?.textContent || '';
@@ -5972,6 +5993,7 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
             event.preventDefault();
             const requestedStep = Number(railStep.dataset.bidStepIndex);
             if (requestedStep > activeStepIndex) {
+                syncConditionalWorkflowSections();
                 if (usesMandatoryGate && activeStepIndex === 0 && !validateMandatoryGate(true)) {
                     const incompleteGateInput = Array.from(getMandatoryGateRoot().querySelectorAll('[data-bid-required-response]')).find(input => !isResponseComplete(input));
                     const card = incompleteGateInput?.closest('[data-bid-requirement-card]');
@@ -5985,7 +6007,8 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
                 if (activeStepIndex > 0 || !usesMandatoryGate) {
                     const panelValidation = validatePanelWorkflowResponses(activeStepIndex, true);
                     if (!panelValidation.valid) {
-                        alert(`Complete ${panelValidation.remaining} required response${panelValidation.remaining === 1 ? '' : 's'} in this section before continuing.`);
+                        const firstIncompleteLabel = getBidReviewInputLabel(panelValidation.firstIncomplete);
+                        alert(`Complete ${panelValidation.remaining} required response${panelValidation.remaining === 1 ? '' : 's'} in this section before continuing.\n\nFirst incomplete: ${firstIncompleteLabel}`);
                         focusBidWorkspaceInput(panelValidation.firstIncomplete);
                         return;
                     }
@@ -6011,6 +6034,7 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
         }
 
         if (target.matches('[data-bid-next]')) {
+            syncConditionalWorkflowSections();
             if (usesMandatoryGate && activeStepIndex === 0 && !validateMandatoryGate(true)) {
                 const incompleteGateInput = Array.from(getMandatoryGateRoot().querySelectorAll('[data-bid-required-response]')).find(input => !isResponseComplete(input));
                 const card = incompleteGateInput?.closest('[data-bid-requirement-card]');
@@ -6024,7 +6048,8 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
             if (activeStepIndex > 0 || !usesMandatoryGate) {
                 const panelValidation = validatePanelWorkflowResponses(activeStepIndex, true);
                 if (!panelValidation.valid) {
-                    alert(`Complete ${panelValidation.remaining} required response${panelValidation.remaining === 1 ? '' : 's'} in this section before continuing.`);
+                    const firstIncompleteLabel = getBidReviewInputLabel(panelValidation.firstIncomplete);
+                    alert(`Complete ${panelValidation.remaining} required response${panelValidation.remaining === 1 ? '' : 's'} in this section before continuing.\n\nFirst incomplete: ${firstIncompleteLabel}`);
                     focusBidWorkspaceInput(panelValidation.firstIncomplete);
                     return;
                 }
@@ -6393,10 +6418,7 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
     });
 
     refreshBidTotals();
-    syncBidSecurityUploadPanel();
-    syncWorksSiteVisitSection();
-    syncWorksAlternativeDesignSection();
-    syncConsultancySubmissionModePanels();
+    syncConditionalWorkflowSections();
     refreshBidUploadControls();
     validateMandatoryGate(false);
     validateWorkflowResponses(false);

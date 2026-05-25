@@ -1,4 +1,9 @@
-// Guided Bid Evaluation Workspace
+// ProcureX tender evaluation workspace.
+// The page starts from published tenders, locks bidder evidence until evaluation is open,
+// and evaluates one supplier bid at a time against the tender design.
+
+const procurexEvaluationSelectedTenderKey = 'procurex.selectedEvaluationTender';
+const procurexEvaluationSelectedReportKey = 'procurex.selectedEvaluationReport';
 
 function escapeEvaluationHtml(value = '') {
     return String(value)
@@ -9,9 +14,38 @@ function escapeEvaluationHtml(value = '') {
         .replace(/'/g, '&#039;');
 }
 
+function slugEvaluationId(value = 'item') {
+    return String(value || 'item')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        || 'item';
+}
+
 function formatEvaluationMoney(value, currency = 'TZS') {
-    if (typeof value !== 'number') return escapeEvaluationHtml(value || '-');
-    return `${currency} ${value.toLocaleString()}`;
+    const amount = Number(value);
+    if (!Number.isFinite(amount)) return escapeEvaluationHtml(value || '-');
+    return `${currency} ${amount.toLocaleString()}`;
+}
+
+function getEvaluationValueSummary(value = '') {
+    if (Array.isArray(value)) {
+        return value.map(item => getEvaluationValueSummary(item)).filter(Boolean).slice(0, 3).join('; ');
+    }
+    if (value && typeof value === 'object') {
+        return Object.values(value).map(item => getEvaluationValueSummary(item)).filter(Boolean).slice(0, 3).join('; ');
+    }
+    return String(value || '').trim();
+}
+
+function renderEvaluationStatusBadge(value = 'Pending') {
+    const text = String(value || 'Pending');
+    const status = text.toLowerCase();
+    let badgeClass = 'badge-info';
+    if (/not eligible|locked|failed|fail|rejected|overdue|blocked/.test(status)) badgeClass = 'badge-error';
+    else if (/pending|clarification|review|draft|watch|open/.test(status)) badgeClass = 'badge-warning';
+    else if (/eligible|ready|complete|completed|passed|active|submitted|recommended|cleared/.test(status)) badgeClass = 'badge-success';
+    return `<span class="badge ${badgeClass}">${escapeEvaluationHtml(text)}</span>`;
 }
 
 function getEvaluationAllTenders() {
@@ -19,432 +53,119 @@ function getEvaluationAllTenders() {
     return mockData.tenders || [];
 }
 
-function getEvaluationSourceTender(reference) {
+function getEvaluationSourceTender(reference = '') {
     const tenders = getEvaluationAllTenders();
     return tenders.find(tender => tender.id === reference || tender.reference === reference)
         || tenders.find(tender => tender.title === reference)
         || null;
 }
 
-function slugEvaluationId(value = 'criterion') {
-    return String(value || 'criterion')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-        || 'criterion';
+function getEvaluationProfileId(tender = {}) {
+    if (typeof getCreateTenderTypeId === 'function') {
+        return getCreateTenderTypeId(tender.procurementTypeId || tender.type || tender.category || tender.id || 'works');
+    }
+    const raw = String(tender.procurementTypeId || tender.type || tender.category || '').toLowerCase();
+    if (/consult/.test(raw)) return 'consultancy';
+    if (/service/.test(raw)) return 'services';
+    if (/goods|supply|equipment|laboratory/.test(raw)) return 'goods';
+    return 'works';
+}
+
+function getEvaluationProfile(tender = {}) {
+    if (typeof getCreateTenderTypeProfile === 'function') return getCreateTenderTypeProfile(tender);
+    const id = getEvaluationProfileId(tender);
+    return {
+        id,
+        commercialName: id === 'goods' ? 'Quantity Schedule' : id === 'services' ? 'Service Schedule' : id === 'consultancy' ? 'Financial Proposal' : 'BOQ',
+        evaluationFlow: ['Eligibility and Document Requirements', 'Technical Response', 'Financial Offer', 'Declaration'],
+        evaluationCriteria: []
+    };
+}
+
+function normalizeGoodsEvaluationType(value = '') {
+    const raw = String(value || '').toLowerCase().replace(/[\s/-]+/g, '_');
+    if (['pass_fail', 'price_based', 'document_check', 'specification_compliance', 'sample_based', 'delivery_based', 'warranty_support', 'scored'].includes(raw)) return raw;
+    if (/pass.*fail|gate/.test(raw)) return 'pass_fail';
+    if (/price|financial|cost|boq|fee/.test(raw)) return 'price_based';
+    if (/document|license|certificate|authorization|registration|tax/.test(raw)) return 'document_check';
+    if (/spec|technical|brand|model|product/.test(raw)) return 'specification_compliance';
+    if (/sample|test/.test(raw)) return 'sample_based';
+    if (/delivery|logistic|stock|installation|commission/.test(raw)) return 'delivery_based';
+    if (/warranty|support|quality|after_sales|spare|return|replacement/.test(raw)) return 'warranty_support';
+    return 'scored';
+}
+
+function inferGoodsEvaluationType(criterion = {}) {
+    return normalizeGoodsEvaluationType(`${criterion.name || ''} ${criterion.category || ''} ${criterion.description || ''} ${(criterion.subcriteria || []).join(' ')}`);
+}
+
+function formatGoodsEvaluationType(value = '') {
+    const labels = {
+        scored: 'Scored',
+        pass_fail: 'Pass / Fail',
+        price_based: 'Price-based',
+        document_check: 'Document check',
+        specification_compliance: 'Specification compliance',
+        sample_based: 'Sample-based',
+        delivery_based: 'Delivery-based',
+        warranty_support: 'Warranty / support'
+    };
+    return labels[normalizeGoodsEvaluationType(value)] || 'Scored';
 }
 
 function normalizeEvaluationCriterion(criterion = {}, index = 0) {
-    const name = criterion.name || criterion.label || `Criterion ${index + 1}`;
-    const maxScore = Number(criterion.maxScore || criterion.weight || 0) || 0;
+    const sourceName = Array.isArray(criterion) ? criterion[0] : (criterion.name || criterion.label);
+    const name = sourceName || `Criterion ${index + 1}`;
+    const sourceWeight = Array.isArray(criterion) ? criterion[1] : (criterion.weight || criterion.maxScore);
+    const weight = Number(sourceWeight || 0);
+    const subcriteria = Array.isArray(criterion)
+        ? [criterion[2]].filter(Boolean)
+        : (Array.isArray(criterion.subcriteria) ? criterion.subcriteria : [criterion.description].filter(Boolean));
+    const evaluationType = normalizeGoodsEvaluationType(criterion.evaluationType || criterion.type || inferGoodsEvaluationType({ ...criterion, name, subcriteria }));
+    const maxScore = Number(criterion.maxScore || criterion.weight || weight || (/pass_fail|document_check/.test(evaluationType) ? 0 : 10)) || 0;
     return {
         id: criterion.id || slugEvaluationId(name),
         name,
-        weight: Number(criterion.weight || maxScore || 0),
-        maxScore: maxScore || Number(criterion.weight || 0) || 10,
-        subcriteria: Array.isArray(criterion.subcriteria) ? criterion.subcriteria : [],
-        type: String(name).toLowerCase().includes('financial') || String(name).toLowerCase().includes('price') ? 'financial' : 'technical'
+        category: criterion.category || name,
+        description: criterion.description || '',
+        weight,
+        maxScore,
+        subcriteria,
+        evidenceRequired: Array.isArray(criterion.evidenceRequired) ? criterion.evidenceRequired : String(criterion.evidenceRequired || '').split(/\r?\n|,/).map(item => item.trim()).filter(Boolean),
+        scoringGuide: Array.isArray(criterion.scoringGuide) ? criterion.scoringGuide : [],
+        evaluationType,
+        mandatory: Boolean(criterion.mandatory),
+        passFailGate: Boolean(criterion.passFailGate || /pass_fail|document_check/.test(evaluationType)),
+        type: /financial|price|cost|boq|fee/i.test(`${name} ${evaluationType}`) ? 'financial' : 'technical'
     };
 }
 
-function getEvaluationCriteriaForTender(tender, fallbackCriteria = []) {
-    const tenderCriteria = tender?.evaluation?.criteria;
-    const source = Array.isArray(tenderCriteria) && tenderCriteria.length ? tenderCriteria : fallbackCriteria;
-    return source.map((criterion, index) => normalizeEvaluationCriterion(criterion, index));
+function getEvaluationCriteriaForTender(tender = {}) {
+    const profile = getEvaluationProfile(tender);
+    const source = tender.evaluation?.criteria?.length
+        ? tender.evaluation.criteria
+        : (profile.evaluationCriteria || mockData.bidEvaluation?.technicalCriteria || []);
+    return source.map(normalizeEvaluationCriterion);
 }
 
-function getEvaluationScoringCriteriaForTender(tender, fallbackCriteria = []) {
-    const allCriteria = getEvaluationCriteriaForTender(tender, fallbackCriteria);
-    const technicalCriteria = allCriteria.filter(criterion => criterion.type !== 'financial');
-    return technicalCriteria.length ? technicalCriteria : allCriteria;
+function parseEvaluationDate(value = '') {
+    if (!value) return null;
+    const text = String(value).trim();
+    const isoDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(text);
+    const parsed = Date.parse(isoDateOnly ? `${text}T23:59:59` : text);
+    return Number.isFinite(parsed) ? parsed : null;
 }
 
-function getEvaluationBadgeClass(value = '') {
-    const status = String(value).toLowerCase();
-    if (status.includes('fail') || status.includes('rejected') || status.includes('overdue') || status.includes('not eligible') || status.includes('escalate')) return 'badge-error';
-    if (status.includes('pending') || status.includes('clarification') || status.includes('review') || status.includes('managed') || status.includes('watch') || status.includes('moderate')) return 'badge-warning';
-    if (status.includes('complete') || status.includes('pass') || status.includes('eligible') || status.includes('recommended') || status.includes('cleared') || status.includes('active') || status.includes('submitted') || status.includes('clear') || status.includes('low')) return 'badge-success';
-    return 'badge-info';
+function isEvaluationTenderReady(tender = {}, readyMeta = {}) {
+    const status = `${readyMeta.status || ''} ${tender.status || ''}`;
+    if (/opening|evaluation|evaluat|closed|complete|completed|technical|financial|recommendation/i.test(status)) return true;
+    const closingTime = parseEvaluationDate(readyMeta.closingDate || tender.closingDate);
+    return Number.isFinite(closingTime) && closingTime <= Date.now();
 }
 
-function getEvaluationTechnicalTotal(bid, criteria) {
-    return criteria.reduce((sum, criterion) => {
-        const raw = bid.technicalScores?.[criterion.id] ?? bid.technicalScores?.[slugEvaluationId(criterion.name)];
-        return sum + Number(raw || 0);
-    }, 0);
-}
-
-function renderEvaluationStatusBadge(value) {
-    return `<span class="badge ${getEvaluationBadgeClass(value)}">${escapeEvaluationHtml(value)}</span>`;
-}
-
-function getEvaluationSubmittedBidForSupplier(tender = {}, bid = {}, bidderIndex = 0) {
-    if (typeof getProcurexSubmittedBidsForTender !== 'function') return null;
-    const submitted = getProcurexSubmittedBidsForTender(tender);
-    if (!submitted.length) return null;
-    const supplierName = String(bid.supplier || '').toLowerCase();
-    return submitted.find(item => String(item.supplier || item.draft?.supplier || item.draft?.supplierName || '').toLowerCase() === supplierName)
-        || submitted[bidderIndex]
-        || (bidderIndex === 0 ? submitted[0] : null);
-}
-
-function renderEvaluationSupplierBidDocument(tender = {}, bid = {}, bidderIndex = 0, criteria = []) {
-    if (typeof renderProcurexBidPackageDocument !== 'function') {
-        return '<div class="scope-empty">Bid document renderer is unavailable.</div>';
-    }
-    const sourceTender = tender.sourceTender || tender;
-    const submittedBid = getEvaluationSubmittedBidForSupplier(sourceTender, bid, bidderIndex);
-    const sections = submittedBid && typeof createProcurexBidPackageSectionsFromDraft === 'function'
-        ? createProcurexBidPackageSectionsFromDraft(submittedBid.draft || {})
-        : (typeof createProcurexBidPackageSectionsFromEvaluationBid === 'function'
-            ? createProcurexBidPackageSectionsFromEvaluationBid(bid, criteria)
-            : []);
-    const supplier = submittedBid
-        ? {
-            name: bid.supplier || submittedBid.supplier || mockData.users?.supplier?.organization || 'Supplier organization',
-            registrationNumber: bid.registrationNumber,
-            contactPerson: bid.contactPerson,
-            submittedAt: submittedBid.submittedAt ? new Date(submittedBid.submittedAt).toLocaleString() : '',
-            receiptHash: submittedBid.receiptHash,
-            total: submittedBid.draft?.total || bid.price,
-            status: 'Submitted bid'
-        }
-        : {
-            name: bid.supplier || 'Supplier',
-            registrationNumber: bid.registrationNumber,
-            contactPerson: bid.contactPerson,
-            submittedAt: bid.submissionTime,
-            receiptHash: bid.integrityHash,
-            total: bid.financial?.correctedPrice ? formatEvaluationMoney(bid.financial.correctedPrice, bid.financial?.currency || 'TZS') : formatEvaluationMoney(bid.price, bid.financial?.currency || 'TZS'),
-            status: bid.finalResult || bid.preliminaryResult || 'Under Evaluation'
-        };
-
-    return renderProcurexBidPackageDocument({
-        tender: sourceTender,
-        sections,
-        supplier,
-        editable: false,
-        includeActions: false,
-        documentLabel: submittedBid ? 'Optional Same-Browser Bid Evidence' : 'Evaluation Mock Data',
-        offerLabel: tender.category || sourceTender.type || 'Bid Offer',
-        description: submittedBid
-            ? 'Optional evidence read from this browser only. The evaluation app remains separate and studies this copy only when available.'
-            : 'Mock or reconstructed evaluation evidence. No tenderer bid package was found in this browser session.'
-    });
-}
-
-function renderEvaluationChecklist(items = []) {
-    return `
-        <div class="evaluation-checklist">
-            ${items.map(item => `
-                <div class="evaluation-check-row">
-                    <div>
-                        <strong>${escapeEvaluationHtml(item.requirement)}</strong>
-                        <span>${escapeEvaluationHtml(item.comment || item.source || '')}</span>
-                    </div>
-                    <div class="evaluation-check-actions">
-                        ${renderEvaluationStatusBadge(item.result)}
-                        ${item.document ? `<button class="btn btn-secondary" type="button" data-tab-jump="technical">View Document</button>` : ''}
-                    </div>
-                </div>
-            `).join('')}
-        </div>
-    `;
-}
-
-function getEvaluationTenderProfileId(tender = {}) {
-    const raw = String(tender.procurementTypeId || tender.type || tender.category || '').toLowerCase();
-    if (raw.includes('consult')) return 'consultancy';
-    if (raw.includes('service')) return 'services';
-    if (raw.includes('good') || raw.includes('supply')) return 'goods';
-    return raw.includes('work') || raw.includes('construction') ? 'works' : raw || 'works';
-}
-
-function getEvaluationDefaultFlowForTender(tender = {}) {
-    const profile = getEvaluationTenderProfileId(tender);
-    const fields = (tender.sourceTender || tender).requirements?.fields || {};
-    const postQualificationRequired = profile === 'works'
-        || ['postQualificationRequired', 'requirePostQualification', 'stockVerificationRequired', 'sampleVerificationRequired', 'staffVerificationRequired', 'equipmentVerificationRequired']
-            .some(key => /yes|required|true/i.test(String(fields[key] || '')));
-    return [
-        'Preliminary examination',
-        'Eligibility evaluation',
-        'Technical evaluation',
-        'Technical pass/fail approval',
-        'Financial evaluation',
-        profile === 'consultancy' ? 'Combined ranking or method-specific selection' : 'Comparison matrix',
-        ...(postQualificationRequired ? ['Post qualification'] : []),
-        'Award recommendation',
-        'Evaluation report'
-    ];
-}
-
-function getEvaluationStagesForTender(tender = {}, defaultStages = []) {
-    const flow = tender.evaluationFlow || tender.sourceTender?.evaluationFlow || getEvaluationDefaultFlowForTender(tender.sourceTender || tender);
-    const stageMap = {
-        'administrative evaluation': { id: 'preliminary', label: 'Administrative', status: 'done' },
-        'preliminary examination': { id: 'preliminary', label: 'Preliminary', status: 'done' },
-        'eligibility evaluation': { id: 'eligibility', label: 'Eligibility', status: 'done' },
-        'technical evaluation': { id: 'technical', label: 'Technical', status: 'current' },
-        'technical pass/fail approval': { id: 'technical-gate', label: 'Technical Gate', status: 'pending' },
-        'financial evaluation': { id: 'financial', label: 'Financial', status: 'pending' },
-        'post qualification': { id: 'postqual', label: 'Post-Qualification', status: 'pending' },
-        'combined ranking or method-specific selection': { id: 'comparison', label: 'Combined Ranking', status: 'pending' },
-        'comparison matrix': { id: 'comparison', label: 'Comparison', status: 'pending' },
-        'evaluation report': { id: 'report', label: 'Report', status: 'pending' },
-        'award recommendation': { id: 'recommendation', label: 'Recommendation', status: 'pending' }
-    };
-    const base = Array.isArray(flow) && flow.length ? flow : [];
-    const dynamic = base.map(step => {
-        const mapped = stageMap[String(step || '').toLowerCase()];
-        return mapped || { id: slugEvaluationId(step), label: step, status: 'pending' };
-    });
-    const profile = getEvaluationTenderProfileId(tender.sourceTender || tender);
-    const stageIds = new Set(dynamic.map(stage => stage.id));
-    const technicalIndex = Math.max(0, dynamic.findIndex(stage => stage.id === 'technical'));
-    const dynamicWithEligibility = !stageIds.has('eligibility')
-        ? [
-            ...dynamic.slice(0, technicalIndex),
-            { id: 'eligibility', label: 'Eligibility', status: 'done' },
-            ...dynamic.slice(technicalIndex)
-        ]
-        : dynamic;
-    const dynamicIds = new Set(dynamicWithEligibility.map(stage => stage.id));
-    const extras = (defaultStages || []).filter(stage => ['clarifications', 'report', 'audit'].includes(stage.id));
-    return [
-        { id: 'overview', label: 'Overview', status: 'current' },
-        { id: 'opening', label: 'Bid Opening', status: 'done' },
-        { id: 'conflict', label: 'Conflict Declarations', status: 'done' },
-        ...dynamicWithEligibility,
-        ...extras.filter(stage => !dynamicIds.has(stage.id))
-    ].filter((stage, index, stages) => stages.findIndex(item => item.id === stage.id) === index);
-}
-
-function getEvaluationSelectionMethod(tender = {}, recommendation = {}) {
-    const candidates = [
-        tender.evaluation?.method,
-        tender.selectionMethod,
-        tender.awardMethod,
-        tender.evaluationMethod,
-        tender.method,
-        recommendation.method
-    ].filter(Boolean);
-    const method = candidates.find(item => !/^(open|invited)\s+tender$/i.test(String(item))) || candidates[0] || '';
-    if (/consult/i.test(`${tender.type || ''} ${tender.category || ''}`) && /^(open|invited)\s+tender$/i.test(String(method))) {
-        return 'QCBS (Quality-Cost Based)';
-    }
-    if (/^(open|invited)\s+tender$/i.test(String(method))) return 'Lowest evaluated substantially responsive bid';
-    return method || 'Lowest evaluated substantially responsive bid';
-}
-
-function getEvaluationSubmittedBidSections(tender = {}, bid = {}, bidderIndex = 0) {
-    const submittedBid = getEvaluationSubmittedBidForSupplier(tender.sourceTender || tender, bid, bidderIndex);
-    if (submittedBid?.draft && typeof createProcurexBidPackageSectionsFromDraft === 'function') {
-        return createProcurexBidPackageSectionsFromDraft(submittedBid.draft || {});
-    }
-    if (typeof createProcurexBidPackageSectionsFromEvaluationBid === 'function') {
-        return createProcurexBidPackageSectionsFromEvaluationBid(bid, getEvaluationCriteriaForTender(tender.sourceTender || tender, []));
-    }
-    return [];
-}
-
-function getEvaluationSubmittedBidEvidenceText(tender = {}, bid = {}, bidderIndex = 0) {
-    const submittedBid = getEvaluationSubmittedBidForSupplier(tender.sourceTender || tender, bid, bidderIndex);
-    const sections = getEvaluationSubmittedBidSections(tender, bid, bidderIndex);
-    const parts = [
-        bid.supplier,
-        bid.registrationNumber,
-        bid.contactPerson,
-        ...(bid.documents || []),
-        ...(bid.preliminaryChecks || []).flatMap(item => [item.requirement, item.result, item.comment]),
-        ...(bid.eligibilityChecks || []).flatMap(item => [item.requirement, item.result, item.comment])
-    ];
-    if (submittedBid?.draft) {
-        parts.push(...Object.keys(submittedBid.draft.responses || {}), ...Object.values(submittedBid.draft.responses || {}));
-        parts.push(...Object.keys(submittedBid.draft.freeResponses || {}), ...Object.values(submittedBid.draft.freeResponses || {}));
-        parts.push(...Object.values(submittedBid.draft.uploadedFiles || {}).map(file => file?.name || file));
-    }
-    sections.forEach(section => {
-        parts.push(section.title);
-        (section.rows || []).forEach(row => parts.push(row.label, row.value, row.requirement, row.file?.name));
-    });
-    return parts.filter(Boolean).join(' ').toLowerCase();
-}
-
-function hasEvaluationBidEvidence(tender, bid, bidderIndex, labels = []) {
-    const haystack = getEvaluationSubmittedBidEvidenceText(tender, bid, bidderIndex);
-    return labels.some(label => {
-        const tokens = String(label || '').toLowerCase().split(/[^a-z0-9]+/).filter(token => token.length > 2);
-        return tokens.length && tokens.some(token => haystack.includes(token));
-    });
-}
-
-function getEvaluationRequiredSubmissionDocuments(tender = {}) {
-    const source = tender.sourceTender || tender;
-    const fields = source.requirements?.fields || {};
-    const docs = [
-        ...(source.requiredSubmissionDocuments || []),
-        ...(source.documents || []),
-        ...(fields.supportingDocumentRows || []).map(item => item.documentName || item.name),
-        ...(fields.technicalSpecificationDocuments || []).map(item => item.documentType || item.title || item.name),
-        ...(fields.serviceSupportingDocuments || []).map(item => item.documentName || item.name),
-        ...(fields.consultancySupportingDocuments || []).map(item => item.documentName || item.name)
-    ].filter(Boolean);
-    return Array.from(new Set(docs.map(doc => typeof doc === 'string' ? doc : doc.text || doc.name || doc.documentName).filter(Boolean)));
-}
-
-function getEvaluationTenderConfiguredRequirementCount(tender = {}) {
-    const source = tender.sourceTender || tender;
-    const fields = source.requirements?.fields || {};
-    const fieldCount = Object.values(fields).filter(value => {
-        if (Array.isArray(value)) return value.length > 0;
-        if (value && typeof value === 'object') return Object.keys(value).length > 0;
-        return value === true || String(value || '').trim().length > 0;
-    }).length;
-    return fieldCount + getEvaluationRequiredSubmissionDocuments(source).length + (source.regulatoryLicenses || []).length + (source.evaluation?.criteria || []).length;
-}
-
-function renderEvaluationEmptyStudyState(message) {
-    return `<div class="scope-empty evaluation-empty-study-state">${escapeEvaluationHtml(message)}</div>`;
-}
-
-function getEvaluationRequirementFlag(tender = {}, keys = []) {
-    const fields = (tender.sourceTender || tender).requirements?.fields || {};
-    return keys.some(key => fields[key] === true || fields[key] === 'Yes' || fields[key] === 'Required');
-}
-
-function getEvaluationOpeningSubmissionForBid(tender = {}, bid = {}, bidderIndex = 0) {
-    const opening = mockData.bidEvaluation?.openingReport || {};
-    const supplier = String(bid.supplier || '').toLowerCase();
-    return (opening.submissions || []).find(item => String(item.supplier || '').toLowerCase() === supplier)
-        || opening.submissions?.[bidderIndex]
-        || null;
-}
-
-function generateEvaluationPreliminaryChecklist(tender = {}, bid = {}, bidderIndex = 0) {
-    const source = tender.sourceTender || tender;
-    const openingRow = getEvaluationOpeningSubmissionForBid(tender, bid, bidderIndex);
-    const hasTenderDocuments = getEvaluationRequiredSubmissionDocuments(source).length > 0;
-    const hasTenderFlags = getEvaluationRequirementFlag(source, ['bidSecurityRequired', 'requiresBidSecurity', 'bidSecurity']);
-    const checklist = [
-        { requirement: 'Bid submitted before deadline', source: 'system', labels: ['before deadline', bid.submissionTime], document: false, mandatory: true, openingField: 'deadline' },
-        { requirement: 'Technical offer submitted', source: 'opening record', labels: ['technical proposal', 'technical offer', 'technical response'], document: true, mandatory: true, openingField: 'technicalOffer' },
-        { requirement: 'Financial offer submitted', source: 'opening record', labels: ['financial offer', 'priced', 'boq', 'pricing schedule'], document: true, mandatory: true, openingField: 'financialOffer' }
-    ];
-    if (!hasTenderDocuments && !hasTenderFlags) {
-        checklist.push({
-            requirement: 'No tender-specific preliminary documents configured',
-            source: 'tender design',
-            labels: [],
-            document: false,
-            informational: true
-        });
-    }
-    if (hasTenderFlags) {
-        checklist.push({ requirement: 'Bid security submitted', source: 'tender.requirements', labels: ['bid security', 'security'], document: true, mandatory: true, openingField: 'bidSecurity' });
-    }
-    getEvaluationRequiredSubmissionDocuments(source).forEach(doc => {
-        checklist.push({ requirement: `${doc} submitted`, source: 'tender.requiredSubmissionDocuments', labels: [doc], document: true, mandatory: true });
-    });
-    const fallbackByRequirement = new Map((bid.preliminaryChecks || []).map(item => [String(item.requirement || '').toLowerCase(), item]));
-    return checklist.map(item => {
-        const fallback = fallbackByRequirement.get(item.requirement.toLowerCase());
-        const hasEvidence = hasEvaluationBidEvidence(tender, bid, bidderIndex, item.labels || [item.requirement]);
-        if (item.informational) {
-            return {
-                requirement: item.requirement,
-                source: item.source,
-                document: false,
-                result: 'Not Configured',
-                comment: 'The tender design does not define additional preliminary document checks.'
-            };
-        }
-        const openingValue = item.openingField ? String(openingRow?.[item.openingField] || '') : '';
-        const openingPass = item.openingField === 'deadline'
-            ? /before|on time|submitted/i.test(openingValue) && !/late|after/i.test(openingValue)
-            : /yes|submitted|present|included|available/i.test(openingValue);
-        const openingFail = item.openingField === 'deadline'
-            ? /late|after deadline|missed/i.test(openingValue)
-            : /no|missing|absent|not submitted/i.test(openingValue);
-        const fallbackResult = fallback?.result || '';
-        const normalizedFallback = /fail|rejected/i.test(fallbackResult)
-            ? 'Failed'
-            : /not applicable|n\/a/i.test(fallbackResult)
-                ? 'Not Applicable'
-                : /pass/i.test(fallbackResult)
-                    ? 'Passed'
-                    : fallbackResult;
-        const result = openingFail || /failed/i.test(normalizedFallback)
-            ? 'Failed'
-            : openingPass || hasEvidence || /passed/i.test(normalizedFallback)
-                ? 'Passed'
-                : /not applicable/i.test(normalizedFallback)
-                    ? 'Not Applicable'
-                    : 'Requires Clarification';
-        return {
-            requirement: item.requirement,
-            source: item.source,
-            document: item.document,
-            result,
-            comment: openingFail
-                ? `Opening record shows ${openingValue || 'non-compliance'}; this may fail preliminary review.`
-                : hasEvidence || openingPass
-                    ? `Evidence studied from ${item.source}.`
-                    : fallback?.comment || `Derived from ${item.source}; evidence needs buyer confirmation.`
-        };
-    });
-}
-
-function generateEvaluationEligibilityChecklist(tender = {}, bid = {}, bidderIndex = 0) {
-    const source = tender.sourceTender || tender;
-    const licenses = source.regulatoryLicenses || [];
-    const checklist = [
-        { requirement: 'Company registration', source: 'standard', labels: ['registration', 'company', 'incorporation'], mandatory: true },
-        { requirement: 'Tax clearance', source: 'standard', labels: ['tax clearance', 'tax'], mandatory: true },
-        ...(!licenses.length ? [{
-            requirement: 'No tender-specific regulatory license configured',
-            source: 'tender design',
-            labels: [],
-            mandatory: false,
-            informational: true
-        }] : []),
-        ...licenses.map(license => ({
-            requirement: license.license || license.registrationType || license.regulatoryBody || 'Regulatory license',
-            source: 'tender.regulatoryLicenses',
-            labels: [license.license, license.body, license.group].filter(Boolean),
-            mandatory: license.mandatory !== false,
-            expiryRequired: Boolean(license.expiryRequired)
-        }))
-    ];
-    const fallbackByRequirement = new Map((bid.eligibilityChecks || []).map(item => [String(item.requirement || '').toLowerCase(), item]));
-    return checklist.map(item => {
-        const fallback = fallbackByRequirement.get(item.requirement.toLowerCase());
-        const hasEvidence = hasEvaluationBidEvidence(tender, bid, bidderIndex, item.labels || [item.requirement]);
-        const missingMandatory = item.mandatory && !hasEvidence && !fallback;
-        if (item.informational) {
-            return {
-                requirement: item.requirement,
-                source: item.source,
-                document: false,
-                result: 'Not Configured',
-                comment: 'The tender design does not define additional regulatory license checks.'
-            };
-        }
-        return {
-            requirement: item.requirement,
-            source: item.expiryRequired ? `${item.source}; expiry required` : item.source,
-            document: true,
-            result: hasEvidence || /eligible|pass/i.test(fallback?.result || '') ? 'Eligible' : missingMandatory ? 'Not Eligible' : fallback?.result || 'Requires Clarification',
-            comment: hasEvidence ? `Evidence studied from ${item.source}.` : fallback?.comment || `${item.mandatory ? 'Mandatory' : 'Optional'} requirement derived from ${item.source}.`
-        };
-    });
-}
-
-function getSelectedEvaluationTenderReference(evaluation) {
-    const readyTenders = evaluation.readyTenders || [];
-    if (readyTenders.length <= 1) return readyTenders[0]?.reference || evaluation.activeTender?.reference || '';
+function getSelectedEvaluationTenderReference() {
     try {
-        return localStorage.getItem('procurex.selectedEvaluationTender') || '';
+        return localStorage.getItem(procurexEvaluationSelectedTenderKey) || '';
     } catch (error) {
         return window.procurexSelectedEvaluationTender || '';
     }
@@ -452,37 +173,35 @@ function getSelectedEvaluationTenderReference(evaluation) {
 
 function getSelectedEvaluationReportReference() {
     try {
-        return localStorage.getItem('procurex.selectedEvaluationReport') || '';
+        return localStorage.getItem(procurexEvaluationSelectedReportKey) || '';
     } catch (error) {
         return window.procurexSelectedEvaluationReport || '';
     }
 }
 
-function getEvaluationTenderModel(evaluation, selectedReference) {
-    const activeTender = evaluation.activeTender || {};
-    const selectedTender = (evaluation.readyTenders || []).find(item => item.reference === selectedReference);
-    const sourceTender = getEvaluationSourceTender(selectedReference);
-    if (!selectedTender && !sourceTender) return activeTender;
-
-    return {
-        ...activeTender,
-        sourceTender,
-        title: sourceTender?.title || selectedTender?.title || activeTender.title,
-        reference: sourceTender?.id || selectedTender?.reference || activeTender.reference,
-        category: sourceTender?.type || selectedTender?.category || activeTender.category,
-        closingDate: selectedTender?.closingDate || sourceTender?.closingDate || activeTender.closingDate,
-        evaluationDeadline: selectedTender?.deadline || sourceTender?.milestones?.find(item => item.id === 'milestone-evaluation')?.date || activeTender.evaluationDeadline,
-        status: selectedTender?.status || activeTender.status,
-        stage: activeTender.stage,
-        bidders: selectedTender?.bidsReceived || activeTender.bidders,
-        conflictStatus: selectedTender?.conflictStatus === 'Complete' ? activeTender.conflictStatus : (selectedTender?.conflictStatus || activeTender.conflictStatus),
-        draftStatus: selectedTender?.draftStatus || 'Draft',
-        progress: selectedTender?.progress || 0,
-        method: getEvaluationSelectionMethod(sourceTender || activeTender, { method: activeTender.method })
-    };
+function setSelectedEvaluationTender(reference = '') {
+    try {
+        if (reference) localStorage.setItem(procurexEvaluationSelectedTenderKey, reference);
+        else localStorage.removeItem(procurexEvaluationSelectedTenderKey);
+        localStorage.removeItem(procurexEvaluationSelectedReportKey);
+    } catch (error) {
+        window.procurexSelectedEvaluationTender = reference;
+        window.procurexSelectedEvaluationReport = '';
+    }
 }
 
-function getEvaluationDraft(reference) {
+function setSelectedEvaluationReport(reference = '') {
+    try {
+        if (reference) localStorage.setItem(procurexEvaluationSelectedReportKey, reference);
+        else localStorage.removeItem(procurexEvaluationSelectedReportKey);
+        if (reference) localStorage.removeItem(procurexEvaluationSelectedTenderKey);
+    } catch (error) {
+        window.procurexSelectedEvaluationReport = reference;
+        if (reference) window.procurexSelectedEvaluationTender = '';
+    }
+}
+
+function getEvaluationDraft(reference = '') {
     if (!reference) return null;
     try {
         const saved = JSON.parse(localStorage.getItem(`procurex.evaluationDraft.${reference}`) || 'null');
@@ -492,7 +211,7 @@ function getEvaluationDraft(reference) {
     }
 }
 
-function saveEvaluationDraft(reference, payload) {
+function saveEvaluationDraft(reference = '', payload = {}) {
     if (!reference) return;
     try {
         localStorage.setItem(`procurex.evaluationDraft.${reference}`, JSON.stringify(payload));
@@ -504,1333 +223,366 @@ function saveEvaluationDraft(reference, payload) {
     }
 }
 
-function getEvaluationDraftScore(draft, bidderName, criterionId, field, fallback = '') {
-    return draft?.scores?.[bidderName]?.[criterionId]?.[field] ?? fallback;
+function getEvaluationReadyMeta(reference = '') {
+    return (mockData.bidEvaluation?.readyTenders || []).find(item => item.reference === reference) || {};
 }
 
-function isEvaluationScoreCommentRequired(row = {}, criterion = {}) {
-    const result = String(row.result || '').toLowerCase();
-    const maxScore = Number(criterion.maxScore || row.maxScore || 0);
-    const score = Number(row.score);
-    return /fail|clarification/.test(result)
-        || (Number.isFinite(score) && maxScore > 0 && score < (maxScore / 2));
+function getEvaluationTenderList() {
+    const readyTenders = mockData.bidEvaluation?.readyTenders || [];
+    const readyRefs = new Set(readyTenders.map(item => item.reference));
+    const sourceTenders = getEvaluationAllTenders()
+        .filter(tender => !/draft|cancelled|awarded/i.test(String(tender.status || '')));
+    const missingReady = readyTenders
+        .filter(item => !sourceTenders.some(tender => tender.id === item.reference || tender.reference === item.reference))
+        .map(item => ({
+            id: item.reference,
+            reference: item.reference,
+            title: item.title,
+            type: item.category,
+            procurementTypeId: getEvaluationProfileId(item),
+            status: item.status,
+            closingDate: item.closingDate,
+            createdByCurrentUser: true
+        }));
+
+    const seen = new Set();
+    return [...missingReady, ...sourceTenders]
+        .filter(tender => {
+            const reference = tender.id || tender.reference || tender.title;
+            if (!reference || seen.has(reference)) return false;
+            seen.add(reference);
+            return true;
+        })
+        .map(tender => {
+            const reference = tender.id || tender.reference;
+            const readyMeta = getEvaluationReadyMeta(reference);
+            return {
+                ...tender,
+                id: reference,
+                reference,
+                status: readyMeta.status || tender.status || 'Published',
+                closingDate: readyMeta.closingDate || tender.closingDate || '',
+                evaluationDeadline: readyMeta.deadline || tender.milestones?.find(item => item.id === 'milestone-evaluation')?.date || '',
+                bidsReceived: readyMeta.bidsReceived || null,
+                progress: getEvaluationProgress(reference, tender),
+                ready: isEvaluationTenderReady(tender, readyMeta),
+                readySeed: readyRefs.has(reference)
+            };
+        });
 }
 
-function isEvaluationScoreComplete(row = {}, criterion = {}) {
-    if (!row?.result) return false;
-    if (row.score === undefined || row.score === null || String(row.score).trim() === '') return false;
-    return !isEvaluationScoreCommentRequired(row, criterion) || String(row.comment || '').trim().length > 0;
+function getEvaluationTenderModel(reference = '') {
+    const sourceTender = getEvaluationSourceTender(reference) || getEvaluationTenderList().find(item => item.reference === reference) || {};
+    const readyMeta = getEvaluationReadyMeta(reference);
+    return {
+        ...sourceTender,
+        sourceTender,
+        id: sourceTender.id || reference,
+        reference: sourceTender.id || sourceTender.reference || reference,
+        title: sourceTender.title || readyMeta.title || 'Tender evaluation',
+        type: sourceTender.type || readyMeta.category || sourceTender.category || 'Tender',
+        status: readyMeta.status || sourceTender.status || 'Published',
+        closingDate: readyMeta.closingDate || sourceTender.closingDate || '',
+        evaluationDeadline: readyMeta.deadline || sourceTender.milestones?.find(item => item.id === 'milestone-evaluation')?.date || '',
+        bidsReceived: readyMeta.bidsReceived || null,
+        ready: isEvaluationTenderReady(sourceTender, readyMeta),
+        conflictStatus: readyMeta.conflictStatus || mockData.bidEvaluation?.activeTender?.conflictStatus || 'Pending'
+    };
 }
 
-function getDefaultEvaluationScore(bid, criterion) {
-    if (criterion.type === 'financial') {
-        return bid.financialScore || Math.max(0, Math.min(criterion.maxScore, Math.round((criterion.maxScore || 10) * 0.85)));
-    }
-    const proportional = bid.technicalScore ? Math.round((Number(bid.technicalScore) / 100) * criterion.maxScore) : Math.round((criterion.maxScore || 10) * 0.8);
-    return Math.max(0, Math.min(criterion.maxScore || 10, proportional));
+function getEvaluationSubmittedBidForSupplier(tender = {}, bid = {}, bidderIndex = 0) {
+    if (typeof getProcurexSubmittedBidsForTender !== 'function') return null;
+    const submitted = getProcurexSubmittedBidsForTender(tender);
+    if (!submitted.length) return null;
+    const supplier = String(bid.supplier || '').toLowerCase();
+    return submitted.find(item => String(item.supplier || item.draft?.supplier || item.draft?.supplierName || '').toLowerCase() === supplier)
+        || submitted[bidderIndex]
+        || null;
 }
 
-function getEvaluationDraftProgress(draft, criteria = [], bids = []) {
-    if (draft?.status === 'Completed') return 100;
-    const total = Math.max(1, criteria.length * bids.length);
-    const completed = criteria.reduce((sum, criterion) => (
-        sum + bids.filter(bid => {
-            const row = draft?.scores?.[bid.supplier]?.[criterion.id];
-            return isEvaluationScoreComplete(row, criterion);
-        }).length
-    ), 0);
-    return Math.max(draft?.progress || 0, Math.round((completed / total) * 100));
-}
-
-function getEvaluationCriterionTotalForBid(bid, criteria, draft) {
-    return criteria.reduce((sum, criterion) => {
-        const savedScore = Number(getEvaluationDraftScore(draft, bid.supplier, criterion.id, 'score', NaN));
-        const score = Number.isFinite(savedScore) ? savedScore : getDefaultEvaluationScore(bid, criterion);
-        return sum + score;
-    }, 0);
-}
-
-function getEvaluationTechnicalCriteria(criteria = []) {
-    return criteria.filter(criterion => criterion.type !== 'financial');
-}
-
-function getEvaluationTechnicalMax(criteria = []) {
-    const technicalCriteria = getEvaluationTechnicalCriteria(criteria);
-    const source = technicalCriteria.length ? technicalCriteria : criteria;
-    return source.reduce((sum, criterion) => sum + Number(criterion.maxScore || criterion.weight || 0), 0) || 100;
-}
-
-function getEvaluationTechnicalTotalForBid(bid, criteria, draft) {
-    const technicalCriteria = getEvaluationTechnicalCriteria(criteria);
-    const source = technicalCriteria.length ? technicalCriteria : criteria;
-    return getEvaluationCriterionTotalForBid(bid, source, draft);
-}
-
-function getEvaluationTechnicalPercentForBid(bid, criteria, draft) {
-    return Math.round((getEvaluationTechnicalTotalForBid(bid, criteria, draft) / getEvaluationTechnicalMax(criteria)) * 100);
-}
-
-function getEvaluationBidPrice(bid = {}) {
-    const price = Number(bid.financial?.correctedPrice || bid.price);
-    return Number.isFinite(price) && price > 0 ? price : Number.MAX_SAFE_INTEGER;
-}
-
-function getEvaluationQualifiedBids(bids = [], criteria = [], draft, passMark = 70) {
-    return bids.filter(bid => getEvaluationTechnicalPercentForBid(bid, criteria, draft) >= passMark);
-}
-
-function getEvaluationFinancialScoreForBid(bid, bids = []) {
-    const qualifiedPrices = bids.map(getEvaluationBidPrice).filter(price => Number.isFinite(price) && price > 0);
-    const lowest = Math.min(...qualifiedPrices);
-    const bidPrice = getEvaluationBidPrice(bid);
-    if (!Number.isFinite(lowest) || !Number.isFinite(bidPrice) || bidPrice <= 0) return 0;
-    return Math.round((lowest / bidPrice) * 1000) / 10;
-}
-
-function getEvaluationMethodKey(method = '') {
-    const raw = String(method || '').toLowerCase();
-    if (raw.includes('qcbs') || raw.includes('quality-cost') || raw.includes('quality cost')) return 'qcbs';
-    if (raw.includes('qbs') || raw.includes('quality based')) return 'qbs';
-    if (raw.includes('least cost')) return 'least-cost';
-    if (raw.includes('fixed budget')) return 'fixed-budget';
-    return 'lowest-responsive';
-}
-
-function getEvaluationBudgetCeiling(tender = {}, benchmark = {}) {
-    const source = tender.sourceTender || tender;
-    return Number(source.budget || source.estimatedBudget || benchmark.buyerEstimate || 0) || 0;
-}
-
-function getEvaluationRankedBids(tender = {}, bids = [], criteria = [], draft, options = {}) {
-    const passMark = options.passMark || 70;
-    const method = getEvaluationSelectionMethod(tender, options.recommendation || {});
-    const methodKey = getEvaluationMethodKey(method);
-    const qualified = getEvaluationQualifiedBids(bids, criteria, draft, passMark);
-    const pool = qualified.length ? qualified : bids;
-    const budgetCeiling = getEvaluationBudgetCeiling(tender, options.benchmark || {});
-    const technicalWeight = Number(tender.evaluation?.technicalWeight || options.technicalWeight || 80);
-    const financialWeight = Number(tender.evaluation?.financialWeight || options.financialWeight || (100 - technicalWeight));
-    const scored = pool.map(bid => {
-        const technicalPercent = getEvaluationTechnicalPercentForBid(bid, criteria, draft);
-        const financialScore = getEvaluationFinancialScoreForBid(bid, pool);
-        const price = getEvaluationBidPrice(bid);
-        const withinBudget = !budgetCeiling || price <= budgetCeiling;
-        const combinedScore = ((technicalPercent * technicalWeight) + (financialScore * financialWeight)) / Math.max(1, technicalWeight + financialWeight);
-        return { bid, technicalPercent, financialScore, combinedScore, price, withinBudget };
-    });
-
-    const sorted = scored.sort((a, b) => {
-        if (methodKey === 'qbs') return b.technicalPercent - a.technicalPercent || a.price - b.price;
-        if (methodKey === 'least-cost' || methodKey === 'lowest-responsive') return a.price - b.price || b.technicalPercent - a.technicalPercent;
-        if (methodKey === 'fixed-budget') {
-            if (a.withinBudget !== b.withinBudget) return a.withinBudget ? -1 : 1;
-            return b.technicalPercent - a.technicalPercent || a.price - b.price;
-        }
-        return b.combinedScore - a.combinedScore || a.price - b.price;
-    });
-    return sorted.map((item, index) => ({ ...item, rank: index + 1, method }));
-}
-
-function getEvaluationTenderBoqItems(tender = {}) {
-    const source = tender.sourceTender || tender;
-    const fields = source.requirements?.fields || {};
-    const candidates = [
-        source.boqItems,
-        source.commercialItems,
-        fields.boqRows,
-        fields.quantityScheduleRows,
-        fields.lumpSumPricingRows,
-        fields.servicePricingRows
-    ].find(items => Array.isArray(items) && items.length) || [];
-    return candidates.map((item, index) => ({
-        item: item.item || item.itemCode || item.lineNo || `${index + 1}`,
-        description: item.description || item.itemDescription || item.deliverable || item.name || `Commercial item ${index + 1}`,
-        qty: Number(item.qty || item.quantity || 1) || 1,
-        unit: item.unit || item.uom || 'Lot',
-        rate: Number(item.rate || item.unitRate || item.estimatedRate || item.amount || 0) || 0
+function getEvaluationBidsForTender(tender = {}) {
+    if (!tender.ready) return [];
+    const submitted = typeof getProcurexSubmittedBidsForTender === 'function'
+        ? getProcurexSubmittedBidsForTender(tender.sourceTender || tender)
+        : [];
+    const localBids = submitted.map((item, index) => ({
+        supplier: item.supplier || item.draft?.supplier || item.draft?.supplierName || mockData.users?.supplier?.organization || `Supplier ${index + 1}`,
+        registrationNumber: item.draft?.registrationNumber || '',
+        contactPerson: item.draft?.contactPerson || '',
+        submissionTime: item.submittedAt ? new Date(item.submittedAt).toLocaleString() : '',
+        integrityHash: item.receiptHash || '',
+        price: Number(String(item.draft?.total || '').replace(/[^0-9.]/g, '')) || 0,
+        documents: Object.values(item.draft?.uploadedFiles || {}).map(file => file?.name || file).filter(Boolean),
+        draft: item.draft,
+        submittedBid: item
     }));
+    if (localBids.length) return localBids;
+
+    const seededReference = mockData.bidEvaluation?.activeTender?.reference;
+    if (tender.reference === seededReference || getEvaluationReadyMeta(tender.reference).reference) {
+        return mockData.bidEvaluation?.bids || [];
+    }
+    return [];
 }
 
-function getEvaluationTenderBoqTotal(items = []) {
-    return items.reduce((sum, item) => sum + ((Number(item.qty) || 1) * (Number(item.rate) || 0)), 0);
+function getEvaluationRequirementSet(tender = {}) {
+    const profile = getEvaluationProfile(tender);
+    if (typeof getBidWorkspaceRequirementSet === 'function') {
+        return getBidWorkspaceRequirementSet(tender.sourceTender || tender, profile);
+    }
+    return { mandatory: [], optional: [] };
 }
 
-function getEvaluationBidBoqLineAmount(tender, bid, bidderIndex, boqItem, tenderTotal) {
-    const evidenceText = getEvaluationSubmittedBidEvidenceText(tender, bid, bidderIndex);
-    const codeTokens = String(boqItem.item || '').toLowerCase().split(/[^a-z0-9.]+/).filter(Boolean);
-    const descriptionTokens = String(boqItem.description || '').toLowerCase().split(/[^a-z0-9]+/).filter(token => token.length > 4);
-    const matchTokens = [...codeTokens, ...descriptionTokens.slice(0, 3)];
-    const hasSpecificEvidence = matchTokens.some(token => evidenceText.includes(token));
-    const estimated = (Number(boqItem.qty) || 1) * (Number(boqItem.rate) || 0);
-    const price = getEvaluationBidPrice(bid);
-    if (hasSpecificEvidence && Number.isFinite(price) && tenderTotal > 0) return Math.round((estimated / tenderTotal) * price);
-    if (Number.isFinite(price) && tenderTotal > 0) return Math.round((estimated / tenderTotal) * price);
-    return Number(bid.financial?.lineItems?.[boqItem.item] || 0) || 0;
+function getEvaluationTenderRequirementCount(tender = {}) {
+    const set = getEvaluationRequirementSet(tender);
+    const criteria = getEvaluationCriteriaForTender(tender);
+    return (set.mandatory?.length || 0) + (set.optional?.length || 0) + criteria.length;
 }
 
-function getEvaluationBoqComparisonRows(tender = {}, bids = []) {
-    const items = getEvaluationTenderBoqItems(tender);
-    const tenderTotal = getEvaluationTenderBoqTotal(items);
-    return items.map((item, index) => {
-        const estimate = (Number(item.qty) || 1) * (Number(item.rate) || 0);
-        const bidderAmounts = bids.map((bid, bidderIndex) => getEvaluationBidBoqLineAmount(tender, bid, bidderIndex, item, tenderTotal));
-        return { ...item, index, estimate, bidderAmounts };
+function createEvaluationReviewItem(sectionId, title, options = {}) {
+    const id = options.id || `${sectionId}-${slugEvaluationId(title)}`;
+    return {
+        id,
+        sectionId,
+        title,
+        category: options.category || 'Tender requirement',
+        description: options.description || '',
+        source: options.source || 'tender design',
+        mandatory: options.mandatory !== false,
+        maxScore: options.maxScore || 0,
+        labels: options.labels || [title],
+        evidenceHint: options.evidenceHint || ''
+    };
+}
+
+function getEvaluationTypeSections(tender = {}) {
+    const profileId = getEvaluationProfileId(tender);
+    const commonFirst = [{ id: 'supplier-info', label: 'Supplier Information', detail: 'Submission identity, receipt, contact, and offer summary' }];
+    const commonLast = [{ id: 'declaration', label: 'Declaration and Recommendation', detail: 'Final evaluator declaration and recommendation readiness' }];
+    const sections = {
+        goods: [
+            ...commonFirst,
+            { id: 'eligibility', label: 'Eligibility and Documents', detail: 'Licenses, certifications, administrative forms, and submission files' },
+            { id: 'technical-compliance', label: 'Technical Specification Compliance', detail: 'Buyer item specifications, standards, samples, and product evidence' },
+            { id: 'delivery-warranty', label: 'Delivery, Warranty and Support', detail: 'Lead time, logistics, after-sales support, catalogues, and warranty commitments' },
+            { id: 'financial', label: 'Financial Quantity Schedule', detail: 'Unit prices, totals, taxes, arithmetic checks, and price realism' },
+            ...commonLast
+        ],
+        works: [
+            ...commonFirst,
+            { id: 'eligibility', label: 'Eligibility and Documents', detail: 'Licenses, bid security, administrative forms, and opening compliance' },
+            { id: 'technical-capacity', label: 'Technical Capacity', detail: 'Experience, personnel, equipment, financial capacity, HSE, and resources' },
+            { id: 'technical-proposal', label: 'Technical Proposal', detail: 'Methodology, work program, drawings, schedule, quality, and site response' },
+            { id: 'financial', label: 'Financial BOQ Proposal', detail: 'Priced BOQ, corrected sum, tax, discount, and commercial terms' },
+            { id: 'post-qualification', label: 'Post Qualification', detail: 'Confirm capacity, references, equipment, and award readiness' },
+            ...commonLast
+        ],
+        services: [
+            ...commonFirst,
+            { id: 'eligibility', label: 'Eligibility and Documents', detail: 'Licenses, certifications, administrative forms, and submission files' },
+            { id: 'methodology', label: 'Methodology', detail: 'Service understanding, workflow, quality assurance, and risk approach' },
+            { id: 'delivery-plan', label: 'Delivery Plan', detail: 'Locations, schedule, SLA timers, milestones, and coverage model' },
+            { id: 'staffing-capacity', label: 'Staffing and Capacity', detail: 'People, tools, systems, equipment, finance, and operational capacity' },
+            { id: 'sla-reporting', label: 'SLA, Reporting and Compliance', detail: 'KPIs, escalation, reports, ESG, labor, and supporting documents' },
+            { id: 'financial', label: 'Pricing', detail: 'Service schedule, rates, assumptions, taxes, and commercial terms' },
+            ...commonLast
+        ],
+        consultancy: [
+            ...commonFirst,
+            { id: 'eligibility', label: 'Eligibility and Documents', detail: 'Licenses, registrations, administrative forms, and proposal submission files' },
+            { id: 'technical-proposal', label: 'Technical Proposal', detail: 'Understanding of TOR, approach, methodology, and evidence' },
+            { id: 'tor-response', label: 'TOR Response and Work Plan', detail: 'Activities, deliverables, timeline, reporting, and organization' },
+            { id: 'experts-experience', label: 'Key Experts and Experience', detail: 'CVs, qualifications, professional registrations, and firm assignments' },
+            { id: 'financial', label: 'Separate Financial Proposal', detail: 'Fees, reimbursables, taxes, validity, and method-specific ranking' },
+            { id: 'combined-ranking', label: 'Combined Ranking', detail: 'QCBS, QBS, least-cost, or configured consultancy selection method' },
+            ...commonLast
+        ]
+    };
+    return sections[profileId] || sections.works;
+}
+
+function getEvaluationSectionForRequirement(requirement = {}, profileId = 'works') {
+    const text = `${requirement.title || ''} ${requirement.category || ''} ${requirement.description || ''}`.toLowerCase();
+    if (/price|financial|boq|fee|rate|commercial|quantity schedule|pricing/.test(text)) return 'financial';
+    if (/license|certificate|registration|tax|bid security|document|eligibility|administrative|declaration/.test(text)) return 'eligibility';
+    if (profileId === 'goods') {
+        if (/delivery|warranty|support|sample|catalog|manufacturer|stock|logistics/.test(text)) return 'delivery-warranty';
+        return 'technical-compliance';
+    }
+    if (profileId === 'services') {
+        if (/staff|personnel|equipment|capacity|tool|system/.test(text)) return 'staffing-capacity';
+        if (/sla|kpi|report|compliance|esg|labor|performance/.test(text)) return 'sla-reporting';
+        if (/schedule|location|delivery|milestone|coverage|response time/.test(text)) return 'delivery-plan';
+        return 'methodology';
+    }
+    if (profileId === 'consultancy') {
+        if (/expert|cv|qualification|experience|assignment|firm|registration/.test(text)) return 'experts-experience';
+        if (/tor|deliverable|work plan|timeline|report|activity|methodology/.test(text)) return 'tor-response';
+        return 'technical-proposal';
+    }
+    if (/personnel|equipment|experience|capacity|hse|safety|financial capacity|resource/.test(text)) return 'technical-capacity';
+    if (/methodology|schedule|work program|drawing|quality|site|technical/.test(text)) return 'technical-proposal';
+    return 'technical-capacity';
+}
+
+function getEvaluationReviewSections(tender = {}) {
+    const profileId = getEvaluationProfileId(tender);
+    const typeSections = getEvaluationTypeSections(tender).map(section => ({ ...section, items: [] }));
+    const byId = new Map(typeSections.map(section => [section.id, section]));
+    const requirementSet = getEvaluationRequirementSet(tender);
+    const allRequirements = [...(requirementSet.mandatory || []), ...(requirementSet.optional || [])];
+
+    allRequirements.forEach(requirement => {
+        const sectionId = getEvaluationSectionForRequirement(requirement, profileId);
+        const target = byId.get(sectionId) || byId.get('eligibility');
+        target?.items.push(createEvaluationReviewItem(sectionId, requirement.title, {
+            id: requirement.id || `${sectionId}-${slugEvaluationId(requirement.title)}`,
+            category: requirement.category,
+            description: requirement.description,
+            source: requirement.source || 'tender requirement',
+            mandatory: requirement.mandatory,
+            labels: [requirement.title, requirement.category, requirement.description].filter(Boolean)
+        }));
+    });
+
+    getEvaluationCriteriaForTender(tender).forEach(criterion => {
+        const sectionId = criterion.type === 'financial'
+            ? 'financial'
+            : getEvaluationSectionForRequirement({ title: criterion.name, category: criterion.name, description: criterion.subcriteria.join(' ') }, profileId);
+        const target = byId.get(sectionId) || byId.get('technical-proposal') || byId.get('technical-compliance');
+        target?.items.push(createEvaluationReviewItem(sectionId, criterion.name, {
+            id: `criterion-${criterion.id}`,
+            category: 'Evaluation criterion',
+            description: criterion.subcriteria.join(', ') || 'Buyer-defined criterion',
+            source: 'evaluation criteria',
+            maxScore: criterion.type === 'financial' ? 0 : criterion.maxScore,
+            labels: [criterion.name, ...criterion.subcriteria]
+        }));
+    });
+
+    const commercialItems = tender.commercialItems || tender.boqItems || [];
+    commercialItems.slice(0, 8).forEach((item, index) => {
+        byId.get('financial')?.items.push(createEvaluationReviewItem('financial', item.description || item.workItem || item.serviceTask || item.item || `Commercial line ${index + 1}`, {
+            id: `financial-line-${index}`,
+            category: 'Commercial schedule',
+            description: `${item.qty || item.quantity || 1} ${item.unit || ''} / estimate ${formatEvaluationMoney(item.rate || item.totalCost || item.amount || 0)}`,
+            source: 'commercial schedule',
+            labels: [item.description, item.workItem, item.serviceTask, item.item].filter(Boolean)
+        }));
+    });
+
+    byId.get('declaration')?.items.push(createEvaluationReviewItem('declaration', 'Evaluator confirms all supplier responses were reviewed', {
+        id: 'evaluator-final-declaration',
+        category: 'Evaluator declaration',
+        description: 'Confirm the evaluation decision is based on the published tender requirements and recorded bid evidence.',
+        source: 'system',
+        maxScore: 0
+    }));
+
+    return typeSections.map(section => {
+        if (section.id === 'supplier-info') return section;
+        if (!section.items.length) {
+            section.items.push(createEvaluationReviewItem(section.id, section.label, {
+                id: `${section.id}-general-review`,
+                category: 'Section review',
+                description: section.detail,
+                source: 'procurement type'
+            }));
+        }
+        return section;
     });
 }
 
-function getEvaluationCriterionEvidence(tender = {}, bid = {}, bidderIndex = 0, criterion = {}) {
-    const sections = getEvaluationSubmittedBidSections(tender, bid, bidderIndex);
-    const keywords = [criterion.name, ...(criterion.subcriteria || [])]
+function getEvaluationBidEvidenceRows(tender = {}, bid = {}, bidderIndex = 0) {
+    const submittedBid = getEvaluationSubmittedBidForSupplier(tender.sourceTender || tender, bid, bidderIndex);
+    if (submittedBid?.draft && typeof createProcurexBidPackageSectionsFromDraft === 'function') {
+        return createProcurexBidPackageSectionsFromDraft(submittedBid.draft || {})
+            .flatMap(section => (section.rows || []).map(row => ({
+                section: section.title,
+                label: row.label || row.requirement || row.key || 'Bid response',
+                value: row.value || row.file?.name || 'Provided',
+                file: row.file?.name || ''
+            })));
+    }
+    const rows = [
+        ...(bid.documents || []).map(document => ({ section: 'Submitted documents', label: document, value: 'Submitted' })),
+        ...(bid.preliminaryChecks || []).map(item => ({ section: 'Preliminary checks', label: item.requirement, value: `${item.result || ''}${item.comment ? ` - ${item.comment}` : ''}` })),
+        ...(bid.eligibilityChecks || []).map(item => ({ section: 'Eligibility checks', label: item.requirement, value: `${item.result || ''}${item.comment ? ` - ${item.comment}` : ''}` }))
+    ];
+    if (bid.technicalComment) rows.push({ section: 'Technical response', label: 'Technical comment', value: bid.technicalComment });
+    if (bid.financial) {
+        rows.push({ section: 'Financial offer', label: 'Corrected price', value: formatEvaluationMoney(bid.financial.correctedPrice || bid.price, bid.financial.currency || 'TZS') });
+        rows.push({ section: 'Financial offer', label: 'Pricing status', value: bid.financial.pricingStatus || bid.financial.boqStatus || 'Provided' });
+    }
+    return rows;
+}
+
+function findEvaluationEvidenceForRequirement(rows = [], requirement = {}) {
+    const haystackRows = rows.map(row => ({
+        ...row,
+        text: `${row.section || ''} ${row.label || ''} ${row.value || ''}`.toLowerCase()
+    }));
+    const tokens = (requirement.labels || [requirement.title])
         .join(' ')
         .toLowerCase()
         .split(/[^a-z0-9]+/)
         .filter(token => token.length > 3);
-    const matchedRows = sections.flatMap(section => (section.rows || []).map(row => ({ section: section.title, row })))
-        .filter(({ row }) => {
-            const text = `${row.label || ''} ${row.value || ''} ${row.requirement || ''}`.toLowerCase();
-            return keywords.some(keyword => text.includes(keyword));
-        })
-        .slice(0, 4);
-    if (matchedRows.length) {
-        return matchedRows.map(({ section, row }) => ({
-            label: row.label || section,
-            value: row.value || 'Provided',
-            source: section,
-            document: row.file?.name || ''
-        }));
-    }
-    return [
-        {
-            label: 'Technical comment',
-            value: bid.technicalComment || `${bid.supplier || 'Bidder'} response should be reviewed against this criterion.`,
-            source: 'Evaluation mock data',
-            document: (bid.documents || []).find(doc => /technical|method|work|proposal|boq/i.test(doc)) || ''
-        }
-    ];
+    const matches = haystackRows.filter(row => tokens.some(token => row.text.includes(token)));
+    return matches.length ? matches.slice(0, 3) : haystackRows.slice(0, 2);
 }
 
-function getEvaluationDocumentCompleteness(tender = {}, bid = {}, bidderIndex = 0) {
-    const required = [
-        ...getEvaluationRequiredSubmissionDocuments(tender),
-        ...(tender.sourceTender?.regulatoryLicenses || tender.regulatoryLicenses || []).filter(item => item.mandatory !== false).map(item => item.license)
-    ].filter(Boolean);
-    if (!required.length) return 100;
-    const complete = required.filter(item => hasEvaluationBidEvidence(tender, bid, bidderIndex, [item])).length;
-    return Math.round((complete / required.length) * 100);
+function getEvaluationSupplierDraft(draft = {}, supplier = '') {
+    if (!draft || typeof draft !== 'object') return {};
+    return draft.requirements?.[supplier] || {};
 }
 
-function getEvaluationRiskSummary(tender = {}, bid = {}, bidderIndex = 0, criteria = [], draft) {
-    const technicalPercent = getEvaluationTechnicalPercentForBid(bid, criteria, draft);
-    const completeness = getEvaluationDocumentCompleteness(tender, bid, bidderIndex);
-    const price = getEvaluationBidPrice(bid);
-    const items = getEvaluationTenderBoqItems(tender);
-    const estimate = getEvaluationTenderBoqTotal(items);
-    if (technicalPercent < 70 || completeness < 80) return 'High';
-    if (estimate && Math.abs(((price - estimate) / estimate) * 100) > 10) return 'Moderate';
-    if (/clarification|pending/i.test(`${bid.finalResult || ''} ${bid.eligibilityResult || ''}`)) return 'Moderate';
-    return 'Low';
+function getEvaluationProgress(reference = '', tender = null) {
+    const draft = getEvaluationDraft(reference) || {};
+    if (draft?.status === 'Completed') return 100;
+    if (!tender || !reference) return Number(draft?.progress || 0);
+    const bids = getEvaluationBidsForTender({ ...tender, ready: true, reference });
+    const sections = getEvaluationReviewSections(tender);
+    const rows = sections.flatMap(section => section.id === 'supplier-info' ? [] : section.items);
+    const total = rows.length * Math.max(1, bids.length || 1);
+    if (!total) return 0;
+    const complete = bids.reduce((sum, bid) => {
+        const supplierRows = getEvaluationSupplierDraft(draft, bid.supplier || '');
+        return sum + rows.filter(row => isEvaluationRequirementComplete(supplierRows[row.id], row)).length;
+    }, 0);
+    return Math.round((complete / total) * 100);
 }
 
-function getEvaluationTimelineStatus(tender = {}) {
-    const raw = tender.evaluationDeadline || tender.deadline || tender.closingDate || '';
-    const timestamp = Date.parse(raw);
-    if (!Number.isFinite(timestamp)) return { label: raw || 'No deadline set', status: 'Pending', days: null };
-    const today = new Date();
-    const days = Math.ceil((timestamp - today.getTime()) / 86400000);
-    if (days < 0) return { label: `${Math.abs(days)} days overdue`, status: 'Overdue', days };
-    if (days <= 3) return { label: `${days} days remaining`, status: 'Due soon', days };
-    return { label: `${days} days remaining`, status: 'On track', days };
+function isEvaluationRequirementComplete(value = {}, requirement = {}) {
+    if (!value || !value.decision) return false;
+    if (requirement.maxScore && (value.score === undefined || value.score === null || String(value.score).trim() === '')) return false;
+    if (/not eligible|clarification/i.test(value.decision) && !String(value.comment || '').trim()) return false;
+    return true;
 }
 
-function getEvaluationRecommendedBid(tenderOrBids, maybeBids, maybeCriteria, maybeDraft, maybeOptions = {}) {
-    if (Array.isArray(tenderOrBids)) {
-        const bids = tenderOrBids;
-        const criteria = maybeBids || [];
-        const draft = maybeCriteria;
-        return getEvaluationRankedBids({}, bids, criteria, draft, maybeOptions)[0]?.bid || bids[0] || {};
-    }
-    const tender = tenderOrBids || {};
-    const bids = maybeBids || [];
-    const criteria = maybeCriteria || [];
-    const draft = maybeDraft;
-    return getEvaluationRankedBids(tender, bids, criteria, draft, maybeOptions)[0]?.bid || bids[0] || {};
+function getEvaluationCompletion(tender = {}, bids = [], draft = {}) {
+    const rows = getEvaluationReviewSections(tender).flatMap(section => section.id === 'supplier-info' ? [] : section.items);
+    const total = rows.length * bids.length;
+    const complete = bids.reduce((sum, bid) => {
+        const supplierRows = getEvaluationSupplierDraft(draft, bid.supplier || '');
+        return sum + rows.filter(row => isEvaluationRequirementComplete(supplierRows[row.id], row)).length;
+    }, 0);
+    return { complete, total, percent: total ? Math.round((complete / total) * 100) : 0, canComplete: total > 0 && complete >= total };
 }
 
-function renderEvaluationReportDocument(tender, criteria, bids, draft, auditTrail = []) {
-    const recommendedBid = getEvaluationRecommendedBid(tender, bids, criteria, draft);
-    return `
-        <section class="evaluation-report-document" data-evaluation-report-document>
-            <header>
-                <span>ProcureX Evaluation Report</span>
-                <h1>${escapeEvaluationHtml(tender.title || 'Tender Evaluation')}</h1>
-                <p>${escapeEvaluationHtml(tender.reference || '')} / ${escapeEvaluationHtml(tender.category || '')}</p>
-            </header>
-            <div class="evaluation-report-summary">
-                <div><span>Status</span><strong>${escapeEvaluationHtml(draft?.status || 'Draft')}</strong></div>
-                <div><span>Completed</span><strong>${escapeEvaluationHtml(draft?.completedAt ? new Date(draft.completedAt).toLocaleString() : 'Not completed')}</strong></div>
-                <div><span>Recommended bidder</span><strong>${escapeEvaluationHtml(draft?.recommendation?.supplier || recommendedBid.supplier || '-')}</strong></div>
-                <div><span>Evaluated amount</span><strong>${formatEvaluationMoney(recommendedBid.financial?.correctedPrice || recommendedBid.price)}</strong></div>
-            </div>
-            <h2>Criteria Used</h2>
-            <table>
-                <thead><tr><th>Criterion</th><th>Weight</th><th>Subcriteria</th></tr></thead>
-                <tbody>
-                    ${criteria.map(item => `
-                        <tr>
-                            <td>${escapeEvaluationHtml(item.name)}</td>
-                            <td>${escapeEvaluationHtml(item.weight || item.maxScore)}%</td>
-                            <td>${escapeEvaluationHtml((item.subcriteria || []).join(', ') || 'None')}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-            <h2>Bidder Evaluation Results</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Bidder</th>
-                        ${criteria.map(item => `<th>${escapeEvaluationHtml(item.name)}</th>`).join('')}
-                        <th>Total</th>
-                        <th>Corrected price</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${bids.map(bid => `
-                        <tr>
-                            <td>${escapeEvaluationHtml(bid.supplier)}</td>
-                            ${criteria.map(item => {
-                                const row = draft?.scores?.[bid.supplier]?.[item.id] || {};
-                                const score = row.score ?? getDefaultEvaluationScore(bid, item);
-                                return `<td>${escapeEvaluationHtml(row.result || 'Pending')} / ${escapeEvaluationHtml(score)}<br>${escapeEvaluationHtml(row.comment || '')}</td>`;
-                            }).join('')}
-                            <td>${getEvaluationCriterionTotalForBid(bid, criteria, draft)}</td>
-                            <td>${formatEvaluationMoney(bid.financial?.correctedPrice || bid.price)}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-            <h2>Recommendation</h2>
-            <p>${escapeEvaluationHtml(draft?.recommendation?.reason || `${recommendedBid.supplier || 'Recommended bidder'} has the highest evaluated result based on the buyer-defined criteria.`)}</p>
-            <h2>Audit Trail</h2>
-            <ul>
-                ${auditTrail.map(item => `<li>${escapeEvaluationHtml(item.time)} - ${escapeEvaluationHtml(item.event)} (${escapeEvaluationHtml(item.ref)})</li>`).join('')}
-            </ul>
-        </section>
-    `;
+function getEvaluationRecommendedBid(tender = {}, bids = []) {
+    const seeded = mockData.bidEvaluation?.recommendation?.supplier;
+    return bids.find(bid => bid.supplier === seeded)
+        || [...bids].sort((a, b) => Number(a.financial?.correctedPrice || a.price || Infinity) - Number(b.financial?.correctedPrice || b.price || Infinity))[0]
+        || {};
 }
 
-function collectEvaluationDraftFromDom(reference, status = 'Saved as draft') {
-    const existing = getEvaluationDraft(reference) || {};
-    const panel = document.querySelector('[data-evaluation-step-panel]');
-    const scores = { ...(existing.scores || {}) };
-
-    document.querySelectorAll('[data-eval-result], [data-eval-score], [data-eval-comment], [data-eval-evidence]').forEach(field => {
-        const bidder = field.getAttribute('data-bidder');
-        const criterion = field.getAttribute('data-criterion');
-        if (!bidder || !criterion) return;
-
-        scores[bidder] = scores[bidder] || {};
-        scores[bidder][criterion] = scores[bidder][criterion] || {};
-
-        if (field.matches('[data-eval-result]')) scores[bidder][criterion].result = field.value;
-        if (field.matches('[data-eval-score]')) {
-            scores[bidder][criterion].score = field.value === '' ? '' : Number(field.value || 0);
-            scores[bidder][criterion].maxScore = Number(field.getAttribute('max') || field.dataset.maxScore || 0);
-        }
-        if (field.matches('[data-eval-comment]')) scores[bidder][criterion].comment = field.value;
-        if (field.matches('[data-eval-evidence]')) scores[bidder][criterion].evidence = field.value;
-    });
-
-    const currentCriterionIndex = Number(panel?.getAttribute('data-current-criterion-index') || existing.currentCriterionIndex || 0);
-    const currentBidderIndex = Number(panel?.getAttribute('data-current-bidder-index') || existing.currentBidderIndex || 0);
-    const totalItems = Number(panel?.getAttribute('data-total-items') || 1);
-    const completedItems = Object.values(scores).reduce((sum, bidderScores) => (
-        sum + Object.values(bidderScores || {}).filter(row => isEvaluationScoreComplete(row)).length
-    ), 0);
-    const progress = status === 'Completed' ? 100 : Math.min(99, Math.max(existing.progress || 0, Math.round((completedItems / Math.max(1, totalItems)) * 100)));
-
-    return {
-        ...existing,
-        reference,
-        status,
-        currentStage: status === 'Completed' ? 'report' : 'technical',
-        currentCriterionIndex,
-        currentBidderIndex,
-        scores,
-        recommendation: existing.recommendation || {},
-        progress,
-        savedAt: new Date().toISOString(),
-        completedAt: status === 'Completed' ? new Date().toISOString() : existing.completedAt
-    };
-}
-
-function getEvaluationProgress(stages, currentStage) {
-    const actionableStages = stages.filter(stage => stage.id !== 'overview' && stage.id !== 'audit');
-    const currentIndex = actionableStages.findIndex(stage => stage.id === currentStage);
-    if (currentIndex < 0) return 0;
-    return Math.round(((currentIndex + 1) / Math.max(1, actionableStages.length)) * 100);
-}
-
-function getEvaluationTenderRuntime(item) {
-    const saved = getEvaluationDraft(item.reference);
-    const progress = saved?.progress ?? item.progress ?? 0;
-    const status = saved?.status || item.draftStatus || 'Not started';
-    const savedDate = saved?.savedAt || saved?.completedAt || '';
-    const savedLabel = savedDate
-        ? new Date(savedDate).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-        : 'No browser draft';
-
-    return {
-        status,
-        progress,
-        savedLabel,
-        action: status === 'Completed' ? 'Review Evaluation' : status === 'Saved as draft' ? 'Continue Evaluation' : 'Open Evaluation'
-    };
-}
-
-function renderEvaluationTenderSelection(evaluation) {
-    const readyTenders = evaluation.readyTenders || [];
-
+function renderEvaluationShell(content, title = 'Evaluation', subtitle = '') {
     return `
         <div class="main-layout procurement-layout evaluation-app-layout">
             <aside class="sidebar evaluation-sidebar">
                 <div class="evaluation-sidebar-head">
-                    <h3>Bid Evaluation</h3>
-                    <span>Select tender</span>
-                </div>
-                <ul class="sidebar-nav">
-                    <li><a href="#" data-navigate="workspace-dashboard">Workspace Dashboard</a></li>
-                    <li><a href="#" data-navigate="bid-evaluation" class="active">Evaluation</a></li>
-                    <li><a href="#" data-navigate="welcome">Logout</a></li>
-                </ul>
-            </aside>
-
-            <main class="main-content procurement-content evaluation-workspace">
-                <section class="procurement-hero evaluation-hero-panel evaluation-selection-hero">
-                    <div>
-                        <span class="section-kicker">Evaluation app</span>
-                        <h1>Select Tender for Evaluation</h1>
-                        <p>Choose the tender you posted and want to evaluate. Each tender has its own locked submissions, buyer-defined criteria, draft progress, generated report, recommendation, and audit trail.</p>
-                    </div>
-                    <div class="evaluation-hero-stats">
-                        <div><strong>${readyTenders.length}</strong><span>Ready tenders</span></div>
-                        <div><strong>${readyTenders.reduce((sum, item) => sum + Number(item.bidsReceived || 0), 0)}</strong><span>Total bids</span></div>
-                    </div>
-                </section>
-
-                <section class="procurement-panel evaluation-panel">
-                    <div class="panel-heading">
-                        <div>
-                            <span class="section-kicker">Tenders ready for evaluation</span>
-                            <h2>Start by opening the correct bid evaluation</h2>
-                        </div>
-                    </div>
-                    <div class="evaluation-ready-grid">
-                        ${readyTenders.map(item => {
-                            const runtime = getEvaluationTenderRuntime(item);
-                            return `
-                                <article class="evaluation-ready-card evaluation-select-card">
-                                    <div>
-                                        <span class="section-kicker">${escapeEvaluationHtml(item.category)}</span>
-                                        <h3>${escapeEvaluationHtml(item.title)}</h3>
-                                        <p>${escapeEvaluationHtml(item.reference)}</p>
-                                    </div>
-                                    <div class="evaluation-ready-meta">
-                                        <span><strong>${escapeEvaluationHtml(item.closingDate)}</strong> closing date</span>
-                                        <span><strong>${item.bidsReceived}</strong> bids received</span>
-                                        <span><strong>${escapeEvaluationHtml(item.deadline)}</strong> evaluation deadline</span>
-                                        <span><strong>${runtime.progress}%</strong> progress</span>
-                                        <span><strong>${escapeEvaluationHtml(runtime.savedLabel)}</strong> last save</span>
-                                    </div>
-                                    <div class="evaluation-progress-track">
-                                        <span style="width: ${Math.min(100, Math.max(0, runtime.progress))}%"></span>
-                                    </div>
-                                    <div class="evaluation-card-footer">
-                                        ${renderEvaluationStatusBadge(item.status)}
-                                        ${renderEvaluationStatusBadge(runtime.status)}
-                                        ${renderEvaluationStatusBadge(`COI ${item.conflictStatus}`)}
-                                    </div>
-                                    <div class="evaluation-card-footer">
-                                        <button class="btn btn-primary" type="button" data-evaluation-select="${escapeEvaluationHtml(item.reference)}">${escapeEvaluationHtml(runtime.action)}</button>
-                                        ${runtime.status === 'Completed' ? `
-                                            <button class="btn btn-secondary" type="button" data-evaluation-view-report="${escapeEvaluationHtml(item.reference)}">View Report</button>
-                                            <button class="btn btn-secondary" type="button" data-evaluation-download-report="${escapeEvaluationHtml(item.reference)}">Download Report</button>
-                                        ` : ''}
-                                    </div>
-                                </article>
-                            `;
-                        }).join('')}
-                    </div>
-                </section>
-            </main>
-        </div>
-    `;
-}
-
-function renderBidEvaluation() {
-    const evaluation = mockData.bidEvaluation || {};
-    const reportReference = getSelectedEvaluationReportReference();
-    const selectedReference = reportReference || getSelectedEvaluationTenderReference(evaluation);
-    const hasMultipleTenders = (evaluation.readyTenders || []).length > 1;
-
-    if (hasMultipleTenders && !selectedReference) {
-        return renderEvaluationTenderSelection(evaluation);
-    }
-
-    const tender = getEvaluationTenderModel(evaluation, selectedReference);
-    const bids = evaluation.bids || [];
-    const stages = getEvaluationStagesForTender(tender, evaluation.stages || []);
-    const allCriteria = getEvaluationCriteriaForTender(tender.sourceTender, evaluation.technicalCriteria || []);
-    const criteria = getEvaluationScoringCriteriaForTender(tender.sourceTender, evaluation.technicalCriteria || []);
-    const opening = evaluation.openingReport || {};
-    const benchmark = evaluation.benchmark || {};
-    const recommended = evaluation.recommendation || {};
-    const stageIndex = Math.max(0, stages.findIndex(stage => stage.id === (evaluation.currentStage || 'technical')));
-    const savedDraft = getEvaluationDraft(tender.reference);
-    const draftStatus = savedDraft?.status || tender.draftStatus || 'Draft';
-    const progress = getEvaluationDraftProgress(savedDraft, criteria, bids) || tender.progress || getEvaluationProgress(stages, evaluation.currentStage || 'technical');
-    const lastSaved = savedDraft?.savedAt ? new Date(savedDraft.savedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Not saved in this browser';
-    const technicalMax = getEvaluationTechnicalMax(criteria);
-    const passMark = evaluation.minimumTechnicalPassMark || 70;
-    const passedTechnical = getEvaluationQualifiedBids(bids, criteria, savedDraft, passMark);
-    const ranking = getEvaluationRankedBids(tender, bids, criteria, savedDraft, { passMark, recommendation: recommended, benchmark });
-    const rankingBySupplier = new Map(ranking.map(item => [item.bid.supplier, item]));
-    const topBidRecord = getEvaluationRecommendedBid(tender, bids, criteria, savedDraft, { passMark, recommendation: recommended, benchmark });
-    const topBid = savedDraft?.recommendation?.supplier || topBidRecord.supplier || recommended.supplier || '-';
-    const selectionMethod = getEvaluationSelectionMethod(tender, recommended);
-    const boqComparisonRows = getEvaluationBoqComparisonRows(tender, bids);
-    const tenderBoqTotal = getEvaluationTenderBoqTotal(boqComparisonRows);
-    const timelineStatus = getEvaluationTimelineStatus(tender);
-    const tenderRequiredDocuments = getEvaluationRequiredSubmissionDocuments(tender);
-    const tenderLicenses = tender.sourceTender?.regulatoryLicenses || tender.regulatoryLicenses || [];
-    const tenderRequirementCount = getEvaluationTenderConfiguredRequirementCount(tender);
-    const currentCriterionIndex = criteria.length ? Math.min(criteria.length - 1, Math.max(0, Number(savedDraft?.currentCriterionIndex || 0))) : 0;
-    const currentBidderIndex = bids.length ? Math.min(bids.length - 1, Math.max(0, Number(savedDraft?.currentBidderIndex || 0))) : 0;
-    const requiredEvaluationItems = criteria.length * bids.length;
-    const completedEvaluationItems = criteria.reduce((sum, criterion) => (
-        sum + bids.filter(bid => {
-            const row = savedDraft?.scores?.[bid.supplier]?.[criterion.id];
-            return isEvaluationScoreComplete(row, criterion);
-        }).length
-    ), 0);
-    const canCompleteEvaluation = requiredEvaluationItems > 0 && completedEvaluationItems >= requiredEvaluationItems;
-    const conflictCleared = /complete|cleared|submitted|approved/i.test(String(tender.conflictStatus || ''));
-
-    const renderReportPage = () => `
-        <div class="main-layout procurement-layout evaluation-app-layout">
-            <aside class="sidebar evaluation-sidebar">
-                <div class="evaluation-sidebar-head">
-                    <h3>Evaluation Report</h3>
-                    <span>${escapeEvaluationHtml(tender.reference || '')}</span>
-                </div>
-                <ul class="sidebar-nav">
-                    <li><a href="#" data-evaluation-close-report>Select Tender</a></li>
-                    <li><a href="#" data-evaluation-download-report="${escapeEvaluationHtml(tender.reference)}">Download Report</a></li>
-                    <li><a href="#" data-navigate="workspace-dashboard">Workspace Dashboard</a></li>
-                </ul>
-            </aside>
-            <main class="main-content procurement-content evaluation-workspace">
-                <section class="procurement-hero evaluation-hero-panel">
-                    <div>
-                        <span class="section-kicker">Generated evaluation report</span>
-                        <h1>${escapeEvaluationHtml(tender.title)}</h1>
-                        <p>This report was generated from the buyer evaluation draft saved for this tender.</p>
-                    </div>
-                    <div class="evaluation-hero-stats">
-                        <div><strong>${escapeEvaluationHtml(savedDraft?.status || 'Draft')}</strong><span>Status</span></div>
-                        <div><strong>${progress}%</strong><span>Progress</span></div>
-                    </div>
-                </section>
-                <section class="procurement-panel evaluation-panel">
-                    <div class="panel-heading">
-                        <div>
-                            <span class="section-kicker">Report preview</span>
-                            <h2>View and download evaluation report</h2>
-                        </div>
-                        <button class="btn btn-primary" type="button" data-evaluation-download-report="${escapeEvaluationHtml(tender.reference)}">Download Report</button>
-                    </div>
-                    ${renderEvaluationReportDocument(tender, criteria, bids, savedDraft, evaluation.auditTrail || [])}
-                </section>
-            </main>
-        </div>
-    `;
-
-    if (reportReference) {
-        return renderReportPage();
-    }
-
-    const renderTenderReadiness = () => `
-        <div class="evaluation-ready-grid evaluation-single-tender-grid">
-            <article class="evaluation-ready-card">
-                <div>
-                    <span class="section-kicker">${escapeEvaluationHtml(tender.category)}</span>
-                    <h3>${escapeEvaluationHtml(tender.title)}</h3>
-                    <p>${escapeEvaluationHtml(tender.reference)}</p>
-                </div>
-                <div class="evaluation-ready-meta">
-                    <span><strong>${escapeEvaluationHtml(tender.closingDate)}</strong> closing date</span>
-                    <span><strong>${escapeEvaluationHtml(tender.bidders || bids.length)}</strong> bids received</span>
-                    <span><strong>${escapeEvaluationHtml(tender.evaluationDeadline)}</strong> evaluation deadline</span>
-                    <span><strong>${escapeEvaluationHtml(timelineStatus.label)}</strong> timeline</span>
-                </div>
-                <div class="evaluation-card-footer">
-                    ${renderEvaluationStatusBadge(tender.status)}
-                    ${renderEvaluationStatusBadge(`Draft: ${draftStatus}`)}
-                    ${renderEvaluationStatusBadge(`COI ${tender.conflictStatus}`)}
-                    ${renderEvaluationStatusBadge(timelineStatus.status)}
-                </div>
-                <p class="evaluation-small-note">This evaluation record belongs only to this tender. Scores, comments, clarifications, draft saves, recommendation, and audit trail are not shared with other tenders.</p>
-            </article>
-            <article class="evaluation-ready-card evaluation-draft-card">
-                <div>
-                    <span class="section-kicker">Evaluation draft</span>
-                    <h3>${progress}% complete</h3>
-                    <p>Last saved: ${escapeEvaluationHtml(lastSaved)}</p>
-                </div>
-                <div class="evaluation-progress-track">
-                    <span style="width: ${Math.min(100, Math.max(0, progress))}%"></span>
-                </div>
-                <div class="evaluation-card-footer">
-                    <button class="btn btn-secondary" type="button" data-evaluation-save-draft="${escapeEvaluationHtml(tender.reference)}">Save Draft</button>
-                    <button class="btn btn-primary" type="button" data-tab-jump="recommendation">Continue Evaluation</button>
-                    ${savedDraft?.status === 'Returned for review' ? '<button class="btn btn-secondary" type="button" data-tab-jump="technical">Re-evaluate</button>' : ''}
-                </div>
-            </article>
-        </div>
-    `;
-
-    const renderEvaluationBasisSummary = () => `
-        <section class="evaluation-basis-summary">
-            <div class="panel-heading">
-                <div>
-                    <span class="section-kicker">Evaluation basis studied from tender</span>
-                    <h3>What this evaluation reads before scoring</h3>
-                </div>
-                ${renderEvaluationStatusBadge(tenderRequirementCount ? `${tenderRequirementCount} configured items` : 'No tender-specific setup')}
-            </div>
-            <div class="evaluation-basis-grid">
-                <article>
-                    <span>Tender type</span>
-                    <strong>${escapeEvaluationHtml(tender.sourceTender?.type || tender.category || 'Not configured')}</strong>
-                    <em>Used to choose the evaluation flow and commercial schedule shape.</em>
-                </article>
-                <article>
-                    <span>Required documents</span>
-                    <strong>${tenderRequiredDocuments.length}</strong>
-                    <em>${escapeEvaluationHtml(tenderRequiredDocuments.slice(0, 3).join(', ') || 'No requirement configured')}</em>
-                </article>
-                <article>
-                    <span>Licenses / eligibility basis</span>
-                    <strong>${tenderLicenses.length}</strong>
-                    <em>${escapeEvaluationHtml(tenderLicenses.slice(0, 2).map(item => item.license || item.name).filter(Boolean).join(', ') || 'No requirement configured')}</em>
-                </article>
-                <article>
-                    <span>Evaluation criteria</span>
-                    <strong>${criteria.length}</strong>
-                    <em>${escapeEvaluationHtml(criteria.slice(0, 3).map(item => item.name).join(', ') || 'No technical criteria configured')}${allCriteria.length !== criteria.length ? '; price criteria handled in financial stage.' : ''}</em>
-                </article>
-                <article>
-                    <span>Technical pass mark</span>
-                    <strong>${passMark}%</strong>
-                    <em>Financial ranking studies only technically qualified bidders.</em>
-                </article>
-                <article>
-                    <span>Financial ranking method</span>
-                    <strong>${escapeEvaluationHtml(selectionMethod)}</strong>
-                    <em>Recommendation logic follows this studied method.</em>
-                </article>
-            </div>
-        </section>
-    `;
-
-    const renderEvaluationWorkflowOverview = () => `
-        <section class="evaluation-workflow-map">
-            <div class="panel-heading">
-                <div>
-                    <span class="section-kicker">Systematic buyer evaluation workflow</span>
-                    <h3>Required order for this tender</h3>
-                </div>
-                ${renderEvaluationStatusBadge(`${stages.length} stages`)}
-            </div>
-            <div class="evaluation-workflow-grid">
-                ${stages.map((stage, index) => `
-                    <article>
-                        <strong>${String(index + 1).padStart(2, '0')}</strong>
-                        <span>${escapeEvaluationHtml(stage.label)}</span>
-                        <em>${escapeEvaluationHtml(stage.id === 'conflict'
-                            ? 'Must be cleared before bid contents are studied.'
-                            : stage.id === 'financial'
-                                ? 'Unlocked after technical pass mark.'
-                                : stage.id === 'comparison'
-                                    ? 'Ranking and side-by-side decision view.'
-                                    : 'Tender-driven evaluation step.')}</em>
-                    </article>
-                `).join('')}
-            </div>
-        </section>
-    `;
-
-    const renderEvaluationAccessLock = (title = 'Evaluation access locked') => `
-        <section class="procurement-panel evaluation-panel evaluation-access-lock">
-            <div class="panel-heading">
-                <div>
-                    <span class="section-kicker">Conflict declaration required</span>
-                    <h2>${escapeEvaluationHtml(title)}</h2>
-                </div>
-                ${renderEvaluationStatusBadge(tender.conflictStatus || 'COI pending')}
-            </div>
-            <div class="evaluation-notice warning">The buyer cannot access supplier bid contents until the buyer conflict of interest declaration is submitted and cleared for this tender.</div>
-            <button class="btn btn-primary" type="button" data-tab-jump="conflict">Go to Conflict Declaration</button>
-        </section>
-    `;
-
-    const renderIntelligence = () => `
-        <div class="evaluation-intel-grid">
-            <article class="evaluation-intel-panel">
-                <div class="panel-heading">
-                    <div>
-                        <span class="section-kicker">Price benchmarking</span>
-                        <h3>Market realism check</h3>
-                    </div>
-                    ${renderEvaluationStatusBadge(evaluation.priceOutliers ? 'Watch' : 'Clear')}
-                </div>
-                <div class="evaluation-summary-grid">
-                    <div><span>Buyer estimate</span><strong>${formatEvaluationMoney(benchmark.buyerEstimate)}</strong></div>
-                    <div><span>Market median</span><strong>${formatEvaluationMoney(benchmark.marketMedian)}</strong></div>
-                    <div><span>Best Evaluated Bid</span><strong>${formatEvaluationMoney(benchmark.comparableEconomicCost)}</strong></div>
-                    <div><span>Variance band</span><strong>${escapeEvaluationHtml(benchmark.varianceBand || '-')}</strong></div>
-                </div>
-                <div class="evaluation-note-list">
-                    ${(benchmark.notes || []).map(note => `<span>${escapeEvaluationHtml(note)}</span>`).join('')}
-                </div>
-            </article>
-            <article class="evaluation-intel-panel">
-                <div class="panel-heading">
-                    <div>
-                        <span class="section-kicker">Risk and compliance</span>
-                        <h3>Signals before recommendation</h3>
-                    </div>
-                    ${renderEvaluationStatusBadge('1 watch item')}
-                </div>
-                <div class="evaluation-signal-list">
-                    ${(evaluation.riskSignals || []).map(signal => `
-                        <div>
-                            <strong>${escapeEvaluationHtml(signal.supplier)}</strong>
-                            <span>${escapeEvaluationHtml(signal.driver)}</span>
-                            ${renderEvaluationStatusBadge(`${signal.risk} risk`)}
-                        </div>
-                    `).join('')}
-                    ${(evaluation.collusionSignals || []).map(signal => `
-                        <div>
-                            <strong>${escapeEvaluationHtml(signal.signal)}</strong>
-                            <span>${escapeEvaluationHtml(signal.detail)}</span>
-                            ${renderEvaluationStatusBadge(signal.status)}
-                        </div>
-                    `).join('')}
-                </div>
-            </article>
-        </div>
-    `;
-
-    const renderOpening = () => `
-        <section class="procurement-panel evaluation-panel">
-            <div class="panel-heading">
-                <div>
-                    <span class="section-kicker">Bid opening summary</span>
-                    <h2>Submissions are locked and disclosed by stage</h2>
-                </div>
-                ${renderEvaluationStatusBadge(opening.hashStatus || 'Verified')}
-            </div>
-            <div class="evaluation-notice success">${escapeEvaluationHtml(opening.message || evaluation.emptyStates?.notStarted || '')}</div>
-            <div class="evaluation-summary-grid">
-                <div><span>Opening time</span><strong>${escapeEvaluationHtml(opening.openingTime)}</strong></div>
-                <div><span>Envelope opened</span><strong>${escapeEvaluationHtml(opening.envelope)}</strong></div>
-                <div><span>Authorized by</span><strong>${escapeEvaluationHtml((opening.authorizedBy || []).join(', '))}</strong></div>
-                <div><span>Audit reference</span><strong>${escapeEvaluationHtml(opening.auditReference)}</strong></div>
-            </div>
-            <div class="data-table evaluation-table-scroll">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Supplier</th>
-                            <th>Submission time</th>
-                            <th>Bid status</th>
-                            <th>Documents</th>
-                            <th>Technical</th>
-                            <th>Financial</th>
-                            <th>Bid security</th>
-                            <th>Deadline</th>
-                            <th>Remarks</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${(opening.submissions || []).map(row => `
-                            <tr>
-                                <td>${escapeEvaluationHtml(row.supplier)}</td>
-                                <td>${escapeEvaluationHtml(row.time)}</td>
-                                <td>${renderEvaluationStatusBadge(row.status)}</td>
-                                <td>${escapeEvaluationHtml((row.documents || []).join(', '))}</td>
-                                <td>${escapeEvaluationHtml(row.technicalOffer)}</td>
-                                <td>${escapeEvaluationHtml(row.financialOffer)}</td>
-                                <td>${escapeEvaluationHtml(row.bidSecurity)}</td>
-                                <td>${renderEvaluationStatusBadge(row.deadline)}</td>
-                                <td>${escapeEvaluationHtml(row.remarks)}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    `;
-
-    const renderConflict = () => `
-        <section class="procurement-panel evaluation-panel">
-            <div class="panel-heading">
-                <div>
-                    <span class="section-kicker">Conflict of interest declaration</span>
-                    <h2>Declaration required before evaluation</h2>
-                </div>
-                ${renderEvaluationStatusBadge(tender.conflictStatus || 'Pending')}
-            </div>
-            <p class="evaluation-lead">Before evaluating this tender, the buyer must confirm whether they have any personal, financial, professional, or other relationship with any bidder that may affect impartial judgment. Supplier details and bid documents remain locked until this declaration is submitted and cleared.</p>
-            <div class="evaluation-option-row">
-                <label><input type="radio" name="conflict-option" checked> I have no conflict of interest.</label>
-                <label><input type="radio" name="conflict-option"> I have a potential conflict of interest.</label>
-            </div>
-            <div class="evaluation-form-grid">
-                <label>Supplier involved <input class="form-input" type="text" value="Prime Contractors"></label>
-                <label>Type of conflict <input class="form-input" type="text" value="Professional"></label>
-                <label>Recommended action <input class="form-input" type="text" value="Record and manage before evaluation"></label>
-                <label>Explanation <textarea class="form-input" rows="3">Prior project relationship disclosed for buyer review.</textarea></label>
-            </div>
-            <div class="data-table">
-                <table>
-                    <thead><tr><th>Buyer user</th><th>Role</th><th>Declaration</th><th>Supplier</th><th>Action</th><th>Submitted</th><th>Status</th></tr></thead>
-                    <tbody>
-                        ${(evaluation.conflictDeclarations || []).map(item => `
-                            <tr>
-                                <td>${escapeEvaluationHtml(item.buyerUser)}</td>
-                                <td>${escapeEvaluationHtml(item.role)}</td>
-                                <td>${escapeEvaluationHtml(item.declaration)}</td>
-                                <td>${escapeEvaluationHtml(item.supplier)}</td>
-                                <td>${escapeEvaluationHtml(item.action)}</td>
-                                <td>${escapeEvaluationHtml(item.submittedAt)}</td>
-                                <td>${renderEvaluationStatusBadge(item.status)}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    `;
-
-    const renderPreliminary = () => !conflictCleared ? renderEvaluationAccessLock('Preliminary evaluation locked') : `
-        <section class="procurement-panel evaluation-panel">
-            <div class="panel-heading">
-                <div>
-                    <span class="section-kicker">Preliminary evaluation</span>
-                    <h2>Mandatory administrative compliance</h2>
-                </div>
-                ${renderEvaluationStatusBadge('Opening Completed')}
-            </div>
-            <p class="evaluation-lead">Confirm that each bidder submitted required documents and complied with basic tender instructions before technical evaluation. Checklist items are generated from the selected tender's submission documents and requirements. Result options are Passed, Failed, Requires Clarification, and Not Applicable.</p>
-            <div class="evaluation-supplier-grid">
-                ${bids.map((bid, bidderIndex) => `
-                    <article class="evaluation-supplier-card">
-                        <div class="evaluation-supplier-head">
-                            <div>
-                                <strong>${escapeEvaluationHtml(bid.supplier)}</strong>
-                                <span>${escapeEvaluationHtml(bid.registrationNumber)} / ${escapeEvaluationHtml(bid.contactPerson)}</span>
-                            </div>
-                            ${renderEvaluationStatusBadge(bid.preliminaryResult)}
-                        </div>
-                        ${renderEvaluationChecklist(generateEvaluationPreliminaryChecklist(tender, bid, bidderIndex))}
-                    </article>
-                `).join('')}
-            </div>
-        </section>
-    `;
-
-    const renderEligibility = () => !conflictCleared ? renderEvaluationAccessLock('Eligibility evaluation locked') : `
-        <section class="procurement-panel evaluation-panel">
-            <div class="panel-heading">
-                <div>
-                    <span class="section-kicker">Eligibility evaluation</span>
-                    <h2>Legal, professional, and capacity qualification</h2>
-                </div>
-                ${renderEvaluationStatusBadge('Eligibility Review')}
-            </div>
-            <div class="evaluation-supplier-grid">
-                ${bids.map((bid, bidderIndex) => `
-                    <article class="evaluation-supplier-card">
-                        <div class="evaluation-supplier-head">
-                            <div>
-                                <strong>${escapeEvaluationHtml(bid.supplier)}</strong>
-                                <span>${escapeEvaluationHtml((bid.documents || []).join(', '))}</span>
-                            </div>
-                            ${renderEvaluationStatusBadge(bid.eligibilityResult)}
-                        </div>
-                        ${renderEvaluationChecklist(generateEvaluationEligibilityChecklist(tender, bid, bidderIndex))}
-                    </article>
-                `).join('')}
-            </div>
-        </section>
-    `;
-
-    const renderTechnical = () => {
-        if (!conflictCleared) return renderEvaluationAccessLock('Technical evaluation locked');
-        const criterion = criteria[currentCriterionIndex] || criteria[0] || {};
-        const bid = bids[currentBidderIndex] || bids[0] || {};
-        const savedResult = getEvaluationDraftScore(savedDraft, bid.supplier, criterion.id, 'result', 'Pass');
-        const savedScore = getEvaluationDraftScore(savedDraft, bid.supplier, criterion.id, 'score', getDefaultEvaluationScore(bid, criterion));
-        const savedComment = getEvaluationDraftScore(savedDraft, bid.supplier, criterion.id, 'comment', '');
-        const savedEvidence = getEvaluationDraftScore(savedDraft, bid.supplier, criterion.id, 'evidence', (criterion.subcriteria || []).slice(0, 2).join(', '));
-        const completedCount = criteria.reduce((sum, item) => (
-            sum + bids.filter(candidate => isEvaluationScoreComplete(savedDraft?.scores?.[candidate.supplier]?.[item.id], item)).length
-        ), 0);
-        const totalItems = Math.max(1, criteria.length * bids.length);
-        const bidDocument = renderEvaluationSupplierBidDocument(tender, bid, currentBidderIndex, criteria);
-        const criterionEvidence = getEvaluationCriterionEvidence(tender, bid, currentBidderIndex, criterion);
-        const commentRequired = isEvaluationScoreCommentRequired({ result: savedResult, score: savedScore }, criterion);
-
-        return `
-            <section class="procurement-panel evaluation-panel">
-                <div class="panel-heading">
-                    <div>
-                        <span class="section-kicker">Buyer evaluation workspace</span>
-                        <h2>Evaluate one criterion and one bidder at a time</h2>
-                    </div>
-                    ${renderEvaluationStatusBadge(`${completedCount} of ${totalItems} items recorded`)}
-                </div>
-                <div class="evaluation-notice success">This evaluation studies the tender design to understand what should be scored. Same-browser bid submissions are optional evidence; when unavailable, mock evaluation data is clearly labelled.</div>
-                <div class="evaluation-assignment-grid">
-                    ${criteria.map((item, index) => {
-                        return `
-                            <article>
-                                <span>${escapeEvaluationHtml(item.name)}</span>
-                                <strong>${escapeEvaluationHtml(tender.organization || mockData.users?.buyer?.organization || 'Buyer')}</strong>
-                                <small>${escapeEvaluationHtml(savedDraft?.scoringMode || 'Buyer scoring')}</small>
-                            </article>
-                        `;
-                    }).join('')}
-                </div>
-                <div class="evaluation-step-grid" data-evaluation-step-panel data-current-criterion-index="${currentCriterionIndex}" data-current-bidder-index="${currentBidderIndex}" data-total-items="${totalItems}">
-                    <aside class="evaluation-step-rail">
-                        <span class="section-kicker">Criteria from tender</span>
-                        ${criteria.map((item, index) => `
-                            <button class="evaluation-step-criterion ${index === currentCriterionIndex ? 'active' : ''}" type="button" data-evaluation-jump-criterion="${index}">
-                                <strong>${escapeEvaluationHtml(item.name)}</strong>
-                                <span>${escapeEvaluationHtml(item.weight || item.maxScore)}% / ${(item.subcriteria || []).length} subcriteria</span>
-                            </button>
-                        `).join('')}
-                    </aside>
-                    <section class="evaluation-step-card">
-                        <div class="evaluation-step-head">
-                            <div>
-                                <span class="section-kicker">Criterion ${currentCriterionIndex + 1} of ${criteria.length}</span>
-                                <h3>${escapeEvaluationHtml(criterion.name)}</h3>
-                                <p>Weight / maximum score: ${escapeEvaluationHtml(criterion.weight || criterion.maxScore)}. Evaluation type: Technical or compliance review. Price ranking is handled separately in Financial Evaluation.</p>
-                            </div>
-                            <div class="evaluation-bidder-switcher">
-                                <span>Bidder ${currentBidderIndex + 1} of ${bids.length}</span>
-                                <strong>${escapeEvaluationHtml(bid.supplier)}</strong>
-                            </div>
-                        </div>
-
-                        <div class="evaluation-subcriteria-panel">
-                            <span class="section-kicker">Items to check under this criterion</span>
-                            <div class="evaluation-subcriteria-list-readonly">
-                                ${(criterion.subcriteria || []).map(item => `<span>${escapeEvaluationHtml(item)}</span>`).join('') || '<span>No subcriteria defined for this criterion.</span>'}
-                            </div>
-                        </div>
-
-                        <div class="evaluation-criterion-review-grid">
-                            <article>
-                                <span class="section-kicker">Tender criterion</span>
-                                <h4>${escapeEvaluationHtml(criterion.name || 'Criterion')}</h4>
-                                <p>${escapeEvaluationHtml((criterion.subcriteria || []).join(', ') || criterion.description || 'Evaluate against the tender definition.')}</p>
-                            </article>
-                            <article>
-                                <span class="section-kicker">Bidder response evidence</span>
-                                <div class="evaluation-evidence-list">
-                                    ${criterionEvidence.map(item => `
-                                        <div>
-                                            <strong>${escapeEvaluationHtml(item.label)}</strong>
-                                            <span>${escapeEvaluationHtml(item.value)}</span>
-                                            <small>${escapeEvaluationHtml([item.source, item.document].filter(Boolean).join(' / '))}</small>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            </article>
-                        </div>
-
-                        ${criterion.type === 'financial' ? `
-                            <div class="evaluation-financial-review">
-                                <div><span>Quoted price</span><strong>${formatEvaluationMoney(bid.price, bid.financial?.currency || 'TZS')}</strong></div>
-                                <div><span>Corrected price</span><strong>${formatEvaluationMoney(bid.financial?.correctedPrice, bid.financial?.currency || 'TZS')}</strong></div>
-                                <div><span>BOQ status</span><strong>${escapeEvaluationHtml(bid.financial?.boqStatus || 'Pending')}</strong></div>
-                                <div><span>Ranking</span><strong>${escapeEvaluationHtml(bid.financial?.ranking || '-')}</strong></div>
-                            </div>
-                        ` : ''}
-
-                        <div class="evaluation-entry-grid">
-                            <label>Result
-                                <select class="form-input" data-eval-result data-bidder="${escapeEvaluationHtml(bid.supplier)}" data-criterion="${escapeEvaluationHtml(criterion.id)}">
-                                    ${['Pass', 'Fail', 'Requires Clarification', 'Not Applicable'].map(option => `<option value="${option}" ${option === savedResult ? 'selected' : ''}>${option}</option>`).join('')}
-                                </select>
-                            </label>
-                            <label>Score
-                                <input class="form-input" type="number" min="0" max="${escapeEvaluationHtml(criterion.maxScore)}" data-max-score="${escapeEvaluationHtml(criterion.maxScore)}" value="${escapeEvaluationHtml(savedScore)}" data-eval-score data-bidder="${escapeEvaluationHtml(bid.supplier)}" data-criterion="${escapeEvaluationHtml(criterion.id)}">
-                            </label>
-                            <label>Evidence / document note
-                                <input class="form-input" value="${escapeEvaluationHtml(savedEvidence)}" data-eval-evidence data-bidder="${escapeEvaluationHtml(bid.supplier)}" data-criterion="${escapeEvaluationHtml(criterion.id)}">
-                            </label>
-                            <label>Buyer evaluation comment
-                                <textarea class="form-input" rows="4" ${commentRequired ? 'required' : ''} data-eval-comment data-bidder="${escapeEvaluationHtml(bid.supplier)}" data-criterion="${escapeEvaluationHtml(criterion.id)}">${escapeEvaluationHtml(savedComment)}</textarea>
-                                ${commentRequired ? '<small class="evaluation-field-help">Justification required for Fail, Requires Clarification, or a score below 50% of the maximum.</small>' : '<small class="evaluation-field-help">Comment is optional when result and score are complete.</small>'}
-                            </label>
-                        </div>
-
-                        <details class="evaluation-bid-document-review">
-                            <summary>Open full submitted bid package</summary>
-                            ${bidDocument}
-                        </details>
-
-                        <div class="evaluation-step-actions">
-                            <button class="btn btn-secondary" type="button" data-evaluation-move="previous">Previous Item</button>
-                            <button class="btn btn-secondary" type="button" data-evaluation-save-draft="${escapeEvaluationHtml(tender.reference)}">Save Draft</button>
-                            <button class="btn btn-primary" type="button" data-evaluation-move="next">Save and Next Item</button>
-                        </div>
-                    </section>
-                </div>
-            </section>
-        `;
-    };
-
-    const renderTechnicalGate = () => !conflictCleared ? renderEvaluationAccessLock('Technical pass approval locked') : `
-        <section class="procurement-panel evaluation-panel">
-            <div class="panel-heading">
-                <div>
-                    <span class="section-kicker">Technical pass/fail approval</span>
-                    <h2>Confirm which bidders can proceed to financial evaluation</h2>
-                </div>
-                ${renderEvaluationStatusBadge(`${passedTechnical.length} qualified`)}
-            </div>
-            <div class="evaluation-notice success">Financial opening and ranking use only bidders that meet or exceed the ${passMark}% technical pass mark. Below-threshold bidders remain visible for audit but are blocked from financial ranking.</div>
-            <div class="data-table evaluation-table-scroll">
-                <table>
-                    <thead><tr><th>Supplier</th><th>Technical score</th><th>Pass mark</th><th>Gate result</th><th>Document completeness</th><th>Risk signal</th></tr></thead>
-                    <tbody>
-                        ${bids.map((bid, index) => {
-                            const technicalPercent = getEvaluationTechnicalPercentForBid(bid, criteria, savedDraft);
-                            return `
-                                <tr>
-                                    <td>${escapeEvaluationHtml(bid.supplier)}</td>
-                                    <td><strong>${technicalPercent}%</strong></td>
-                                    <td>${passMark}%</td>
-                                    <td>${renderEvaluationStatusBadge(technicalPercent >= passMark ? 'Pass to financial' : 'Blocked from financial')}</td>
-                                    <td>${getEvaluationDocumentCompleteness(tender, bid, index)}%</td>
-                                    <td>${renderEvaluationStatusBadge(getEvaluationRiskSummary(tender, bid, index, criteria, savedDraft))}</td>
-                                </tr>
-                            `;
-                        }).join('')}
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    `;
-
-    const renderFinancial = () => !conflictCleared ? renderEvaluationAccessLock('Financial evaluation locked') : `
-        <section class="procurement-panel evaluation-panel">
-            <div class="panel-heading">
-                <div>
-                    <span class="section-kicker">Financial evaluation</span>
-                    <h2>Opened only after required technical pass</h2>
-                </div>
-                ${renderEvaluationStatusBadge(`${passedTechnical.length} of ${bids.length} technically qualified`)}
-            </div>
-            <div class="evaluation-notice warning">Supplier prices cannot be changed secretly. Every arithmetic correction must include an explanation and remains visible in the audit trail. Bidders below the ${passMark}% technical pass mark are shown as gated from financial ranking.</div>
-            <div class="data-table evaluation-table-scroll">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Supplier</th>
-                            <th>Technical gate</th>
-                            <th>Quoted price</th>
-                            <th>Taxes</th>
-                            <th>Discount</th>
-                            <th>Arithmetic correction</th>
-                            <th>Corrected price</th>
-                            <th>BOQ status</th>
-                            <th>Pricing status</th>
-                            <th>Ranking</th>
-                            <th>Correction note</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${bids.map(bid => `
-                            <tr>
-                                <td>${escapeEvaluationHtml(bid.supplier)}</td>
-                                <td>${renderEvaluationStatusBadge(getEvaluationTechnicalPercentForBid(bid, criteria, savedDraft) >= passMark ? `Pass ${getEvaluationTechnicalPercentForBid(bid, criteria, savedDraft)}%` : `Blocked ${getEvaluationTechnicalPercentForBid(bid, criteria, savedDraft)}%`)}</td>
-                                <td>${formatEvaluationMoney(bid.price, bid.financial?.currency || 'TZS')}</td>
-                                <td>${escapeEvaluationHtml(bid.financial?.taxesIncluded)}</td>
-                                <td>${escapeEvaluationHtml(bid.financial?.discount)}</td>
-                                <td>${formatEvaluationMoney(bid.financial?.arithmeticCorrection || 0, bid.financial?.currency || 'TZS')}</td>
-                                <td><strong>${formatEvaluationMoney(bid.financial?.correctedPrice, bid.financial?.currency || 'TZS')}</strong></td>
-                                <td>${renderEvaluationStatusBadge(bid.financial?.boqStatus || 'Pending')}</td>
-                                <td>${escapeEvaluationHtml(bid.financial?.pricingStatus)}</td>
-                                <td>${bid.financial?.ranking || '-'}</td>
-                                <td>${escapeEvaluationHtml(bid.financial?.correctionNote)}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-            <div class="evaluation-boq-comparison">
-                <div class="panel-heading">
-                    <div>
-                        <span class="section-kicker">BOQ / commercial schedule comparison</span>
-                        <h3>Line-by-line estimate against evaluated bid amounts</h3>
-                    </div>
-                    ${renderEvaluationStatusBadge(`${boqComparisonRows.length} tender lines`)}
-                </div>
-                ${boqComparisonRows.length ? `
-                    <div class="data-table evaluation-table-scroll">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>BOQ item</th>
-                                    <th>Buyer estimate</th>
-                                    ${bids.map(bid => `<th>${escapeEvaluationHtml(bid.supplier)}</th>`).join('')}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${boqComparisonRows.map(row => `
-                                    <tr>
-                                        <td><strong>${escapeEvaluationHtml(row.item)}</strong><br>${escapeEvaluationHtml(row.description)}<br><small>${escapeEvaluationHtml(row.qty)} ${escapeEvaluationHtml(row.unit)}</small></td>
-                                        <td>${formatEvaluationMoney(row.estimate)}</td>
-                                        ${bids.map((bid, index) => {
-                                            const amount = row.bidderAmounts[index] || 0;
-                                            const variance = row.estimate ? ((amount - row.estimate) / row.estimate) * 100 : 0;
-                                            return `<td>${formatEvaluationMoney(amount)}<br><small>${variance >= 0 ? '+' : ''}${variance.toFixed(1)}%</small></td>`;
-                                        }).join('')}
-                                    </tr>
-                                `).join('')}
-                                <tr>
-                                    <td><strong>Total</strong></td>
-                                    <td><strong>${formatEvaluationMoney(tenderBoqTotal)}</strong></td>
-                                    ${bids.map(bid => `<td><strong>${formatEvaluationMoney(getEvaluationBidPrice(bid))}</strong></td>`).join('')}
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                ` : '<div class="scope-empty">No BOQ or commercial schedule lines were found on this tender.</div>'}
-            </div>
-        </section>
-    `;
-
-    const renderClarifications = () => `
-        <section class="procurement-panel evaluation-panel">
-            <div class="panel-heading">
-                <div>
-                    <span class="section-kicker">Evaluation clarifications</span>
-                    <h2>Official questions and responses</h2>
-                </div>
-                ${renderEvaluationStatusBadge(`${(evaluation.clarifications || []).length} active`)}
-            </div>
-            <div class="evaluation-notice warning">Clarifications must not materially alter the original bid. They cannot change price, replace major documents, or introduce new bid information after closing.</div>
-            <div class="evaluation-clarification-list">
-                ${(evaluation.clarifications || []).map(item => `
-                    <article class="evaluation-clarification">
-                        <div>
-                            <span class="section-kicker">${escapeEvaluationHtml(item.supplier)}</span>
-                            <h3>${escapeEvaluationHtml(item.subject)}</h3>
-                            <p>${escapeEvaluationHtml(item.message)}</p>
-                            <small>${escapeEvaluationHtml(item.requirement)} / Due ${escapeEvaluationHtml(item.deadline)}</small>
-                        </div>
-                        <div>
-                            ${renderEvaluationStatusBadge(item.status)}
-                            <p>${escapeEvaluationHtml(item.buyerNote)}</p>
-                        </div>
-                    </article>
-                `).join('')}
-            </div>
-        </section>
-    `;
-
-    const renderPostQualification = () => !conflictCleared ? renderEvaluationAccessLock('Post-qualification locked') : `
-        <section class="procurement-panel evaluation-panel">
-            <div class="panel-heading">
-                <div>
-                    <span class="section-kicker">Post-qualification</span>
-                    <h2>Confirm capability of the leading substantially responsive bidder</h2>
-                </div>
-                ${renderEvaluationStatusBadge(topBid)}
-            </div>
-            <div class="evaluation-postqual-grid">
-                ${[
-                    ['Goods or sample verification', 'Confirm distributor authorization, sample outcome, warranty, and stock availability where required.'],
-                    ['Site or reference verification', 'Confirm similar contract references and visit evidence where required.'],
-                    ['Key personnel availability', 'Verify that nominated staff remain committed for delivery or contract execution.'],
-                    ['Equipment and resources', 'Confirm owned, leased, or committed resources for delivery.'],
-                    ['Performance security readiness', 'Confirm ability to provide security before contract signing where required.']
-                ].map(([title, note]) => `
-                    <article>
-                        <strong>${escapeEvaluationHtml(title)}</strong>
-                        <span>${escapeEvaluationHtml(note)}</span>
-                        ${renderEvaluationStatusBadge('Pending confirmation')}
-                    </article>
-                `).join('')}
-            </div>
-        </section>
-    `;
-
-    const renderComparison = () => !conflictCleared ? renderEvaluationAccessLock('Comparison matrix locked') : `
-        <section class="procurement-panel evaluation-panel">
-            <div class="panel-heading">
-                <div>
-                    <span class="section-kicker">Evaluation comparison matrix</span>
-                    <h2>Side-by-side bidder decision view</h2>
-                </div>
-                ${renderEvaluationStatusBadge(`Recommended: ${topBid}`)}
-            </div>
-            <div class="data-table evaluation-table-scroll">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Criteria</th>
-                            ${bids.map(bid => `<th>${escapeEvaluationHtml(bid.supplier)}</th>`).join('')}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${[
-                            ['Preliminary evaluation', (bid, index) => generateEvaluationPreliminaryChecklist(tender, bid, index).every(item => /pass/i.test(item.result)) ? 'Pass' : 'Clarification'],
-                            ['Eligibility', (bid, index) => generateEvaluationEligibilityChecklist(tender, bid, index).some(item => /not eligible|fail/i.test(item.result)) ? 'Not eligible' : 'Eligible'],
-                            ...criteria.map(criterion => [
-                                criterion.name,
-                                bid => `${getEvaluationDraftScore(savedDraft, bid.supplier, criterion.id, 'score', getDefaultEvaluationScore(bid, criterion))}/${criterion.maxScore}`
-                            ]),
-                            ['Technical total', bid => `${getEvaluationTechnicalTotalForBid(bid, criteria, savedDraft)}/${technicalMax}`],
-                            [`Pass mark (${passMark}%)`, bid => getEvaluationTechnicalPercentForBid(bid, criteria, savedDraft) >= passMark ? `Pass ${getEvaluationTechnicalPercentForBid(bid, criteria, savedDraft)}%` : `Fail ${getEvaluationTechnicalPercentForBid(bid, criteria, savedDraft)}%`],
-                            ['Document completeness', (bid, index) => `${getEvaluationDocumentCompleteness(tender, bid, index)}%`],
-                            ['Financial offer', bid => formatEvaluationMoney(bid.price)],
-                            ['Corrected price', bid => formatEvaluationMoney(bid.financial?.correctedPrice)],
-                            ['Variance from estimate', bid => {
-                                const estimate = tenderBoqTotal || benchmark.buyerEstimate || 0;
-                                const variance = estimate ? ((getEvaluationBidPrice(bid) - estimate) / estimate) * 100 : 0;
-                                return estimate ? `${variance >= 0 ? '+' : ''}${variance.toFixed(1)}%` : '-';
-                            }],
-                            ['Risk signal', (bid, index) => getEvaluationRiskSummary(tender, bid, index, criteria, savedDraft)],
-                            ['Final ranking', bid => rankingBySupplier.get(bid.supplier)?.rank || '-'],
-                            ['Recommended', bid => bid.supplier === topBid ? 'Yes' : 'No']
-                        ].map(row => `
-                            <tr>
-                                <td><strong>${row[0]}</strong></td>
-                                ${bids.map((bid, index) => `<td>${escapeEvaluationHtml(row[1](bid, index))}</td>`).join('')}
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    `;
-
-    const renderReport = () => `
-        <section class="procurement-panel evaluation-panel">
-            <div class="panel-heading">
-                <div>
-                    <span class="section-kicker">Evaluation report generator</span>
-                    <h2>View and download generated report</h2>
-                </div>
-                <div class="inline-actions">
-                    <button class="btn btn-secondary" type="button" data-evaluation-view-report="${escapeEvaluationHtml(tender.reference)}">View Report</button>
-                    <button class="btn btn-primary" type="button" data-evaluation-download-report="${escapeEvaluationHtml(tender.reference)}">Download Report</button>
-                </div>
-            </div>
-            ${renderEvaluationReportDocument(tender, criteria, bids, savedDraft, evaluation.auditTrail || [])}
-        </section>
-    `;
-
-    const renderRecommendation = () => `
-        <section class="procurement-panel evaluation-panel">
-            <div class="panel-heading">
-                <div>
-                    <span class="section-kicker">Recommendation for award</span>
-                    <h2>Submit the buyer evaluation decision</h2>
-                </div>
-                ${renderEvaluationStatusBadge(recommended.decision || 'Draft')}
-            </div>
-            <div class="evaluation-form-grid recommendation-form">
-                <label>Recommended tenderer <input class="form-input" value="${escapeEvaluationHtml(savedDraft?.recommendation?.supplier || topBid)}"></label>
-                <label>Evaluation method used <input class="form-input" value="${escapeEvaluationHtml(selectionMethod)}"></label>
-                <label>Recommended amount <input class="form-input" value="${formatEvaluationMoney(savedDraft?.recommendation?.amount || topBidRecord.financial?.correctedPrice || topBidRecord.price || recommended.amount, recommended.currency)}"></label>
-                <label>Buyer evaluation decision <input class="form-input" value="${escapeEvaluationHtml(recommended.decision)}"></label>
-                <label>Reason for recommendation <textarea class="form-input" rows="4">${escapeEvaluationHtml(savedDraft?.recommendation?.reason || `${topBid} is recommended using ${selectionMethod}; the technical pass mark gate and financial ranking were applied.`)}</textarea></label>
-                <label>Conditions <textarea class="form-input" rows="4">${escapeEvaluationHtml(recommended.conditions)}</textarea></label>
-            </div>
-            <div class="evaluation-method-panel">
-                <div><span>Qualified bidders</span><strong>${passedTechnical.length}/${bids.length}</strong></div>
-                <div><span>Technical pass mark</span><strong>${passMark}%</strong></div>
-                <div><span>Ranking basis</span><strong>${escapeEvaluationHtml(selectionMethod)}</strong></div>
-                <div><span>Top evaluated rank</span><strong>${escapeEvaluationHtml(rankingBySupplier.get(topBid)?.rank || 1)}</strong></div>
-            </div>
-            <div class="inline-actions">
-                <button class="btn btn-secondary" type="button" data-evaluation-save-draft="${escapeEvaluationHtml(tender.reference)}">Save Draft</button>
-                <button class="btn btn-secondary" type="button" data-evaluation-view-report="${escapeEvaluationHtml(tender.reference)}">Preview Report</button>
-                <button class="btn btn-primary" type="button" data-tab-jump="audit">Submit Recommendation</button>
-                <button class="btn btn-secondary" type="button" data-evaluation-return-review="${escapeEvaluationHtml(tender.reference)}">Return for Review</button>
-            </div>
-        </section>
-    `;
-
-    const renderAudit = () => `
-        <section class="procurement-panel evaluation-panel">
-            <div class="panel-heading">
-                <div>
-                    <span class="section-kicker">Approvals and audit trail</span>
-                    <h2>Traceability and locked records</h2>
-                </div>
-                ${renderEvaluationStatusBadge('Audit recording')}
-            </div>
-            <div class="journey-grid two-col">
-                <div class="evaluation-role-list">
-                    ${(evaluation.roles || []).map(role => `
-                        <div class="evaluation-role-row">
-                            <strong>${escapeEvaluationHtml(role.role)}</strong>
-                            <span>${escapeEvaluationHtml(role.access)}</span>
-                        </div>
-                    `).join('')}
-                </div>
-                <div class="evaluation-audit-list">
-                    ${(evaluation.auditTrail || []).map(item => `
-                        <div class="evaluation-audit-row">
-                            <span>${escapeEvaluationHtml(item.time)}</span>
-                            <strong>${escapeEvaluationHtml(item.event)}</strong>
-                            <p>${escapeEvaluationHtml(item.actor)} / ${escapeEvaluationHtml(item.ref)}</p>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-            <div class="evaluation-finish-panel">
-                <div>
-                    <span class="section-kicker">Finish evaluation</span>
-                    <h3>Complete this tender evaluation</h3>
-                    <p>Use this only after all buyer-defined criteria have been evaluated for every bidder. Current completion: ${completedEvaluationItems} of ${requiredEvaluationItems} required evaluation items.</p>
-                </div>
-                <div class="inline-actions">
-                    <button class="btn btn-secondary" type="button" data-evaluation-save-draft="${escapeEvaluationHtml(tender.reference)}">Save Draft</button>
-                    <button class="btn btn-primary" type="button" data-evaluation-complete="${escapeEvaluationHtml(tender.reference)}" ${canCompleteEvaluation ? '' : 'disabled'}>Complete Evaluation</button>
-                </div>
-            </div>
-        </section>
-    `;
-
-    return `
-        <div class="main-layout procurement-layout evaluation-app-layout">
-            <aside class="sidebar evaluation-sidebar">
-                <div class="evaluation-sidebar-head">
-                    <h3>Bid Evaluation</h3>
-                    <span>${escapeEvaluationHtml(tender.reference || '')}</span>
+                    <h3>${escapeEvaluationHtml(title)}</h3>
+                    <span>${escapeEvaluationHtml(subtitle || 'Tender evaluation')}</span>
                 </div>
                 <ul class="sidebar-nav">
                     <li><a href="#" data-navigate="workspace-dashboard">Workspace Dashboard</a></li>
@@ -1840,145 +592,4245 @@ function renderBidEvaluation() {
                     <li><a href="#" data-navigate="welcome">Logout</a></li>
                 </ul>
             </aside>
-
             <main class="main-content procurement-content evaluation-workspace">
-                <section class="procurement-hero evaluation-hero-panel">
-                    <div>
-                        <span class="section-kicker">Evaluation app</span>
-                        <h1>${escapeEvaluationHtml(tender.title)}</h1>
-                        <p>This workspace is scoped to one tender posted by the buyer. The buyer can save draft progress, return later, evaluate each criterion for each bidder, generate the report, and complete the tender evaluation.</p>
-                    </div>
-                    <div class="evaluation-hero-stats">
-                        <div><strong>${evaluation.totalBids || bids.length}</strong><span>Total bids</span></div>
-                        <div><strong>${evaluation.validSubmissions || bids.length}</strong><span>Valid submissions</span></div>
-                        <div><strong>${progress}%</strong><span>Draft progress</span></div>
-                        <div><strong>${escapeEvaluationHtml(draftStatus)}</strong><span>Draft status</span></div>
-                    </div>
-                </section>
-
-                <section class="evaluation-top-summary">
-                    <div><span>Tender title</span><strong>${escapeEvaluationHtml(tender.title)}</strong></div>
-                    <div><span>Reference</span><strong>${escapeEvaluationHtml(tender.reference)}</strong></div>
-                    <div><span>Stage</span><strong>${escapeEvaluationHtml(tender.stage)}</strong></div>
-                    <div><span>Bidders</span><strong>${escapeEvaluationHtml(tender.bidders || bids.length)}</strong></div>
-                    <div><span>Deadline</span><strong>${escapeEvaluationHtml(tender.evaluationDeadline)}</strong></div>
-                    <div><span>Status</span>${renderEvaluationStatusBadge(tender.status || 'In Progress')}</div>
-                    <div><span>Draft</span>${renderEvaluationStatusBadge(draftStatus)}</div>
-                </section>
-
-                <div class="tabs wizard-step-progress evaluation-stage-tabs" style="--wizard-progress-ratio: ${Math.min(1, Math.max(0, stageIndex / Math.max(1, stages.length - 1)))};">
-                    ${stages.map((stage, index) => `
-                        <button class="tab wizard-progress-step evaluation-stage-tab ${index < stageIndex ? 'completed' : ''} ${index === 0 ? 'active' : ''} ${stage.status}" type="button" data-tab="${escapeEvaluationHtml(stage.id)}">
-                            <strong>${index + 1}</strong>
-                            <span>${escapeEvaluationHtml(stage.label)}</span>
-                        </button>
-                    `).join('')}
-                </div>
-
-                <div class="evaluation-stage-content">
-                    <div class="tab-content" data-tab="overview" style="display: block;">
-                        <section class="procurement-panel evaluation-panel">
-                            <div class="panel-heading">
-                                <div>
-                                    <span class="section-kicker">Selected tender evaluation</span>
-                                    <h2>Draftable evaluation record for this tender only</h2>
-                                </div>
-                                ${renderEvaluationStatusBadge(tender.conflictStatus || 'COI pending')}
-                            </div>
-                            ${renderTenderReadiness()}
-                            ${renderEvaluationBasisSummary()}
-                            ${renderEvaluationWorkflowOverview()}
-                            <div class="evaluation-controls-grid">
-                                ${(evaluation.controls || []).map(item => `
-                                    <article>
-                                        <strong>${escapeEvaluationHtml(item.control)}</strong>
-                                        <p>${escapeEvaluationHtml(item.purpose)}</p>
-                                        ${renderEvaluationStatusBadge(item.status)}
-                                    </article>
-                                `).join('')}
-                            </div>
-                            ${renderIntelligence()}
-                        </section>
-                    </div>
-                    <div class="tab-content" data-tab="opening" style="display: none;">${renderOpening()}</div>
-                    <div class="tab-content" data-tab="conflict" style="display: none;">${renderConflict()}</div>
-                    <div class="tab-content" data-tab="preliminary" style="display: none;">${renderPreliminary()}</div>
-                    <div class="tab-content" data-tab="eligibility" style="display: none;">${renderEligibility()}</div>
-                    <div class="tab-content" data-tab="technical" style="display: none;">${renderTechnical()}</div>
-                    <div class="tab-content" data-tab="technical-gate" style="display: none;">${renderTechnicalGate()}</div>
-                    <div class="tab-content" data-tab="financial" style="display: none;">${renderFinancial()}</div>
-                    <div class="tab-content" data-tab="postqual" style="display: none;">${renderPostQualification()}</div>
-                    <div class="tab-content" data-tab="clarifications" style="display: none;">${renderClarifications()}</div>
-                    <div class="tab-content" data-tab="comparison" style="display: none;">${renderComparison()}</div>
-                    <div class="tab-content" data-tab="report" style="display: none;">${renderReport()}</div>
-                    <div class="tab-content" data-tab="recommendation" style="display: none;">${renderRecommendation()}</div>
-                    <div class="tab-content" data-tab="audit" style="display: none;">${renderAudit()}</div>
-                </div>
+                ${content}
             </main>
         </div>
     `;
 }
 
-// Register the page render function
+function renderEvaluationTenderList() {
+    const tenders = getEvaluationTenderList();
+    const readyCount = tenders.filter(tender => tender.ready).length;
+    const lockedCount = tenders.length - readyCount;
+
+    return renderEvaluationShell(`
+        <section class="procurement-hero evaluation-hero-panel evaluation-selection-hero">
+            <div>
+                <span class="section-kicker">Evaluation app</span>
+                <h1>Tenders for Evaluation</h1>
+                <p>Open a published tender after closing to evaluate supplier bids one supplier at a time against the exact requirements and criteria used when the tender was created.</p>
+            </div>
+            <div class="evaluation-hero-stats">
+                <div><strong>${tenders.length}</strong><span>Published tenders</span></div>
+                <div><strong>${readyCount}</strong><span>Ready to evaluate</span></div>
+                <div><strong>${lockedCount}</strong><span>Locked until closing</span></div>
+                <div><strong>${tenders.reduce((sum, tender) => sum + getEvaluationTenderRequirementCount(tender), 0)}</strong><span>Configured checks</span></div>
+            </div>
+        </section>
+
+        <section class="procurement-panel evaluation-panel">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Published tenders</span>
+                    <h2>Select the tender to evaluate</h2>
+                </div>
+                ${renderEvaluationStatusBadge(`${readyCount} ready`)}
+            </div>
+            <div class="evaluation-tender-list">
+                ${tenders.map(tender => renderEvaluationTenderRow(tender)).join('')}
+            </div>
+        </section>
+    `, 'Bid Evaluation', 'Tender list');
+}
+
+function renderEvaluationTenderRow(tender = {}) {
+    const profile = getEvaluationProfile(tender);
+    const criteriaCount = getEvaluationCriteriaForTender(tender).length;
+    const requirementCount = getEvaluationTenderRequirementCount(tender);
+    const progress = getEvaluationProgress(tender.reference, tender);
+    const lockedText = tender.ready ? 'Evaluation open' : 'Evaluation opens after tender closing';
+    return `
+        <article class="evaluation-tender-row ${tender.ready ? 'is-ready' : 'is-locked'}">
+            <div class="evaluation-tender-row-main">
+                <span class="section-kicker">${escapeEvaluationHtml(profile.id)} procurement</span>
+                <h3>${escapeEvaluationHtml(tender.title)}</h3>
+                <p>${escapeEvaluationHtml(tender.reference)} / ${escapeEvaluationHtml(tender.type || profile.id)} / ${escapeEvaluationHtml(tender.organization || 'Buyer tender')}</p>
+            </div>
+            <div class="evaluation-tender-row-meta">
+                <div><span>Closing date</span><strong>${escapeEvaluationHtml(tender.closingDate || '-')}</strong></div>
+                <div><span>Requirements</span><strong>${requirementCount}</strong></div>
+                <div><span>Criteria</span><strong>${criteriaCount}</strong></div>
+                <div><span>Progress</span><strong>${progress}%</strong></div>
+            </div>
+            <div class="evaluation-tender-row-status">
+                ${renderEvaluationStatusBadge(tender.status || 'Published')}
+                ${renderEvaluationStatusBadge(lockedText)}
+                <div class="evaluation-progress-track"><span style="width: ${Math.min(100, Math.max(0, progress))}%"></span></div>
+            </div>
+            <div class="evaluation-tender-row-actions">
+                <button class="btn btn-secondary" type="button" data-select-tender="${escapeEvaluationHtml(tender.reference)}" data-navigate="tender-details">View Tender</button>
+                <button class="btn btn-primary" type="button" data-evaluation-select="${escapeEvaluationHtml(tender.reference)}" ${tender.ready ? '' : 'disabled'}>${tender.ready ? 'Start Evaluation' : 'Locked'}</button>
+            </div>
+        </article>
+    `;
+}
+
+function renderEvaluationLockedTender(reference = '') {
+    const tender = getEvaluationTenderModel(reference);
+    return renderEvaluationShell(`
+        <section class="procurement-hero evaluation-hero-panel">
+            <div>
+                <span class="section-kicker">Evaluation locked</span>
+                <h1>${escapeEvaluationHtml(tender.title)}</h1>
+                <p>Evaluation opens after tender closing. Bidder names, bid counts, supplier cards, and bid evidence remain hidden until the tender reaches the allowed evaluation stage.</p>
+            </div>
+            <div class="evaluation-hero-stats">
+                <div><strong>${escapeEvaluationHtml(tender.closingDate || '-')}</strong><span>Closing date</span></div>
+                <div><strong>${escapeEvaluationHtml(tender.type || '-')}</strong><span>Procurement type</span></div>
+                <div><strong>${getEvaluationTenderRequirementCount(tender)}</strong><span>Configured checks</span></div>
+                <div><strong>Hidden</strong><span>Bidder evidence</span></div>
+            </div>
+        </section>
+        <section class="procurement-panel evaluation-panel">
+            <div class="evaluation-locked-panel">
+                <div>
+                    <span class="section-kicker">Lifecycle control</span>
+                    <h2>Evaluation opens after tender closing</h2>
+                    <p>This protects fairness by preventing the buyer from seeing supplier identities or bid evidence before the closing date or opening/evaluation workflow status.</p>
+                </div>
+                <button class="btn btn-secondary" type="button" data-evaluation-clear-selection>Back to Tender List</button>
+            </div>
+        </section>
+    `, 'Bid Evaluation', tender.reference);
+}
+
+function renderEvaluationSupplierInfo(tender = {}, bid = {}, bidderIndex = 0) {
+    const submitted = getEvaluationSubmittedBidForSupplier(tender.sourceTender || tender, bid, bidderIndex);
+    const amount = bid.financial?.correctedPrice || bid.price || submitted?.draft?.total || '';
+    return `
+        <section class="evaluation-supplier-profile">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Supplier information first</span>
+                    <h2>${escapeEvaluationHtml(bid.supplier || 'Supplier')}</h2>
+                </div>
+                ${renderEvaluationStatusBadge(bid.finalResult || bid.preliminaryResult || 'Under review')}
+            </div>
+            <div class="evaluation-supplier-info-grid">
+                <article><span>Registration</span><strong>${escapeEvaluationHtml(bid.registrationNumber || '-')}</strong></article>
+                <article><span>Contact person</span><strong>${escapeEvaluationHtml(bid.contactPerson || '-')}</strong></article>
+                <article><span>Submitted</span><strong>${escapeEvaluationHtml(submitted?.submittedAt ? new Date(submitted.submittedAt).toLocaleString() : bid.submissionTime || '-')}</strong></article>
+                <article><span>Receipt / hash</span><strong>${escapeEvaluationHtml(submitted?.receiptHash || bid.integrityHash || '-')}</strong></article>
+                <article><span>Offer value</span><strong>${typeof amount === 'number' ? formatEvaluationMoney(amount, bid.financial?.currency || 'TZS') : escapeEvaluationHtml(amount || '-')}</strong></article>
+                <article><span>Documents</span><strong>${escapeEvaluationHtml((bid.documents || []).length || submitted?.fileManifest?.length || 0)}</strong></article>
+            </div>
+        </section>
+    `;
+}
+
+function renderEvaluationSectionRail(sections = [], activeSectionId = '') {
+    return `
+        <nav class="evaluation-section-rail" aria-label="Evaluation sections">
+            ${sections.map((section, index) => `
+                <button class="evaluation-section-button ${section.id === activeSectionId ? 'active' : ''}" type="button" data-evaluation-section="${escapeEvaluationHtml(section.id)}">
+                    <strong>${String(index + 1).padStart(2, '0')}</strong>
+                    <span>${escapeEvaluationHtml(section.label)}</span>
+                </button>
+            `).join('')}
+        </nav>
+    `;
+}
+
+function renderEvaluationRequirementRow(tender = {}, bid = {}, bidderIndex = 0, requirement = {}, saved = {}) {
+    const evidenceRows = findEvaluationEvidenceForRequirement(getEvaluationBidEvidenceRows(tender, bid, bidderIndex), requirement);
+    const decision = saved.decision || '';
+    const score = saved.score ?? '';
+    const comment = saved.comment || '';
+    const commentRequired = /not eligible|clarification/i.test(decision);
+    return `
+        <article class="evaluation-requirement-row" data-evaluation-row data-supplier="${escapeEvaluationHtml(bid.supplier || '')}" data-requirement-id="${escapeEvaluationHtml(requirement.id)}" data-section-id="${escapeEvaluationHtml(requirement.sectionId)}">
+            <div class="evaluation-requirement-main">
+                <span class="section-kicker">${escapeEvaluationHtml(requirement.category)}</span>
+                <h3>${escapeEvaluationHtml(requirement.title)}</h3>
+                <p>${escapeEvaluationHtml(requirement.description || requirement.evidenceHint || 'Review this response against the tender requirement.')}</p>
+                <small>Source: ${escapeEvaluationHtml(requirement.source)}${requirement.mandatory ? ' / Mandatory' : ' / Optional'}</small>
+            </div>
+            <div class="evaluation-evidence-panel">
+                <strong>Supplier response and evidence</strong>
+                ${evidenceRows.length ? evidenceRows.map(row => `
+                    <div>
+                        <span>${escapeEvaluationHtml(row.section || 'Evidence')}</span>
+                        <p>${escapeEvaluationHtml(row.label || '')}: ${escapeEvaluationHtml(row.value || row.file || 'Provided')}</p>
+                    </div>
+                `).join('') : '<p>No matching evidence found in the available bid package. Record a clarification or not eligible decision if this item is mandatory.</p>'}
+            </div>
+            <div class="evaluation-decision-panel">
+                <label>Decision
+                    <select class="form-input" data-evaluation-decision>
+                        <option value="">Select decision</option>
+                        <option value="Eligible" ${decision === 'Eligible' ? 'selected' : ''}>Eligible</option>
+                        <option value="Not eligible" ${decision === 'Not eligible' ? 'selected' : ''}>Not eligible</option>
+                        <option value="Clarification required" ${decision === 'Clarification required' ? 'selected' : ''}>Clarification required</option>
+                    </select>
+                </label>
+                ${requirement.maxScore ? `
+                    <label>Score / ${escapeEvaluationHtml(requirement.maxScore)}
+                        <input class="form-input" type="number" min="0" max="${escapeEvaluationHtml(requirement.maxScore)}" step="0.5" value="${escapeEvaluationHtml(score)}" data-evaluation-score>
+                    </label>
+                ` : ''}
+                <label class="wide">Evaluator comment ${commentRequired ? '<span>Required</span>' : ''}
+                    <textarea class="form-input" rows="3" data-evaluation-comment placeholder="Record reason, evidence note, or clarification needed.">${escapeEvaluationHtml(comment)}</textarea>
+                </label>
+                ${commentRequired && !comment ? '<p class="evaluation-field-alert">A comment is required for this decision.</p>' : ''}
+            </div>
+        </article>
+    `;
+}
+
+function renderEvaluationActiveSection(tender = {}, bid = {}, bidderIndex = 0, section = {}, draft = {}) {
+    if (section.id === 'supplier-info') {
+        return renderEvaluationSupplierInfo(tender, bid, bidderIndex);
+    }
+    const supplierRows = getEvaluationSupplierDraft(draft, bid.supplier || '');
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Supplier-by-supplier evaluation</span>
+                    <h2>${escapeEvaluationHtml(section.label)}</h2>
+                    <p>${escapeEvaluationHtml(section.detail)}</p>
+                </div>
+                ${renderEvaluationStatusBadge(`${section.items.length} checks`)}
+            </div>
+            <div class="evaluation-requirement-list">
+                ${section.items.map(item => renderEvaluationRequirementRow(tender, bid, bidderIndex, item, supplierRows[item.id] || {})).join('')}
+            </div>
+        </section>
+    `;
+}
+
+function getGoodsEvaluationStages() {
+    return [
+        { id: 'opening', label: 'Opening Register' },
+        { id: 'administrative', label: 'Administrative Review' },
+        { id: 'criteria', label: 'Buyer Criteria Evaluation' },
+        { id: 'financial', label: 'Financial Review' },
+        { id: 'postqual', label: 'Post-Qualification' },
+        { id: 'ranking', label: 'Ranking' },
+        { id: 'report', label: 'Evaluation Report' }
+    ];
+}
+
+function getGoodsEvaluationDraft(draft = {}) {
+    return draft.goods && typeof draft.goods === 'object' ? draft.goods : {};
+}
+
+function getGoodsEvaluationSupplierKey(bid = {}, index = 0) {
+    return bid.supplier || `Supplier ${index + 1}`;
+}
+
+function getGoodsEvaluationFinancialAmount(bid = {}) {
+    return Number(bid.financial?.correctedPrice || bid.price || 0) || 0;
+}
+
+function getGoodsEvaluationCommercialRows(tender = {}) {
+    const fields = (tender.sourceTender || tender).requirements?.fields || {};
+    return fields.quantityScheduleRows?.length
+        ? fields.quantityScheduleRows
+        : ((tender.sourceTender || tender).commercialItems || (tender.sourceTender || tender).boqItems || []);
+}
+
+function getGoodsEvaluationSampleRows(tender = {}) {
+    return (tender.sourceTender || tender).requirements?.fields?.sampleRequirementRows || [];
+}
+
+function getGoodsEvaluationAdministrativeItems(tender = {}) {
+    const source = tender.sourceTender || tender;
+    const requirementSet = getEvaluationRequirementSet(source);
+    const licenseItems = (source.regulatoryLicenses || []).map((license, index) => ({
+        id: `license-${index}`,
+        title: license.license || license.registrationType || license.regulatoryBody || 'Regulatory license',
+        mandatory: license.mandatory !== false,
+        source: license.body || license.group || 'Regulatory license'
+    }));
+    const requiredDocs = [
+        ...(source.requiredSubmissionDocuments || []),
+        ...(source.requirements?.fields?.otherEligibilityRequirements || []).map(item => item.requirementName || item.text || item.name),
+        ...(requirementSet.mandatory || [])
+            .filter(item => /license|certificate|tax|registration|authorization|eligibility|document|declaration|financial statement|audited/i.test(`${item.title} ${item.category}`))
+            .map(item => item.title)
+    ].filter(Boolean);
+    const docItems = Array.from(new Set(requiredDocs)).map((title, index) => ({
+        id: `admin-doc-${slugEvaluationId(title)}-${index}`,
+        title,
+        mandatory: true,
+        source: 'Published tender requirement'
+    }));
+    return [...licenseItems, ...docItems].length ? [...licenseItems, ...docItems] : [
+        { id: 'admin-registration', title: 'Company registration / incorporation', mandatory: true, source: 'Default goods administrative check' },
+        { id: 'admin-tax', title: 'Tax clearance certificate', mandatory: true, source: 'Default goods administrative check' },
+        { id: 'admin-authorization', title: 'Manufacturer authorization where applicable', mandatory: true, source: 'Default goods administrative check' }
+    ];
+}
+
+function getGoodsEvaluationPostQualItems(tender = {}) {
+    const criteria = getEvaluationCriteriaForTender(tender)
+        .filter(criterion => /capability|post|experience|financial capacity|support|authorization|local|stock/i.test(`${criterion.name} ${criterion.category} ${criterion.subcriteria.join(' ')}`));
+    if (criteria.length) {
+        return criteria.map(criterion => ({
+            id: `postqual-${criterion.id}`,
+            title: criterion.name,
+            source: 'Buyer-defined criterion',
+            evidenceRequired: criterion.evidenceRequired || []
+        }));
+    }
+    return [
+        { id: 'postqual-deliver', title: 'Supplier can deliver the goods', source: 'Manual post-qualification checklist' },
+        { id: 'postqual-documents', title: 'Key documents remain valid', source: 'Manual post-qualification checklist' },
+        { id: 'postqual-warranty', title: 'Warranty and after-sales support are realistic', source: 'Manual post-qualification checklist' },
+        { id: 'postqual-risk', title: 'No unacceptable supply or authenticity risk', source: 'Manual post-qualification checklist' }
+    ];
+}
+
+function getGoodsCriterionSaved(goodsDraft = {}, supplier = '', criterionId = '') {
+    return goodsDraft.criteriaEvaluation?.[supplier]?.[criterionId] || {};
+}
+
+function isGoodsManualDecisionNegative(value = '') {
+    return /fail|clarification|required|rejected|non-responsive|not qualified|non-compliant|major deviation/i.test(String(value || ''));
+}
+
+function isGoodsCriterionComplete(row = {}, criterion = {}) {
+    if (!row.decision) return false;
+    if (!/pass_fail|document_check/.test(criterion.evaluationType) && criterion.maxScore > 0 && String(row.score ?? '').trim() === '') return false;
+    if (isGoodsManualDecisionNegative(row.decision) && !String(row.comment || '').trim()) return false;
+    return true;
+}
+
+function isGoodsAdministrativeComplete(row = {}) {
+    if (!row.decision) return false;
+    if (isGoodsManualDecisionNegative(row.decision) && !String(row.remark || '').trim()) return false;
+    return true;
+}
+
+function isGoodsRankingDecisionComplete(row = {}) {
+    if (!row.recommendation) return false;
+    if (/rejected|clarification|reserve/i.test(row.recommendation) && !String(row.reason || '').trim()) return false;
+    return true;
+}
+
+function getGoodsEvaluationCompletion(tender = {}, bids = [], draft = {}) {
+    const goods = getGoodsEvaluationDraft(draft);
+    const criteria = getEvaluationCriteriaForTender(tender);
+    const adminItems = getGoodsEvaluationAdministrativeItems(tender);
+    const total = bids.length * (criteria.length + adminItems.length + 1);
+    let hasRecommendation = false;
+    const complete = bids.reduce((sum, bid, index) => {
+        const supplier = getGoodsEvaluationSupplierKey(bid, index);
+        const ranking = goods.ranking?.[supplier] || {};
+        if (ranking.recommendation === 'Recommended for Award') hasRecommendation = true;
+        const adminDone = adminItems.filter(item => isGoodsAdministrativeComplete(goods.administrative?.[supplier]?.[item.id] || {})).length;
+        const criteriaDone = criteria.filter(criterion => isGoodsCriterionComplete(getGoodsCriterionSaved(goods, supplier, criterion.id), criterion)).length;
+        return sum + adminDone + criteriaDone + (isGoodsRankingDecisionComplete(ranking) ? 1 : 0);
+    }, 0);
+    return { total, complete, percent: total ? Math.round((complete / total) * 100) : 0, canComplete: total > 0 && complete >= total && hasRecommendation };
+}
+
+function hasGoodsFailedGate(goodsDraft = {}, supplier = '', criteria = []) {
+    return criteria.some(criterion => {
+        if (!criterion.passFailGate && !criterion.mandatory) return false;
+        const row = getGoodsCriterionSaved(goodsDraft, supplier, criterion.id);
+        return /fail|rejected|non-responsive/i.test(row.decision || '');
+    });
+}
+
+function hasGoodsFailedAdministrativeGate(goodsDraft = {}, supplier = '', tender = {}) {
+    return getGoodsEvaluationAdministrativeItems(tender).some(item => {
+        if (item.mandatory === false) return false;
+        const row = goodsDraft.administrative?.[supplier]?.[item.id] || {};
+        return /fail|rejected|non-responsive/i.test(row.decision || '');
+    });
+}
+
+function getGoodsSupplierScore(goodsDraft = {}, supplier = '', criteria = []) {
+    return criteria.reduce((sum, criterion) => {
+        const row = getGoodsCriterionSaved(goodsDraft, supplier, criterion.id);
+        return sum + (Number(row.score || 0) || 0);
+    }, 0);
+}
+
+function getGoodsSupplierMaxScore(criteria = []) {
+    return criteria.reduce((sum, criterion) => sum + (Number(criterion.maxScore || 0) || 0), 0);
+}
+
+function getGoodsManualRecommendation(tender = {}, bids = [], draft = {}) {
+    const goods = getGoodsEvaluationDraft(draft);
+    const recommended = bids.map((bid, index) => {
+        const supplier = getGoodsEvaluationSupplierKey(bid, index);
+        return { bid, supplier, row: goods.ranking?.[supplier] || {} };
+    }).find(item => item.row.recommendation === 'Recommended for Award');
+    if (!recommended) return { supplier: '', amount: 0, currency: 'TZS', reason: '' };
+    return {
+        supplier: recommended.supplier,
+        amount: recommended.bid.financial?.correctedPrice || recommended.bid.price || 0,
+        currency: recommended.bid.financial?.currency || 'TZS',
+        reason: recommended.row.reason || 'Recommended manually by the buyer after completing the goods evaluation record.'
+    };
+}
+
+function getGoodsCriterionDecisionOptions(criterion = {}) {
+    if (criterion.passFailGate || /pass_fail|document_check/.test(criterion.evaluationType)) {
+        return ['', 'Pass', 'Fail', 'Clarification Required'];
+    }
+    if (criterion.evaluationType === 'specification_compliance') {
+        return ['', 'Compliant', 'Non-compliant', 'Minor Deviation', 'Major Deviation', 'Clarification Required'];
+    }
+    if (/sample_based|delivery_based|warranty_support/.test(criterion.evaluationType)) {
+        return ['', 'Pass', 'Fail', 'Not Applicable', 'Clarification Required'];
+    }
+    return ['', 'Accepted', 'Rejected', 'Clarification Required'];
+}
+
+function getGoodsEvaluationEvidencePanel(tender = {}, bid = {}, bidderIndex = 0, labels = []) {
+    const evidence = findEvaluationEvidenceForRequirement(getEvaluationBidEvidenceRows(tender, bid, bidderIndex), { title: labels.join(' '), labels });
+    return `
+        <aside class="goods-evidence-panel">
+            <strong>Supplier Evidence</strong>
+            ${evidence.length ? evidence.map(item => `
+                <div>
+                    <span>${escapeEvaluationHtml(item.section || 'Evidence')}</span>
+                    <p>${escapeEvaluationHtml(item.label || '')}: ${escapeEvaluationHtml(item.value || item.file || 'Provided')}</p>
+                </div>
+            `).join('') : '<p>No matching submitted evidence was found. The buyer must decide manually from the available bid package.</p>'}
+        </aside>
+    `;
+}
+
+function renderGoodsBidderTabs(bids = [], activeIndex = 0) {
+    return `
+        <div class="goods-bidder-tabs" role="tablist" aria-label="Goods bidders">
+            ${bids.map((bid, index) => `
+                <button class="goods-bidder-tab ${index === activeIndex ? 'active' : ''}" type="button" data-goods-supplier-index="${index}">
+                    <strong>${escapeEvaluationHtml(bid.supplier || `Supplier ${index + 1}`)}</strong>
+                    <span>${escapeEvaluationHtml(bid.preliminaryResult || bid.finalResult || 'Under review')}</span>
+                </button>
+            `).join('')}
+        </div>
+    `;
+}
+
+function renderGoodsStageRail(stages = [], activeStageId = '') {
+    return `
+        <nav class="evaluation-section-rail goods-stage-rail" aria-label="Goods evaluation stages">
+            ${stages.map((stage, index) => `
+                <button class="evaluation-section-button ${stage.id === activeStageId ? 'active' : ''}" type="button" data-goods-stage="${escapeEvaluationHtml(stage.id)}">
+                    <strong>${String(index + 1).padStart(2, '0')}</strong>
+                    <span>${escapeEvaluationHtml(stage.label)}</span>
+                </button>
+            `).join('')}
+        </nav>
+    `;
+}
+
+function renderGoodsOpeningRegister(tender = {}, bids = [], goodsDraft = {}) {
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Bid opening register</span>
+                    <h2>Open submitted goods bids</h2>
+                    <p>Record bid opening status and read-out information. Bid opening does not decide responsiveness.</p>
+                </div>
+                ${renderEvaluationStatusBadge('Manual buyer record')}
+            </div>
+            <div class="evaluation-table-scroll">
+                <table class="goods-evaluation-table">
+                    <thead><tr><th>Supplier</th><th>Submission time</th><th>Receipt no.</th><th>Bid value</th><th>Currency</th><th>Status</th><th>Opening remark</th></tr></thead>
+                    <tbody>
+                        ${bids.map((bid, index) => {
+                            const supplier = getGoodsEvaluationSupplierKey(bid, index);
+                            const saved = goodsDraft.opening?.[supplier] || {};
+                            return `
+                                <tr data-goods-opening-row data-supplier="${escapeEvaluationHtml(supplier)}">
+                                    <td>${escapeEvaluationHtml(supplier)}</td>
+                                    <td>${escapeEvaluationHtml(bid.submissionTime || '-')}</td>
+                                    <td>${escapeEvaluationHtml(bid.integrityHash || bid.submittedBid?.receiptHash || '-')}</td>
+                                    <td>${formatEvaluationMoney(getGoodsEvaluationFinancialAmount(bid), bid.financial?.currency || 'TZS')}</td>
+                                    <td>${escapeEvaluationHtml(bid.financial?.currency || 'TZS')}</td>
+                                    <td><select class="form-input" data-goods-opening-status>${['Sealed', 'Opened', 'Late Submission', 'Withdrawn', 'Accepted for Evaluation', 'Rejected at Opening'].map(option => `<option ${String(saved.status || 'Opened') === option ? 'selected' : ''}>${option}</option>`).join('')}</select></td>
+                                    <td><input class="form-input" data-goods-opening-remark value="${escapeEvaluationHtml(saved.remark || 'Submitted on time')}"></td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    `;
+}
+
+function renderGoodsAdministrativeReview(tender = {}, bid = {}, bidderIndex = 0, goodsDraft = {}) {
+    const supplier = getGoodsEvaluationSupplierKey(bid, bidderIndex);
+    const items = getGoodsEvaluationAdministrativeItems(tender);
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Administrative review</span>
+                    <h2>${escapeEvaluationHtml(supplier)}</h2>
+                    <p>Pass/fail review of mandatory eligibility, regulatory, document, and declaration checks.</p>
+                </div>
+                ${renderEvaluationStatusBadge('Buyer decision required')}
+            </div>
+            <div class="goods-evaluation-card-list">
+                ${items.map(item => {
+                    const saved = goodsDraft.administrative?.[supplier]?.[item.id] || {};
+                    return `
+                        <article class="goods-evaluation-card" data-goods-admin-row data-supplier="${escapeEvaluationHtml(supplier)}" data-admin-id="${escapeEvaluationHtml(item.id)}">
+                            <div>
+                                <span class="section-kicker">${item.mandatory ? 'Mandatory' : 'Optional'}</span>
+                                <h3>${escapeEvaluationHtml(item.title)}</h3>
+                                <p>${escapeEvaluationHtml(item.source || 'Published tender requirement')}</p>
+                            </div>
+                            ${getGoodsEvaluationEvidencePanel(tender, bid, bidderIndex, [item.title])}
+                            <div class="evaluation-decision-panel">
+                                <label>Buyer decision
+                                    <select class="form-input" data-goods-admin-decision>
+                                        ${['', 'Pass', 'Fail', 'Not Applicable', 'Clarification Required'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${saved.decision === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select decision')}</option>`).join('')}
+                                    </select>
+                                </label>
+                                <label>Remark
+                                    <textarea class="form-input" rows="3" data-goods-admin-remark>${escapeEvaluationHtml(saved.remark || '')}</textarea>
+                                </label>
+                            </div>
+                        </article>
+                    `;
+                }).join('')}
+            </div>
+        </section>
+    `;
+}
+
+function renderGoodsCriteriaEvaluation(tender = {}, bid = {}, bidderIndex = 0, goodsDraft = {}) {
+    const supplier = getGoodsEvaluationSupplierKey(bid, bidderIndex);
+    const criteria = getEvaluationCriteriaForTender(tender);
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Criteria source: published tender</span>
+                    <h2>Buyer-defined Evaluation Criteria</h2>
+                    <p>These are the exact criteria configured by the buyer. The system only displays evidence and totals; the buyer records the score or pass/fail decision.</p>
+                </div>
+                ${renderEvaluationStatusBadge(`${criteria.length} criteria`)}
+            </div>
+            <div class="evaluation-notice warning">The system does not create new criteria or decide the winner. Scores and decisions below are manual buyer entries.</div>
+            <div class="goods-evaluation-card-list">
+                ${criteria.map((criterion, index) => {
+                    const saved = getGoodsCriterionSaved(goodsDraft, supplier, criterion.id);
+                    const isGate = criterion.passFailGate || /pass_fail|document_check/.test(criterion.evaluationType);
+                    const decisionOptions = getGoodsCriterionDecisionOptions(criterion);
+                    return `
+                        <article class="goods-evaluation-card" data-goods-criterion-row data-supplier="${escapeEvaluationHtml(supplier)}" data-criterion-id="${escapeEvaluationHtml(criterion.id)}" data-criterion-type="${escapeEvaluationHtml(criterion.evaluationType)}">
+                            <div>
+                                <span class="section-kicker">Criterion ${index + 1} / ${escapeEvaluationHtml(formatGoodsEvaluationType(criterion.evaluationType))}</span>
+                                <h3>${escapeEvaluationHtml(criterion.name)}</h3>
+                                <p>${escapeEvaluationHtml(criterion.description || criterion.subcriteria.join(', ') || 'Buyer-defined criterion.')}</p>
+                                <div class="goods-criterion-meta">
+                                    <span>Weight: ${escapeEvaluationHtml(criterion.weight || 0)}</span>
+                                    <span>Max score: ${escapeEvaluationHtml(criterion.maxScore || 0)}</span>
+                                    ${criterion.mandatory ? '<span>Mandatory</span>' : ''}
+                                    ${criterion.passFailGate ? '<span>Gate</span>' : ''}
+                                </div>
+                                ${criterion.evidenceRequired?.length ? `<p>Evidence expected: ${escapeEvaluationHtml(criterion.evidenceRequired.join(', '))}</p>` : ''}
+                            </div>
+                            ${getGoodsEvaluationEvidencePanel(tender, bid, bidderIndex, [criterion.name, ...(criterion.subcriteria || []), ...(criterion.evidenceRequired || [])])}
+                            <div class="evaluation-decision-panel">
+                                <label>Buyer decision
+                                    <select class="form-input" data-goods-criterion-decision>
+                                        ${decisionOptions.map(option => `<option value="${escapeEvaluationHtml(option)}" ${saved.decision === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select decision')}</option>`).join('')}
+                                    </select>
+                                </label>
+                                ${criterion.maxScore > 0 && !isGate ? `
+                                    <label>Buyer score / ${escapeEvaluationHtml(criterion.maxScore)}
+                                        <input class="form-input" type="number" min="0" max="${escapeEvaluationHtml(criterion.maxScore)}" step="0.5" value="${escapeEvaluationHtml(saved.score ?? '')}" data-goods-criterion-score>
+                                    </label>
+                                ` : ''}
+                                <label class="wide">Evaluator comment
+                                    <textarea class="form-input" rows="3" data-goods-criterion-comment>${escapeEvaluationHtml(saved.comment || '')}</textarea>
+                                </label>
+                            </div>
+                        </article>
+                    `;
+                }).join('')}
+            </div>
+        </section>
+    `;
+}
+
+function renderGoodsFinancialReview(tender = {}, bid = {}, bidderIndex = 0, goodsDraft = {}) {
+    const supplier = getGoodsEvaluationSupplierKey(bid, bidderIndex);
+    const rows = getGoodsEvaluationCommercialRows(tender);
+    const amount = getGoodsEvaluationFinancialAmount(bid);
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Financial review, not automatic scoring</span>
+                    <h2>Quantity schedule and price checks</h2>
+                    <p>Review prices, taxes, discounts, missing lines, and arithmetic. Apply score only through buyer-created financial criteria.</p>
+                </div>
+                ${renderEvaluationStatusBadge(formatEvaluationMoney(amount, bid.financial?.currency || 'TZS'))}
+            </div>
+            <div class="evaluation-financial-review">
+                <div><span>Read-out price</span><strong>${formatEvaluationMoney(bid.price || amount, bid.financial?.currency || 'TZS')}</strong></div>
+                <div><span>Corrected price</span><strong>${formatEvaluationMoney(bid.financial?.correctedPrice || amount, bid.financial?.currency || 'TZS')}</strong></div>
+                <div><span>Discount</span><strong>${escapeEvaluationHtml(bid.financial?.discount || 'None recorded')}</strong></div>
+                <div><span>Pricing status</span><strong>${escapeEvaluationHtml(bid.financial?.pricingStatus || bid.financial?.boqStatus || 'Pending buyer review')}</strong></div>
+            </div>
+            <div class="evaluation-table-scroll">
+                <table class="goods-evaluation-table">
+                    <thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Supplier unit price</th><th>Total</th><th>Buyer check</th><th>Remark</th></tr></thead>
+                    <tbody>
+                        ${(rows.length ? rows : [{ description: 'Financial offer total', qty: 1, unit: 'Lot', rate: amount }]).map((item, index) => {
+                            const saved = goodsDraft.financial?.[supplier]?.[`line-${index}`] || {};
+                            const qty = Number(item.quantity || item.qty || 1) || 1;
+                            const rate = Number(item.unitPrice || item.rate || item.totalCost || (index === 0 ? amount : 0)) || 0;
+                            return `
+                                <tr data-goods-financial-row data-supplier="${escapeEvaluationHtml(supplier)}" data-line-id="line-${index}">
+                                    <td>${escapeEvaluationHtml(item.itemDescription || item.description || item.workItem || item.item || `Line ${index + 1}`)}</td>
+                                    <td>${escapeEvaluationHtml(qty)}</td>
+                                    <td>${escapeEvaluationHtml(item.unitOfMeasure || item.unit || 'Unit')}</td>
+                                    <td>${formatEvaluationMoney(rate, bid.financial?.currency || 'TZS')}</td>
+                                    <td>${formatEvaluationMoney(qty * rate, bid.financial?.currency || 'TZS')}</td>
+                                    <td><select class="form-input" data-goods-financial-check>${['', 'Accepted', 'Arithmetic Correction Required', 'Incomplete', 'Clarification Required', 'Abnormally Low Price Review Required'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${saved.check === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select check')}</option>`).join('')}</select></td>
+                                    <td><input class="form-input" data-goods-financial-remark value="${escapeEvaluationHtml(saved.remark || '')}"></td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    `;
+}
+
+function renderGoodsPostQualification(tender = {}, bid = {}, bidderIndex = 0, goodsDraft = {}) {
+    const supplier = getGoodsEvaluationSupplierKey(bid, bidderIndex);
+    const items = getGoodsEvaluationPostQualItems(tender);
+    const result = goodsDraft.postQualification?.[supplier]?.result || '';
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Supplier capability / post-qualification</span>
+                    <h2>${escapeEvaluationHtml(supplier)}</h2>
+                    <p>Confirm that the supplier can actually deliver the goods, warranty, support, and documentation accepted during evaluation.</p>
+                </div>
+                ${renderEvaluationStatusBadge(result || 'Manual review')}
+            </div>
+            <div class="goods-evaluation-card-list">
+                ${items.map(item => {
+                    const saved = goodsDraft.postQualification?.[supplier]?.checks?.[item.id] || {};
+                    return `
+                        <article class="goods-evaluation-card" data-goods-postqual-row data-supplier="${escapeEvaluationHtml(supplier)}" data-postqual-id="${escapeEvaluationHtml(item.id)}">
+                            <div>
+                                <span class="section-kicker">${escapeEvaluationHtml(item.source)}</span>
+                                <h3>${escapeEvaluationHtml(item.title)}</h3>
+                                ${item.evidenceRequired?.length ? `<p>Evidence expected: ${escapeEvaluationHtml(item.evidenceRequired.join(', '))}</p>` : ''}
+                            </div>
+                            ${getGoodsEvaluationEvidencePanel(tender, bid, bidderIndex, [item.title, ...(item.evidenceRequired || [])])}
+                            <div class="evaluation-decision-panel">
+                                <label>Buyer decision
+                                    <select class="form-input" data-goods-postqual-decision>${['', 'Pass', 'Fail', 'Clarification Required'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${saved.decision === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select decision')}</option>`).join('')}</select>
+                                </label>
+                                <label>Remark
+                                    <textarea class="form-input" rows="3" data-goods-postqual-remark>${escapeEvaluationHtml(saved.remark || '')}</textarea>
+                                </label>
+                            </div>
+                        </article>
+                    `;
+                }).join('')}
+            </div>
+            <div class="evaluation-form-grid goods-postqual-result" data-goods-postqual-result data-supplier="${escapeEvaluationHtml(supplier)}">
+                <label>Final post-qualification result
+                    <select class="form-input" data-goods-postqual-final>
+                        ${['', 'Qualified', 'Not Qualified', 'Clarification Required'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${result === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select result')}</option>`).join('')}
+                    </select>
+                </label>
+                <label>Overall remark
+                    <textarea class="form-input" rows="3" data-goods-postqual-overall>${escapeEvaluationHtml(goodsDraft.postQualification?.[supplier]?.remark || '')}</textarea>
+                </label>
+            </div>
+        </section>
+    `;
+}
+
+function renderGoodsRanking(tender = {}, bids = [], goodsDraft = {}) {
+    const criteria = getEvaluationCriteriaForTender(tender);
+    const maxScore = getGoodsSupplierMaxScore(criteria);
+    const ranked = bids.map((bid, index) => {
+        const supplier = getGoodsEvaluationSupplierKey(bid, index);
+        const failedGate = hasGoodsFailedGate(goodsDraft, supplier, criteria) || hasGoodsFailedAdministrativeGate(goodsDraft, supplier, tender);
+        return {
+            bid,
+            supplier,
+            failedGate,
+            score: failedGate ? null : getGoodsSupplierScore(goodsDraft, supplier, criteria),
+            price: getGoodsEvaluationFinancialAmount(bid),
+            saved: goodsDraft.ranking?.[supplier] || {}
+        };
+    }).sort((a, b) => {
+        if (a.failedGate !== b.failedGate) return a.failedGate ? 1 : -1;
+        return (b.score || 0) - (a.score || 0) || a.price - b.price;
+    });
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Final ranking</span>
+                    <h2>Calculated from buyer entries</h2>
+                    <p>The system totals buyer-entered scores and flags failed gates. The buyer must manually choose recommendation, reserve, or rejection.</p>
+                </div>
+                ${renderEvaluationStatusBadge('No automatic winner')}
+            </div>
+            <div class="evaluation-table-scroll">
+                <table class="goods-evaluation-table">
+                    <thead><tr><th>Rank</th><th>Supplier</th><th>Gate status</th><th>Buyer score</th><th>Evaluated price</th><th>Recommendation</th><th>Reason / override</th></tr></thead>
+                    <tbody>
+                        ${ranked.map((row, index) => `
+                            <tr data-goods-ranking-row data-supplier="${escapeEvaluationHtml(row.supplier)}">
+                                <td>${row.failedGate ? '-' : index + 1}</td>
+                                <td>${escapeEvaluationHtml(row.supplier)}</td>
+                                <td>${renderEvaluationStatusBadge(row.failedGate ? 'Failed gate' : 'Passed gates')}</td>
+                                <td>${row.score === null ? '-' : `${escapeEvaluationHtml(row.score)} / ${escapeEvaluationHtml(maxScore)}`}</td>
+                                <td>${formatEvaluationMoney(row.price, row.bid.financial?.currency || 'TZS')}</td>
+                                <td><select class="form-input" data-goods-ranking-recommendation>${['', 'Recommended for Award', 'Reserve Bidder', 'Rejected', 'Request Clarification'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${row.saved.recommendation === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select action')}</option>`).join('')}</select></td>
+                                <td><textarea class="form-input" rows="2" data-goods-ranking-reason>${escapeEvaluationHtml(row.saved.reason || '')}</textarea></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    `;
+}
+
+function renderGoodsEvaluationReportDocument(tender = {}, bids = [], draft = {}) {
+    const goodsDraft = getGoodsEvaluationDraft(draft);
+    const criteria = getEvaluationCriteriaForTender(tender);
+    const adminItems = getGoodsEvaluationAdministrativeItems(tender);
+    const completion = getGoodsEvaluationCompletion(tender, bids, draft);
+    const recommendation = draft.recommendation || getGoodsManualRecommendation(tender, bids, draft);
+    const rankingRows = bids.map((bid, index) => {
+        const supplier = getGoodsEvaluationSupplierKey(bid, index);
+        return {
+            supplier,
+            score: getGoodsSupplierScore(goodsDraft, supplier, criteria),
+            price: getGoodsEvaluationFinancialAmount(bid),
+            currency: bid.financial?.currency || 'TZS',
+            gate: (hasGoodsFailedGate(goodsDraft, supplier, criteria) || hasGoodsFailedAdministrativeGate(goodsDraft, supplier, tender)) ? 'Failed gate' : 'Passed gates',
+            ranking: goodsDraft.ranking?.[supplier] || {}
+        };
+    }).sort((a, b) => (b.score || 0) - (a.score || 0) || a.price - b.price);
+
+    return `
+        <div class="evaluation-report-document goods-report-document">
+            <header>
+                <span>ProcureX Goods Evaluation Report</span>
+                <h1>${escapeEvaluationHtml(tender.title)}</h1>
+                <p>${escapeEvaluationHtml(tender.reference)} / Goods procurement / ${escapeEvaluationHtml(draft.status || 'Draft')}</p>
+            </header>
+            <section class="evaluation-report-summary">
+                <div><span>Evaluation method</span><strong>Manual buyer review</strong></div>
+                <div><span>Criteria source</span><strong>Published tender</strong></div>
+                <div><span>Bidders</span><strong>${bids.length}</strong></div>
+                <div><span>Completion</span><strong>${completion.complete}/${completion.total}</strong></div>
+            </section>
+
+            <section>
+                <h2>1. Tender Information</h2>
+                <p>${escapeEvaluationHtml(tender.title)} was evaluated against the published goods requirements, bidder submissions, and buyer-defined evaluation criteria.</p>
+            </section>
+
+            <section>
+                <h2>2. Evaluation Method</h2>
+                <p>The system organized submitted documents, specifications, financial schedules, and evidence. The buyer manually recorded all scores, pass/fail decisions, remarks, ranking decisions, and award recommendation.</p>
+            </section>
+
+            <section>
+                <h2>3. List of Bidders</h2>
+                <div class="evaluation-table-scroll">
+                    <table>
+                        <thead><tr><th>Supplier</th><th>Submission time</th><th>Receipt</th><th>Read-out price</th></tr></thead>
+                        <tbody>
+                            ${bids.map((bid, index) => {
+                                const supplier = getGoodsEvaluationSupplierKey(bid, index);
+                                return `<tr><td>${escapeEvaluationHtml(supplier)}</td><td>${escapeEvaluationHtml(bid.submissionTime || '-')}</td><td>${escapeEvaluationHtml(bid.integrityHash || '-')}</td><td>${formatEvaluationMoney(getGoodsEvaluationFinancialAmount(bid), bid.financial?.currency || 'TZS')}</td></tr>`;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section>
+                <h2>4. Bid Opening Register</h2>
+                <div class="evaluation-table-scroll">
+                    <table>
+                        <thead><tr><th>Supplier</th><th>Status</th><th>Opening remark</th></tr></thead>
+                        <tbody>
+                            ${bids.map((bid, index) => {
+                                const supplier = getGoodsEvaluationSupplierKey(bid, index);
+                                const row = goodsDraft.opening?.[supplier] || {};
+                                return `<tr><td>${escapeEvaluationHtml(supplier)}</td><td>${escapeEvaluationHtml(row.status || 'Opened')}</td><td>${escapeEvaluationHtml(row.remark || '-')}</td></tr>`;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section>
+                <h2>5. Administrative Evaluation</h2>
+                <div class="evaluation-table-scroll">
+                    <table>
+                        <thead><tr><th>Supplier</th><th>Requirement</th><th>Decision</th><th>Remark</th></tr></thead>
+                        <tbody>
+                            ${bids.flatMap((bid, index) => {
+                                const supplier = getGoodsEvaluationSupplierKey(bid, index);
+                                return adminItems.map(item => {
+                                    const row = goodsDraft.administrative?.[supplier]?.[item.id] || {};
+                                    return `<tr><td>${escapeEvaluationHtml(supplier)}</td><td>${escapeEvaluationHtml(item.title)}</td><td>${escapeEvaluationHtml(row.decision || 'Pending')}</td><td>${escapeEvaluationHtml(row.remark || '-')}</td></tr>`;
+                                });
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section>
+                <h2>6. Buyer Criteria Evaluation</h2>
+                <div class="evaluation-table-scroll">
+                    <table>
+                        <thead><tr><th>Supplier</th><th>Criterion</th><th>Type</th><th>Decision</th><th>Score</th><th>Comment</th></tr></thead>
+                        <tbody>
+                            ${bids.flatMap((bid, index) => {
+                                const supplier = getGoodsEvaluationSupplierKey(bid, index);
+                                return criteria.map(criterion => {
+                                    const row = getGoodsCriterionSaved(goodsDraft, supplier, criterion.id);
+                                    return `<tr><td>${escapeEvaluationHtml(supplier)}</td><td>${escapeEvaluationHtml(criterion.name)}</td><td>${escapeEvaluationHtml(formatGoodsEvaluationType(criterion.evaluationType))}</td><td>${escapeEvaluationHtml(row.decision || 'Pending')}</td><td>${escapeEvaluationHtml(row.score || '-')}${criterion.maxScore ? ` / ${escapeEvaluationHtml(criterion.maxScore)}` : ''}</td><td>${escapeEvaluationHtml(row.comment || '-')}</td></tr>`;
+                                });
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section>
+                <h2>7. Financial Evaluation</h2>
+                <p>Financial review records arithmetic checks and evaluated price details separately from scoring. Financial score is only applied where the buyer published a price-based criterion.</p>
+            </section>
+
+            <section>
+                <h2>8. Supplier Capability / Post-Qualification</h2>
+                <div class="evaluation-table-scroll">
+                    <table>
+                        <thead><tr><th>Supplier</th><th>Result</th><th>Remark</th></tr></thead>
+                        <tbody>
+                            ${bids.map((bid, index) => {
+                                const supplier = getGoodsEvaluationSupplierKey(bid, index);
+                                const row = goodsDraft.postQualification?.[supplier] || {};
+                                return `<tr><td>${escapeEvaluationHtml(supplier)}</td><td>${escapeEvaluationHtml(row.result || 'Pending')}</td><td>${escapeEvaluationHtml(row.remark || '-')}</td></tr>`;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section>
+                <h2>9. Final Ranking and Award Recommendation</h2>
+                <div class="evaluation-table-scroll">
+                    <table>
+                        <thead><tr><th>Rank</th><th>Supplier</th><th>Gate status</th><th>Buyer score</th><th>Evaluated price</th><th>Buyer action</th><th>Reason</th></tr></thead>
+                        <tbody>
+                            ${rankingRows.map((row, index) => `<tr><td>${row.gate === 'Failed gate' ? '-' : index + 1}</td><td>${escapeEvaluationHtml(row.supplier)}</td><td>${escapeEvaluationHtml(row.gate)}</td><td>${escapeEvaluationHtml(row.score)} / ${escapeEvaluationHtml(getGoodsSupplierMaxScore(criteria))}</td><td>${formatEvaluationMoney(row.price, row.currency)}</td><td>${escapeEvaluationHtml(row.ranking.recommendation || 'Pending')}</td><td>${escapeEvaluationHtml(row.ranking.reason || '-')}</td></tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <p><strong>Recommended supplier:</strong> ${escapeEvaluationHtml(recommendation.supplier || 'Pending buyer recommendation')}</p>
+            </section>
+
+            <section>
+                <h2>10. Buyer Declaration</h2>
+                <p>I confirm that the submitted goods bids were reviewed manually against the published tender requirements, product specifications, eligibility requirements, delivery requirements, and evaluation criteria. The system organized the information and calculated totals, but the evaluation decision was made by the buyer.</p>
+            </section>
+        </div>
+    `;
+}
+
+function renderGoodsActiveStage(tender = {}, bids = [], supplierIndex = 0, activeStageId = 'opening', draft = {}) {
+    const goodsDraft = getGoodsEvaluationDraft(draft);
+    const bid = bids[supplierIndex] || {};
+    if (activeStageId === 'opening') return renderGoodsOpeningRegister(tender, bids, goodsDraft);
+    if (activeStageId === 'administrative') return renderGoodsAdministrativeReview(tender, bid, supplierIndex, goodsDraft);
+    if (activeStageId === 'criteria') return renderGoodsCriteriaEvaluation(tender, bid, supplierIndex, goodsDraft);
+    if (activeStageId === 'financial') return renderGoodsFinancialReview(tender, bid, supplierIndex, goodsDraft);
+    if (activeStageId === 'postqual') return renderGoodsPostQualification(tender, bid, supplierIndex, goodsDraft);
+    if (activeStageId === 'ranking') return renderGoodsRanking(tender, bids, goodsDraft);
+    return renderGoodsEvaluationReportDocument(tender, bids, draft);
+}
+
+function renderGoodsBidEvaluationWorkspace(tender = {}) {
+    const bids = getEvaluationBidsForTender(tender);
+    const draft = getEvaluationDraft(tender.reference) || {};
+    const goodsDraft = getGoodsEvaluationDraft(draft);
+    const stages = getGoodsEvaluationStages();
+    const activeStageId = goodsDraft.currentStageId || 'opening';
+    const supplierIndex = Math.min(Math.max(Number(draft.currentSupplierIndex || goodsDraft.currentSupplierIndex || 0), 0), Math.max(0, bids.length - 1));
+    const completion = getGoodsEvaluationCompletion(tender, bids, draft);
+    const criteria = getEvaluationCriteriaForTender(tender);
+
+    if (!bids.length) {
+        return renderEvaluationShell(`
+            <section class="procurement-hero evaluation-hero-panel">
+                <div>
+                    <span class="section-kicker">Goods Bid Evaluation Workspace</span>
+                    <h1>${escapeEvaluationHtml(tender.title)}</h1>
+                    <p>No submitted goods bid package is available for this tender in the current browser or mock data.</p>
+                </div>
+                <div class="evaluation-hero-stats">
+                    <div><strong>0</strong><span>Bids available</span></div>
+                    <div><strong>${criteria.length}</strong><span>Published criteria</span></div>
+                </div>
+            </section>
+        `, 'Goods Evaluation', tender.reference);
+    }
+
+    return renderEvaluationShell(`
+        <section class="procurement-hero evaluation-hero-panel">
+            <div>
+                <span class="section-kicker">Goods Bid Evaluation Workspace</span>
+                <h1>${escapeEvaluationHtml(tender.title)}</h1>
+                <p>Manual evaluation using buyer-defined published criteria. The system organizes supplier submissions and calculates totals; the buyer makes every evaluation decision manually.</p>
+            </div>
+            <div class="evaluation-hero-stats">
+                <div><strong>${escapeEvaluationHtml(tender.reference)}</strong><span>Tender reference</span></div>
+                <div><strong>Goods</strong><span>Procurement type</span></div>
+                <div><strong>${bids.length}</strong><span>Bids opened</span></div>
+                <div><strong>${completion.percent}%</strong><span>Evaluation status</span></div>
+            </div>
+        </section>
+
+        <section class="evaluation-top-summary">
+            <div><span>Evaluation mode</span><strong>Manual Buyer Review</strong></div>
+            <div><span>Criteria source</span><strong>Published tender</strong></div>
+            <div><span>Buyer criteria</span><strong>${criteria.length}</strong></div>
+            <div><span>Readiness</span>${renderEvaluationStatusBadge(tender.status || 'Evaluation open')}</div>
+        </section>
+
+        <section class="procurement-panel evaluation-panel goods-evaluation-workspace" data-evaluation-workspace="${escapeEvaluationHtml(tender.reference)}" data-current-supplier-index="${supplierIndex}" data-current-goods-stage="${escapeEvaluationHtml(activeStageId)}">
+            ${renderGoodsBidderTabs(bids, supplierIndex)}
+            <div class="evaluation-progress-track evaluation-workspace-progress"><span style="width: ${completion.percent}%"></span></div>
+            <div class="evaluation-review-grid">
+                ${renderGoodsStageRail(stages, activeStageId)}
+                <div class="evaluation-review-main">
+                    ${renderGoodsActiveStage(tender, bids, supplierIndex, activeStageId, draft)}
+                </div>
+            </div>
+            <div class="evaluation-finish-panel">
+                <div>
+                    <span class="section-kicker">Complete goods evaluation</span>
+                    <h3>${completion.canComplete ? 'Ready for buyer completion' : 'Complete all administrative and criteria decisions'}</h3>
+                    <p>${completion.complete} of ${completion.total} required checks are complete. Ranking remains a manual buyer recommendation even after totals are calculated.</p>
+                </div>
+                <div class="inline-actions">
+                    <button class="btn btn-secondary" type="button" data-evaluation-save-draft="${escapeEvaluationHtml(tender.reference)}">Save Draft</button>
+                    <button class="btn btn-secondary" type="button" data-evaluation-view-report="${escapeEvaluationHtml(tender.reference)}">Preview Report</button>
+                    <button class="btn btn-primary" type="button" data-evaluation-complete="${escapeEvaluationHtml(tender.reference)}" ${completion.canComplete ? '' : 'disabled'}>Complete Evaluation</button>
+                </div>
+            </div>
+        </section>
+    `, 'Goods Evaluation', tender.reference);
+}
+
+function getWorksEvaluationStages() {
+    return [
+        { id: 'opening', label: 'Opening Register' },
+        { id: 'administrative', label: 'Administrative Responsiveness' },
+        { id: 'criteria', label: 'Buyer-Defined Criteria Evaluation' },
+        { id: 'boq', label: 'BOQ / Financial Review' },
+        { id: 'commercial', label: 'Commercial Terms' },
+        { id: 'postqual', label: 'Post-Qualification' },
+        { id: 'ranking', label: 'Final Ranking' },
+        { id: 'report', label: 'Evaluation Report' }
+    ];
+}
+
+function getWorksEvaluationDraft(draft = {}) {
+    return draft.works && typeof draft.works === 'object' ? draft.works : {};
+}
+
+function getWorksEvaluationContractorKey(bid = {}, index = 0) {
+    return bid.supplier || `Contractor ${index + 1}`;
+}
+
+function getWorksEvaluationFinancialAmount(bid = {}) {
+    return Number(bid.financial?.correctedPrice || bid.price || 0) || 0;
+}
+
+function getWorksEvaluationContractType(tender = {}) {
+    const fields = (tender.sourceTender || tender).requirements?.fields || {};
+    return fields.contractType || tender.contractType || 'Works contract';
+}
+
+function getWorksEvaluationBoqRows(tender = {}, bid = {}) {
+    const submittedRows = bid.draft?.financialOfferRows || bid.submittedBid?.draft?.financialOfferRows || [];
+    if (submittedRows.length) return submittedRows;
+    const fields = (tender.sourceTender || tender).requirements?.fields || {};
+    return fields.boqRows?.length
+        ? fields.boqRows
+        : ((tender.sourceTender || tender).commercialItems || (tender.sourceTender || tender).boqItems || []);
+}
+
+function getWorksEvaluationAdministrativeItems(tender = {}) {
+    const source = tender.sourceTender || tender;
+    const requirementSet = getEvaluationRequirementSet(source);
+    const licenseItems = (source.regulatoryLicenses || []).map((license, index) => ({
+        id: `works-license-${index}`,
+        title: license.license || license.registrationType || license.regulatoryBody || 'Contractor registration / license',
+        mandatory: license.mandatory !== false,
+        source: license.body || license.group || 'Regulatory license'
+    }));
+    const fieldDocs = [
+        ...(source.requiredSubmissionDocuments || []),
+        ...(source.requirements?.fields?.worksDocumentRows || []).map(item => item.documentTitle || item.documentType || item.name),
+        ...(source.requirements?.fields?.otherEligibilityRequirements || []).map(item => item.requirementName || item.text || item.name),
+        ...(requirementSet.mandatory || [])
+            .filter(item => /bid security|license|certificate|tax|registration|contractor|signed|form|power|attorney|osha|safety|insurance|declaration|eligibility|document/i.test(`${item.title} ${item.category}`))
+            .map(item => item.title)
+    ].filter(Boolean);
+    const docItems = Array.from(new Set(fieldDocs)).map((title, index) => ({
+        id: `works-admin-${slugEvaluationId(title)}-${index}`,
+        title,
+        mandatory: true,
+        source: 'Published tender requirement'
+    }));
+    return [...licenseItems, ...docItems].length ? [...licenseItems, ...docItems] : [
+        { id: 'works-admin-bid-security', title: 'Bid security', mandatory: true, source: 'Default works responsiveness check' },
+        { id: 'works-admin-registration', title: 'Contractor registration certificate', mandatory: true, source: 'Default works responsiveness check' },
+        { id: 'works-admin-tax', title: 'Tax clearance certificate', mandatory: true, source: 'Default works responsiveness check' },
+        { id: 'works-admin-signed-form', title: 'Signed bid form', mandatory: true, source: 'Default works responsiveness check' },
+        { id: 'works-admin-hse', title: 'OSHA / safety compliance', mandatory: true, source: 'Default works responsiveness check' }
+    ];
+}
+
+function getWorksEvaluationCommercialTerms(tender = {}) {
+    const fields = (tender.sourceTender || tender).requirements?.fields || {};
+    return [
+        { id: 'bid-validity', term: 'Bid validity', requirement: fields.bidValidity || fields.validityPeriod || 'As stated in tender' },
+        { id: 'performance-guarantee', term: 'Performance guarantee', requirement: fields.performanceGuarantee || 'As stated in tender' },
+        { id: 'retention-money', term: 'Retention money', requirement: fields.retentionMoney || fields.retention || 'As stated in tender' },
+        { id: 'defects-liability', term: 'Defects liability period', requirement: fields.defectsLiabilityPeriod || 'As stated in tender' },
+        { id: 'liquidated-damages', term: 'Liquidated damages', requirement: fields.liquidatedDamages || 'As stated in tender' },
+        { id: 'completion-period', term: 'Completion period', requirement: fields.worksCompletionPeriod || 'As stated in tender' }
+    ];
+}
+
+function getWorksEvaluationPostQualItems(tender = {}) {
+    const criteria = getEvaluationCriteriaForTender(tender)
+        .filter(criterion => /post|qualification|capacity|experience|personnel|equipment|mobilization|hse|insurance|contractor|registration|financial capacity/i.test(`${criterion.name} ${criterion.category} ${criterion.subcriteria.join(' ')}`));
+    if (criteria.length) {
+        return criteria.map(criterion => ({
+            id: `works-postqual-${criterion.id}`,
+            title: criterion.name,
+            source: 'Buyer-defined criterion',
+            evidenceRequired: criterion.evidenceRequired || []
+        }));
+    }
+    return [
+        { id: 'works-postqual-legal', title: 'Legal status and contractor registration remain valid', source: 'Manual works post-qualification checklist' },
+        { id: 'works-postqual-experience', title: 'Similar works experience is verified', source: 'Manual works post-qualification checklist' },
+        { id: 'works-postqual-personnel', title: 'Named personnel are available', source: 'Manual works post-qualification checklist' },
+        { id: 'works-postqual-equipment', title: 'Owned or leased equipment is available', source: 'Manual works post-qualification checklist' },
+        { id: 'works-postqual-hse', title: 'HSE, insurance, and mobilization readiness are acceptable', source: 'Manual works post-qualification checklist' }
+    ];
+}
+
+function getWorksCriterionSaved(worksDraft = {}, contractor = '', criterionId = '') {
+    return worksDraft.criteriaEvaluation?.[contractor]?.[criterionId] || {};
+}
+
+function isWorksCriterionComplete(row = {}, criterion = {}) {
+    return isGoodsCriterionComplete(row, criterion);
+}
+
+function isWorksAdministrativeComplete(row = {}) {
+    return isGoodsAdministrativeComplete(row);
+}
+
+function isWorksRankingDecisionComplete(row = {}) {
+    return isGoodsRankingDecisionComplete(row);
+}
+
+function isWorksCommercialTermComplete(row = {}) {
+    if (!row.decision) return false;
+    if (isGoodsManualDecisionNegative(row.decision) && !String(row.remark || '').trim()) return false;
+    return true;
+}
+
+function getWorksFinancialReviewStatus(worksDraft = {}, contractor = '') {
+    return worksDraft.boqFinancialReview?.[contractor]?.status || '';
+}
+
+function hasWorksFailedGate(worksDraft = {}, contractor = '', criteria = []) {
+    return criteria.some(criterion => {
+        if (!criterion.passFailGate && !criterion.mandatory) return false;
+        const row = getWorksCriterionSaved(worksDraft, contractor, criterion.id);
+        return /fail|rejected|non-responsive|non-compliant|major deviation/i.test(row.decision || '');
+    });
+}
+
+function hasWorksFailedAdministrativeGate(worksDraft = {}, contractor = '', tender = {}) {
+    return getWorksEvaluationAdministrativeItems(tender).some(item => {
+        if (item.mandatory === false) return false;
+        const row = worksDraft.administrative?.[contractor]?.[item.id] || {};
+        return /fail|rejected|non-responsive/i.test(row.decision || '');
+    });
+}
+
+function hasWorksBlockingReview(worksDraft = {}, contractor = '', tender = {}) {
+    const financialStatus = getWorksFinancialReviewStatus(worksDraft, contractor);
+    const postResult = worksDraft.postQualification?.[contractor]?.result || '';
+    const commercialFailed = getWorksEvaluationCommercialTerms(tender).some(term => /fail|rejected|non-responsive/i.test(worksDraft.commercialTerms?.[contractor]?.[term.id]?.decision || ''));
+    return /non-responsive|fail|abnormally low/i.test(financialStatus) || /not qualified/i.test(postResult) || commercialFailed;
+}
+
+function getWorksContractorScore(worksDraft = {}, contractor = '', criteria = []) {
+    return criteria.reduce((sum, criterion) => {
+        const row = getWorksCriterionSaved(worksDraft, contractor, criterion.id);
+        return sum + (Number(row.score || 0) || 0);
+    }, 0);
+}
+
+function getWorksContractorMaxScore(criteria = []) {
+    return getGoodsSupplierMaxScore(criteria);
+}
+
+function getWorksManualRecommendation(tender = {}, bids = [], draft = {}) {
+    const works = getWorksEvaluationDraft(draft);
+    const recommended = bids.map((bid, index) => {
+        const contractor = getWorksEvaluationContractorKey(bid, index);
+        return { bid, contractor, row: works.ranking?.[contractor] || {} };
+    }).find(item => item.row.recommendation === 'Recommended for Award');
+    if (!recommended) return { supplier: '', amount: 0, currency: 'TZS', reason: '' };
+    return {
+        supplier: recommended.contractor,
+        amount: recommended.bid.financial?.correctedPrice || recommended.bid.price || 0,
+        currency: recommended.bid.financial?.currency || 'TZS',
+        reason: recommended.row.reason || 'Recommended manually by the buyer after completing the works evaluation record.'
+    };
+}
+
+function getWorksEvaluationCompletion(tender = {}, bids = [], draft = {}) {
+    const works = getWorksEvaluationDraft(draft);
+    const criteria = getEvaluationCriteriaForTender(tender);
+    const adminItems = getWorksEvaluationAdministrativeItems(tender);
+    const commercialTerms = getWorksEvaluationCommercialTerms(tender);
+    const total = bids.length * (criteria.length + adminItems.length + commercialTerms.length + 3);
+    let hasRecommendation = false;
+    const complete = bids.reduce((sum, bid, index) => {
+        const contractor = getWorksEvaluationContractorKey(bid, index);
+        const ranking = works.ranking?.[contractor] || {};
+        if (ranking.recommendation === 'Recommended for Award') hasRecommendation = true;
+        const adminDone = adminItems.filter(item => isWorksAdministrativeComplete(works.administrative?.[contractor]?.[item.id] || {})).length;
+        const criteriaDone = criteria.filter(criterion => isWorksCriterionComplete(getWorksCriterionSaved(works, contractor, criterion.id), criterion)).length;
+        const commercialDone = commercialTerms.filter(term => isWorksCommercialTermComplete(works.commercialTerms?.[contractor]?.[term.id] || {})).length;
+        const financialDone = getWorksFinancialReviewStatus(works, contractor) ? 1 : 0;
+        const postDone = works.postQualification?.[contractor]?.result ? 1 : 0;
+        const rankingDone = isWorksRankingDecisionComplete(ranking) ? 1 : 0;
+        return sum + adminDone + criteriaDone + commercialDone + financialDone + postDone + rankingDone;
+    }, 0);
+    return { total, complete, percent: total ? Math.round((complete / total) * 100) : 0, canComplete: total > 0 && complete >= total && hasRecommendation };
+}
+
+function getWorksEvaluationEvidencePanel(tender = {}, bid = {}, bidderIndex = 0, labels = []) {
+    const evidence = findEvaluationEvidenceForRequirement(getEvaluationBidEvidenceRows(tender, bid, bidderIndex), { title: labels.join(' '), labels });
+    return `
+        <aside class="works-evidence-panel goods-evidence-panel">
+            <strong>Submitted Works Evidence</strong>
+            ${evidence.length ? evidence.map(item => `
+                <div>
+                    <span>${escapeEvaluationHtml(item.section || 'Evidence')}</span>
+                    <p>${escapeEvaluationHtml(item.label || '')}: ${escapeEvaluationHtml(item.value || item.file || 'Provided')}</p>
+                </div>
+            `).join('') : '<p>No matching submitted evidence was found. Review the available works bid package and record the buyer decision manually.</p>'}
+        </aside>
+    `;
+}
+
+function renderWorksContractorTabs(bids = [], activeIndex = 0) {
+    return `
+        <div class="works-contractor-tabs goods-bidder-tabs" role="tablist" aria-label="Works contractors">
+            ${bids.map((bid, index) => `
+                <button class="works-contractor-tab goods-bidder-tab ${index === activeIndex ? 'active' : ''}" type="button" data-works-contractor-index="${index}">
+                    <strong>${escapeEvaluationHtml(bid.supplier || `Contractor ${index + 1}`)}</strong>
+                    <span>${escapeEvaluationHtml(bid.preliminaryResult || bid.finalResult || 'Under review')}</span>
+                </button>
+            `).join('')}
+        </div>
+    `;
+}
+
+function renderWorksStageRail(stages = [], activeStageId = '') {
+    return `
+        <nav class="evaluation-section-rail works-stage-rail" aria-label="Works evaluation stages">
+            ${stages.map((stage, index) => `
+                <button class="evaluation-section-button ${stage.id === activeStageId ? 'active' : ''}" type="button" data-works-stage="${escapeEvaluationHtml(stage.id)}">
+                    <strong>${String(index + 1).padStart(2, '0')}</strong>
+                    <span>${escapeEvaluationHtml(stage.label)}</span>
+                </button>
+            `).join('')}
+        </nav>
+    `;
+}
+
+function renderWorksOpeningRegister(tender = {}, bids = [], worksDraft = {}) {
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Bid opening register</span>
+                    <h2>Open submitted works bids</h2>
+                    <p>Record read-out price, bid security, completion period, and opening status. This stage does not decide responsiveness.</p>
+                </div>
+                ${renderEvaluationStatusBadge('Manual buyer record')}
+            </div>
+            <div class="evaluation-table-scroll">
+                <table class="works-evaluation-table goods-evaluation-table">
+                    <thead><tr><th>Contractor</th><th>Submission time</th><th>Receipt no.</th><th>Read-out price</th><th>Bid security</th><th>Completion period</th><th>Status</th><th>Opening remark</th></tr></thead>
+                    <tbody>
+                        ${bids.map((bid, index) => {
+                            const contractor = getWorksEvaluationContractorKey(bid, index);
+                            const saved = worksDraft.opening?.[contractor] || {};
+                            return `
+                                <tr data-works-opening-row data-contractor="${escapeEvaluationHtml(contractor)}">
+                                    <td>${escapeEvaluationHtml(contractor)}</td>
+                                    <td>${escapeEvaluationHtml(bid.submissionTime || '-')}</td>
+                                    <td>${escapeEvaluationHtml(bid.integrityHash || bid.submittedBid?.receiptHash || '-')}</td>
+                                    <td>${formatEvaluationMoney(getWorksEvaluationFinancialAmount(bid), bid.financial?.currency || 'TZS')}</td>
+                                    <td><select class="form-input" data-works-opening-bid-security>${['', 'Submitted', 'Missing', 'Not Applicable', 'Clarification Required'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${String(saved.bidSecurityStatus || 'Submitted') === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select status')}</option>`).join('')}</select></td>
+                                    <td><input class="form-input" data-works-opening-completion value="${escapeEvaluationHtml(saved.completionPeriodOffered || '')}" placeholder="e.g. 10 months"></td>
+                                    <td><select class="form-input" data-works-opening-status>${['Sealed', 'Opened', 'Late Submission', 'Withdrawn', 'Rejected at Opening', 'Accepted for Evaluation'].map(option => `<option ${String(saved.status || 'Opened') === option ? 'selected' : ''}>${option}</option>`).join('')}</select></td>
+                                    <td><input class="form-input" data-works-opening-remark value="${escapeEvaluationHtml(saved.remark || 'Opening record captured')}"></td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    `;
+}
+
+function renderWorksAdministrativeReview(tender = {}, bid = {}, bidderIndex = 0, worksDraft = {}) {
+    const contractor = getWorksEvaluationContractorKey(bid, bidderIndex);
+    const items = getWorksEvaluationAdministrativeItems(tender);
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Administrative responsiveness</span>
+                    <h2>${escapeEvaluationHtml(contractor)}</h2>
+                    <p>Check mandatory works documents and basic eligibility. The system can show evidence, but the buyer decides pass, fail, or clarification.</p>
+                </div>
+                ${renderEvaluationStatusBadge('Buyer Decision')}
+            </div>
+            <div class="works-evaluation-card-list goods-evaluation-card-list">
+                ${items.map(item => {
+                    const saved = worksDraft.administrative?.[contractor]?.[item.id] || {};
+                    return `
+                        <article class="works-evaluation-card goods-evaluation-card" data-works-admin-row data-contractor="${escapeEvaluationHtml(contractor)}" data-admin-id="${escapeEvaluationHtml(item.id)}">
+                            <div>
+                                <span class="section-kicker">${item.mandatory ? 'Mandatory' : 'Optional'}</span>
+                                <h3>${escapeEvaluationHtml(item.title)}</h3>
+                                <p>${escapeEvaluationHtml(item.source || 'Published tender requirement')}</p>
+                            </div>
+                            ${getWorksEvaluationEvidencePanel(tender, bid, bidderIndex, [item.title, 'bid security', 'contractor registration', 'tax clearance', 'signed form', 'OSHA', 'insurance'])}
+                            <div class="evaluation-decision-panel">
+                                <label>Buyer Decision
+                                    <select class="form-input" data-works-admin-decision>${['', 'Pass', 'Fail', 'Not Applicable', 'Clarification Required'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${saved.decision === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select decision')}</option>`).join('')}</select>
+                                </label>
+                                <label>Remark
+                                    <textarea class="form-input" rows="3" data-works-admin-remark>${escapeEvaluationHtml(saved.remark || '')}</textarea>
+                                </label>
+                            </div>
+                        </article>
+                    `;
+                }).join('')}
+            </div>
+        </section>
+    `;
+}
+
+function renderWorksCriteriaEvaluation(tender = {}, bid = {}, bidderIndex = 0, worksDraft = {}) {
+    const contractor = getWorksEvaluationContractorKey(bid, bidderIndex);
+    const criteria = getEvaluationCriteriaForTender(tender);
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Criteria from Published Tender</span>
+                    <h2>Buyer-Defined Criteria Evaluation</h2>
+                    <p>These criteria are loaded from the tender. Works evidence supports the review, but evidence sections do not become fixed scoring rules.</p>
+                </div>
+                ${renderEvaluationStatusBadge(`${criteria.length} criteria`)}
+            </div>
+            <div class="evaluation-notice warning">The system organizes works evidence and calculates totals only. Buyer Score and Buyer Decision are entered manually.</div>
+            <div class="works-evaluation-card-list goods-evaluation-card-list">
+                ${criteria.map((criterion, index) => {
+                    const saved = getWorksCriterionSaved(worksDraft, contractor, criterion.id);
+                    const isGate = criterion.passFailGate || /pass_fail|document_check/.test(criterion.evaluationType);
+                    const decisionOptions = getGoodsCriterionDecisionOptions(criterion);
+                    return `
+                        <article class="works-evaluation-card goods-evaluation-card" data-works-criterion-row data-contractor="${escapeEvaluationHtml(contractor)}" data-criterion-id="${escapeEvaluationHtml(criterion.id)}" data-criterion-type="${escapeEvaluationHtml(criterion.evaluationType)}">
+                            <div>
+                                <span class="section-kicker">Criterion ${index + 1} / ${escapeEvaluationHtml(formatGoodsEvaluationType(criterion.evaluationType))}</span>
+                                <h3>${escapeEvaluationHtml(criterion.name)}</h3>
+                                <p>${escapeEvaluationHtml(criterion.description || criterion.subcriteria.join(', ') || 'Buyer-defined criterion.')}</p>
+                                <div class="goods-criterion-meta works-criterion-meta">
+                                    <span>Weight: ${escapeEvaluationHtml(criterion.weight || 0)}</span>
+                                    <span>Max score: ${escapeEvaluationHtml(criterion.maxScore || 0)}</span>
+                                    ${criterion.mandatory ? '<span>Mandatory</span>' : ''}
+                                    ${criterion.passFailGate ? '<span>Gate</span>' : ''}
+                                </div>
+                                ${criterion.evidenceRequired?.length ? `<p>Evidence expected: ${escapeEvaluationHtml(criterion.evidenceRequired.join(', '))}</p>` : ''}
+                            </div>
+                            ${getWorksEvaluationEvidencePanel(tender, bid, bidderIndex, [criterion.name, ...(criterion.subcriteria || []), ...(criterion.evidenceRequired || []), 'methodology', 'work program', 'site visit', 'personnel', 'equipment', 'HSE', 'BOQ'])}
+                            <div class="evaluation-decision-panel">
+                                <label>Buyer Decision
+                                    <select class="form-input" data-works-criterion-decision>${decisionOptions.map(option => `<option value="${escapeEvaluationHtml(option)}" ${saved.decision === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select decision')}</option>`).join('')}</select>
+                                </label>
+                                ${criterion.maxScore > 0 && !isGate ? `
+                                    <label>Buyer Score / ${escapeEvaluationHtml(criterion.maxScore)}
+                                        <input class="form-input" type="number" min="0" max="${escapeEvaluationHtml(criterion.maxScore)}" step="0.5" value="${escapeEvaluationHtml(saved.score ?? '')}" data-works-criterion-score>
+                                    </label>
+                                ` : ''}
+                                <label class="wide">Buyer comment
+                                    <textarea class="form-input" rows="3" data-works-criterion-comment>${escapeEvaluationHtml(saved.comment || '')}</textarea>
+                                </label>
+                            </div>
+                        </article>
+                    `;
+                }).join('')}
+            </div>
+        </section>
+    `;
+}
+
+function renderWorksBoqFinancialReview(tender = {}, bid = {}, bidderIndex = 0, worksDraft = {}) {
+    const contractor = getWorksEvaluationContractorKey(bid, bidderIndex);
+    const rows = getWorksEvaluationBoqRows(tender, bid);
+    const savedReview = worksDraft.boqFinancialReview?.[contractor] || {};
+    const amount = getWorksEvaluationFinancialAmount(bid);
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">BOQ review, not automatic scoring</span>
+                    <h2>BOQ / Financial Review</h2>
+                    <p>Check priced works items, rate breakdowns, totals, arithmetic, taxes, discounts, and abnormal rates. Financial scoring stays in buyer-defined criteria only.</p>
+                </div>
+                ${renderEvaluationStatusBadge(formatEvaluationMoney(amount, bid.financial?.currency || 'TZS'))}
+            </div>
+            <div class="evaluation-financial-review">
+                <div><span>Read-out price</span><strong>${formatEvaluationMoney(bid.price || amount, bid.financial?.currency || 'TZS')}</strong></div>
+                <div><span>Corrected price</span><strong>${formatEvaluationMoney(bid.financial?.correctedPrice || amount, bid.financial?.currency || 'TZS')}</strong></div>
+                <div><span>BOQ status</span><strong>${escapeEvaluationHtml(bid.financial?.boqStatus || 'Pending buyer review')}</strong></div>
+                <div><span>Correction note</span><strong>${escapeEvaluationHtml(bid.financial?.correctionNote || 'None recorded')}</strong></div>
+            </div>
+            <div class="evaluation-form-grid works-financial-status" data-works-financial-result data-contractor="${escapeEvaluationHtml(contractor)}">
+                <label>Financial review result
+                    <select class="form-input" data-works-financial-status>${['', 'Financially Responsive', 'Financially Non-responsive', 'Arithmetic Correction Required', 'Clarification Required', 'Abnormally Low Bid Review Required'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${savedReview.status === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select result')}</option>`).join('')}</select>
+                </label>
+                <label>Overall financial remark
+                    <textarea class="form-input" rows="3" data-works-financial-overall>${escapeEvaluationHtml(savedReview.remark || '')}</textarea>
+                </label>
+            </div>
+            <div class="evaluation-table-scroll">
+                <table class="works-evaluation-table goods-evaluation-table">
+                    <thead><tr><th>Item</th><th>Work item</th><th>Qty</th><th>Unit</th><th>Labor</th><th>Material</th><th>Equipment</th><th>Overheads</th><th>Profit %</th><th>Unit rate</th><th>Total</th><th>Buyer check</th><th>Remark</th></tr></thead>
+                    <tbody>
+                        ${(rows.length ? rows : [{ item: '1', workItem: 'Financial offer total', quantity: 1, unit: 'Lot', unitRate: amount, total: amount }]).map((item, index) => {
+                            const saved = savedReview.lines?.[`line-${index}`] || {};
+                            return `
+                                <tr data-works-boq-row data-contractor="${escapeEvaluationHtml(contractor)}" data-line-id="line-${index}">
+                                    <td>${escapeEvaluationHtml(item.item || item.code || index + 1)}</td>
+                                    <td>${escapeEvaluationHtml(item.workItem || item.description || item.itemDescription || `Work item ${index + 1}`)}</td>
+                                    <td>${escapeEvaluationHtml(item.quantity || item.qty || 1)}</td>
+                                    <td>${escapeEvaluationHtml(item.unit || item.unitOfMeasure || 'Lot')}</td>
+                                    <td>${escapeEvaluationHtml(item.labor || item.laborCost || '-')}</td>
+                                    <td>${escapeEvaluationHtml(item.material || item.materialCost || '-')}</td>
+                                    <td>${escapeEvaluationHtml(item.equipment || item.equipmentCost || '-')}</td>
+                                    <td>${escapeEvaluationHtml(item.overheads || item.overheadCost || '-')}</td>
+                                    <td>${escapeEvaluationHtml(item.profit || item.profitPercent || '-')}</td>
+                                    <td>${escapeEvaluationHtml(item.unitRate || item.rate || '-')}</td>
+                                    <td>${escapeEvaluationHtml(item.total || item.amount || '-')}</td>
+                                    <td><select class="form-input" data-works-boq-check>${['', 'Accepted', 'Correction Required', 'Not Priced', 'Clarification Required', 'Abnormally Low/High Rate Review'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${saved.check === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select check')}</option>`).join('')}</select></td>
+                                    <td><input class="form-input" data-works-boq-remark value="${escapeEvaluationHtml(saved.remark || '')}"></td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    `;
+}
+
+function renderWorksCommercialTerms(tender = {}, bid = {}, bidderIndex = 0, worksDraft = {}) {
+    const contractor = getWorksEvaluationContractorKey(bid, bidderIndex);
+    const terms = getWorksEvaluationCommercialTerms(tender);
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Commercial terms response</span>
+                    <h2>${escapeEvaluationHtml(contractor)}</h2>
+                    <p>Confirm bid validity, performance guarantee, retention, defects liability, liquidated damages, and completion commitments.</p>
+                </div>
+                ${renderEvaluationStatusBadge('Buyer Decision')}
+            </div>
+            <div class="works-evaluation-card-list goods-evaluation-card-list">
+                ${terms.map(term => {
+                    const saved = worksDraft.commercialTerms?.[contractor]?.[term.id] || {};
+                    return `
+                        <article class="works-evaluation-card goods-evaluation-card" data-works-commercial-row data-contractor="${escapeEvaluationHtml(contractor)}" data-term-id="${escapeEvaluationHtml(term.id)}">
+                            <div>
+                                <span class="section-kicker">Contract condition</span>
+                                <h3>${escapeEvaluationHtml(term.term)}</h3>
+                                <p>Tender requirement: ${escapeEvaluationHtml(term.requirement || '-')}</p>
+                            </div>
+                            ${getWorksEvaluationEvidencePanel(tender, bid, bidderIndex, [term.term, 'commercial terms', 'bid validity', 'performance guarantee', 'retention', 'defects liability', 'liquidated damages'])}
+                            <div class="evaluation-decision-panel">
+                                <label>Buyer Decision
+                                    <select class="form-input" data-works-commercial-decision>${['', 'Pass', 'Fail', 'Clarification Required', 'Not Applicable'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${saved.decision === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select decision')}</option>`).join('')}</select>
+                                </label>
+                                <label>Supplier response
+                                    <input class="form-input" data-works-commercial-response value="${escapeEvaluationHtml(saved.response || '')}" placeholder="Record submitted response">
+                                </label>
+                                <label class="wide">Remark
+                                    <textarea class="form-input" rows="3" data-works-commercial-remark>${escapeEvaluationHtml(saved.remark || '')}</textarea>
+                                </label>
+                            </div>
+                        </article>
+                    `;
+                }).join('')}
+            </div>
+        </section>
+    `;
+}
+
+function renderWorksPostQualification(tender = {}, bid = {}, bidderIndex = 0, worksDraft = {}) {
+    const contractor = getWorksEvaluationContractorKey(bid, bidderIndex);
+    const items = getWorksEvaluationPostQualItems(tender);
+    const result = worksDraft.postQualification?.[contractor]?.result || '';
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Contractor capability / post-qualification</span>
+                    <h2>${escapeEvaluationHtml(contractor)}</h2>
+                    <p>Confirm that the contractor can execute the works, mobilize resources, honor HSE commitments, and accept contract readiness requirements.</p>
+                </div>
+                ${renderEvaluationStatusBadge(result || 'Manual review')}
+            </div>
+            <div class="works-evaluation-card-list goods-evaluation-card-list">
+                ${items.map(item => {
+                    const saved = worksDraft.postQualification?.[contractor]?.checks?.[item.id] || {};
+                    return `
+                        <article class="works-evaluation-card goods-evaluation-card" data-works-postqual-row data-contractor="${escapeEvaluationHtml(contractor)}" data-postqual-id="${escapeEvaluationHtml(item.id)}">
+                            <div>
+                                <span class="section-kicker">${escapeEvaluationHtml(item.source)}</span>
+                                <h3>${escapeEvaluationHtml(item.title)}</h3>
+                                ${item.evidenceRequired?.length ? `<p>Evidence expected: ${escapeEvaluationHtml(item.evidenceRequired.join(', '))}</p>` : ''}
+                            </div>
+                            ${getWorksEvaluationEvidencePanel(tender, bid, bidderIndex, [item.title, ...(item.evidenceRequired || []), 'post qualification', 'experience', 'personnel', 'equipment', 'HSE', 'insurance'])}
+                            <div class="evaluation-decision-panel">
+                                <label>Buyer Decision
+                                    <select class="form-input" data-works-postqual-decision>${['', 'Pass', 'Fail', 'Clarification Required'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${saved.decision === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select decision')}</option>`).join('')}</select>
+                                </label>
+                                <label>Remark
+                                    <textarea class="form-input" rows="3" data-works-postqual-remark>${escapeEvaluationHtml(saved.remark || '')}</textarea>
+                                </label>
+                            </div>
+                        </article>
+                    `;
+                }).join('')}
+            </div>
+            <div class="evaluation-form-grid works-postqual-result" data-works-postqual-result data-contractor="${escapeEvaluationHtml(contractor)}">
+                <label>Final post-qualification result
+                    <select class="form-input" data-works-postqual-final>${['', 'Qualified', 'Not Qualified', 'Clarification Required'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${result === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select result')}</option>`).join('')}</select>
+                </label>
+                <label>Overall remark
+                    <textarea class="form-input" rows="3" data-works-postqual-overall>${escapeEvaluationHtml(worksDraft.postQualification?.[contractor]?.remark || '')}</textarea>
+                </label>
+            </div>
+        </section>
+    `;
+}
+
+function renderWorksRanking(tender = {}, bids = [], worksDraft = {}) {
+    const criteria = getEvaluationCriteriaForTender(tender);
+    const maxScore = getWorksContractorMaxScore(criteria);
+    const ranked = bids.map((bid, index) => {
+        const contractor = getWorksEvaluationContractorKey(bid, index);
+        const failedGate = hasWorksFailedGate(worksDraft, contractor, criteria) || hasWorksFailedAdministrativeGate(worksDraft, contractor, tender) || hasWorksBlockingReview(worksDraft, contractor, tender);
+        return {
+            bid,
+            contractor,
+            failedGate,
+            score: failedGate ? null : getWorksContractorScore(worksDraft, contractor, criteria),
+            price: getWorksEvaluationFinancialAmount(bid),
+            saved: worksDraft.ranking?.[contractor] || {}
+        };
+    }).sort((a, b) => {
+        if (a.failedGate !== b.failedGate) return a.failedGate ? 1 : -1;
+        return (b.score || 0) - (a.score || 0) || a.price - b.price;
+    });
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Final ranking</span>
+                    <h2>Calculated from buyer entries</h2>
+                    <p>The system totals Buyer Scores and flags failed gates, financial issues, and post-qualification results. The buyer manually confirms the recommendation.</p>
+                </div>
+                ${renderEvaluationStatusBadge('No automatic winner')}
+            </div>
+            <div class="evaluation-table-scroll">
+                <table class="works-evaluation-table goods-evaluation-table">
+                    <thead><tr><th>Rank</th><th>Contractor</th><th>Gate status</th><th>Total Score</th><th>Evaluated Price</th><th>Recommendation</th><th>Reason / override</th></tr></thead>
+                    <tbody>
+                        ${ranked.map((row, index) => `
+                            <tr data-works-ranking-row data-contractor="${escapeEvaluationHtml(row.contractor)}">
+                                <td>${row.failedGate ? '-' : index + 1}</td>
+                                <td>${escapeEvaluationHtml(row.contractor)}</td>
+                                <td>${renderEvaluationStatusBadge(row.failedGate ? 'Failed gate/review' : 'Passed gates')}</td>
+                                <td>${row.score === null ? '-' : `${escapeEvaluationHtml(row.score)} / ${escapeEvaluationHtml(maxScore)}`}</td>
+                                <td>${formatEvaluationMoney(row.price, row.bid.financial?.currency || 'TZS')}</td>
+                                <td><select class="form-input" data-works-ranking-recommendation>${['', 'Recommended for Award', 'Reserve Contractor', 'Rejected', 'Request Clarification'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${row.saved.recommendation === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select action')}</option>`).join('')}</select></td>
+                                <td><textarea class="form-input" rows="2" data-works-ranking-reason>${escapeEvaluationHtml(row.saved.reason || '')}</textarea></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    `;
+}
+
+function renderWorksEvaluationReportDocument(tender = {}, bids = [], draft = {}) {
+    const worksDraft = getWorksEvaluationDraft(draft);
+    const criteria = getEvaluationCriteriaForTender(tender);
+    const adminItems = getWorksEvaluationAdministrativeItems(tender);
+    const commercialTerms = getWorksEvaluationCommercialTerms(tender);
+    const completion = getWorksEvaluationCompletion(tender, bids, draft);
+    const recommendation = draft.recommendation || getWorksManualRecommendation(tender, bids, draft);
+    const maxScore = getWorksContractorMaxScore(criteria);
+    const rankingRows = bids.map((bid, index) => {
+        const contractor = getWorksEvaluationContractorKey(bid, index);
+        return {
+            contractor,
+            score: getWorksContractorScore(worksDraft, contractor, criteria),
+            price: getWorksEvaluationFinancialAmount(bid),
+            currency: bid.financial?.currency || 'TZS',
+            gate: (hasWorksFailedGate(worksDraft, contractor, criteria) || hasWorksFailedAdministrativeGate(worksDraft, contractor, tender) || hasWorksBlockingReview(worksDraft, contractor, tender)) ? 'Failed gate/review' : 'Passed gates',
+            ranking: worksDraft.ranking?.[contractor] || {}
+        };
+    }).sort((a, b) => (b.score || 0) - (a.score || 0) || a.price - b.price);
+
+    return `
+        <div class="evaluation-report-document works-report-document">
+            <header>
+                <span>Works Tender Evaluation Report</span>
+                <h1>${escapeEvaluationHtml(tender.title)}</h1>
+                <p>${escapeEvaluationHtml(tender.reference)} / Works procurement / ${escapeEvaluationHtml(getWorksEvaluationContractType(tender))} / ${escapeEvaluationHtml(draft.status || 'Draft')}</p>
+            </header>
+            <section class="evaluation-report-summary">
+                <div><span>Evaluation method</span><strong>Manual buyer review</strong></div>
+                <div><span>Criteria source</span><strong>Published tender</strong></div>
+                <div><span>Contractors</span><strong>${bids.length}</strong></div>
+                <div><span>Completion</span><strong>${completion.complete}/${completion.total}</strong></div>
+            </section>
+
+            <section><h2>1. Tender Information</h2><p>${escapeEvaluationHtml(tender.title)} was evaluated against the published works requirements, submitted contractor evidence, BOQ, commercial terms, and buyer-defined evaluation criteria.</p></section>
+            <section><h2>2. Evaluation Method</h2><p>The system organized submitted works documents, methodology, work program, personnel, equipment, HSE evidence, site response, BOQ, and scoring records. The buyer manually recorded all decisions.</p></section>
+            <section><h2>3. Evaluation Criteria Used</h2><p>${criteria.map(criterion => `${criterion.name} (${formatGoodsEvaluationType(criterion.evaluationType)}, ${criterion.maxScore || criterion.weight || 0})`).map(escapeEvaluationHtml).join('; ') || 'No buyer-defined criteria available.'}</p></section>
+
+            <section>
+                <h2>4. Bid Opening Register</h2>
+                <div class="evaluation-table-scroll"><table><thead><tr><th>Contractor</th><th>Submitted</th><th>Receipt</th><th>Price</th><th>Bid security</th><th>Status</th><th>Remark</th></tr></thead><tbody>
+                    ${bids.map((bid, index) => {
+                        const contractor = getWorksEvaluationContractorKey(bid, index);
+                        const row = worksDraft.opening?.[contractor] || {};
+                        return `<tr><td>${escapeEvaluationHtml(contractor)}</td><td>${escapeEvaluationHtml(bid.submissionTime || '-')}</td><td>${escapeEvaluationHtml(bid.integrityHash || '-')}</td><td>${formatEvaluationMoney(getWorksEvaluationFinancialAmount(bid), bid.financial?.currency || 'TZS')}</td><td>${escapeEvaluationHtml(row.bidSecurityStatus || '-')}</td><td>${escapeEvaluationHtml(row.status || 'Opened')}</td><td>${escapeEvaluationHtml(row.remark || '-')}</td></tr>`;
+                    }).join('')}
+                </tbody></table></div>
+            </section>
+
+            <section>
+                <h2>5. Administrative / Responsiveness Review</h2>
+                <div class="evaluation-table-scroll"><table><thead><tr><th>Contractor</th><th>Requirement</th><th>Decision</th><th>Remark</th></tr></thead><tbody>
+                    ${bids.flatMap((bid, index) => {
+                        const contractor = getWorksEvaluationContractorKey(bid, index);
+                        return adminItems.map(item => {
+                            const row = worksDraft.administrative?.[contractor]?.[item.id] || {};
+                            return `<tr><td>${escapeEvaluationHtml(contractor)}</td><td>${escapeEvaluationHtml(item.title)}</td><td>${escapeEvaluationHtml(row.decision || 'Pending')}</td><td>${escapeEvaluationHtml(row.remark || '-')}</td></tr>`;
+                        });
+                    }).join('')}
+                </tbody></table></div>
+            </section>
+
+            <section>
+                <h2>6. Buyer-Defined Criteria Evaluation</h2>
+                <div class="evaluation-table-scroll"><table><thead><tr><th>Contractor</th><th>Criterion</th><th>Type</th><th>Buyer Decision</th><th>Buyer Score</th><th>Comment</th></tr></thead><tbody>
+                    ${bids.flatMap((bid, index) => {
+                        const contractor = getWorksEvaluationContractorKey(bid, index);
+                        return criteria.map(criterion => {
+                            const row = getWorksCriterionSaved(worksDraft, contractor, criterion.id);
+                            return `<tr><td>${escapeEvaluationHtml(contractor)}</td><td>${escapeEvaluationHtml(criterion.name)}</td><td>${escapeEvaluationHtml(formatGoodsEvaluationType(criterion.evaluationType))}</td><td>${escapeEvaluationHtml(row.decision || 'Pending')}</td><td>${escapeEvaluationHtml(row.score || '-')}${criterion.maxScore ? ` / ${escapeEvaluationHtml(criterion.maxScore)}` : ''}</td><td>${escapeEvaluationHtml(row.comment || '-')}</td></tr>`;
+                        });
+                    }).join('')}
+                </tbody></table></div>
+            </section>
+
+            <section><h2>7. BOQ and Financial Review</h2><p>BOQ checks, arithmetic corrections, abnormal rate review, and evaluated price details are recorded separately from scoring. Price is scored only where the buyer published a financial/price criterion.</p></section>
+
+            <section>
+                <h2>8. Commercial Terms Review</h2>
+                <div class="evaluation-table-scroll"><table><thead><tr><th>Contractor</th><th>Term</th><th>Decision</th><th>Remark</th></tr></thead><tbody>
+                    ${bids.flatMap((bid, index) => {
+                        const contractor = getWorksEvaluationContractorKey(bid, index);
+                        return commercialTerms.map(term => {
+                            const row = worksDraft.commercialTerms?.[contractor]?.[term.id] || {};
+                            return `<tr><td>${escapeEvaluationHtml(contractor)}</td><td>${escapeEvaluationHtml(term.term)}</td><td>${escapeEvaluationHtml(row.decision || 'Pending')}</td><td>${escapeEvaluationHtml(row.remark || '-')}</td></tr>`;
+                        });
+                    }).join('')}
+                </tbody></table></div>
+            </section>
+
+            <section>
+                <h2>9. Post-Qualification</h2>
+                <div class="evaluation-table-scroll"><table><thead><tr><th>Contractor</th><th>Result</th><th>Remark</th></tr></thead><tbody>
+                    ${bids.map((bid, index) => {
+                        const contractor = getWorksEvaluationContractorKey(bid, index);
+                        const row = worksDraft.postQualification?.[contractor] || {};
+                        return `<tr><td>${escapeEvaluationHtml(contractor)}</td><td>${escapeEvaluationHtml(row.result || 'Pending')}</td><td>${escapeEvaluationHtml(row.remark || '-')}</td></tr>`;
+                    }).join('')}
+                </tbody></table></div>
+            </section>
+
+            <section>
+                <h2>10. Final Ranking and Award Recommendation</h2>
+                <div class="evaluation-table-scroll"><table><thead><tr><th>Rank</th><th>Contractor</th><th>Gate status</th><th>Total Score</th><th>Evaluated Price</th><th>Recommendation</th><th>Reason</th></tr></thead><tbody>
+                    ${rankingRows.map((row, index) => `<tr><td>${row.gate === 'Failed gate/review' ? '-' : index + 1}</td><td>${escapeEvaluationHtml(row.contractor)}</td><td>${escapeEvaluationHtml(row.gate)}</td><td>${escapeEvaluationHtml(row.score)} / ${escapeEvaluationHtml(maxScore)}</td><td>${formatEvaluationMoney(row.price, row.currency)}</td><td>${escapeEvaluationHtml(row.ranking.recommendation || 'Pending')}</td><td>${escapeEvaluationHtml(row.ranking.reason || '-')}</td></tr>`).join('')}
+                </tbody></table></div>
+                <p><strong>Recommended for Award:</strong> ${escapeEvaluationHtml(recommendation.supplier || 'Pending buyer recommendation')}</p>
+            </section>
+
+            <section><h2>11. Rejected Bidders and Reasons</h2><p>${rankingRows.filter(row => /rejected/i.test(row.ranking.recommendation || '')).map(row => `${row.contractor}: ${row.ranking.reason || 'No reason recorded'}`).map(escapeEvaluationHtml).join('; ') || 'No rejected contractors recorded yet.'}</p></section>
+            <section><h2>12. Buyer Declaration</h2><p>I confirm that the submitted works bids were reviewed manually against the published tender requirements and buyer-defined evaluation criteria. The system organized the submitted documents, BOQ, technical proposal, and scoring records, but the evaluation decision was made by the buyer.</p></section>
+            <section><h2>13. Attachments Reviewed</h2><p>Administrative documents, methodology, work program, drawings acknowledgement, site response, personnel CVs, equipment proof, HSE evidence, BOQ, and commercial terms where available in the submitted bid package.</p></section>
+        </div>
+    `;
+}
+
+function renderWorksActiveStage(tender = {}, bids = [], supplierIndex = 0, activeStageId = 'opening', draft = {}) {
+    const worksDraft = getWorksEvaluationDraft(draft);
+    const bid = bids[supplierIndex] || {};
+    if (activeStageId === 'opening') return renderWorksOpeningRegister(tender, bids, worksDraft);
+    if (activeStageId === 'administrative') return renderWorksAdministrativeReview(tender, bid, supplierIndex, worksDraft);
+    if (activeStageId === 'criteria') return renderWorksCriteriaEvaluation(tender, bid, supplierIndex, worksDraft);
+    if (activeStageId === 'boq') return renderWorksBoqFinancialReview(tender, bid, supplierIndex, worksDraft);
+    if (activeStageId === 'commercial') return renderWorksCommercialTerms(tender, bid, supplierIndex, worksDraft);
+    if (activeStageId === 'postqual') return renderWorksPostQualification(tender, bid, supplierIndex, worksDraft);
+    if (activeStageId === 'ranking') return renderWorksRanking(tender, bids, worksDraft);
+    return renderWorksEvaluationReportDocument(tender, bids, draft);
+}
+
+function renderWorksBidEvaluationWorkspace(tender = {}) {
+    const bids = getEvaluationBidsForTender(tender);
+    const draft = getEvaluationDraft(tender.reference) || {};
+    const worksDraft = getWorksEvaluationDraft(draft);
+    const stages = getWorksEvaluationStages();
+    const activeStageId = worksDraft.currentStageId || 'opening';
+    const supplierIndex = Math.min(Math.max(Number(draft.currentSupplierIndex || worksDraft.currentSupplierIndex || 0), 0), Math.max(0, bids.length - 1));
+    const completion = getWorksEvaluationCompletion(tender, bids, draft);
+    const criteria = getEvaluationCriteriaForTender(tender);
+
+    if (!bids.length) {
+        return renderEvaluationShell(`
+            <section class="procurement-hero evaluation-hero-panel">
+                <div>
+                    <span class="section-kicker">Works Bid Evaluation Workspace</span>
+                    <h1>${escapeEvaluationHtml(tender.title)}</h1>
+                    <p>No submitted works bid package is available for this tender in the current browser or mock data.</p>
+                </div>
+                <div class="evaluation-hero-stats">
+                    <div><strong>0</strong><span>Bids available</span></div>
+                    <div><strong>${criteria.length}</strong><span>Published criteria</span></div>
+                </div>
+            </section>
+        `, 'Works Evaluation', tender.reference);
+    }
+
+    return renderEvaluationShell(`
+        <section class="procurement-hero evaluation-hero-panel">
+            <div>
+                <span class="section-kicker">Works Bid Evaluation Workspace</span>
+                <h1>${escapeEvaluationHtml(tender.title)}</h1>
+                <p>Manual evaluation of submitted works bids using the buyer's published criteria, tender requirements, BOQ, drawings, methodology, personnel, equipment, and commercial response.</p>
+            </div>
+            <div class="evaluation-hero-stats">
+                <div><strong>${escapeEvaluationHtml(tender.reference)}</strong><span>Reference number</span></div>
+                <div><strong>Works</strong><span>Procurement type</span></div>
+                <div><strong>${escapeEvaluationHtml(getWorksEvaluationContractType(tender))}</strong><span>Contract type</span></div>
+                <div><strong>${completion.percent}%</strong><span>Evaluation status</span></div>
+            </div>
+        </section>
+
+        <section class="evaluation-top-summary">
+            <div><span>Evaluation mode</span><strong>Manual Buyer Review</strong></div>
+            <div><span>Criteria source</span><strong>Published Tender Criteria</strong></div>
+            <div><span>Buyer criteria</span><strong>${criteria.length}</strong></div>
+            <div><span>Bids opened</span><strong>${bids.length}</strong></div>
+            <div><span>Current stage</span><strong>${escapeEvaluationHtml((stages.find(stage => stage.id === activeStageId) || stages[0]).label)}</strong></div>
+        </section>
+
+        <section class="procurement-panel evaluation-panel works-evaluation-workspace" data-evaluation-workspace="${escapeEvaluationHtml(tender.reference)}" data-current-supplier-index="${supplierIndex}" data-current-works-stage="${escapeEvaluationHtml(activeStageId)}">
+            <div class="evaluation-notice warning">This evaluation uses the criteria configured by the buyer during tender creation. The system organizes bid information and calculates totals only. The buyer makes all evaluation decisions manually.</div>
+            ${renderWorksContractorTabs(bids, supplierIndex)}
+            <div class="evaluation-progress-track evaluation-workspace-progress"><span style="width: ${completion.percent}%"></span></div>
+            <div class="evaluation-review-grid">
+                ${renderWorksStageRail(stages, activeStageId)}
+                <div class="evaluation-review-main">
+                    ${renderWorksActiveStage(tender, bids, supplierIndex, activeStageId, draft)}
+                </div>
+            </div>
+            <div class="evaluation-finish-panel">
+                <div>
+                    <span class="section-kicker">Complete works evaluation</span>
+                    <h3>${completion.canComplete ? 'Ready for buyer completion' : 'Complete all works decisions and recommendation'}</h3>
+                    <p>${completion.complete} of ${completion.total} required checks are complete. Ranking and award recommendation remain manual buyer decisions.</p>
+                </div>
+                <div class="inline-actions">
+                    <button class="btn btn-secondary" type="button" data-evaluation-save-draft="${escapeEvaluationHtml(tender.reference)}">Save Draft</button>
+                    <button class="btn btn-secondary" type="button" data-evaluation-view-report="${escapeEvaluationHtml(tender.reference)}">Preview Report</button>
+                    <button class="btn btn-primary" type="button" data-evaluation-complete="${escapeEvaluationHtml(tender.reference)}" ${completion.canComplete ? '' : 'disabled'}>Complete Evaluation</button>
+                </div>
+            </div>
+        </section>
+    `, 'Works Evaluation', tender.reference);
+}
+
+function getServiceEvaluationStages() {
+    return [
+        { id: 'opening', label: 'Opening Register' },
+        { id: 'administrative', label: 'Administrative Responsiveness' },
+        { id: 'criteria', label: 'Buyer-Defined Criteria Evaluation' },
+        { id: 'pricing', label: 'Service Pricing Review' },
+        { id: 'sla', label: 'SLA / Performance Review' },
+        { id: 'postqual', label: 'Post-Qualification' },
+        { id: 'ranking', label: 'Final Ranking' },
+        { id: 'report', label: 'Evaluation Report' }
+    ];
+}
+
+function getServiceEvaluationDraft(draft = {}) {
+    return draft.services && typeof draft.services === 'object' ? draft.services : {};
+}
+
+function getServiceProviderKey(bid = {}, index = 0) {
+    return bid.supplier || `Service Provider ${index + 1}`;
+}
+
+function getServiceFinancialAmount(bid = {}) {
+    return Number(bid.financial?.correctedPrice || bid.price || 0) || 0;
+}
+
+function getServiceCategory(tender = {}) {
+    const source = tender.sourceTender || tender;
+    return source.requirements?.fields?.serviceCategory || source.category || source.type || 'Services';
+}
+
+function getServicePricingRows(tender = {}, bid = {}) {
+    const submittedRows = bid.draft?.financialOfferRows || bid.submittedBid?.draft?.financialOfferRows || [];
+    if (submittedRows.length) return submittedRows;
+    const source = tender.sourceTender || tender;
+    const fields = source.requirements?.fields || {};
+    return fields.serviceBoqRows?.length
+        ? fields.serviceBoqRows
+        : (fields.commercialItems || source.commercialItems || source.boqItems || []);
+}
+
+function getServiceAdministrativeItems(tender = {}) {
+    const source = tender.sourceTender || tender;
+    const requirementSet = getEvaluationRequirementSet(source);
+    const licenseItems = (source.regulatoryLicenses || []).map((license, index) => ({
+        id: `service-license-${index}`,
+        title: license.license || license.registrationType || license.regulatoryBody || 'Professional / service license',
+        mandatory: license.mandatory !== false,
+        source: license.body || license.group || 'Regulatory license'
+    }));
+    const requiredDocs = [
+        ...(source.requiredSubmissionDocuments || []),
+        ...(source.requirements?.fields?.supportingDocumentRows || []).map(item => item.documentName || item.name),
+        ...(source.requirements?.fields?.otherEligibilityRequirements || []).map(item => item.requirementName || item.text || item.name),
+        ...(requirementSet.mandatory || [])
+            .filter(item => /license|certificate|tax|registration|insurance|professional|permit|signed|form|power|attorney|past service|audited|eligibility|declaration|document/i.test(`${item.title} ${item.category}`))
+            .map(item => item.title)
+    ].filter(Boolean);
+    const docItems = Array.from(new Set(requiredDocs)).map((title, index) => ({
+        id: `service-admin-${slugEvaluationId(title)}-${index}`,
+        title,
+        mandatory: true,
+        source: 'Published tender requirement'
+    }));
+    return [...licenseItems, ...docItems].length ? [...licenseItems, ...docItems] : [
+        { id: 'service-admin-license', title: 'Business license', mandatory: true, source: 'Default service responsiveness check' },
+        { id: 'service-admin-tax', title: 'Tax clearance certificate', mandatory: true, source: 'Default service responsiveness check' },
+        { id: 'service-admin-insurance', title: 'Insurance certificate where applicable', mandatory: true, source: 'Default service responsiveness check' },
+        { id: 'service-admin-signed-form', title: 'Signed bid form', mandatory: true, source: 'Default service responsiveness check' }
+    ];
+}
+
+function getServiceSlaItems(tender = {}) {
+    const source = tender.sourceTender || tender;
+    const fields = source.requirements?.fields || {};
+    const kpis = (fields.serviceKpiRows || fields.kpiRows || []).map((item, index) => ({
+        id: `service-kpi-${index}`,
+        item: item.kpiName || item.metric || item.text || `KPI ${index + 1}`,
+        requirement: item.target || item.requirement || item.description || 'As stated in tender'
+    }));
+    return kpis.length ? kpis : [
+        { id: 'service-sla-response-time', item: 'Response time', requirement: fields.responseTime || fields.slaRequirement || 'As stated in tender' },
+        { id: 'service-sla-support-hours', item: 'Support hours', requirement: fields.supportHours || 'As stated in tender' },
+        { id: 'service-sla-reporting', item: 'Reporting', requirement: fields.reportingRequirements || 'As stated in tender' },
+        { id: 'service-sla-uptime', item: 'Uptime / availability', requirement: fields.uptimeRequirement || 'As stated in tender' }
+    ];
+}
+
+function getServicePostQualItems(tender = {}) {
+    const criteria = getEvaluationCriteriaForTender(tender)
+        .filter(criterion => /post|qualification|capacity|experience|staff|personnel|equipment|tools|local|sla|insurance|financial capacity|continuity|support/i.test(`${criterion.name} ${criterion.category} ${criterion.subcriteria.join(' ')}`));
+    if (criteria.length) {
+        return criteria.map(criterion => ({
+            id: `service-postqual-${criterion.id}`,
+            title: criterion.name,
+            source: 'Buyer-defined criterion',
+            evidenceRequired: criterion.evidenceRequired || []
+        }));
+    }
+    return [
+        { id: 'service-postqual-legal', title: 'Legal capacity, licenses, and permits remain valid', source: 'Manual service post-qualification checklist' },
+        { id: 'service-postqual-experience', title: 'Similar service experience is verified', source: 'Manual service post-qualification checklist' },
+        { id: 'service-postqual-staff', title: 'Enough qualified staff are available', source: 'Manual service post-qualification checklist' },
+        { id: 'service-postqual-tools', title: 'Equipment, tools, materials, or systems are available', source: 'Manual service post-qualification checklist' },
+        { id: 'service-postqual-sla', title: 'SLA, supervision, insurance, and continuity capacity are acceptable', source: 'Manual service post-qualification checklist' }
+    ];
+}
+
+function getServiceCriterionSaved(serviceDraft = {}, provider = '', criterionId = '') {
+    return serviceDraft.criteriaEvaluation?.[provider]?.[criterionId] || {};
+}
+
+function getServicePricingStatus(serviceDraft = {}, provider = '') {
+    return serviceDraft.pricingReview?.[provider]?.status || '';
+}
+
+function isServiceCriterionComplete(row = {}, criterion = {}) {
+    return isGoodsCriterionComplete(row, criterion);
+}
+
+function isServiceAdministrativeComplete(row = {}) {
+    return isGoodsAdministrativeComplete(row);
+}
+
+function isServiceRankingDecisionComplete(row = {}) {
+    return isGoodsRankingDecisionComplete(row);
+}
+
+function isServiceSlaComplete(row = {}) {
+    if (!row.decision) return false;
+    if (isGoodsManualDecisionNegative(row.decision) && !String(row.remark || '').trim()) return false;
+    return true;
+}
+
+function hasServiceFailedGate(serviceDraft = {}, provider = '', criteria = []) {
+    return criteria.some(criterion => {
+        if (!criterion.passFailGate && !criterion.mandatory) return false;
+        const row = getServiceCriterionSaved(serviceDraft, provider, criterion.id);
+        return /fail|rejected|non-responsive|non-compliant|major deviation/i.test(row.decision || '');
+    });
+}
+
+function hasServiceFailedAdministrativeGate(serviceDraft = {}, provider = '', tender = {}) {
+    return getServiceAdministrativeItems(tender).some(item => {
+        if (item.mandatory === false) return false;
+        const row = serviceDraft.administrative?.[provider]?.[item.id] || {};
+        return /fail|rejected|non-responsive/i.test(row.decision || '');
+    });
+}
+
+function hasServiceBlockingReview(serviceDraft = {}, provider = {}, tender = {}) {
+    const pricingStatus = getServicePricingStatus(serviceDraft, provider);
+    const postResult = serviceDraft.postQualification?.[provider]?.result || '';
+    const slaFailed = getServiceSlaItems(tender).some(item => /fail|rejected|non-responsive/i.test(serviceDraft.slaPerformanceReview?.[provider]?.[item.id]?.decision || ''));
+    return /non-responsive|fail|abnormally low/i.test(pricingStatus) || /not qualified/i.test(postResult) || slaFailed;
+}
+
+function getServiceProviderScore(serviceDraft = {}, provider = '', criteria = []) {
+    return criteria.reduce((sum, criterion) => {
+        const row = getServiceCriterionSaved(serviceDraft, provider, criterion.id);
+        return sum + (Number(row.score || 0) || 0);
+    }, 0);
+}
+
+function getServiceProviderMaxScore(criteria = []) {
+    return getGoodsSupplierMaxScore(criteria);
+}
+
+function getServiceManualRecommendation(tender = {}, bids = [], draft = {}) {
+    const services = getServiceEvaluationDraft(draft);
+    const recommended = bids.map((bid, index) => {
+        const provider = getServiceProviderKey(bid, index);
+        return { bid, provider, row: services.ranking?.[provider] || {} };
+    }).find(item => item.row.recommendation === 'Recommended for Award');
+    if (!recommended) return { supplier: '', amount: 0, currency: 'TZS', reason: '' };
+    return {
+        supplier: recommended.provider,
+        amount: recommended.bid.financial?.correctedPrice || recommended.bid.price || 0,
+        currency: recommended.bid.financial?.currency || 'TZS',
+        reason: recommended.row.reason || 'Recommended manually by the buyer after completing the service evaluation record.'
+    };
+}
+
+function getServiceEvaluationCompletion(tender = {}, bids = [], draft = {}) {
+    const services = getServiceEvaluationDraft(draft);
+    const criteria = getEvaluationCriteriaForTender(tender);
+    const adminItems = getServiceAdministrativeItems(tender);
+    const slaItems = getServiceSlaItems(tender);
+    const total = bids.length * (criteria.length + adminItems.length + slaItems.length + 3);
+    let hasRecommendation = false;
+    const complete = bids.reduce((sum, bid, index) => {
+        const provider = getServiceProviderKey(bid, index);
+        const ranking = services.ranking?.[provider] || {};
+        if (ranking.recommendation === 'Recommended for Award') hasRecommendation = true;
+        const adminDone = adminItems.filter(item => isServiceAdministrativeComplete(services.administrative?.[provider]?.[item.id] || {})).length;
+        const criteriaDone = criteria.filter(criterion => isServiceCriterionComplete(getServiceCriterionSaved(services, provider, criterion.id), criterion)).length;
+        const slaDone = slaItems.filter(item => isServiceSlaComplete(services.slaPerformanceReview?.[provider]?.[item.id] || {})).length;
+        const pricingDone = getServicePricingStatus(services, provider) ? 1 : 0;
+        const postDone = services.postQualification?.[provider]?.result ? 1 : 0;
+        const rankingDone = isServiceRankingDecisionComplete(ranking) ? 1 : 0;
+        return sum + adminDone + criteriaDone + slaDone + pricingDone + postDone + rankingDone;
+    }, 0);
+    return { total, complete, percent: total ? Math.round((complete / total) * 100) : 0, canComplete: total > 0 && complete >= total && hasRecommendation };
+}
+
+function getServiceEvidencePanel(tender = {}, bid = {}, bidderIndex = 0, labels = []) {
+    const evidence = findEvaluationEvidenceForRequirement(getEvaluationBidEvidenceRows(tender, bid, bidderIndex), { title: labels.join(' '), labels });
+    return `
+        <aside class="service-evidence-panel goods-evidence-panel">
+            <strong>Submitted Service Evidence</strong>
+            ${evidence.length ? evidence.map(item => `
+                <div>
+                    <span>${escapeEvaluationHtml(item.section || 'Evidence')}</span>
+                    <p>${escapeEvaluationHtml(item.label || '')}: ${escapeEvaluationHtml(item.value || item.file || 'Provided')}</p>
+                </div>
+            `).join('') : '<p>No matching submitted evidence was found. Review the available service bid package and record the buyer decision manually.</p>'}
+        </aside>
+    `;
+}
+
+function renderServiceProviderTabs(bids = [], activeIndex = 0) {
+    return `
+        <div class="service-provider-tabs goods-bidder-tabs" role="tablist" aria-label="Service providers">
+            ${bids.map((bid, index) => `
+                <button class="service-provider-tab goods-bidder-tab ${index === activeIndex ? 'active' : ''}" type="button" data-service-provider-index="${index}">
+                    <strong>${escapeEvaluationHtml(bid.supplier || `Service Provider ${index + 1}`)}</strong>
+                    <span>${escapeEvaluationHtml(bid.preliminaryResult || bid.finalResult || 'Under review')}</span>
+                </button>
+            `).join('')}
+        </div>
+    `;
+}
+
+function renderServiceStageRail(stages = [], activeStageId = '') {
+    return `
+        <nav class="evaluation-section-rail service-stage-rail" aria-label="Service evaluation stages">
+            ${stages.map((stage, index) => `
+                <button class="evaluation-section-button ${stage.id === activeStageId ? 'active' : ''}" type="button" data-service-stage="${escapeEvaluationHtml(stage.id)}">
+                    <strong>${String(index + 1).padStart(2, '0')}</strong>
+                    <span>${escapeEvaluationHtml(stage.label)}</span>
+                </button>
+            `).join('')}
+        </nav>
+    `;
+}
+
+function renderServiceOpeningRegister(tender = {}, bids = [], serviceDraft = {}) {
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Bid opening register</span>
+                    <h2>Open submitted service bids</h2>
+                    <p>Record read-out price, service duration offered, opening status, and buyer remark. This stage does not evaluate providers.</p>
+                </div>
+                ${renderEvaluationStatusBadge('Manual Buyer Evaluation')}
+            </div>
+            <div class="evaluation-table-scroll">
+                <table class="service-evaluation-table goods-evaluation-table">
+                    <thead><tr><th>Service Provider</th><th>Submitted At</th><th>Receipt No.</th><th>Read-out Price</th><th>Service Duration</th><th>Status</th><th>Opening Remark</th></tr></thead>
+                    <tbody>
+                        ${bids.map((bid, index) => {
+                            const provider = getServiceProviderKey(bid, index);
+                            const saved = serviceDraft.opening?.[provider] || {};
+                            return `
+                                <tr data-service-opening-row data-provider="${escapeEvaluationHtml(provider)}">
+                                    <td>${escapeEvaluationHtml(provider)}</td>
+                                    <td>${escapeEvaluationHtml(bid.submissionTime || '-')}</td>
+                                    <td>${escapeEvaluationHtml(bid.integrityHash || bid.submittedBid?.receiptHash || '-')}</td>
+                                    <td>${formatEvaluationMoney(getServiceFinancialAmount(bid), bid.financial?.currency || 'TZS')}</td>
+                                    <td><input class="form-input" data-service-opening-duration value="${escapeEvaluationHtml(saved.serviceDurationOffered || '')}" placeholder="e.g. 12 months"></td>
+                                    <td><select class="form-input" data-service-opening-status>${['Sealed', 'Opened', 'Late Submission', 'Withdrawn', 'Rejected at Opening', 'Accepted for Evaluation'].map(option => `<option ${String(saved.status || 'Opened') === option ? 'selected' : ''}>${option}</option>`).join('')}</select></td>
+                                    <td><input class="form-input" data-service-opening-remark value="${escapeEvaluationHtml(saved.remark || 'Opening record captured')}"></td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    `;
+}
+
+function renderServiceAdministrativeReview(tender = {}, bid = {}, bidderIndex = 0, serviceDraft = {}) {
+    const provider = getServiceProviderKey(bid, bidderIndex);
+    const items = getServiceAdministrativeItems(tender);
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Administrative responsiveness</span>
+                    <h2>${escapeEvaluationHtml(provider)}</h2>
+                    <p>Check mandatory service documents and eligibility. The system can show submitted evidence, but the buyer records every decision manually.</p>
+                </div>
+                ${renderEvaluationStatusBadge('Buyer Decision')}
+            </div>
+            <div class="service-evaluation-card-list goods-evaluation-card-list">
+                ${items.map(item => {
+                    const saved = serviceDraft.administrative?.[provider]?.[item.id] || {};
+                    return `
+                        <article class="service-evaluation-card goods-evaluation-card" data-service-admin-row data-provider="${escapeEvaluationHtml(provider)}" data-admin-id="${escapeEvaluationHtml(item.id)}">
+                            <div>
+                                <span class="section-kicker">${item.mandatory ? 'Mandatory' : 'Optional'}</span>
+                                <h3>${escapeEvaluationHtml(item.title)}</h3>
+                                <p>${escapeEvaluationHtml(item.source || 'Published tender requirement')}</p>
+                            </div>
+                            ${getServiceEvidencePanel(tender, bid, bidderIndex, [item.title, 'business license', 'tax clearance', 'insurance certificate', 'professional license', 'signed forms'])}
+                            <div class="evaluation-decision-panel">
+                                <label>Buyer Decision
+                                    <select class="form-input" data-service-admin-decision>${['', 'Pass', 'Fail', 'Not Applicable', 'Clarification Required'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${saved.decision === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select decision')}</option>`).join('')}</select>
+                                </label>
+                                <label>Remark
+                                    <textarea class="form-input" rows="3" data-service-admin-remark>${escapeEvaluationHtml(saved.remark || '')}</textarea>
+                                </label>
+                            </div>
+                        </article>
+                    `;
+                }).join('')}
+            </div>
+        </section>
+    `;
+}
+
+function renderServiceCriteriaEvaluation(tender = {}, bid = {}, bidderIndex = 0, serviceDraft = {}) {
+    const provider = getServiceProviderKey(bid, bidderIndex);
+    const criteria = getEvaluationCriteriaForTender(tender);
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Criteria from Published Tender</span>
+                    <h2>Buyer-Defined Criteria Evaluation</h2>
+                    <p>Evaluation criteria loaded from this tender. Service evidence supports the review but does not become fixed scoring criteria.</p>
+                </div>
+                ${renderEvaluationStatusBadge(`${criteria.length} criteria`)}
+            </div>
+            <div class="evaluation-notice warning">The system organizes service submissions and calculates totals only. Buyer Score and Buyer Decision are entered manually.</div>
+            <div class="service-evaluation-card-list goods-evaluation-card-list">
+                ${criteria.map((criterion, index) => {
+                    const saved = getServiceCriterionSaved(serviceDraft, provider, criterion.id);
+                    const isGate = criterion.passFailGate || /pass_fail|document_check/.test(criterion.evaluationType);
+                    const decisionOptions = getGoodsCriterionDecisionOptions(criterion);
+                    return `
+                        <article class="service-evaluation-card goods-evaluation-card" data-service-criterion-row data-provider="${escapeEvaluationHtml(provider)}" data-criterion-id="${escapeEvaluationHtml(criterion.id)}" data-criterion-type="${escapeEvaluationHtml(criterion.evaluationType)}">
+                            <div>
+                                <span class="section-kicker">Criterion ${index + 1} / ${escapeEvaluationHtml(formatGoodsEvaluationType(criterion.evaluationType))}</span>
+                                <h3>${escapeEvaluationHtml(criterion.name)}</h3>
+                                <p>${escapeEvaluationHtml(criterion.description || criterion.subcriteria.join(', ') || 'Buyer-defined criterion.')}</p>
+                                <div class="goods-criterion-meta service-criterion-meta">
+                                    <span>Weight: ${escapeEvaluationHtml(criterion.weight || 0)}</span>
+                                    <span>Max score: ${escapeEvaluationHtml(criterion.maxScore || 0)}</span>
+                                    ${criterion.mandatory ? '<span>Mandatory</span>' : ''}
+                                    ${criterion.passFailGate ? '<span>Gate</span>' : ''}
+                                </div>
+                                ${criterion.evidenceRequired?.length ? `<p>Evidence expected: ${escapeEvaluationHtml(criterion.evidenceRequired.join(', '))}</p>` : ''}
+                            </div>
+                            ${getServiceEvidencePanel(tender, bid, bidderIndex, [criterion.name, ...(criterion.subcriteria || []), ...(criterion.evidenceRequired || []), 'methodology', 'personnel', 'SLA', 'schedule', 'tools', 'equipment', 'reports', 'pricing'])}
+                            <div class="evaluation-decision-panel">
+                                <label>Buyer Decision
+                                    <select class="form-input" data-service-criterion-decision>${decisionOptions.map(option => `<option value="${escapeEvaluationHtml(option)}" ${saved.decision === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select decision')}</option>`).join('')}</select>
+                                </label>
+                                ${criterion.maxScore > 0 && !isGate ? `
+                                    <label>Buyer Score / ${escapeEvaluationHtml(criterion.maxScore)}
+                                        <input class="form-input" type="number" min="0" max="${escapeEvaluationHtml(criterion.maxScore)}" step="0.5" value="${escapeEvaluationHtml(saved.score ?? '')}" data-service-criterion-score>
+                                    </label>
+                                ` : ''}
+                                <label class="wide">Buyer comment
+                                    <textarea class="form-input" rows="3" data-service-criterion-comment>${escapeEvaluationHtml(saved.comment || '')}</textarea>
+                                </label>
+                            </div>
+                        </article>
+                    `;
+                }).join('')}
+            </div>
+        </section>
+    `;
+}
+
+function renderServicePricingReview(tender = {}, bid = {}, bidderIndex = 0, serviceDraft = {}) {
+    const provider = getServiceProviderKey(bid, bidderIndex);
+    const rows = getServicePricingRows(tender, bid);
+    const savedReview = serviceDraft.pricingReview?.[provider] || {};
+    const amount = getServiceFinancialAmount(bid);
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Financial Review, not automatic scoring</span>
+                    <h2>Service Pricing Review</h2>
+                    <p>Check service rates, duration, totals, taxes, discounts, completeness, and arithmetic. Financial scoring stays in buyer-defined criteria.</p>
+                </div>
+                ${renderEvaluationStatusBadge(formatEvaluationMoney(amount, bid.financial?.currency || 'TZS'))}
+            </div>
+            <div class="evaluation-financial-review">
+                <div><span>Read-out price</span><strong>${formatEvaluationMoney(bid.price || amount, bid.financial?.currency || 'TZS')}</strong></div>
+                <div><span>Corrected price</span><strong>${formatEvaluationMoney(bid.financial?.correctedPrice || amount, bid.financial?.currency || 'TZS')}</strong></div>
+                <div><span>Pricing status</span><strong>${escapeEvaluationHtml(bid.financial?.pricingStatus || 'Pending buyer review')}</strong></div>
+                <div><span>Discount</span><strong>${escapeEvaluationHtml(bid.financial?.discount || 'None recorded')}</strong></div>
+            </div>
+            <div class="evaluation-form-grid service-pricing-status" data-service-pricing-result data-provider="${escapeEvaluationHtml(provider)}">
+                <label>Financial review result
+                    <select class="form-input" data-service-pricing-status>${['', 'Financially Responsive', 'Financially Non-responsive', 'Arithmetic Correction Required', 'Clarification Required', 'Abnormally Low Price Review Required'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${savedReview.status === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select result')}</option>`).join('')}</select>
+                </label>
+                <label>Overall pricing remark
+                    <textarea class="form-input" rows="3" data-service-pricing-overall>${escapeEvaluationHtml(savedReview.remark || '')}</textarea>
+                </label>
+            </div>
+            <div class="evaluation-table-scroll">
+                <table class="service-evaluation-table goods-evaluation-table">
+                    <thead><tr><th>Service line</th><th>Unit</th><th>Quantity</th><th>Duration</th><th>Rate</th><th>Tax</th><th>Discount</th><th>Total</th><th>Buyer check</th><th>Remark</th></tr></thead>
+                    <tbody>
+                        ${(rows.length ? rows : [{ description: 'Service financial offer total', qty: 1, unit: 'Lot', rate: amount, total: amount }]).map((item, index) => {
+                            const saved = savedReview.lines?.[`line-${index}`] || {};
+                            const qty = Number(item.quantity || item.qty || 1) || 1;
+                            const rate = Number(item.rate || item.unitPrice || item.amount || 0) || 0;
+                            const total = item.total || item.amount || (rate ? qty * rate : amount);
+                            return `
+                                <tr data-service-pricing-row data-provider="${escapeEvaluationHtml(provider)}" data-line-id="line-${index}">
+                                    <td>${escapeEvaluationHtml(item.description || item.serviceTask || item.itemDescription || `Service line ${index + 1}`)}</td>
+                                    <td>${escapeEvaluationHtml(item.unit || item.unitOfMeasure || 'Unit')}</td>
+                                    <td>${escapeEvaluationHtml(item.quantity || item.qty || 1)}</td>
+                                    <td>${escapeEvaluationHtml(item.duration || item.period || '-')}</td>
+                                    <td>${formatEvaluationMoney(rate, bid.financial?.currency || 'TZS')}</td>
+                                    <td>${escapeEvaluationHtml(item.tax || '-')}</td>
+                                    <td>${escapeEvaluationHtml(item.discount || '-')}</td>
+                                    <td>${typeof total === 'number' ? formatEvaluationMoney(total, bid.financial?.currency || 'TZS') : escapeEvaluationHtml(total || '-')}</td>
+                                    <td><select class="form-input" data-service-pricing-check>${['', 'Accepted', 'Correction Required', 'Not Priced', 'Clarification Required', 'Abnormally Low/High Price Review'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${saved.check === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select check')}</option>`).join('')}</select></td>
+                                    <td><input class="form-input" data-service-pricing-remark value="${escapeEvaluationHtml(saved.remark || '')}"></td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    `;
+}
+
+function renderServiceSlaReview(tender = {}, bid = {}, bidderIndex = 0, serviceDraft = {}) {
+    const provider = getServiceProviderKey(bid, bidderIndex);
+    const items = getServiceSlaItems(tender);
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">SLA and performance review</span>
+                    <h2>${escapeEvaluationHtml(provider)}</h2>
+                    <p>Review response time, support hours, reporting, uptime, and service commitments. This is a review area unless the buyer published an SLA criterion.</p>
+                </div>
+                ${renderEvaluationStatusBadge('Buyer Decision')}
+            </div>
+            <div class="service-evaluation-card-list goods-evaluation-card-list">
+                ${items.map(item => {
+                    const saved = serviceDraft.slaPerformanceReview?.[provider]?.[item.id] || {};
+                    return `
+                        <article class="service-evaluation-card goods-evaluation-card" data-service-sla-row data-provider="${escapeEvaluationHtml(provider)}" data-sla-id="${escapeEvaluationHtml(item.id)}">
+                            <div>
+                                <span class="section-kicker">Performance commitment</span>
+                                <h3>${escapeEvaluationHtml(item.item)}</h3>
+                                <p>Buyer requirement: ${escapeEvaluationHtml(item.requirement || '-')}</p>
+                            </div>
+                            ${getServiceEvidencePanel(tender, bid, bidderIndex, [item.item, 'SLA', 'response time', 'support hours', 'reporting', 'uptime', 'performance'])}
+                            <div class="evaluation-decision-panel">
+                                <label>Buyer Decision
+                                    <select class="form-input" data-service-sla-decision>${['', 'Pass', 'Fail', 'Clarification Required', 'Not Applicable'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${saved.decision === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select decision')}</option>`).join('')}</select>
+                                </label>
+                                <label>Supplier offer
+                                    <input class="form-input" data-service-sla-offer value="${escapeEvaluationHtml(saved.offer || '')}" placeholder="Record submitted offer">
+                                </label>
+                                <label class="wide">Remark
+                                    <textarea class="form-input" rows="3" data-service-sla-remark>${escapeEvaluationHtml(saved.remark || '')}</textarea>
+                                </label>
+                            </div>
+                        </article>
+                    `;
+                }).join('')}
+            </div>
+        </section>
+    `;
+}
+
+function renderServicePostQualification(tender = {}, bid = {}, bidderIndex = 0, serviceDraft = {}) {
+    const provider = getServiceProviderKey(bid, bidderIndex);
+    const items = getServicePostQualItems(tender);
+    const result = serviceDraft.postQualification?.[provider]?.result || '';
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Supplier capability / post-qualification</span>
+                    <h2>${escapeEvaluationHtml(provider)}</h2>
+                    <p>Confirm the provider can deliver the service, staffing, tools, SLA, supervision, insurance, and continuity commitments.</p>
+                </div>
+                ${renderEvaluationStatusBadge(result || 'Manual review')}
+            </div>
+            <div class="service-evaluation-card-list goods-evaluation-card-list">
+                ${items.map(item => {
+                    const saved = serviceDraft.postQualification?.[provider]?.checks?.[item.id] || {};
+                    return `
+                        <article class="service-evaluation-card goods-evaluation-card" data-service-postqual-row data-provider="${escapeEvaluationHtml(provider)}" data-postqual-id="${escapeEvaluationHtml(item.id)}">
+                            <div>
+                                <span class="section-kicker">${escapeEvaluationHtml(item.source)}</span>
+                                <h3>${escapeEvaluationHtml(item.title)}</h3>
+                                ${item.evidenceRequired?.length ? `<p>Evidence expected: ${escapeEvaluationHtml(item.evidenceRequired.join(', '))}</p>` : ''}
+                            </div>
+                            ${getServiceEvidencePanel(tender, bid, bidderIndex, [item.title, ...(item.evidenceRequired || []), 'post qualification', 'staff', 'equipment', 'insurance', 'SLA', 'local presence'])}
+                            <div class="evaluation-decision-panel">
+                                <label>Buyer Decision
+                                    <select class="form-input" data-service-postqual-decision>${['', 'Pass', 'Fail', 'Clarification Required'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${saved.decision === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select decision')}</option>`).join('')}</select>
+                                </label>
+                                <label>Remark
+                                    <textarea class="form-input" rows="3" data-service-postqual-remark>${escapeEvaluationHtml(saved.remark || '')}</textarea>
+                                </label>
+                            </div>
+                        </article>
+                    `;
+                }).join('')}
+            </div>
+            <div class="evaluation-form-grid service-postqual-result" data-service-postqual-result data-provider="${escapeEvaluationHtml(provider)}">
+                <label>Final post-qualification result
+                    <select class="form-input" data-service-postqual-final>${['', 'Qualified', 'Not Qualified', 'Clarification Required'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${result === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select result')}</option>`).join('')}</select>
+                </label>
+                <label>Overall remark
+                    <textarea class="form-input" rows="3" data-service-postqual-overall>${escapeEvaluationHtml(serviceDraft.postQualification?.[provider]?.remark || '')}</textarea>
+                </label>
+            </div>
+        </section>
+    `;
+}
+
+function renderServiceRanking(tender = {}, bids = [], serviceDraft = {}) {
+    const criteria = getEvaluationCriteriaForTender(tender);
+    const maxScore = getServiceProviderMaxScore(criteria);
+    const ranked = bids.map((bid, index) => {
+        const provider = getServiceProviderKey(bid, index);
+        const failedGate = hasServiceFailedGate(serviceDraft, provider, criteria) || hasServiceFailedAdministrativeGate(serviceDraft, provider, tender) || hasServiceBlockingReview(serviceDraft, provider, tender);
+        return {
+            bid,
+            provider,
+            failedGate,
+            score: failedGate ? null : getServiceProviderScore(serviceDraft, provider, criteria),
+            price: getServiceFinancialAmount(bid),
+            saved: serviceDraft.ranking?.[provider] || {}
+        };
+    }).sort((a, b) => {
+        if (a.failedGate !== b.failedGate) return a.failedGate ? 1 : -1;
+        return (b.score || 0) - (a.score || 0) || a.price - b.price;
+    });
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Final ranking</span>
+                    <h2>Calculated from buyer entries</h2>
+                    <p>The system totals Buyer Scores and flags failed gates, administrative failures, pricing issues, SLA failures, and post-qualification results. The buyer manually confirms the recommendation.</p>
+                </div>
+                ${renderEvaluationStatusBadge('No automatic winner')}
+            </div>
+            <div class="evaluation-table-scroll">
+                <table class="service-evaluation-table goods-evaluation-table">
+                    <thead><tr><th>Rank</th><th>Service Provider</th><th>Gate status</th><th>Total Score</th><th>Evaluated Price</th><th>Recommendation</th><th>Reason / override</th></tr></thead>
+                    <tbody>
+                        ${ranked.map((row, index) => `
+                            <tr data-service-ranking-row data-provider="${escapeEvaluationHtml(row.provider)}">
+                                <td>${row.failedGate ? '-' : index + 1}</td>
+                                <td>${escapeEvaluationHtml(row.provider)}</td>
+                                <td>${renderEvaluationStatusBadge(row.failedGate ? 'Failed gate/review' : 'Passed gates')}</td>
+                                <td>${row.score === null ? '-' : `${escapeEvaluationHtml(row.score)} / ${escapeEvaluationHtml(maxScore)}`}</td>
+                                <td>${formatEvaluationMoney(row.price, row.bid.financial?.currency || 'TZS')}</td>
+                                <td><select class="form-input" data-service-ranking-recommendation>${['', 'Recommended for Award', 'Reserve Supplier', 'Rejected', 'Request Clarification'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${row.saved.recommendation === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select action')}</option>`).join('')}</select></td>
+                                <td><textarea class="form-input" rows="2" data-service-ranking-reason>${escapeEvaluationHtml(row.saved.reason || '')}</textarea></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    `;
+}
+
+function renderServiceEvaluationReportDocument(tender = {}, bids = [], draft = {}) {
+    const serviceDraft = getServiceEvaluationDraft(draft);
+    const criteria = getEvaluationCriteriaForTender(tender);
+    const adminItems = getServiceAdministrativeItems(tender);
+    const slaItems = getServiceSlaItems(tender);
+    const completion = getServiceEvaluationCompletion(tender, bids, draft);
+    const recommendation = draft.recommendation || getServiceManualRecommendation(tender, bids, draft);
+    const maxScore = getServiceProviderMaxScore(criteria);
+    const rankingRows = bids.map((bid, index) => {
+        const provider = getServiceProviderKey(bid, index);
+        return {
+            provider,
+            score: getServiceProviderScore(serviceDraft, provider, criteria),
+            price: getServiceFinancialAmount(bid),
+            currency: bid.financial?.currency || 'TZS',
+            gate: (hasServiceFailedGate(serviceDraft, provider, criteria) || hasServiceFailedAdministrativeGate(serviceDraft, provider, tender) || hasServiceBlockingReview(serviceDraft, provider, tender)) ? 'Failed gate/review' : 'Passed gates',
+            ranking: serviceDraft.ranking?.[provider] || {}
+        };
+    }).sort((a, b) => (b.score || 0) - (a.score || 0) || a.price - b.price);
+
+    return `
+        <div class="evaluation-report-document service-report-document">
+            <header>
+                <span>Service Tender Evaluation Report</span>
+                <h1>${escapeEvaluationHtml(tender.title)}</h1>
+                <p>${escapeEvaluationHtml(tender.reference)} / Services procurement / ${escapeEvaluationHtml(getServiceCategory(tender))} / ${escapeEvaluationHtml(draft.status || 'Draft')}</p>
+            </header>
+            <section class="evaluation-report-summary">
+                <div><span>Evaluation method</span><strong>Manual Buyer Evaluation</strong></div>
+                <div><span>Criteria source</span><strong>Published tender</strong></div>
+                <div><span>Service providers</span><strong>${bids.length}</strong></div>
+                <div><span>Completion</span><strong>${completion.complete}/${completion.total}</strong></div>
+            </section>
+
+            <section><h2>1. Tender Information</h2><p>${escapeEvaluationHtml(tender.title)} was evaluated against the published service requirements, submitted service responses, pricing schedule, SLA commitments, and buyer-defined criteria.</p></section>
+            <section><h2>2. Evaluation Method</h2><p>The system organized submitted documents, service responses, pricing schedules, SLA responses, and scoring records. The buyer manually recorded all decisions.</p></section>
+            <section><h2>3. Evaluation Criteria Used</h2><p>${criteria.map(criterion => `${criterion.name} (${formatGoodsEvaluationType(criterion.evaluationType)}, ${criterion.maxScore || criterion.weight || 0})`).map(escapeEvaluationHtml).join('; ') || 'No buyer-defined criteria available.'}</p></section>
+
+            <section>
+                <h2>4. Bid Opening Register</h2>
+                <div class="evaluation-table-scroll"><table><thead><tr><th>Provider</th><th>Submitted</th><th>Receipt</th><th>Price</th><th>Status</th><th>Remark</th></tr></thead><tbody>
+                    ${bids.map((bid, index) => {
+                        const provider = getServiceProviderKey(bid, index);
+                        const row = serviceDraft.opening?.[provider] || {};
+                        return `<tr><td>${escapeEvaluationHtml(provider)}</td><td>${escapeEvaluationHtml(bid.submissionTime || '-')}</td><td>${escapeEvaluationHtml(bid.integrityHash || '-')}</td><td>${formatEvaluationMoney(getServiceFinancialAmount(bid), bid.financial?.currency || 'TZS')}</td><td>${escapeEvaluationHtml(row.status || 'Opened')}</td><td>${escapeEvaluationHtml(row.remark || '-')}</td></tr>`;
+                    }).join('')}
+                </tbody></table></div>
+            </section>
+
+            <section>
+                <h2>5. Administrative Responsiveness Review</h2>
+                <div class="evaluation-table-scroll"><table><thead><tr><th>Provider</th><th>Requirement</th><th>Decision</th><th>Remark</th></tr></thead><tbody>
+                    ${bids.flatMap((bid, index) => {
+                        const provider = getServiceProviderKey(bid, index);
+                        return adminItems.map(item => {
+                            const row = serviceDraft.administrative?.[provider]?.[item.id] || {};
+                            return `<tr><td>${escapeEvaluationHtml(provider)}</td><td>${escapeEvaluationHtml(item.title)}</td><td>${escapeEvaluationHtml(row.decision || 'Pending')}</td><td>${escapeEvaluationHtml(row.remark || '-')}</td></tr>`;
+                        });
+                    }).join('')}
+                </tbody></table></div>
+            </section>
+
+            <section>
+                <h2>6. Buyer-Defined Criteria Evaluation</h2>
+                <div class="evaluation-table-scroll"><table><thead><tr><th>Provider</th><th>Criterion</th><th>Type</th><th>Buyer Decision</th><th>Buyer Score</th><th>Comment</th></tr></thead><tbody>
+                    ${bids.flatMap((bid, index) => {
+                        const provider = getServiceProviderKey(bid, index);
+                        return criteria.map(criterion => {
+                            const row = getServiceCriterionSaved(serviceDraft, provider, criterion.id);
+                            return `<tr><td>${escapeEvaluationHtml(provider)}</td><td>${escapeEvaluationHtml(criterion.name)}</td><td>${escapeEvaluationHtml(formatGoodsEvaluationType(criterion.evaluationType))}</td><td>${escapeEvaluationHtml(row.decision || 'Pending')}</td><td>${escapeEvaluationHtml(row.score || '-')}${criterion.maxScore ? ` / ${escapeEvaluationHtml(criterion.maxScore)}` : ''}</td><td>${escapeEvaluationHtml(row.comment || '-')}</td></tr>`;
+                        });
+                    }).join('')}
+                </tbody></table></div>
+            </section>
+
+            <section><h2>7. Service Pricing / Financial Review</h2><p>Pricing checks, arithmetic corrections, abnormal price review, and evaluated price details are recorded separately from scoring. Price is scored only where the buyer published a financial/price criterion.</p></section>
+
+            <section>
+                <h2>8. SLA and Performance Review</h2>
+                <div class="evaluation-table-scroll"><table><thead><tr><th>Provider</th><th>SLA item</th><th>Decision</th><th>Remark</th></tr></thead><tbody>
+                    ${bids.flatMap((bid, index) => {
+                        const provider = getServiceProviderKey(bid, index);
+                        return slaItems.map(item => {
+                            const row = serviceDraft.slaPerformanceReview?.[provider]?.[item.id] || {};
+                            return `<tr><td>${escapeEvaluationHtml(provider)}</td><td>${escapeEvaluationHtml(item.item)}</td><td>${escapeEvaluationHtml(row.decision || 'Pending')}</td><td>${escapeEvaluationHtml(row.remark || '-')}</td></tr>`;
+                        });
+                    }).join('')}
+                </tbody></table></div>
+            </section>
+
+            <section>
+                <h2>9. Post-Qualification / Supplier Capability Review</h2>
+                <div class="evaluation-table-scroll"><table><thead><tr><th>Provider</th><th>Result</th><th>Remark</th></tr></thead><tbody>
+                    ${bids.map((bid, index) => {
+                        const provider = getServiceProviderKey(bid, index);
+                        const row = serviceDraft.postQualification?.[provider] || {};
+                        return `<tr><td>${escapeEvaluationHtml(provider)}</td><td>${escapeEvaluationHtml(row.result || 'Pending')}</td><td>${escapeEvaluationHtml(row.remark || '-')}</td></tr>`;
+                    }).join('')}
+                </tbody></table></div>
+            </section>
+
+            <section>
+                <h2>10. Final Ranking</h2>
+                <div class="evaluation-table-scroll"><table><thead><tr><th>Rank</th><th>Provider</th><th>Gate status</th><th>Total Score</th><th>Evaluated Price</th><th>Recommendation</th><th>Reason</th></tr></thead><tbody>
+                    ${rankingRows.map((row, index) => `<tr><td>${row.gate === 'Failed gate/review' ? '-' : index + 1}</td><td>${escapeEvaluationHtml(row.provider)}</td><td>${escapeEvaluationHtml(row.gate)}</td><td>${escapeEvaluationHtml(row.score)} / ${escapeEvaluationHtml(maxScore)}</td><td>${formatEvaluationMoney(row.price, row.currency)}</td><td>${escapeEvaluationHtml(row.ranking.recommendation || 'Pending')}</td><td>${escapeEvaluationHtml(row.ranking.reason || '-')}</td></tr>`).join('')}
+                </tbody></table></div>
+            </section>
+
+            <section><h2>11. Award Recommendation</h2><p><strong>Recommended for Award:</strong> ${escapeEvaluationHtml(recommendation.supplier || 'Pending buyer recommendation')}</p><p>${escapeEvaluationHtml(recommendation.reason || 'The buyer has not finalized a manual award recommendation yet.')}</p></section>
+            <section><h2>12. Rejected Bidders and Reasons</h2><p>${rankingRows.filter(row => /rejected/i.test(row.ranking.recommendation || '')).map(row => `${row.provider}: ${row.ranking.reason || 'No reason recorded'}`).map(escapeEvaluationHtml).join('; ') || 'No rejected service providers recorded yet.'}</p></section>
+            <section><h2>13. Buyer Declaration</h2><p>I confirm that the submitted service bids were reviewed manually against the published tender requirements and buyer-defined evaluation criteria. The system organized the submitted documents, service responses, pricing schedules, and scoring records, but the evaluation decision was made by the buyer.</p></section>
+            <section><h2>14. Attachments Reviewed</h2><p>Administrative documents, service methodology, personnel evidence, service schedule, SLA commitments, tools/equipment evidence, deliverables, reports, and pricing where available in the submitted bid package.</p></section>
+        </div>
+    `;
+}
+
+function renderServiceActiveStage(tender = {}, bids = [], supplierIndex = 0, activeStageId = 'opening', draft = {}) {
+    const serviceDraft = getServiceEvaluationDraft(draft);
+    const bid = bids[supplierIndex] || {};
+    if (activeStageId === 'opening') return renderServiceOpeningRegister(tender, bids, serviceDraft);
+    if (activeStageId === 'administrative') return renderServiceAdministrativeReview(tender, bid, supplierIndex, serviceDraft);
+    if (activeStageId === 'criteria') return renderServiceCriteriaEvaluation(tender, bid, supplierIndex, serviceDraft);
+    if (activeStageId === 'pricing') return renderServicePricingReview(tender, bid, supplierIndex, serviceDraft);
+    if (activeStageId === 'sla') return renderServiceSlaReview(tender, bid, supplierIndex, serviceDraft);
+    if (activeStageId === 'postqual') return renderServicePostQualification(tender, bid, supplierIndex, serviceDraft);
+    if (activeStageId === 'ranking') return renderServiceRanking(tender, bids, serviceDraft);
+    return renderServiceEvaluationReportDocument(tender, bids, draft);
+}
+
+function renderServiceBidEvaluationWorkspace(tender = {}) {
+    const bids = getEvaluationBidsForTender(tender);
+    const draft = getEvaluationDraft(tender.reference) || {};
+    const serviceDraft = getServiceEvaluationDraft(draft);
+    const stages = getServiceEvaluationStages();
+    const activeStageId = serviceDraft.currentStageId || 'opening';
+    const supplierIndex = Math.min(Math.max(Number(draft.currentSupplierIndex || serviceDraft.currentSupplierIndex || 0), 0), Math.max(0, bids.length - 1));
+    const completion = getServiceEvaluationCompletion(tender, bids, draft);
+    const criteria = getEvaluationCriteriaForTender(tender);
+
+    if (!bids.length) {
+        return renderEvaluationShell(`
+            <section class="procurement-hero evaluation-hero-panel">
+                <div>
+                    <span class="section-kicker">Service Bid Evaluation Workspace</span>
+                    <h1>${escapeEvaluationHtml(tender.title)}</h1>
+                    <p>No submitted service bid package is available for this tender in the current browser or mock data.</p>
+                </div>
+                <div class="evaluation-hero-stats">
+                    <div><strong>0</strong><span>Bids available</span></div>
+                    <div><strong>${criteria.length}</strong><span>Published criteria</span></div>
+                </div>
+            </section>
+        `, 'Service Evaluation', tender.reference);
+    }
+
+    return renderEvaluationShell(`
+        <section class="procurement-hero evaluation-hero-panel">
+            <div>
+                <span class="section-kicker">Service Bid Evaluation Workspace</span>
+                <h1>${escapeEvaluationHtml(tender.title)}</h1>
+                <p>Manual evaluation of submitted service bids using the buyer's published criteria, scope of services, personnel requirements, service schedule, service level requirements, and financial offer.</p>
+            </div>
+            <div class="evaluation-hero-stats">
+                <div><strong>${escapeEvaluationHtml(tender.reference)}</strong><span>Tender reference</span></div>
+                <div><strong>Services</strong><span>Procurement type</span></div>
+                <div><strong>${escapeEvaluationHtml(getServiceCategory(tender))}</strong><span>Service category</span></div>
+                <div><strong>${completion.percent}%</strong><span>Evaluation status</span></div>
+            </div>
+        </section>
+
+        <section class="evaluation-top-summary">
+            <div><span>Evaluation mode</span><strong>Manual Buyer Evaluation</strong></div>
+            <div><span>Criteria source</span><strong>Published Tender Criteria</strong></div>
+            <div><span>Buyer criteria</span><strong>${criteria.length}</strong></div>
+            <div><span>Bids received</span><strong>${bids.length}</strong></div>
+            <div><span>Current stage</span><strong>${escapeEvaluationHtml((stages.find(stage => stage.id === activeStageId) || stages[0]).label)}</strong></div>
+        </section>
+
+        <section class="procurement-panel evaluation-panel service-evaluation-workspace" data-evaluation-workspace="${escapeEvaluationHtml(tender.reference)}" data-current-supplier-index="${supplierIndex}" data-current-service-stage="${escapeEvaluationHtml(activeStageId)}">
+            <div class="evaluation-notice warning">This evaluation uses the criteria configured by the buyer during tender creation. The system organizes service submissions and calculates totals only. The buyer makes all evaluation decisions manually.</div>
+            ${renderServiceProviderTabs(bids, supplierIndex)}
+            <div class="evaluation-progress-track evaluation-workspace-progress"><span style="width: ${completion.percent}%"></span></div>
+            <div class="evaluation-review-grid">
+                ${renderServiceStageRail(stages, activeStageId)}
+                <div class="evaluation-review-main">
+                    ${renderServiceActiveStage(tender, bids, supplierIndex, activeStageId, draft)}
+                </div>
+            </div>
+            <div class="evaluation-finish-panel">
+                <div>
+                    <span class="section-kicker">Complete service evaluation</span>
+                    <h3>${completion.canComplete ? 'Ready for buyer completion' : 'Complete all service decisions and recommendation'}</h3>
+                    <p>${completion.complete} of ${completion.total} required checks are complete. Ranking and award recommendation remain manual buyer decisions.</p>
+                </div>
+                <div class="inline-actions">
+                    <button class="btn btn-secondary" type="button" data-evaluation-save-draft="${escapeEvaluationHtml(tender.reference)}">Save Draft</button>
+                    <button class="btn btn-secondary" type="button" data-evaluation-view-report="${escapeEvaluationHtml(tender.reference)}">Preview Report</button>
+                    <button class="btn btn-primary" type="button" data-evaluation-complete="${escapeEvaluationHtml(tender.reference)}" ${completion.canComplete ? '' : 'disabled'}>Complete Evaluation</button>
+                </div>
+            </div>
+        </section>
+    `, 'Service Evaluation', tender.reference);
+}
+
+function getConsultancyEvaluationStages() {
+    return [
+        { id: 'opening', label: 'Opening Register' },
+        { id: 'administrative', label: 'Administrative Responsiveness' },
+        { id: 'criteria', label: 'Buyer-Defined Criteria Evaluation' },
+        { id: 'tor', label: 'Technical Proposal / TOR Review' },
+        { id: 'financial', label: 'Financial Proposal Review' },
+        { id: 'ranking', label: 'Selection Method / Ranking' },
+        { id: 'postqual', label: 'Post-Qualification' },
+        { id: 'report', label: 'Evaluation Report' }
+    ];
+}
+
+function getConsultancyEvaluationDraft(draft = {}) {
+    return draft.consultancy && typeof draft.consultancy === 'object' ? draft.consultancy : {};
+}
+
+function getConsultancyKey(bid = {}, index = 0) {
+    return bid.supplier || `Consultant ${index + 1}`;
+}
+
+function getConsultancyFinancialAmount(bid = {}) {
+    return Number(bid.financial?.correctedPrice || bid.price || 0) || 0;
+}
+
+function getConsultancySelectionMethod(tender = {}) {
+    const source = tender.sourceTender || tender;
+    const fields = source.requirements?.fields || {};
+    return fields.consultancySelectionMethod || source.selectionMethod || source.evaluation?.method || source.awardMethod || 'Buyer-configured consultancy selection method';
+}
+
+function getConsultancyPricingRows(tender = {}, bid = {}) {
+    const submittedRows = bid.draft?.financialOfferRows || bid.submittedBid?.draft?.financialOfferRows || [];
+    if (submittedRows.length) return submittedRows;
+    const source = tender.sourceTender || tender;
+    const fields = source.requirements?.fields || {};
+    return fields.consultancyPricingRows?.length
+        ? fields.consultancyPricingRows
+        : (fields.commercialItems || source.commercialItems || source.boqItems || []);
+}
+
+function getConsultancyAdministrativeItems(tender = {}) {
+    const source = tender.sourceTender || tender;
+    const fields = source.requirements?.fields || {};
+    const requirementSet = getEvaluationRequirementSet(source);
+    const licenseItems = [
+        ...(source.regulatoryLicenses || []),
+        ...(fields.consultancyRegulatoryLicenses || [])
+    ].map((license, index) => ({
+        id: `consultancy-license-${index}`,
+        title: license.license || license.registrationType || license.regulatoryBody || 'Professional / consultancy registration',
+        mandatory: license.mandatory !== false,
+        source: license.body || license.group || 'Regulatory license'
+    }));
+    const requiredDocs = [
+        ...(source.requiredSubmissionDocuments || []),
+        ...(fields.consultancySupportingDocuments || []).map(item => item.documentName || item.name || item.documentTitle),
+        ...(fields.supportingDocumentRows || []).map(item => item.documentName || item.name || item.documentTitle),
+        ...(fields.otherEligibilityRequirements || []).map(item => item.requirementName || item.text || item.name),
+        ...(requirementSet.mandatory || [])
+            .filter(item => /license|certificate|tax|registration|professional|permit|signed|form|power|attorney|cv|eligibility|declaration|document/i.test(`${item.title} ${item.category}`))
+            .map(item => item.title)
+    ].filter(Boolean);
+    const docItems = Array.from(new Set(requiredDocs)).map((title, index) => ({
+        id: `consultancy-admin-${slugEvaluationId(title)}-${index}`,
+        title,
+        mandatory: true,
+        source: 'Published tender requirement'
+    }));
+    return [...licenseItems, ...docItems].length ? [...licenseItems, ...docItems] : [
+        { id: 'consultancy-admin-registration', title: 'Professional or firm registration', mandatory: true, source: 'Default consultancy responsiveness check' },
+        { id: 'consultancy-admin-tax', title: 'Tax clearance certificate', mandatory: true, source: 'Default consultancy responsiveness check' },
+        { id: 'consultancy-admin-technical-proposal', title: 'Signed technical proposal', mandatory: true, source: 'Default consultancy responsiveness check' },
+        { id: 'consultancy-admin-financial-envelope', title: 'Separate financial proposal submitted', mandatory: true, source: 'Default consultancy responsiveness check' }
+    ];
+}
+
+function getConsultancyTorReviewItems(tender = {}) {
+    const source = tender.sourceTender || tender;
+    const fields = source.requirements?.fields || {};
+    return [
+        { id: 'tor-understanding', title: 'Understanding of TOR and assignment objectives', requirement: fields.consultancyGeneralObjective || source.description || 'As stated in tender' },
+        { id: 'tor-methodology', title: 'Methodology, approach, quality, and risk controls', requirement: getEvaluationValueSummary(fields.consultancyAssignmentActivities) || 'As stated in tender' },
+        { id: 'tor-work-plan', title: 'Work plan, activities, deliverables, and timeline', requirement: getEvaluationValueSummary(fields.consultancyDeliverables || fields.consultancyAssignmentBoundaries) || 'As stated in tender' },
+        { id: 'tor-reporting', title: 'Reporting, coordination, and knowledge transfer', requirement: getEvaluationValueSummary(fields.consultancyReportingRequirements || fields.consultancyCoordinationArrangements) || 'As stated in tender' },
+        { id: 'tor-experts', title: 'Key experts, CVs, qualifications, and similar assignments', requirement: getEvaluationValueSummary(fields.consultancyKeyExperts || fields.consultancyFirmExperience || fields.consultancyIndividualQualifications) || 'As stated in tender' }
+    ];
+}
+
+function getConsultancyPostQualItems(tender = {}) {
+    const criteria = getEvaluationCriteriaForTender(tender)
+        .filter(criterion => /post|qualification|capacity|experience|expert|cv|registration|professional|firm|financial capacity|assignment|availability/i.test(`${criterion.name} ${criterion.category} ${criterion.subcriteria.join(' ')}`));
+    if (criteria.length) {
+        return criteria.map(criterion => ({
+            id: `consultancy-postqual-${criterion.id}`,
+            title: criterion.name,
+            source: 'Buyer-defined criterion',
+            evidenceRequired: criterion.evidenceRequired || []
+        }));
+    }
+    return [
+        { id: 'consultancy-postqual-legal', title: 'Legal and professional registration remain valid', source: 'Manual consultancy post-qualification checklist' },
+        { id: 'consultancy-postqual-experts', title: 'Named experts are available for the assignment', source: 'Manual consultancy post-qualification checklist' },
+        { id: 'consultancy-postqual-experience', title: 'Similar assignments and references are verified', source: 'Manual consultancy post-qualification checklist' },
+        { id: 'consultancy-postqual-financial', title: 'Financial and operational capacity are acceptable', source: 'Manual consultancy post-qualification checklist' }
+    ];
+}
+
+function getConsultancyCriterionSaved(consultancyDraft = {}, consultant = '', criterionId = '') {
+    return consultancyDraft.criteriaEvaluation?.[consultant]?.[criterionId] || {};
+}
+
+function isConsultancyCriterionComplete(row = {}, criterion = {}) {
+    return isGoodsCriterionComplete(row, criterion);
+}
+
+function isConsultancyAdministrativeComplete(row = {}) {
+    return isGoodsAdministrativeComplete(row);
+}
+
+function isConsultancyReviewComplete(row = {}) {
+    if (!row.status && !row.decision) return false;
+    if (isGoodsManualDecisionNegative(row.status || row.decision) && !String(row.remark || '').trim()) return false;
+    return true;
+}
+
+function isConsultancyRankingDecisionComplete(row = {}, blocked = false) {
+    if (!row.recommendation) return false;
+    if (blocked && !String(row.reason || '').trim()) return false;
+    return isGoodsRankingDecisionComplete(row);
+}
+
+function hasConsultancyFailedAdministrativeGate(consultancyDraft = {}, consultant = '', tender = {}) {
+    return getConsultancyAdministrativeItems(tender).some(item => {
+        if (item.mandatory === false) return false;
+        const row = consultancyDraft.administrative?.[consultant]?.[item.id] || {};
+        return /fail|rejected|non-responsive/i.test(row.decision || '');
+    });
+}
+
+function hasConsultancyFailedGate(consultancyDraft = {}, consultant = '', criteria = []) {
+    return criteria.some(criterion => {
+        if (!criterion.passFailGate && !criterion.mandatory) return false;
+        const row = getConsultancyCriterionSaved(consultancyDraft, consultant, criterion.id);
+        return /fail|rejected|non-responsive|non-compliant|major deviation/i.test(row.decision || '');
+    });
+}
+
+function hasConsultancyBlockingReview(consultancyDraft = {}, consultant = '', tender = {}) {
+    const torStatus = consultancyDraft.torTechnicalReview?.[consultant]?.status || '';
+    const financialStatus = consultancyDraft.financialProposalReview?.[consultant]?.status || '';
+    const postResult = consultancyDraft.postQualification?.[consultant]?.result || '';
+    const torFailed = getConsultancyTorReviewItems(tender).some(item => /fail|rejected|non-responsive/i.test(consultancyDraft.torTechnicalReview?.[consultant]?.items?.[item.id]?.decision || ''));
+    return /fail|non-responsive|rejected/i.test(torStatus)
+        || /fail|non-responsive|rejected/i.test(financialStatus)
+        || /not qualified/i.test(postResult)
+        || torFailed;
+}
+
+function getConsultancyScore(consultancyDraft = {}, consultant = '', criteria = []) {
+    return criteria.reduce((sum, criterion) => {
+        const row = getConsultancyCriterionSaved(consultancyDraft, consultant, criterion.id);
+        return sum + (Number(row.score || 0) || 0);
+    }, 0);
+}
+
+function getConsultancyMaxScore(criteria = []) {
+    return getGoodsSupplierMaxScore(criteria);
+}
+
+function getConsultancyManualRecommendation(tender = {}, bids = [], draft = {}) {
+    const consultancy = getConsultancyEvaluationDraft(draft);
+    const recommended = bids.map((bid, index) => {
+        const consultant = getConsultancyKey(bid, index);
+        return { bid, consultant, row: consultancy.ranking?.[consultant] || {} };
+    }).find(item => item.row.recommendation === 'Recommended for Award');
+    if (!recommended) return { supplier: '', amount: 0, currency: 'TZS', reason: '' };
+    return {
+        supplier: recommended.consultant,
+        amount: recommended.bid.financial?.correctedPrice || recommended.bid.price || 0,
+        currency: recommended.bid.financial?.currency || 'TZS',
+        reason: recommended.row.reason || 'Recommended manually by the buyer after completing the consultancy evaluation record.'
+    };
+}
+
+function getConsultancyCompletion(tender = {}, bids = [], draft = {}) {
+    const consultancy = getConsultancyEvaluationDraft(draft);
+    const criteria = getEvaluationCriteriaForTender(tender);
+    const adminItems = getConsultancyAdministrativeItems(tender);
+    const torItems = getConsultancyTorReviewItems(tender);
+    const total = bids.length * (criteria.length + adminItems.length + torItems.length + 4);
+    let hasRecommendation = false;
+    const complete = bids.reduce((sum, bid, index) => {
+        const consultant = getConsultancyKey(bid, index);
+        const ranking = consultancy.ranking?.[consultant] || {};
+        const blocked = hasConsultancyFailedAdministrativeGate(consultancy, consultant, tender) || hasConsultancyFailedGate(consultancy, consultant, criteria) || hasConsultancyBlockingReview(consultancy, consultant, tender);
+        if (ranking.recommendation === 'Recommended for Award') hasRecommendation = true;
+        const adminDone = adminItems.filter(item => isConsultancyAdministrativeComplete(consultancy.administrative?.[consultant]?.[item.id] || {})).length;
+        const criteriaDone = criteria.filter(criterion => isConsultancyCriterionComplete(getConsultancyCriterionSaved(consultancy, consultant, criterion.id), criterion)).length;
+        const torDone = torItems.filter(item => isConsultancyReviewComplete(consultancy.torTechnicalReview?.[consultant]?.items?.[item.id] || {})).length;
+        const torStatusDone = isConsultancyReviewComplete({ status: consultancy.torTechnicalReview?.[consultant]?.status || '', remark: consultancy.torTechnicalReview?.[consultant]?.remark || '' }) ? 1 : 0;
+        const financialDone = isConsultancyReviewComplete({ status: consultancy.financialProposalReview?.[consultant]?.status || '', remark: consultancy.financialProposalReview?.[consultant]?.remark || '' }) ? 1 : 0;
+        const postDone = isConsultancyReviewComplete({ status: consultancy.postQualification?.[consultant]?.result || '', remark: consultancy.postQualification?.[consultant]?.remark || '' }) ? 1 : 0;
+        const rankingDone = isConsultancyRankingDecisionComplete(ranking, blocked) ? 1 : 0;
+        return sum + adminDone + criteriaDone + torDone + torStatusDone + financialDone + postDone + rankingDone;
+    }, 0);
+    return { total, complete, percent: total ? Math.round((complete / total) * 100) : 0, canComplete: total > 0 && complete >= total && hasRecommendation };
+}
+
+function getConsultancyEvidencePanel(tender = {}, bid = {}, bidderIndex = 0, labels = []) {
+    const evidence = findEvaluationEvidenceForRequirement(getEvaluationBidEvidenceRows(tender, bid, bidderIndex), { title: labels.join(' '), labels });
+    return `
+        <aside class="consultancy-evidence-panel goods-evidence-panel">
+            <strong>Submitted Consultancy Evidence</strong>
+            ${evidence.length ? evidence.map(item => `
+                <div>
+                    <span>${escapeEvaluationHtml(item.section || 'Evidence')}</span>
+                    <p>${escapeEvaluationHtml(item.label || '')}: ${escapeEvaluationHtml(item.value || item.file || 'Provided')}</p>
+                </div>
+            `).join('') : '<p>No matching submitted consultancy evidence was found. Review the available proposal package and record the buyer decision manually.</p>'}
+        </aside>
+    `;
+}
+
+function renderConsultancyTabs(bids = [], activeIndex = 0) {
+    return `
+        <div class="consultancy-consultant-tabs goods-bidder-tabs" role="tablist" aria-label="Consultants">
+            ${bids.map((bid, index) => `
+                <button class="consultancy-consultant-tab goods-bidder-tab ${index === activeIndex ? 'active' : ''}" type="button" data-consultancy-consultant-index="${index}">
+                    <strong>${escapeEvaluationHtml(getConsultancyKey(bid, index))}</strong>
+                    <span>${escapeEvaluationHtml(bid.preliminaryResult || bid.finalResult || 'Under review')}</span>
+                </button>
+            `).join('')}
+        </div>
+    `;
+}
+
+function renderConsultancyStageRail(stages = [], activeStageId = '') {
+    return `
+        <nav class="evaluation-section-rail consultancy-stage-rail" aria-label="Consultancy evaluation stages">
+            ${stages.map((stage, index) => `
+                <button class="evaluation-section-button ${stage.id === activeStageId ? 'active' : ''}" type="button" data-consultancy-stage="${escapeEvaluationHtml(stage.id)}">
+                    <strong>${String(index + 1).padStart(2, '0')}</strong>
+                    <span>${escapeEvaluationHtml(stage.label)}</span>
+                </button>
+            `).join('')}
+        </nav>
+    `;
+}
+
+function renderConsultancyOpeningRegister(tender = {}, bids = [], consultancyDraft = {}) {
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Proposal opening register</span>
+                    <h2>Open submitted consultancy proposals</h2>
+                    <p>Record technical and financial envelope status. This stage records opening only; the buyer evaluates manually in later stages.</p>
+                </div>
+                ${renderEvaluationStatusBadge('Manual Buyer Evaluation')}
+            </div>
+            <div class="evaluation-table-scroll">
+                <table class="consultancy-evaluation-table goods-evaluation-table">
+                    <thead><tr><th>Consultant</th><th>Submitted</th><th>Receipt</th><th>Read-out fee</th><th>Technical proposal</th><th>Financial envelope</th><th>Status</th><th>Opening remark</th></tr></thead>
+                    <tbody>
+                        ${bids.map((bid, index) => {
+                            const consultant = getConsultancyKey(bid, index);
+                            const saved = consultancyDraft.opening?.[consultant] || {};
+                            return `
+                                <tr data-consultancy-opening-row data-consultant="${escapeEvaluationHtml(consultant)}">
+                                    <td>${escapeEvaluationHtml(consultant)}</td>
+                                    <td>${escapeEvaluationHtml(bid.submissionTime || '-')}</td>
+                                    <td>${escapeEvaluationHtml(bid.integrityHash || bid.submittedBid?.receiptHash || '-')}</td>
+                                    <td>${formatEvaluationMoney(getConsultancyFinancialAmount(bid), bid.financial?.currency || 'TZS')}</td>
+                                    <td><select class="form-input" data-consultancy-opening-technical>${['', 'Opened', 'Not Opened', 'Missing', 'Clarification Required'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${saved.technicalStatus === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select')}</option>`).join('')}</select></td>
+                                    <td><select class="form-input" data-consultancy-opening-financial>${['', 'Sealed', 'Opened by Buyer', 'Not Submitted', 'Not Applicable'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${String(saved.financialEnvelopeStatus || 'Sealed') === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select')}</option>`).join('')}</select></td>
+                                    <td><select class="form-input" data-consultancy-opening-status>${['Sealed', 'Opened', 'Late Submission', 'Withdrawn', 'Rejected at Opening', 'Accepted for Evaluation'].map(option => `<option ${String(saved.status || 'Opened') === option ? 'selected' : ''}>${option}</option>`).join('')}</select></td>
+                                    <td><input class="form-input" data-consultancy-opening-remark value="${escapeEvaluationHtml(saved.remark || 'Opening record captured')}"></td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    `;
+}
+
+function renderConsultancyAdministrativeReview(tender = {}, bid = {}, bidderIndex = 0, consultancyDraft = {}) {
+    const consultant = getConsultancyKey(bid, bidderIndex);
+    const items = getConsultancyAdministrativeItems(tender);
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Administrative responsiveness</span>
+                    <h2>${escapeEvaluationHtml(consultant)}</h2>
+                    <p>Check required registrations, signed forms, proposal files, and eligibility documents. The buyer records all decisions manually.</p>
+                </div>
+                ${renderEvaluationStatusBadge('Buyer Decision')}
+            </div>
+            <div class="consultancy-evaluation-card-list goods-evaluation-card-list">
+                ${items.map(item => {
+                    const saved = consultancyDraft.administrative?.[consultant]?.[item.id] || {};
+                    return `
+                        <article class="consultancy-evaluation-card goods-evaluation-card" data-consultancy-admin-row data-consultant="${escapeEvaluationHtml(consultant)}" data-admin-id="${escapeEvaluationHtml(item.id)}">
+                            <div>
+                                <span class="section-kicker">${item.mandatory ? 'Mandatory' : 'Optional'}</span>
+                                <h3>${escapeEvaluationHtml(item.title)}</h3>
+                                <p>${escapeEvaluationHtml(item.source || 'Published tender requirement')}</p>
+                            </div>
+                            ${getConsultancyEvidencePanel(tender, bid, bidderIndex, [item.title, 'registration', 'license', 'tax clearance', 'technical proposal', 'financial proposal', 'signed forms'])}
+                            <div class="evaluation-decision-panel">
+                                <label>Buyer Decision
+                                    <select class="form-input" data-consultancy-admin-decision>${['', 'Pass', 'Fail', 'Not Applicable', 'Clarification Required'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${saved.decision === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select decision')}</option>`).join('')}</select>
+                                </label>
+                                <label>Remark
+                                    <textarea class="form-input" rows="3" data-consultancy-admin-remark>${escapeEvaluationHtml(saved.remark || '')}</textarea>
+                                </label>
+                            </div>
+                        </article>
+                    `;
+                }).join('')}
+            </div>
+        </section>
+    `;
+}
+
+function renderConsultancyCriteriaEvaluation(tender = {}, bid = {}, bidderIndex = 0, consultancyDraft = {}) {
+    const consultant = getConsultancyKey(bid, bidderIndex);
+    const criteria = getEvaluationCriteriaForTender(tender);
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Criteria from Published Tender</span>
+                    <h2>Buyer-Defined Criteria Evaluation</h2>
+                    <p>These criteria are loaded from the tender. Consultancy evidence supports the review but does not become fixed scoring criteria.</p>
+                </div>
+                ${renderEvaluationStatusBadge(`${criteria.length} criteria`)}
+            </div>
+            <div class="evaluation-notice warning">The system organizes consultancy proposals and calculates totals only. Buyer Score and Buyer Decision are entered manually.</div>
+            <div class="consultancy-evaluation-card-list goods-evaluation-card-list">
+                ${criteria.map((criterion, index) => {
+                    const saved = getConsultancyCriterionSaved(consultancyDraft, consultant, criterion.id);
+                    const isGate = criterion.passFailGate || /pass_fail|document_check/.test(criterion.evaluationType);
+                    const decisionOptions = getGoodsCriterionDecisionOptions(criterion);
+                    return `
+                        <article class="consultancy-evaluation-card goods-evaluation-card" data-consultancy-criterion-row data-consultant="${escapeEvaluationHtml(consultant)}" data-criterion-id="${escapeEvaluationHtml(criterion.id)}" data-criterion-type="${escapeEvaluationHtml(criterion.evaluationType)}">
+                            <div>
+                                <span class="section-kicker">Criterion ${index + 1} / ${escapeEvaluationHtml(formatGoodsEvaluationType(criterion.evaluationType))}</span>
+                                <h3>${escapeEvaluationHtml(criterion.name)}</h3>
+                                <p>${escapeEvaluationHtml(criterion.description || criterion.subcriteria.join(', ') || 'Buyer-defined criterion.')}</p>
+                                <div class="goods-criterion-meta consultancy-criterion-meta">
+                                    <span>Weight: ${escapeEvaluationHtml(criterion.weight || 0)}</span>
+                                    <span>Max score: ${escapeEvaluationHtml(criterion.maxScore || 0)}</span>
+                                    ${criterion.mandatory ? '<span>Mandatory</span>' : ''}
+                                    ${criterion.passFailGate ? '<span>Gate</span>' : ''}
+                                </div>
+                                ${criterion.evidenceRequired?.length ? `<p>Evidence expected: ${escapeEvaluationHtml(criterion.evidenceRequired.join(', '))}</p>` : ''}
+                            </div>
+                            ${getConsultancyEvidencePanel(tender, bid, bidderIndex, [criterion.name, ...(criterion.subcriteria || []), ...(criterion.evidenceRequired || []), 'TOR', 'methodology', 'work plan', 'experts', 'CV', 'financial proposal'])}
+                            <div class="evaluation-decision-panel">
+                                <label>Buyer Decision
+                                    <select class="form-input" data-consultancy-criterion-decision>${decisionOptions.map(option => `<option value="${escapeEvaluationHtml(option)}" ${saved.decision === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select decision')}</option>`).join('')}</select>
+                                </label>
+                                ${criterion.maxScore > 0 && !isGate ? `
+                                    <label>Buyer Score / ${escapeEvaluationHtml(criterion.maxScore)}
+                                        <input class="form-input" type="number" min="0" max="${escapeEvaluationHtml(criterion.maxScore)}" step="0.5" value="${escapeEvaluationHtml(saved.score ?? '')}" data-consultancy-criterion-score>
+                                    </label>
+                                ` : ''}
+                                <label class="wide">Buyer comment
+                                    <textarea class="form-input" rows="3" data-consultancy-criterion-comment>${escapeEvaluationHtml(saved.comment || '')}</textarea>
+                                </label>
+                            </div>
+                        </article>
+                    `;
+                }).join('')}
+            </div>
+        </section>
+    `;
+}
+
+function renderConsultancyTorReview(tender = {}, bid = {}, bidderIndex = 0, consultancyDraft = {}) {
+    const consultant = getConsultancyKey(bid, bidderIndex);
+    const items = getConsultancyTorReviewItems(tender);
+    const savedReview = consultancyDraft.torTechnicalReview?.[consultant] || {};
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Technical proposal / TOR review</span>
+                    <h2>${escapeEvaluationHtml(consultant)}</h2>
+                    <p>Review TOR understanding, methodology, work plan, deliverables, reporting, experts, and experience as supporting evidence. Scoring remains in buyer-defined criteria.</p>
+                </div>
+                ${renderEvaluationStatusBadge(savedReview.status || 'Buyer Decision')}
+            </div>
+            <div class="evaluation-form-grid consultancy-review-status" data-consultancy-tor-result data-consultant="${escapeEvaluationHtml(consultant)}">
+                <label>Technical / TOR review status
+                    <select class="form-input" data-consultancy-tor-status>${['', 'Technically Responsive', 'Technically Non-responsive', 'Clarification Required', 'Accepted with Minor Issues'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${savedReview.status === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select status')}</option>`).join('')}</select>
+                </label>
+                <label>Overall technical remark
+                    <textarea class="form-input" rows="3" data-consultancy-tor-overall>${escapeEvaluationHtml(savedReview.remark || '')}</textarea>
+                </label>
+            </div>
+            <div class="consultancy-evaluation-card-list goods-evaluation-card-list">
+                ${items.map(item => {
+                    const saved = savedReview.items?.[item.id] || {};
+                    return `
+                        <article class="consultancy-evaluation-card goods-evaluation-card" data-consultancy-tor-row data-consultant="${escapeEvaluationHtml(consultant)}" data-tor-id="${escapeEvaluationHtml(item.id)}">
+                            <div>
+                                <span class="section-kicker">Technical proposal evidence</span>
+                                <h3>${escapeEvaluationHtml(item.title)}</h3>
+                                <p>${escapeEvaluationHtml(item.requirement || 'As stated in tender')}</p>
+                            </div>
+                            ${getConsultancyEvidencePanel(tender, bid, bidderIndex, [item.title, 'TOR', 'methodology', 'work plan', 'deliverable', 'reporting', 'expert', 'CV', 'experience'])}
+                            <div class="evaluation-decision-panel">
+                                <label>Buyer Decision
+                                    <select class="form-input" data-consultancy-tor-decision>${['', 'Pass', 'Fail', 'Clarification Required', 'Not Applicable'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${saved.decision === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select decision')}</option>`).join('')}</select>
+                                </label>
+                                <label>Remark
+                                    <textarea class="form-input" rows="3" data-consultancy-tor-remark>${escapeEvaluationHtml(saved.remark || '')}</textarea>
+                                </label>
+                            </div>
+                        </article>
+                    `;
+                }).join('')}
+            </div>
+        </section>
+    `;
+}
+
+function renderConsultancyFinancialReview(tender = {}, bid = {}, bidderIndex = 0, consultancyDraft = {}) {
+    const consultant = getConsultancyKey(bid, bidderIndex);
+    const rows = getConsultancyPricingRows(tender, bid);
+    const savedReview = consultancyDraft.financialProposalReview?.[consultant] || {};
+    const amount = getConsultancyFinancialAmount(bid);
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Financial Proposal Review</span>
+                    <h2>${escapeEvaluationHtml(getConsultancySelectionMethod(tender))}</h2>
+                    <p>Buyer-controlled envelope review. The buyer records opening/review status manually; financial scoring only happens if the tender published a financial criterion.</p>
+                </div>
+                ${renderEvaluationStatusBadge(formatEvaluationMoney(amount, bid.financial?.currency || 'TZS'))}
+            </div>
+            <div class="evaluation-financial-review">
+                <div><span>Read-out fee</span><strong>${formatEvaluationMoney(bid.price || amount, bid.financial?.currency || 'TZS')}</strong></div>
+                <div><span>Corrected fee</span><strong>${formatEvaluationMoney(bid.financial?.correctedPrice || amount, bid.financial?.currency || 'TZS')}</strong></div>
+                <div><span>Selection method</span><strong>${escapeEvaluationHtml(getConsultancySelectionMethod(tender))}</strong></div>
+                <div><span>Envelope rule</span><strong>Buyer controlled</strong></div>
+            </div>
+            <div class="evaluation-form-grid consultancy-financial-status" data-consultancy-financial-result data-consultant="${escapeEvaluationHtml(consultant)}">
+                <label>Financial proposal review status
+                    <select class="form-input" data-consultancy-financial-status>${['', 'Financially Responsive', 'Financially Non-responsive', 'Arithmetic Correction Required', 'Clarification Required', 'Not Opened / Deferred'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${savedReview.status === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select status')}</option>`).join('')}</select>
+                </label>
+                <label>Overall financial remark
+                    <textarea class="form-input" rows="3" data-consultancy-financial-overall>${escapeEvaluationHtml(savedReview.remark || '')}</textarea>
+                </label>
+            </div>
+            <div class="evaluation-table-scroll">
+                <table class="consultancy-evaluation-table goods-evaluation-table">
+                    <thead><tr><th>Fee item</th><th>Unit</th><th>Quantity</th><th>Rate</th><th>Tax</th><th>Total</th><th>Buyer check</th><th>Remark</th></tr></thead>
+                    <tbody>
+                        ${(rows.length ? rows : [{ description: 'Total consultancy financial proposal', qty: 1, unit: 'Lot', rate: amount, total: amount }]).map((item, index) => {
+                            const saved = savedReview.lines?.[`line-${index}`] || {};
+                            const qty = Number(item.quantity || item.qty || 1) || 1;
+                            const rate = Number(item.rate || item.unitPrice || item.amount || 0) || 0;
+                            const total = item.total || item.amount || (rate ? qty * rate : amount);
+                            return `
+                                <tr data-consultancy-financial-row data-consultant="${escapeEvaluationHtml(consultant)}" data-line-id="line-${index}">
+                                    <td>${escapeEvaluationHtml(item.description || item.serviceTask || item.itemDescription || `Fee item ${index + 1}`)}</td>
+                                    <td>${escapeEvaluationHtml(item.unit || item.unitOfMeasure || 'Unit')}</td>
+                                    <td>${escapeEvaluationHtml(item.quantity || item.qty || 1)}</td>
+                                    <td>${formatEvaluationMoney(rate, bid.financial?.currency || 'TZS')}</td>
+                                    <td>${escapeEvaluationHtml(item.tax || '-')}</td>
+                                    <td>${typeof total === 'number' ? formatEvaluationMoney(total, bid.financial?.currency || 'TZS') : escapeEvaluationHtml(total || '-')}</td>
+                                    <td><select class="form-input" data-consultancy-financial-check>${['', 'Accepted', 'Correction Required', 'Not Priced', 'Clarification Required', 'Cost Realism Review Required'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${saved.check === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select check')}</option>`).join('')}</select></td>
+                                    <td><input class="form-input" data-consultancy-financial-remark value="${escapeEvaluationHtml(saved.remark || '')}"></td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    `;
+}
+
+function renderConsultancyPostQualification(tender = {}, bid = {}, bidderIndex = 0, consultancyDraft = {}) {
+    const consultant = getConsultancyKey(bid, bidderIndex);
+    const items = getConsultancyPostQualItems(tender);
+    const result = consultancyDraft.postQualification?.[consultant]?.result || '';
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Post-qualification</span>
+                    <h2>${escapeEvaluationHtml(consultant)}</h2>
+                    <p>Confirm professional registration, expert availability, similar assignments, references, financial capacity, and readiness to perform the assignment.</p>
+                </div>
+                ${renderEvaluationStatusBadge(result || 'Manual review')}
+            </div>
+            <div class="consultancy-evaluation-card-list goods-evaluation-card-list">
+                ${items.map(item => {
+                    const saved = consultancyDraft.postQualification?.[consultant]?.checks?.[item.id] || {};
+                    return `
+                        <article class="consultancy-evaluation-card goods-evaluation-card" data-consultancy-postqual-row data-consultant="${escapeEvaluationHtml(consultant)}" data-postqual-id="${escapeEvaluationHtml(item.id)}">
+                            <div>
+                                <span class="section-kicker">${escapeEvaluationHtml(item.source)}</span>
+                                <h3>${escapeEvaluationHtml(item.title)}</h3>
+                                ${item.evidenceRequired?.length ? `<p>Evidence expected: ${escapeEvaluationHtml(item.evidenceRequired.join(', '))}</p>` : ''}
+                            </div>
+                            ${getConsultancyEvidencePanel(tender, bid, bidderIndex, [item.title, ...(item.evidenceRequired || []), 'registration', 'expert', 'CV', 'experience', 'financial capacity'])}
+                            <div class="evaluation-decision-panel">
+                                <label>Buyer Decision
+                                    <select class="form-input" data-consultancy-postqual-decision>${['', 'Pass', 'Fail', 'Clarification Required'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${saved.decision === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select decision')}</option>`).join('')}</select>
+                                </label>
+                                <label>Remark
+                                    <textarea class="form-input" rows="3" data-consultancy-postqual-remark>${escapeEvaluationHtml(saved.remark || '')}</textarea>
+                                </label>
+                            </div>
+                        </article>
+                    `;
+                }).join('')}
+            </div>
+            <div class="evaluation-form-grid consultancy-postqual-result" data-consultancy-postqual-result data-consultant="${escapeEvaluationHtml(consultant)}">
+                <label>Final post-qualification result
+                    <select class="form-input" data-consultancy-postqual-final>${['', 'Qualified', 'Not Qualified', 'Clarification Required'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${result === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select result')}</option>`).join('')}</select>
+                </label>
+                <label>Overall remark
+                    <textarea class="form-input" rows="3" data-consultancy-postqual-overall>${escapeEvaluationHtml(consultancyDraft.postQualification?.[consultant]?.remark || '')}</textarea>
+                </label>
+            </div>
+        </section>
+    `;
+}
+
+function renderConsultancyRanking(tender = {}, bids = [], consultancyDraft = {}) {
+    const criteria = getEvaluationCriteriaForTender(tender);
+    const maxScore = getConsultancyMaxScore(criteria);
+    const ranked = bids.map((bid, index) => {
+        const consultant = getConsultancyKey(bid, index);
+        const failedGate = hasConsultancyFailedGate(consultancyDraft, consultant, criteria) || hasConsultancyFailedAdministrativeGate(consultancyDraft, consultant, tender) || hasConsultancyBlockingReview(consultancyDraft, consultant, tender);
+        return {
+            bid,
+            consultant,
+            failedGate,
+            score: failedGate ? null : getConsultancyScore(consultancyDraft, consultant, criteria),
+            price: getConsultancyFinancialAmount(bid),
+            saved: consultancyDraft.ranking?.[consultant] || {}
+        };
+    }).sort((a, b) => {
+        if (a.failedGate !== b.failedGate) return a.failedGate ? 1 : -1;
+        return (b.score || 0) - (a.score || 0) || a.price - b.price;
+    });
+    return `
+        <section class="evaluation-section-workspace">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Selection Method / Ranking</span>
+                    <h2>${escapeEvaluationHtml(getConsultancySelectionMethod(tender))}</h2>
+                    <p>The system totals Buyer Scores and sorts rows for review. The buyer manually confirms the award recommendation.</p>
+                </div>
+                ${renderEvaluationStatusBadge('No automatic winner')}
+            </div>
+            <div class="evaluation-table-scroll">
+                <table class="consultancy-evaluation-table goods-evaluation-table">
+                    <thead><tr><th>Rank</th><th>Consultant</th><th>Gate status</th><th>Total Score</th><th>Evaluated Fee</th><th>Recommendation</th><th>Reason / override</th></tr></thead>
+                    <tbody>
+                        ${ranked.map((row, index) => `
+                            <tr data-consultancy-ranking-row data-consultant="${escapeEvaluationHtml(row.consultant)}" data-blocked="${row.failedGate ? 'true' : 'false'}">
+                                <td>${row.failedGate ? '-' : index + 1}</td>
+                                <td>${escapeEvaluationHtml(row.consultant)}</td>
+                                <td>${renderEvaluationStatusBadge(row.failedGate ? 'Failed gate/review' : 'Passed gates')}</td>
+                                <td>${row.score === null ? '-' : `${escapeEvaluationHtml(row.score)} / ${escapeEvaluationHtml(maxScore)}`}</td>
+                                <td>${formatEvaluationMoney(row.price, row.bid.financial?.currency || 'TZS')}</td>
+                                <td><select class="form-input" data-consultancy-ranking-recommendation>${['', 'Recommended for Award', 'Reserve Consultant', 'Rejected', 'Request Clarification'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${row.saved.recommendation === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select action')}</option>`).join('')}</select></td>
+                                <td><textarea class="form-input" rows="2" data-consultancy-ranking-reason>${escapeEvaluationHtml(row.saved.reason || '')}</textarea></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    `;
+}
+
+function renderConsultancyEvaluationReportDocument(tender = {}, bids = [], draft = {}) {
+    const consultancyDraft = getConsultancyEvaluationDraft(draft);
+    const criteria = getEvaluationCriteriaForTender(tender);
+    const adminItems = getConsultancyAdministrativeItems(tender);
+    const torItems = getConsultancyTorReviewItems(tender);
+    const completion = getConsultancyCompletion(tender, bids, draft);
+    const recommendation = draft.recommendation || getConsultancyManualRecommendation(tender, bids, draft);
+    const maxScore = getConsultancyMaxScore(criteria);
+    const rankingRows = bids.map((bid, index) => {
+        const consultant = getConsultancyKey(bid, index);
+        return {
+            consultant,
+            score: getConsultancyScore(consultancyDraft, consultant, criteria),
+            price: getConsultancyFinancialAmount(bid),
+            currency: bid.financial?.currency || 'TZS',
+            gate: (hasConsultancyFailedGate(consultancyDraft, consultant, criteria) || hasConsultancyFailedAdministrativeGate(consultancyDraft, consultant, tender) || hasConsultancyBlockingReview(consultancyDraft, consultant, tender)) ? 'Failed gate/review' : 'Passed gates',
+            ranking: consultancyDraft.ranking?.[consultant] || {}
+        };
+    }).sort((a, b) => (b.score || 0) - (a.score || 0) || a.price - b.price);
+
+    return `
+        <div class="evaluation-report-document consultancy-report-document">
+            <header>
+                <span>Consultancy Evaluation Report</span>
+                <h1>${escapeEvaluationHtml(tender.title)}</h1>
+                <p>${escapeEvaluationHtml(tender.reference)} / Consultancy / ${escapeEvaluationHtml(getConsultancySelectionMethod(tender))} / ${escapeEvaluationHtml(draft.status || 'Draft')}</p>
+            </header>
+            <section class="evaluation-report-summary">
+                <div><span>Evaluation method</span><strong>Manual Buyer Evaluation</strong></div>
+                <div><span>Criteria source</span><strong>Published tender</strong></div>
+                <div><span>Consultants</span><strong>${bids.length}</strong></div>
+                <div><span>Completion</span><strong>${completion.complete}/${completion.total}</strong></div>
+            </section>
+
+            <section><h2>1. Tender Information</h2><p>${escapeEvaluationHtml(tender.title)} was evaluated against the published consultancy TOR, requirements, proposal evidence, financial proposal review, and buyer-defined criteria.</p></section>
+            <section><h2>2. Evaluation Method</h2><p>The system organized submitted consultancy proposals and calculated totals from buyer-entered scores only. The buyer manually recorded all decisions and recommendations.</p></section>
+            <section><h2>3. Evaluation Criteria Used</h2><p>${criteria.map(criterion => `${criterion.name} (${formatGoodsEvaluationType(criterion.evaluationType)}, ${criterion.maxScore || criterion.weight || 0})`).map(escapeEvaluationHtml).join('; ') || 'No buyer-defined criteria available.'}</p></section>
+
+            <section>
+                <h2>4. Proposal Opening Register</h2>
+                <div class="evaluation-table-scroll"><table><thead><tr><th>Consultant</th><th>Submitted</th><th>Receipt</th><th>Fee</th><th>Technical</th><th>Financial envelope</th><th>Status</th></tr></thead><tbody>
+                    ${bids.map((bid, index) => {
+                        const consultant = getConsultancyKey(bid, index);
+                        const row = consultancyDraft.opening?.[consultant] || {};
+                        return `<tr><td>${escapeEvaluationHtml(consultant)}</td><td>${escapeEvaluationHtml(bid.submissionTime || '-')}</td><td>${escapeEvaluationHtml(bid.integrityHash || '-')}</td><td>${formatEvaluationMoney(getConsultancyFinancialAmount(bid), bid.financial?.currency || 'TZS')}</td><td>${escapeEvaluationHtml(row.technicalStatus || '-')}</td><td>${escapeEvaluationHtml(row.financialEnvelopeStatus || '-')}</td><td>${escapeEvaluationHtml(row.status || 'Opened')}</td></tr>`;
+                    }).join('')}
+                </tbody></table></div>
+            </section>
+
+            <section>
+                <h2>5. Administrative Responsiveness Review</h2>
+                <div class="evaluation-table-scroll"><table><thead><tr><th>Consultant</th><th>Requirement</th><th>Decision</th><th>Remark</th></tr></thead><tbody>
+                    ${bids.flatMap((bid, index) => {
+                        const consultant = getConsultancyKey(bid, index);
+                        return adminItems.map(item => {
+                            const row = consultancyDraft.administrative?.[consultant]?.[item.id] || {};
+                            return `<tr><td>${escapeEvaluationHtml(consultant)}</td><td>${escapeEvaluationHtml(item.title)}</td><td>${escapeEvaluationHtml(row.decision || 'Pending')}</td><td>${escapeEvaluationHtml(row.remark || '-')}</td></tr>`;
+                        });
+                    }).join('')}
+                </tbody></table></div>
+            </section>
+
+            <section>
+                <h2>6. Buyer-Defined Criteria Evaluation</h2>
+                <div class="evaluation-table-scroll"><table><thead><tr><th>Consultant</th><th>Criterion</th><th>Type</th><th>Buyer Decision</th><th>Buyer Score</th><th>Comment</th></tr></thead><tbody>
+                    ${bids.flatMap((bid, index) => {
+                        const consultant = getConsultancyKey(bid, index);
+                        return criteria.map(criterion => {
+                            const row = getConsultancyCriterionSaved(consultancyDraft, consultant, criterion.id);
+                            return `<tr><td>${escapeEvaluationHtml(consultant)}</td><td>${escapeEvaluationHtml(criterion.name)}</td><td>${escapeEvaluationHtml(formatGoodsEvaluationType(criterion.evaluationType))}</td><td>${escapeEvaluationHtml(row.decision || 'Pending')}</td><td>${escapeEvaluationHtml(row.score || '-')}${criterion.maxScore ? ` / ${escapeEvaluationHtml(criterion.maxScore)}` : ''}</td><td>${escapeEvaluationHtml(row.comment || '-')}</td></tr>`;
+                        });
+                    }).join('')}
+                </tbody></table></div>
+            </section>
+
+            <section>
+                <h2>7. Technical Proposal / TOR Review</h2>
+                <div class="evaluation-table-scroll"><table><thead><tr><th>Consultant</th><th>TOR area</th><th>Decision</th><th>Remark</th></tr></thead><tbody>
+                    ${bids.flatMap((bid, index) => {
+                        const consultant = getConsultancyKey(bid, index);
+                        return torItems.map(item => {
+                            const row = consultancyDraft.torTechnicalReview?.[consultant]?.items?.[item.id] || {};
+                            return `<tr><td>${escapeEvaluationHtml(consultant)}</td><td>${escapeEvaluationHtml(item.title)}</td><td>${escapeEvaluationHtml(row.decision || 'Pending')}</td><td>${escapeEvaluationHtml(row.remark || '-')}</td></tr>`;
+                        });
+                    }).join('')}
+                </tbody></table></div>
+            </section>
+
+            <section><h2>8. Financial Proposal Review</h2><p>Financial proposal status, corrections, cost realism checks, and buyer remarks are recorded separately from scoring. Price is scored only where the buyer published a price/financial criterion.</p></section>
+            <section>
+                <h2>9. Selection Method / Final Ranking</h2>
+                <div class="evaluation-table-scroll"><table><thead><tr><th>Rank</th><th>Consultant</th><th>Gate status</th><th>Total Score</th><th>Evaluated Fee</th><th>Recommendation</th><th>Reason</th></tr></thead><tbody>
+                    ${rankingRows.map((row, index) => `<tr><td>${row.gate === 'Failed gate/review' ? '-' : index + 1}</td><td>${escapeEvaluationHtml(row.consultant)}</td><td>${escapeEvaluationHtml(row.gate)}</td><td>${escapeEvaluationHtml(row.score)} / ${escapeEvaluationHtml(maxScore)}</td><td>${formatEvaluationMoney(row.price, row.currency)}</td><td>${escapeEvaluationHtml(row.ranking.recommendation || 'Pending')}</td><td>${escapeEvaluationHtml(row.ranking.reason || '-')}</td></tr>`).join('')}
+                </tbody></table></div>
+            </section>
+
+            <section><h2>10. Post-Qualification</h2><p>${bids.map((bid, index) => { const consultant = getConsultancyKey(bid, index); const row = consultancyDraft.postQualification?.[consultant] || {}; return `${consultant}: ${row.result || 'Pending'}${row.remark ? ` - ${row.remark}` : ''}`; }).map(escapeEvaluationHtml).join('; ')}</p></section>
+            <section><h2>11. Award Recommendation</h2><p><strong>Recommended for Award:</strong> ${escapeEvaluationHtml(recommendation.supplier || 'Pending buyer recommendation')}</p><p>${escapeEvaluationHtml(recommendation.reason || 'The buyer has not finalized a manual award recommendation yet.')}</p></section>
+            <section><h2>12. Rejected Consultants and Reasons</h2><p>${rankingRows.filter(row => /rejected/i.test(row.ranking.recommendation || '')).map(row => `${row.consultant}: ${row.ranking.reason || 'No reason recorded'}`).map(escapeEvaluationHtml).join('; ') || 'No rejected consultants recorded yet.'}</p></section>
+            <section><h2>13. Buyer Declaration</h2><p>I confirm that the submitted consultancy proposals were reviewed manually against the published tender requirements and buyer-defined evaluation criteria. The system organized the proposal evidence and scoring records, but the evaluation decision was made by the buyer.</p></section>
+            <section><h2>14. Attachments Reviewed</h2><p>Administrative documents, TOR response, methodology, work plan, deliverables, reporting arrangements, expert CVs, firm experience, similar assignments, and financial proposal where available.</p></section>
+        </div>
+    `;
+}
+
+function renderConsultancyActiveStage(tender = {}, bids = [], supplierIndex = 0, activeStageId = 'opening', draft = {}) {
+    const consultancyDraft = getConsultancyEvaluationDraft(draft);
+    const bid = bids[supplierIndex] || {};
+    if (activeStageId === 'opening') return renderConsultancyOpeningRegister(tender, bids, consultancyDraft);
+    if (activeStageId === 'administrative') return renderConsultancyAdministrativeReview(tender, bid, supplierIndex, consultancyDraft);
+    if (activeStageId === 'criteria') return renderConsultancyCriteriaEvaluation(tender, bid, supplierIndex, consultancyDraft);
+    if (activeStageId === 'tor') return renderConsultancyTorReview(tender, bid, supplierIndex, consultancyDraft);
+    if (activeStageId === 'financial') return renderConsultancyFinancialReview(tender, bid, supplierIndex, consultancyDraft);
+    if (activeStageId === 'ranking') return renderConsultancyRanking(tender, bids, consultancyDraft);
+    if (activeStageId === 'postqual') return renderConsultancyPostQualification(tender, bid, supplierIndex, consultancyDraft);
+    return renderConsultancyEvaluationReportDocument(tender, bids, draft);
+}
+
+function renderConsultancyBidEvaluationWorkspace(tender = {}) {
+    const bids = getEvaluationBidsForTender(tender);
+    const draft = getEvaluationDraft(tender.reference) || {};
+    const consultancyDraft = getConsultancyEvaluationDraft(draft);
+    const stages = getConsultancyEvaluationStages();
+    const activeStageId = consultancyDraft.currentStageId || 'opening';
+    const supplierIndex = Math.min(Math.max(Number(draft.currentSupplierIndex || consultancyDraft.currentSupplierIndex || 0), 0), Math.max(0, bids.length - 1));
+    const completion = getConsultancyCompletion(tender, bids, draft);
+    const criteria = getEvaluationCriteriaForTender(tender);
+
+    if (!bids.length) {
+        return renderEvaluationShell(`
+            <section class="procurement-hero evaluation-hero-panel">
+                <div>
+                    <span class="section-kicker">Consultancy Proposal Evaluation Workspace</span>
+                    <h1>${escapeEvaluationHtml(tender.title)}</h1>
+                    <p>No submitted consultancy proposal package is available for this tender in the current browser or mock data.</p>
+                </div>
+                <div class="evaluation-hero-stats">
+                    <div><strong>0</strong><span>Proposals available</span></div>
+                    <div><strong>${criteria.length}</strong><span>Published criteria</span></div>
+                </div>
+            </section>
+        `, 'Consultancy Evaluation', tender.reference);
+    }
+
+    return renderEvaluationShell(`
+        <section class="procurement-hero evaluation-hero-panel">
+            <div>
+                <span class="section-kicker">Consultancy Proposal Evaluation Workspace</span>
+                <h1>${escapeEvaluationHtml(tender.title)}</h1>
+                <p>Manual evaluation of submitted consultancy proposals using the buyer's published criteria, TOR, methodology, work plan, experts, experience, and financial proposal review.</p>
+            </div>
+            <div class="evaluation-hero-stats">
+                <div><strong>${escapeEvaluationHtml(tender.reference)}</strong><span>Tender reference</span></div>
+                <div><strong>Consultancy</strong><span>Procurement type</span></div>
+                <div><strong>${escapeEvaluationHtml(getConsultancySelectionMethod(tender))}</strong><span>Selection method</span></div>
+                <div><strong>${completion.percent}%</strong><span>Evaluation status</span></div>
+            </div>
+        </section>
+
+        <section class="evaluation-top-summary">
+            <div><span>Evaluation mode</span><strong>Manual Buyer Evaluation</strong></div>
+            <div><span>Criteria source</span><strong>Published Tender Criteria</strong></div>
+            <div><span>Buyer criteria</span><strong>${criteria.length}</strong></div>
+            <div><span>Proposals received</span><strong>${bids.length}</strong></div>
+            <div><span>Current stage</span><strong>${escapeEvaluationHtml((stages.find(stage => stage.id === activeStageId) || stages[0]).label)}</strong></div>
+        </section>
+
+        <section class="procurement-panel evaluation-panel consultancy-evaluation-workspace" data-evaluation-workspace="${escapeEvaluationHtml(tender.reference)}" data-current-supplier-index="${supplierIndex}" data-current-consultancy-stage="${escapeEvaluationHtml(activeStageId)}">
+            <div class="evaluation-notice warning">This evaluation uses the criteria configured by the buyer during tender creation. The system organizes consultancy proposal evidence and calculates totals only. The buyer makes all evaluation decisions manually.</div>
+            ${renderConsultancyTabs(bids, supplierIndex)}
+            <div class="evaluation-progress-track evaluation-workspace-progress"><span style="width: ${completion.percent}%"></span></div>
+            <div class="evaluation-review-grid">
+                ${renderConsultancyStageRail(stages, activeStageId)}
+                <div class="evaluation-review-main">
+                    ${renderConsultancyActiveStage(tender, bids, supplierIndex, activeStageId, draft)}
+                </div>
+            </div>
+            <div class="evaluation-finish-panel">
+                <div>
+                    <span class="section-kicker">Complete consultancy evaluation</span>
+                    <h3>${completion.canComplete ? 'Ready for buyer completion' : 'Complete all consultancy decisions and recommendation'}</h3>
+                    <p>${completion.complete} of ${completion.total} required checks are complete. Ranking and award recommendation remain manual buyer decisions.</p>
+                </div>
+                <div class="inline-actions">
+                    <button class="btn btn-secondary" type="button" data-evaluation-save-draft="${escapeEvaluationHtml(tender.reference)}">Save Draft</button>
+                    <button class="btn btn-secondary" type="button" data-evaluation-view-report="${escapeEvaluationHtml(tender.reference)}">Preview Report</button>
+                    <button class="btn btn-primary" type="button" data-evaluation-complete="${escapeEvaluationHtml(tender.reference)}" ${completion.canComplete ? '' : 'disabled'}>Complete Evaluation</button>
+                </div>
+            </div>
+        </section>
+    `, 'Consultancy Evaluation', tender.reference);
+}
+
+function renderBidEvaluationWorkspace(reference = '') {
+    const tender = getEvaluationTenderModel(reference);
+    if (!tender.ready) return renderEvaluationLockedTender(reference);
+
+    if (getEvaluationProfileId(tender) === 'goods') {
+        return renderGoodsBidEvaluationWorkspace(tender);
+    }
+
+    if (getEvaluationProfileId(tender) === 'works') {
+        return renderWorksBidEvaluationWorkspace(tender);
+    }
+
+    if (getEvaluationProfileId(tender) === 'services') {
+        return renderServiceBidEvaluationWorkspace(tender);
+    }
+
+    if (getEvaluationProfileId(tender) === 'consultancy') {
+        return renderConsultancyBidEvaluationWorkspace(tender);
+    }
+
+    const profile = getEvaluationProfile(tender);
+    const bids = getEvaluationBidsForTender(tender);
+    const draft = getEvaluationDraft(tender.reference) || {};
+    const sections = getEvaluationReviewSections(tender);
+    const supplierIndex = Math.min(Math.max(Number(draft.currentSupplierIndex || 0), 0), Math.max(0, bids.length - 1));
+    const activeSectionId = draft.currentSectionId || sections[0]?.id || 'supplier-info';
+    const activeSection = sections.find(section => section.id === activeSectionId) || sections[0] || {};
+    const bid = bids[supplierIndex] || {};
+    const completion = getEvaluationCompletion(tender, bids, draft);
+    const recommended = getEvaluationRecommendedBid(tender, bids);
+
+    if (!bids.length) {
+        return renderEvaluationShell(`
+            <section class="procurement-hero evaluation-hero-panel">
+                <div>
+                    <span class="section-kicker">No submissions</span>
+                    <h1>${escapeEvaluationHtml(tender.title)}</h1>
+                    <p>No supplier bid package is available for this tender in the current demo data or browser submission store.</p>
+                </div>
+                <div class="evaluation-hero-stats">
+                    <div><strong>${escapeEvaluationHtml(profile.id)}</strong><span>Procurement type</span></div>
+                    <div><strong>0</strong><span>Bids available</span></div>
+                </div>
+            </section>
+        `, 'Bid Evaluation', tender.reference);
+    }
+
+    return renderEvaluationShell(`
+        <section class="procurement-hero evaluation-hero-panel">
+            <div>
+                <span class="section-kicker">Evaluation app</span>
+                <h1>${escapeEvaluationHtml(tender.title)}</h1>
+                <p>Evaluate one supplier at a time using the ${escapeEvaluationHtml(profile.id)} procurement flow. Each decision is saved against this tender, supplier, and requirement.</p>
+            </div>
+            <div class="evaluation-hero-stats">
+                <div><strong>${escapeEvaluationHtml(profile.id)}</strong><span>Procurement type</span></div>
+                <div><strong>${supplierIndex + 1} of ${bids.length}</strong><span>Supplier queue</span></div>
+                <div><strong>${completion.percent}%</strong><span>Evaluation progress</span></div>
+                <div><strong>${escapeEvaluationHtml(draft.status || 'Draft')}</strong><span>Draft status</span></div>
+            </div>
+        </section>
+
+        <section class="evaluation-top-summary">
+            <div><span>Reference</span><strong>${escapeEvaluationHtml(tender.reference)}</strong></div>
+            <div><span>Closing date</span><strong>${escapeEvaluationHtml(tender.closingDate || '-')}</strong></div>
+            <div><span>Evaluation deadline</span><strong>${escapeEvaluationHtml(tender.evaluationDeadline || '-')}</strong></div>
+            <div><span>Configured checks</span><strong>${getEvaluationTenderRequirementCount(tender)}</strong></div>
+            <div><span>Completed checks</span><strong>${completion.complete}/${completion.total}</strong></div>
+            <div><span>Status</span>${renderEvaluationStatusBadge(tender.status)}</div>
+        </section>
+
+        <section class="procurement-panel evaluation-panel" data-evaluation-workspace="${escapeEvaluationHtml(tender.reference)}" data-current-supplier-index="${supplierIndex}" data-current-section-id="${escapeEvaluationHtml(activeSection.id || '')}">
+            <div class="evaluation-supplier-queue">
+                <button class="btn btn-secondary" type="button" data-evaluation-move-supplier="-1" ${supplierIndex <= 0 ? 'disabled' : ''}>Previous Supplier</button>
+                <div>
+                    <span class="section-kicker">Current supplier</span>
+                    <strong>${escapeEvaluationHtml(bid.supplier || 'Supplier')}</strong>
+                    <p>${escapeEvaluationHtml(bid.registrationNumber || bid.contactPerson || 'Bid evidence available for review.')}</p>
+                </div>
+                <button class="btn btn-secondary" type="button" data-evaluation-move-supplier="1" ${supplierIndex >= bids.length - 1 ? 'disabled' : ''}>Next Supplier</button>
+            </div>
+
+            <div class="evaluation-progress-track evaluation-workspace-progress"><span style="width: ${completion.percent}%"></span></div>
+
+            <div class="evaluation-review-grid">
+                ${renderEvaluationSectionRail(sections, activeSection.id)}
+                <div class="evaluation-review-main">
+                    ${renderEvaluationActiveSection(tender, bid, supplierIndex, activeSection, draft)}
+                </div>
+            </div>
+
+            <div class="evaluation-finish-panel">
+                <div>
+                    <span class="section-kicker">Finish evaluation</span>
+                    <h3>${completion.canComplete ? 'Ready to complete this tender evaluation' : 'Complete all supplier requirement decisions'}</h3>
+                    <p>${completion.complete} of ${completion.total} required supplier checks are complete. Not eligible and clarification decisions require evaluator comments before completion.</p>
+                    ${recommended.supplier ? `<p>Current recommended supplier basis: ${escapeEvaluationHtml(recommended.supplier)} / ${formatEvaluationMoney(recommended.financial?.correctedPrice || recommended.price || mockData.bidEvaluation?.recommendation?.amount || 0, recommended.financial?.currency || mockData.bidEvaluation?.recommendation?.currency || 'TZS')}.</p>` : ''}
+                </div>
+                <div class="inline-actions">
+                    <button class="btn btn-secondary" type="button" data-evaluation-save-draft="${escapeEvaluationHtml(tender.reference)}">Save Draft</button>
+                    <button class="btn btn-secondary" type="button" data-evaluation-view-report="${escapeEvaluationHtml(tender.reference)}">Preview Report</button>
+                    <button class="btn btn-primary" type="button" data-evaluation-complete="${escapeEvaluationHtml(tender.reference)}" ${completion.canComplete ? '' : 'disabled'}>Complete Evaluation</button>
+                </div>
+            </div>
+        </section>
+    `, 'Bid Evaluation', tender.reference);
+}
+
+function collectEvaluationDraftFromDom(reference = '', status = 'Saved as draft') {
+    const workspace = document.querySelector(`[data-evaluation-workspace="${CSS.escape(reference)}"]`);
+    const existing = getEvaluationDraft(reference) || {};
+    const isGoodsWorkspace = Boolean(workspace?.classList?.contains('goods-evaluation-workspace'));
+    const isWorksWorkspace = Boolean(workspace?.classList?.contains('works-evaluation-workspace'));
+    const isServiceWorkspace = Boolean(workspace?.classList?.contains('service-evaluation-workspace'));
+    const isConsultancyWorkspace = Boolean(workspace?.classList?.contains('consultancy-evaluation-workspace'));
+    const payload = {
+        ...existing,
+        status,
+        savedAt: new Date().toISOString(),
+        currentSupplierIndex: Number(workspace?.dataset.currentSupplierIndex || existing.currentSupplierIndex || 0),
+        currentSectionId: workspace?.dataset.currentSectionId || existing.currentSectionId || 'supplier-info',
+        requirements: { ...(existing.requirements || {}) }
+    };
+
+    document.querySelectorAll('[data-evaluation-row]').forEach(row => {
+        const supplier = row.getAttribute('data-supplier') || '';
+        const requirementId = row.getAttribute('data-requirement-id') || '';
+        if (!supplier || !requirementId) return;
+        payload.requirements[supplier] = { ...(payload.requirements[supplier] || {}) };
+        payload.requirements[supplier][requirementId] = {
+            sectionId: row.getAttribute('data-section-id') || '',
+            decision: row.querySelector('[data-evaluation-decision]')?.value || '',
+            score: row.querySelector('[data-evaluation-score]')?.value || '',
+            comment: row.querySelector('[data-evaluation-comment]')?.value || '',
+            updatedAt: new Date().toISOString()
+        };
+    });
+
+    if (isGoodsWorkspace) {
+        const goods = {
+            ...(existing.goods || {}),
+            currentSupplierIndex: Number(workspace?.dataset.currentSupplierIndex || existing.goods?.currentSupplierIndex || 0),
+            currentStageId: workspace?.dataset.currentGoodsStage || existing.goods?.currentStageId || 'opening',
+            opening: { ...(existing.goods?.opening || {}) },
+            administrative: { ...(existing.goods?.administrative || {}) },
+            criteriaEvaluation: { ...(existing.goods?.criteriaEvaluation || {}) },
+            financial: { ...(existing.goods?.financial || {}) },
+            postQualification: { ...(existing.goods?.postQualification || {}) },
+            ranking: { ...(existing.goods?.ranking || {}) },
+            report: {
+                ...(existing.goods?.report || {}),
+                updatedAt: new Date().toISOString(),
+                sections: ['tender_information', 'evaluation_method', 'bidders', 'opening', 'administrative', 'criteria', 'financial', 'post_qualification', 'ranking', 'recommendation', 'declaration']
+            }
+        };
+
+        document.querySelectorAll('[data-goods-opening-row]').forEach(row => {
+            const supplier = row.getAttribute('data-supplier') || '';
+            if (!supplier) return;
+            goods.opening[supplier] = {
+                status: row.querySelector('[data-goods-opening-status]')?.value || '',
+                remark: row.querySelector('[data-goods-opening-remark]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-goods-admin-row]').forEach(row => {
+            const supplier = row.getAttribute('data-supplier') || '';
+            const id = row.getAttribute('data-admin-id') || '';
+            if (!supplier || !id) return;
+            goods.administrative[supplier] = { ...(goods.administrative[supplier] || {}) };
+            goods.administrative[supplier][id] = {
+                decision: row.querySelector('[data-goods-admin-decision]')?.value || '',
+                remark: row.querySelector('[data-goods-admin-remark]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-goods-criterion-row]').forEach(row => {
+            const supplier = row.getAttribute('data-supplier') || '';
+            const id = row.getAttribute('data-criterion-id') || '';
+            if (!supplier || !id) return;
+            goods.criteriaEvaluation[supplier] = { ...(goods.criteriaEvaluation[supplier] || {}) };
+            goods.criteriaEvaluation[supplier][id] = {
+                type: row.getAttribute('data-criterion-type') || '',
+                decision: row.querySelector('[data-goods-criterion-decision]')?.value || '',
+                score: row.querySelector('[data-goods-criterion-score]')?.value || '',
+                comment: row.querySelector('[data-goods-criterion-comment]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-goods-financial-row]').forEach(row => {
+            const supplier = row.getAttribute('data-supplier') || '';
+            const id = row.getAttribute('data-line-id') || '';
+            if (!supplier || !id) return;
+            goods.financial[supplier] = { ...(goods.financial[supplier] || {}) };
+            goods.financial[supplier][id] = {
+                check: row.querySelector('[data-goods-financial-check]')?.value || '',
+                remark: row.querySelector('[data-goods-financial-remark]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-goods-postqual-row]').forEach(row => {
+            const supplier = row.getAttribute('data-supplier') || '';
+            const id = row.getAttribute('data-postqual-id') || '';
+            if (!supplier || !id) return;
+            goods.postQualification[supplier] = {
+                ...(goods.postQualification[supplier] || {}),
+                checks: { ...(goods.postQualification[supplier]?.checks || {}) }
+            };
+            goods.postQualification[supplier].checks[id] = {
+                decision: row.querySelector('[data-goods-postqual-decision]')?.value || '',
+                remark: row.querySelector('[data-goods-postqual-remark]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-goods-postqual-result]').forEach(row => {
+            const supplier = row.getAttribute('data-supplier') || '';
+            if (!supplier) return;
+            goods.postQualification[supplier] = {
+                ...(goods.postQualification[supplier] || {}),
+                result: row.querySelector('[data-goods-postqual-final]')?.value || '',
+                remark: row.querySelector('[data-goods-postqual-overall]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-goods-ranking-row]').forEach(row => {
+            const supplier = row.getAttribute('data-supplier') || '';
+            if (!supplier) return;
+            goods.ranking[supplier] = {
+                recommendation: row.querySelector('[data-goods-ranking-recommendation]')?.value || '',
+                reason: row.querySelector('[data-goods-ranking-reason]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        payload.goods = goods;
+    }
+
+    if (isWorksWorkspace) {
+        const works = {
+            ...(existing.works || {}),
+            currentSupplierIndex: Number(workspace?.dataset.currentSupplierIndex || existing.works?.currentSupplierIndex || 0),
+            currentStageId: workspace?.dataset.currentWorksStage || existing.works?.currentStageId || 'opening',
+            opening: { ...(existing.works?.opening || {}) },
+            administrative: { ...(existing.works?.administrative || {}) },
+            criteriaEvaluation: { ...(existing.works?.criteriaEvaluation || {}) },
+            boqFinancialReview: { ...(existing.works?.boqFinancialReview || {}) },
+            commercialTerms: { ...(existing.works?.commercialTerms || {}) },
+            postQualification: { ...(existing.works?.postQualification || {}) },
+            ranking: { ...(existing.works?.ranking || {}) },
+            report: {
+                ...(existing.works?.report || {}),
+                updatedAt: new Date().toISOString(),
+                sections: ['tender_information', 'evaluation_method', 'criteria_used', 'opening', 'administrative', 'criteria', 'boq_financial', 'commercial_terms', 'post_qualification', 'ranking', 'recommendation', 'rejected_bidders', 'declaration', 'attachments_reviewed']
+            }
+        };
+
+        document.querySelectorAll('[data-works-opening-row]').forEach(row => {
+            const contractor = row.getAttribute('data-contractor') || '';
+            if (!contractor) return;
+            works.opening[contractor] = {
+                status: row.querySelector('[data-works-opening-status]')?.value || '',
+                bidSecurityStatus: row.querySelector('[data-works-opening-bid-security]')?.value || '',
+                completionPeriodOffered: row.querySelector('[data-works-opening-completion]')?.value || '',
+                remark: row.querySelector('[data-works-opening-remark]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-works-admin-row]').forEach(row => {
+            const contractor = row.getAttribute('data-contractor') || '';
+            const id = row.getAttribute('data-admin-id') || '';
+            if (!contractor || !id) return;
+            works.administrative[contractor] = { ...(works.administrative[contractor] || {}) };
+            works.administrative[contractor][id] = {
+                decision: row.querySelector('[data-works-admin-decision]')?.value || '',
+                remark: row.querySelector('[data-works-admin-remark]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-works-criterion-row]').forEach(row => {
+            const contractor = row.getAttribute('data-contractor') || '';
+            const id = row.getAttribute('data-criterion-id') || '';
+            if (!contractor || !id) return;
+            works.criteriaEvaluation[contractor] = { ...(works.criteriaEvaluation[contractor] || {}) };
+            works.criteriaEvaluation[contractor][id] = {
+                type: row.getAttribute('data-criterion-type') || '',
+                decision: row.querySelector('[data-works-criterion-decision]')?.value || '',
+                score: row.querySelector('[data-works-criterion-score]')?.value || '',
+                comment: row.querySelector('[data-works-criterion-comment]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-works-financial-result]').forEach(row => {
+            const contractor = row.getAttribute('data-contractor') || '';
+            if (!contractor) return;
+            works.boqFinancialReview[contractor] = {
+                ...(works.boqFinancialReview[contractor] || {}),
+                status: row.querySelector('[data-works-financial-status]')?.value || '',
+                remark: row.querySelector('[data-works-financial-overall]')?.value || '',
+                lines: { ...(works.boqFinancialReview[contractor]?.lines || {}) },
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-works-boq-row]').forEach(row => {
+            const contractor = row.getAttribute('data-contractor') || '';
+            const id = row.getAttribute('data-line-id') || '';
+            if (!contractor || !id) return;
+            works.boqFinancialReview[contractor] = {
+                ...(works.boqFinancialReview[contractor] || {}),
+                lines: { ...(works.boqFinancialReview[contractor]?.lines || {}) }
+            };
+            works.boqFinancialReview[contractor].lines[id] = {
+                check: row.querySelector('[data-works-boq-check]')?.value || '',
+                remark: row.querySelector('[data-works-boq-remark]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-works-commercial-row]').forEach(row => {
+            const contractor = row.getAttribute('data-contractor') || '';
+            const id = row.getAttribute('data-term-id') || '';
+            if (!contractor || !id) return;
+            works.commercialTerms[contractor] = { ...(works.commercialTerms[contractor] || {}) };
+            works.commercialTerms[contractor][id] = {
+                decision: row.querySelector('[data-works-commercial-decision]')?.value || '',
+                response: row.querySelector('[data-works-commercial-response]')?.value || '',
+                remark: row.querySelector('[data-works-commercial-remark]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-works-postqual-row]').forEach(row => {
+            const contractor = row.getAttribute('data-contractor') || '';
+            const id = row.getAttribute('data-postqual-id') || '';
+            if (!contractor || !id) return;
+            works.postQualification[contractor] = {
+                ...(works.postQualification[contractor] || {}),
+                checks: { ...(works.postQualification[contractor]?.checks || {}) }
+            };
+            works.postQualification[contractor].checks[id] = {
+                decision: row.querySelector('[data-works-postqual-decision]')?.value || '',
+                remark: row.querySelector('[data-works-postqual-remark]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-works-postqual-result]').forEach(row => {
+            const contractor = row.getAttribute('data-contractor') || '';
+            if (!contractor) return;
+            works.postQualification[contractor] = {
+                ...(works.postQualification[contractor] || {}),
+                result: row.querySelector('[data-works-postqual-final]')?.value || '',
+                remark: row.querySelector('[data-works-postqual-overall]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-works-ranking-row]').forEach(row => {
+            const contractor = row.getAttribute('data-contractor') || '';
+            if (!contractor) return;
+            works.ranking[contractor] = {
+                recommendation: row.querySelector('[data-works-ranking-recommendation]')?.value || '',
+                reason: row.querySelector('[data-works-ranking-reason]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        payload.works = works;
+    }
+
+    if (isServiceWorkspace) {
+        const services = {
+            ...(existing.services || {}),
+            currentSupplierIndex: Number(workspace?.dataset.currentSupplierIndex || existing.services?.currentSupplierIndex || 0),
+            currentStageId: workspace?.dataset.currentServiceStage || existing.services?.currentStageId || 'opening',
+            opening: { ...(existing.services?.opening || {}) },
+            administrative: { ...(existing.services?.administrative || {}) },
+            criteriaEvaluation: { ...(existing.services?.criteriaEvaluation || {}) },
+            pricingReview: { ...(existing.services?.pricingReview || {}) },
+            slaPerformanceReview: { ...(existing.services?.slaPerformanceReview || {}) },
+            postQualification: { ...(existing.services?.postQualification || {}) },
+            ranking: { ...(existing.services?.ranking || {}) },
+            report: {
+                ...(existing.services?.report || {}),
+                updatedAt: new Date().toISOString(),
+                sections: ['tender_information', 'evaluation_method', 'criteria_used', 'opening', 'administrative', 'criteria', 'service_pricing', 'sla_performance', 'post_qualification', 'ranking', 'recommendation', 'rejected_bidders', 'declaration', 'attachments_reviewed']
+            }
+        };
+
+        document.querySelectorAll('[data-service-opening-row]').forEach(row => {
+            const provider = row.getAttribute('data-provider') || '';
+            if (!provider) return;
+            services.opening[provider] = {
+                status: row.querySelector('[data-service-opening-status]')?.value || '',
+                serviceDurationOffered: row.querySelector('[data-service-opening-duration]')?.value || '',
+                remark: row.querySelector('[data-service-opening-remark]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-service-admin-row]').forEach(row => {
+            const provider = row.getAttribute('data-provider') || '';
+            const id = row.getAttribute('data-admin-id') || '';
+            if (!provider || !id) return;
+            services.administrative[provider] = { ...(services.administrative[provider] || {}) };
+            services.administrative[provider][id] = {
+                decision: row.querySelector('[data-service-admin-decision]')?.value || '',
+                remark: row.querySelector('[data-service-admin-remark]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-service-criterion-row]').forEach(row => {
+            const provider = row.getAttribute('data-provider') || '';
+            const id = row.getAttribute('data-criterion-id') || '';
+            if (!provider || !id) return;
+            services.criteriaEvaluation[provider] = { ...(services.criteriaEvaluation[provider] || {}) };
+            services.criteriaEvaluation[provider][id] = {
+                type: row.getAttribute('data-criterion-type') || '',
+                decision: row.querySelector('[data-service-criterion-decision]')?.value || '',
+                score: row.querySelector('[data-service-criterion-score]')?.value || '',
+                comment: row.querySelector('[data-service-criterion-comment]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-service-pricing-result]').forEach(row => {
+            const provider = row.getAttribute('data-provider') || '';
+            if (!provider) return;
+            services.pricingReview[provider] = {
+                ...(services.pricingReview[provider] || {}),
+                status: row.querySelector('[data-service-pricing-status]')?.value || '',
+                remark: row.querySelector('[data-service-pricing-overall]')?.value || '',
+                lines: { ...(services.pricingReview[provider]?.lines || {}) },
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-service-pricing-row]').forEach(row => {
+            const provider = row.getAttribute('data-provider') || '';
+            const id = row.getAttribute('data-line-id') || '';
+            if (!provider || !id) return;
+            services.pricingReview[provider] = {
+                ...(services.pricingReview[provider] || {}),
+                lines: { ...(services.pricingReview[provider]?.lines || {}) }
+            };
+            services.pricingReview[provider].lines[id] = {
+                check: row.querySelector('[data-service-pricing-check]')?.value || '',
+                remark: row.querySelector('[data-service-pricing-remark]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-service-sla-row]').forEach(row => {
+            const provider = row.getAttribute('data-provider') || '';
+            const id = row.getAttribute('data-sla-id') || '';
+            if (!provider || !id) return;
+            services.slaPerformanceReview[provider] = { ...(services.slaPerformanceReview[provider] || {}) };
+            services.slaPerformanceReview[provider][id] = {
+                decision: row.querySelector('[data-service-sla-decision]')?.value || '',
+                offer: row.querySelector('[data-service-sla-offer]')?.value || '',
+                remark: row.querySelector('[data-service-sla-remark]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-service-postqual-row]').forEach(row => {
+            const provider = row.getAttribute('data-provider') || '';
+            const id = row.getAttribute('data-postqual-id') || '';
+            if (!provider || !id) return;
+            services.postQualification[provider] = {
+                ...(services.postQualification[provider] || {}),
+                checks: { ...(services.postQualification[provider]?.checks || {}) }
+            };
+            services.postQualification[provider].checks[id] = {
+                decision: row.querySelector('[data-service-postqual-decision]')?.value || '',
+                remark: row.querySelector('[data-service-postqual-remark]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-service-postqual-result]').forEach(row => {
+            const provider = row.getAttribute('data-provider') || '';
+            if (!provider) return;
+            services.postQualification[provider] = {
+                ...(services.postQualification[provider] || {}),
+                result: row.querySelector('[data-service-postqual-final]')?.value || '',
+                remark: row.querySelector('[data-service-postqual-overall]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-service-ranking-row]').forEach(row => {
+            const provider = row.getAttribute('data-provider') || '';
+            if (!provider) return;
+            services.ranking[provider] = {
+                recommendation: row.querySelector('[data-service-ranking-recommendation]')?.value || '',
+                reason: row.querySelector('[data-service-ranking-reason]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        payload.services = services;
+    }
+
+    if (isConsultancyWorkspace) {
+        const consultancy = {
+            ...(existing.consultancy || {}),
+            currentSupplierIndex: Number(workspace?.dataset.currentSupplierIndex || existing.consultancy?.currentSupplierIndex || 0),
+            currentStageId: workspace?.dataset.currentConsultancyStage || existing.consultancy?.currentStageId || 'opening',
+            opening: { ...(existing.consultancy?.opening || {}) },
+            administrative: { ...(existing.consultancy?.administrative || {}) },
+            criteriaEvaluation: { ...(existing.consultancy?.criteriaEvaluation || {}) },
+            torTechnicalReview: { ...(existing.consultancy?.torTechnicalReview || {}) },
+            financialProposalReview: { ...(existing.consultancy?.financialProposalReview || {}) },
+            postQualification: { ...(existing.consultancy?.postQualification || {}) },
+            ranking: { ...(existing.consultancy?.ranking || {}) },
+            report: {
+                ...(existing.consultancy?.report || {}),
+                updatedAt: new Date().toISOString(),
+                sections: ['tender_information', 'evaluation_method', 'criteria_used', 'opening', 'administrative', 'criteria', 'tor_technical', 'financial_proposal', 'selection_ranking', 'post_qualification', 'recommendation', 'rejected_consultants', 'declaration', 'attachments_reviewed']
+            }
+        };
+
+        document.querySelectorAll('[data-consultancy-opening-row]').forEach(row => {
+            const consultant = row.getAttribute('data-consultant') || '';
+            if (!consultant) return;
+            consultancy.opening[consultant] = {
+                status: row.querySelector('[data-consultancy-opening-status]')?.value || '',
+                technicalStatus: row.querySelector('[data-consultancy-opening-technical]')?.value || '',
+                financialEnvelopeStatus: row.querySelector('[data-consultancy-opening-financial]')?.value || '',
+                remark: row.querySelector('[data-consultancy-opening-remark]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-consultancy-admin-row]').forEach(row => {
+            const consultant = row.getAttribute('data-consultant') || '';
+            const id = row.getAttribute('data-admin-id') || '';
+            if (!consultant || !id) return;
+            consultancy.administrative[consultant] = { ...(consultancy.administrative[consultant] || {}) };
+            consultancy.administrative[consultant][id] = {
+                decision: row.querySelector('[data-consultancy-admin-decision]')?.value || '',
+                remark: row.querySelector('[data-consultancy-admin-remark]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-consultancy-criterion-row]').forEach(row => {
+            const consultant = row.getAttribute('data-consultant') || '';
+            const id = row.getAttribute('data-criterion-id') || '';
+            if (!consultant || !id) return;
+            consultancy.criteriaEvaluation[consultant] = { ...(consultancy.criteriaEvaluation[consultant] || {}) };
+            consultancy.criteriaEvaluation[consultant][id] = {
+                type: row.getAttribute('data-criterion-type') || '',
+                decision: row.querySelector('[data-consultancy-criterion-decision]')?.value || '',
+                score: row.querySelector('[data-consultancy-criterion-score]')?.value || '',
+                comment: row.querySelector('[data-consultancy-criterion-comment]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-consultancy-tor-result]').forEach(row => {
+            const consultant = row.getAttribute('data-consultant') || '';
+            if (!consultant) return;
+            consultancy.torTechnicalReview[consultant] = {
+                ...(consultancy.torTechnicalReview[consultant] || {}),
+                status: row.querySelector('[data-consultancy-tor-status]')?.value || '',
+                remark: row.querySelector('[data-consultancy-tor-overall]')?.value || '',
+                items: { ...(consultancy.torTechnicalReview[consultant]?.items || {}) },
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-consultancy-tor-row]').forEach(row => {
+            const consultant = row.getAttribute('data-consultant') || '';
+            const id = row.getAttribute('data-tor-id') || '';
+            if (!consultant || !id) return;
+            consultancy.torTechnicalReview[consultant] = {
+                ...(consultancy.torTechnicalReview[consultant] || {}),
+                items: { ...(consultancy.torTechnicalReview[consultant]?.items || {}) }
+            };
+            consultancy.torTechnicalReview[consultant].items[id] = {
+                decision: row.querySelector('[data-consultancy-tor-decision]')?.value || '',
+                remark: row.querySelector('[data-consultancy-tor-remark]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-consultancy-financial-result]').forEach(row => {
+            const consultant = row.getAttribute('data-consultant') || '';
+            if (!consultant) return;
+            consultancy.financialProposalReview[consultant] = {
+                ...(consultancy.financialProposalReview[consultant] || {}),
+                status: row.querySelector('[data-consultancy-financial-status]')?.value || '',
+                remark: row.querySelector('[data-consultancy-financial-overall]')?.value || '',
+                lines: { ...(consultancy.financialProposalReview[consultant]?.lines || {}) },
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-consultancy-financial-row]').forEach(row => {
+            const consultant = row.getAttribute('data-consultant') || '';
+            const id = row.getAttribute('data-line-id') || '';
+            if (!consultant || !id) return;
+            consultancy.financialProposalReview[consultant] = {
+                ...(consultancy.financialProposalReview[consultant] || {}),
+                lines: { ...(consultancy.financialProposalReview[consultant]?.lines || {}) }
+            };
+            consultancy.financialProposalReview[consultant].lines[id] = {
+                check: row.querySelector('[data-consultancy-financial-check]')?.value || '',
+                remark: row.querySelector('[data-consultancy-financial-remark]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-consultancy-postqual-row]').forEach(row => {
+            const consultant = row.getAttribute('data-consultant') || '';
+            const id = row.getAttribute('data-postqual-id') || '';
+            if (!consultant || !id) return;
+            consultancy.postQualification[consultant] = {
+                ...(consultancy.postQualification[consultant] || {}),
+                checks: { ...(consultancy.postQualification[consultant]?.checks || {}) }
+            };
+            consultancy.postQualification[consultant].checks[id] = {
+                decision: row.querySelector('[data-consultancy-postqual-decision]')?.value || '',
+                remark: row.querySelector('[data-consultancy-postqual-remark]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-consultancy-postqual-result]').forEach(row => {
+            const consultant = row.getAttribute('data-consultant') || '';
+            if (!consultant) return;
+            consultancy.postQualification[consultant] = {
+                ...(consultancy.postQualification[consultant] || {}),
+                result: row.querySelector('[data-consultancy-postqual-final]')?.value || '',
+                remark: row.querySelector('[data-consultancy-postqual-overall]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        document.querySelectorAll('[data-consultancy-ranking-row]').forEach(row => {
+            const consultant = row.getAttribute('data-consultant') || '';
+            if (!consultant) return;
+            consultancy.ranking[consultant] = {
+                recommendation: row.querySelector('[data-consultancy-ranking-recommendation]')?.value || '',
+                reason: row.querySelector('[data-consultancy-ranking-reason]')?.value || '',
+                updatedAt: new Date().toISOString()
+            };
+        });
+
+        payload.consultancy = consultancy;
+    }
+
+    return payload;
+}
+
+function renderEvaluationReportDocument(tender = {}, bids = [], draft = {}) {
+    if (getEvaluationProfileId(tender) === 'goods') {
+        return renderGoodsEvaluationReportDocument(tender, bids, draft);
+    }
+    if (getEvaluationProfileId(tender) === 'works') {
+        return renderWorksEvaluationReportDocument(tender, bids, draft);
+    }
+    if (getEvaluationProfileId(tender) === 'services') {
+        return renderServiceEvaluationReportDocument(tender, bids, draft);
+    }
+    if (getEvaluationProfileId(tender) === 'consultancy') {
+        return renderConsultancyEvaluationReportDocument(tender, bids, draft);
+    }
+    const sections = getEvaluationReviewSections(tender).filter(section => section.id !== 'supplier-info');
+    const completion = getEvaluationCompletion(tender, bids, draft);
+    const recommended = draft.recommendation || mockData.bidEvaluation?.recommendation || getEvaluationRecommendedBid(tender, bids);
+    return `
+        <div class="evaluation-report-document">
+            <header>
+                <span>ProcureX Evaluation Report</span>
+                <h1>${escapeEvaluationHtml(tender.title)}</h1>
+                <p>${escapeEvaluationHtml(tender.reference)} / ${escapeEvaluationHtml(tender.type || getEvaluationProfile(tender).id)} / ${escapeEvaluationHtml(draft.status || 'Draft')}</p>
+            </header>
+            <section class="evaluation-report-summary">
+                <div><span>Suppliers reviewed</span><strong>${bids.length}</strong></div>
+                <div><span>Completion</span><strong>${completion.complete}/${completion.total}</strong></div>
+                <div><span>Recommendation</span><strong>${escapeEvaluationHtml(recommended.supplier || 'Pending')}</strong></div>
+                <div><span>Last saved</span><strong>${escapeEvaluationHtml(draft.savedAt ? new Date(draft.savedAt).toLocaleString() : 'Not saved')}</strong></div>
+            </section>
+            ${sections.map(section => `
+                <section>
+                    <h2>${escapeEvaluationHtml(section.label)}</h2>
+                    <div class="evaluation-table-scroll">
+                        <table>
+                            <thead><tr><th>Supplier</th><th>Requirement</th><th>Decision</th><th>Score</th><th>Comment</th></tr></thead>
+                            <tbody>
+                                ${bids.flatMap(bid => section.items.map(item => {
+                                    const row = draft.requirements?.[bid.supplier]?.[item.id] || {};
+                                    return `
+                                        <tr>
+                                            <td>${escapeEvaluationHtml(bid.supplier)}</td>
+                                            <td>${escapeEvaluationHtml(item.title)}</td>
+                                            <td>${escapeEvaluationHtml(row.decision || 'Pending')}</td>
+                                            <td>${escapeEvaluationHtml(row.score || '-')}</td>
+                                            <td>${escapeEvaluationHtml(row.comment || '-')}</td>
+                                        </tr>
+                                    `;
+                                })).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            `).join('')}
+        </div>
+    `;
+}
+
+function renderEvaluationReportPage(reference = '') {
+    const tender = getEvaluationTenderModel(reference);
+    const bids = getEvaluationBidsForTender(tender);
+    const draft = getEvaluationDraft(reference) || {};
+    return renderEvaluationShell(`
+        <section class="procurement-hero evaluation-hero-panel">
+            <div>
+                <span class="section-kicker">Report preview</span>
+                <h1>${escapeEvaluationHtml(tender.title)}</h1>
+                <p>Preview the evaluation record saved for this tender before routing the award recommendation.</p>
+            </div>
+            <div class="evaluation-hero-stats">
+                <div><strong>${escapeEvaluationHtml(draft.status || 'Draft')}</strong><span>Status</span></div>
+                <div><strong>${bids.length}</strong><span>Suppliers</span></div>
+            </div>
+        </section>
+        <section class="procurement-panel evaluation-panel">
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Evaluation report</span>
+                    <h2>Saved evaluation decisions</h2>
+                </div>
+                <div class="inline-actions">
+                    <button class="btn btn-secondary" type="button" data-evaluation-close-report>Back to Evaluation</button>
+                    <button class="btn btn-primary" type="button" data-evaluation-download-report="${escapeEvaluationHtml(reference)}">Download Report</button>
+                </div>
+            </div>
+            ${renderEvaluationReportDocument(tender, bids, draft)}
+        </section>
+    `, 'Evaluation Report', reference);
+}
+
+function completeEvaluation(reference = '') {
+    const tender = getEvaluationTenderModel(reference);
+    const bids = getEvaluationBidsForTender(tender);
+    const payload = collectEvaluationDraftFromDom(reference, 'Completed');
+    if (getEvaluationProfileId(tender) === 'goods') {
+        payload.recommendation = getGoodsManualRecommendation(tender, bids, payload);
+        saveEvaluationDraft(reference, payload);
+        setSelectedEvaluationTender('');
+        return;
+    }
+    if (getEvaluationProfileId(tender) === 'works') {
+        payload.recommendation = getWorksManualRecommendation(tender, bids, payload);
+        saveEvaluationDraft(reference, payload);
+        setSelectedEvaluationTender('');
+        return;
+    }
+    if (getEvaluationProfileId(tender) === 'services') {
+        payload.recommendation = getServiceManualRecommendation(tender, bids, payload);
+        saveEvaluationDraft(reference, payload);
+        setSelectedEvaluationTender('');
+        return;
+    }
+    if (getEvaluationProfileId(tender) === 'consultancy') {
+        payload.recommendation = getConsultancyManualRecommendation(tender, bids, payload);
+        saveEvaluationDraft(reference, payload);
+        setSelectedEvaluationTender('');
+        return;
+    }
+    const recommendedBid = getEvaluationRecommendedBid(tender, bids);
+    payload.recommendation = {
+        supplier: recommendedBid.supplier || mockData.bidEvaluation?.recommendation?.supplier || '',
+        amount: recommendedBid.financial?.correctedPrice || recommendedBid.price || mockData.bidEvaluation?.recommendation?.amount || 0,
+        currency: recommendedBid.financial?.currency || mockData.bidEvaluation?.recommendation?.currency || 'TZS',
+        reason: `${recommendedBid.supplier || 'Recommended supplier'} is recommended from the completed supplier-by-supplier evaluation against the published tender requirements.`
+    };
+    saveEvaluationDraft(reference, payload);
+    setSelectedEvaluationTender('');
+}
+
+function renderBidEvaluation() {
+    const reportReference = getSelectedEvaluationReportReference();
+    if (reportReference) return renderEvaluationReportPage(reportReference);
+
+    const selectedReference = getSelectedEvaluationTenderReference();
+    if (!selectedReference) return renderEvaluationTenderList();
+    return renderBidEvaluationWorkspace(selectedReference);
+}
+
 if (window.app) {
     window.app.renderBidEvaluation = renderBidEvaluation;
 }
 
-if (typeof document !== 'undefined' && !window.procurexEvaluationSelectionListenerReady) {
-    window.procurexEvaluationSelectionListenerReady = true;
+if (typeof document !== 'undefined' && !window.procurexEvaluationRedesignListenerReady) {
+    window.procurexEvaluationRedesignListenerReady = true;
     document.addEventListener('click', (event) => {
         const selectButton = event.target.closest('[data-evaluation-select]');
         const clearButton = event.target.closest('[data-evaluation-clear-selection]');
-        const saveDraftButton = event.target.closest('[data-evaluation-save-draft]');
+        const sectionButton = event.target.closest('[data-evaluation-section]');
+        const goodsStageButton = event.target.closest('[data-goods-stage]');
+        const goodsSupplierButton = event.target.closest('[data-goods-supplier-index]');
+        const worksStageButton = event.target.closest('[data-works-stage]');
+        const worksContractorButton = event.target.closest('[data-works-contractor-index]');
+        const serviceStageButton = event.target.closest('[data-service-stage]');
+        const serviceProviderButton = event.target.closest('[data-service-provider-index]');
+        const consultancyStageButton = event.target.closest('[data-consultancy-stage]');
+        const consultancyConsultantButton = event.target.closest('[data-consultancy-consultant-index]');
+        const moveSupplierButton = event.target.closest('[data-evaluation-move-supplier]');
+        const saveButton = event.target.closest('[data-evaluation-save-draft]');
         const completeButton = event.target.closest('[data-evaluation-complete]');
-        const tabJumpButton = event.target.closest('[data-tab-jump]');
-        const moveButton = event.target.closest('[data-evaluation-move]');
-        const criterionJumpButton = event.target.closest('[data-evaluation-jump-criterion]');
         const viewReportButton = event.target.closest('[data-evaluation-view-report]');
-        const downloadReportButton = event.target.closest('[data-evaluation-download-report]');
         const closeReportButton = event.target.closest('[data-evaluation-close-report]');
-        const returnReviewButton = event.target.closest('[data-evaluation-return-review]');
+        const downloadReportButton = event.target.closest('[data-evaluation-download-report]');
 
-        if (!selectButton && !clearButton && !saveDraftButton && !completeButton && !tabJumpButton && !moveButton && !criterionJumpButton && !viewReportButton && !downloadReportButton && !closeReportButton && !returnReviewButton) return;
+        if (!selectButton && !clearButton && !sectionButton && !goodsStageButton && !goodsSupplierButton && !worksStageButton && !worksContractorButton && !serviceStageButton && !serviceProviderButton && !consultancyStageButton && !consultancyConsultantButton && !moveSupplierButton && !saveButton && !completeButton && !viewReportButton && !closeReportButton && !downloadReportButton) return;
 
         event.preventDefault();
 
-        if (tabJumpButton) {
-            const target = tabJumpButton.getAttribute('data-tab-jump');
-            const tab = document.querySelector(`.evaluation-stage-tabs .tab[data-tab="${target}"]`);
-            tab?.click();
-            return;
-        }
-
-        if (moveButton || criterionJumpButton) {
-            const selected = getSelectedEvaluationTenderReference(mockData.bidEvaluation || {});
-            const draft = collectEvaluationDraftFromDom(selected, 'Saved as draft');
-            const criteriaCount = document.querySelectorAll('[data-evaluation-jump-criterion]').length || 1;
-            const bidderCount = mockData.bidEvaluation?.bids?.length || 1;
-
-            if (criterionJumpButton) {
-                draft.currentCriterionIndex = Number(criterionJumpButton.getAttribute('data-evaluation-jump-criterion') || 0);
-                draft.currentBidderIndex = 0;
-            } else {
-                const direction = moveButton.getAttribute('data-evaluation-move');
-                const flatIndex = (draft.currentCriterionIndex * bidderCount) + draft.currentBidderIndex + (direction === 'next' ? 1 : -1);
-                const boundedIndex = Math.max(0, Math.min((criteriaCount * bidderCount) - 1, flatIndex));
-                draft.currentCriterionIndex = Math.floor(boundedIndex / bidderCount);
-                draft.currentBidderIndex = boundedIndex % bidderCount;
-            }
-
-            saveEvaluationDraft(selected, draft);
-            if (window.app?.navigateTo) window.app.navigateTo('bid-evaluation');
-            return;
-        }
-
-        if (downloadReportButton) {
-            const reference = downloadReportButton.getAttribute('data-evaluation-download-report');
-            const sourceTender = getEvaluationSourceTender(reference);
-            const tender = getEvaluationTenderModel(mockData.bidEvaluation || {}, reference);
-            const criteria = getEvaluationScoringCriteriaForTender(sourceTender, mockData.bidEvaluation?.technicalCriteria || []);
-            const draft = getEvaluationDraft(reference);
-            const html = renderEvaluationReportDocument(tender, criteria, mockData.bidEvaluation?.bids || [], draft, mockData.bidEvaluation?.auditTrail || []);
+        if (selectButton) {
+            setSelectedEvaluationTender(selectButton.getAttribute('data-evaluation-select') || '');
+        } else if (clearButton) {
+            setSelectedEvaluationTender('');
+            setSelectedEvaluationReport('');
+        } else if (sectionButton) {
+            const reference = getSelectedEvaluationTenderReference();
+            const draft = collectEvaluationDraftFromDom(reference, 'Saved as draft');
+            draft.currentSectionId = sectionButton.getAttribute('data-evaluation-section') || 'supplier-info';
+            saveEvaluationDraft(reference, draft);
+        } else if (goodsStageButton) {
+            const reference = getSelectedEvaluationTenderReference();
+            const draft = collectEvaluationDraftFromDom(reference, 'Saved as draft');
+            draft.goods = {
+                ...(draft.goods || {}),
+                currentStageId: goodsStageButton.getAttribute('data-goods-stage') || 'opening'
+            };
+            saveEvaluationDraft(reference, draft);
+        } else if (goodsSupplierButton) {
+            const reference = getSelectedEvaluationTenderReference();
+            const draft = collectEvaluationDraftFromDom(reference, 'Saved as draft');
+            const nextIndex = Number(goodsSupplierButton.getAttribute('data-goods-supplier-index') || 0);
+            draft.currentSupplierIndex = nextIndex;
+            draft.goods = {
+                ...(draft.goods || {}),
+                currentSupplierIndex: nextIndex,
+                currentStageId: draft.goods?.currentStageId || 'opening'
+            };
+            saveEvaluationDraft(reference, draft);
+        } else if (worksStageButton) {
+            const reference = getSelectedEvaluationTenderReference();
+            const draft = collectEvaluationDraftFromDom(reference, 'Saved as draft');
+            draft.works = {
+                ...(draft.works || {}),
+                currentStageId: worksStageButton.getAttribute('data-works-stage') || 'opening'
+            };
+            saveEvaluationDraft(reference, draft);
+        } else if (worksContractorButton) {
+            const reference = getSelectedEvaluationTenderReference();
+            const draft = collectEvaluationDraftFromDom(reference, 'Saved as draft');
+            const nextIndex = Number(worksContractorButton.getAttribute('data-works-contractor-index') || 0);
+            draft.currentSupplierIndex = nextIndex;
+            draft.works = {
+                ...(draft.works || {}),
+                currentSupplierIndex: nextIndex,
+                currentStageId: draft.works?.currentStageId || 'opening'
+            };
+            saveEvaluationDraft(reference, draft);
+        } else if (serviceStageButton) {
+            const reference = getSelectedEvaluationTenderReference();
+            const draft = collectEvaluationDraftFromDom(reference, 'Saved as draft');
+            draft.services = {
+                ...(draft.services || {}),
+                currentStageId: serviceStageButton.getAttribute('data-service-stage') || 'opening'
+            };
+            saveEvaluationDraft(reference, draft);
+        } else if (serviceProviderButton) {
+            const reference = getSelectedEvaluationTenderReference();
+            const draft = collectEvaluationDraftFromDom(reference, 'Saved as draft');
+            const nextIndex = Number(serviceProviderButton.getAttribute('data-service-provider-index') || 0);
+            draft.currentSupplierIndex = nextIndex;
+            draft.services = {
+                ...(draft.services || {}),
+                currentSupplierIndex: nextIndex,
+                currentStageId: draft.services?.currentStageId || 'opening'
+            };
+            saveEvaluationDraft(reference, draft);
+        } else if (consultancyStageButton) {
+            const reference = getSelectedEvaluationTenderReference();
+            const draft = collectEvaluationDraftFromDom(reference, 'Saved as draft');
+            draft.consultancy = {
+                ...(draft.consultancy || {}),
+                currentStageId: consultancyStageButton.getAttribute('data-consultancy-stage') || 'opening'
+            };
+            saveEvaluationDraft(reference, draft);
+        } else if (consultancyConsultantButton) {
+            const reference = getSelectedEvaluationTenderReference();
+            const draft = collectEvaluationDraftFromDom(reference, 'Saved as draft');
+            const nextIndex = Number(consultancyConsultantButton.getAttribute('data-consultancy-consultant-index') || 0);
+            draft.currentSupplierIndex = nextIndex;
+            draft.consultancy = {
+                ...(draft.consultancy || {}),
+                currentSupplierIndex: nextIndex,
+                currentStageId: draft.consultancy?.currentStageId || 'opening'
+            };
+            saveEvaluationDraft(reference, draft);
+        } else if (moveSupplierButton) {
+            const reference = getSelectedEvaluationTenderReference();
+            const tender = getEvaluationTenderModel(reference);
+            const bids = getEvaluationBidsForTender(tender);
+            const draft = collectEvaluationDraftFromDom(reference, 'Saved as draft');
+            const delta = Number(moveSupplierButton.getAttribute('data-evaluation-move-supplier') || 0);
+            draft.currentSupplierIndex = Math.min(Math.max(Number(draft.currentSupplierIndex || 0) + delta, 0), Math.max(0, bids.length - 1));
+            draft.currentSectionId = 'supplier-info';
+            saveEvaluationDraft(reference, draft);
+        } else if (saveButton) {
+            const reference = saveButton.getAttribute('data-evaluation-save-draft') || getSelectedEvaluationTenderReference();
+            saveEvaluationDraft(reference, collectEvaluationDraftFromDom(reference, 'Saved as draft'));
+        } else if (completeButton) {
+            completeEvaluation(completeButton.getAttribute('data-evaluation-complete') || getSelectedEvaluationTenderReference());
+        } else if (viewReportButton) {
+            const reference = viewReportButton.getAttribute('data-evaluation-view-report') || getSelectedEvaluationTenderReference();
+            saveEvaluationDraft(reference, collectEvaluationDraftFromDom(reference, 'Saved as draft'));
+            setSelectedEvaluationReport(reference);
+        } else if (closeReportButton) {
+            setSelectedEvaluationReport('');
+        } else if (downloadReportButton) {
+            const reference = downloadReportButton.getAttribute('data-evaluation-download-report') || getSelectedEvaluationReportReference() || getSelectedEvaluationTenderReference();
+            const tender = getEvaluationTenderModel(reference);
+            const html = renderEvaluationReportDocument(tender, getEvaluationBidsForTender(tender), getEvaluationDraft(reference) || {});
             const reportNode = document.createElement('div');
             reportNode.innerHTML = html;
             document.body.appendChild(reportNode);
@@ -1996,83 +4848,6 @@ if (typeof document !== 'undefined' && !window.procurexEvaluationSelectionListen
             return;
         }
 
-        try {
-            if (selectButton) {
-                localStorage.setItem('procurex.selectedEvaluationTender', selectButton.getAttribute('data-evaluation-select'));
-                localStorage.removeItem('procurex.selectedEvaluationReport');
-            } else if (clearButton) {
-                localStorage.removeItem('procurex.selectedEvaluationTender');
-                localStorage.removeItem('procurex.selectedEvaluationReport');
-            } else if (closeReportButton) {
-                localStorage.removeItem('procurex.selectedEvaluationReport');
-            } else if (viewReportButton) {
-                localStorage.setItem('procurex.selectedEvaluationReport', viewReportButton.getAttribute('data-evaluation-view-report'));
-                localStorage.removeItem('procurex.selectedEvaluationTender');
-            } else if (returnReviewButton) {
-                const reference = returnReviewButton.getAttribute('data-evaluation-return-review');
-                const payload = collectEvaluationDraftFromDom(reference, 'Returned for review');
-                payload.currentStage = 'technical';
-                payload.returnedAt = new Date().toISOString();
-                payload.returnReason = payload.returnReason || 'Recommendation returned for re-evaluation before approval.';
-                saveEvaluationDraft(reference, payload);
-                localStorage.setItem('procurex.selectedEvaluationTender', reference);
-                localStorage.removeItem('procurex.selectedEvaluationReport');
-            } else if (saveDraftButton) {
-                const reference = saveDraftButton.getAttribute('data-evaluation-save-draft');
-                const payload = collectEvaluationDraftFromDom(reference, 'Saved as draft');
-                saveEvaluationDraft(reference, payload);
-                localStorage.removeItem('procurex.selectedEvaluationTender');
-            } else if (completeButton) {
-                const reference = completeButton.getAttribute('data-evaluation-complete');
-                const payload = collectEvaluationDraftFromDom(reference, 'Completed');
-                const sourceTender = getEvaluationSourceTender(reference);
-                const criteria = getEvaluationScoringCriteriaForTender(sourceTender, mockData.bidEvaluation?.technicalCriteria || []);
-                const tender = getEvaluationTenderModel(mockData.bidEvaluation || {}, reference);
-                const recommendedBid = getEvaluationRecommendedBid(tender, mockData.bidEvaluation?.bids || [], criteria, payload, {
-                    passMark: mockData.bidEvaluation?.minimumTechnicalPassMark || 70,
-                    recommendation: mockData.bidEvaluation?.recommendation || {},
-                    benchmark: mockData.bidEvaluation?.benchmark || {}
-                });
-                payload.recommendation = {
-                    supplier: recommendedBid.supplier,
-                    amount: recommendedBid.financial?.correctedPrice || recommendedBid.price,
-                    reason: `${recommendedBid.supplier} is recommended based on ${getEvaluationSelectionMethod(tender, mockData.bidEvaluation?.recommendation || {})}, the buyer-defined evaluation criteria, the technical pass mark gate, and the final evaluated price.`
-                };
-                saveEvaluationDraft(reference, payload);
-                localStorage.removeItem('procurex.selectedEvaluationTender');
-            }
-        } catch (error) {
-            if (selectButton) {
-                window.procurexSelectedEvaluationTender = selectButton.getAttribute('data-evaluation-select');
-                window.procurexSelectedEvaluationReport = '';
-            } else if (clearButton) {
-                window.procurexSelectedEvaluationTender = '';
-                window.procurexSelectedEvaluationReport = '';
-            } else if (closeReportButton) {
-                window.procurexSelectedEvaluationReport = '';
-            } else if (viewReportButton) {
-                window.procurexSelectedEvaluationReport = viewReportButton.getAttribute('data-evaluation-view-report');
-                window.procurexSelectedEvaluationTender = '';
-            } else if (returnReviewButton) {
-                const reference = returnReviewButton.getAttribute('data-evaluation-return-review');
-                const payload = collectEvaluationDraftFromDom(reference, 'Returned for review');
-                payload.currentStage = 'technical';
-                payload.returnedAt = new Date().toISOString();
-                payload.returnReason = payload.returnReason || 'Recommendation returned for re-evaluation before approval.';
-                saveEvaluationDraft(reference, payload);
-                window.procurexSelectedEvaluationTender = reference;
-                window.procurexSelectedEvaluationReport = '';
-            } else if (saveDraftButton || completeButton) {
-                const isComplete = Boolean(completeButton);
-                const reference = (saveDraftButton || completeButton).getAttribute(isComplete ? 'data-evaluation-complete' : 'data-evaluation-save-draft');
-                const payload = collectEvaluationDraftFromDom(reference, isComplete ? 'Completed' : 'Saved as draft');
-                saveEvaluationDraft(reference, payload);
-                window.procurexSelectedEvaluationTender = '';
-            }
-        }
-
-        if (window.app?.navigateTo) {
-            window.app.navigateTo('bid-evaluation');
-        }
+        if (window.app?.navigateTo) window.app.navigateTo('bid-evaluation');
     });
 }

@@ -1245,6 +1245,8 @@ const createTenderEvaluationCatalog = {
             name: 'Technical Compliance',
             category: 'Technical Compliance',
             defaultWeight: 40,
+            evaluationType: 'specification_compliance',
+            evidenceRequired: ['Specification response', 'Product catalogue', 'Datasheet'],
             subcriteria: [
                 'Conformity to technical specifications',
                 'Compliance with standards (ISO, TBS, etc.)',
@@ -1259,6 +1261,8 @@ const createTenderEvaluationCatalog = {
             name: 'Financial',
             category: 'Financial',
             defaultWeight: 30,
+            evaluationType: 'price_based',
+            evidenceRequired: ['Completed quantity schedule', 'Financial offer'],
             subcriteria: ['Total price', 'Price competitiveness', 'Cost of maintenance']
         },
         {
@@ -1266,6 +1270,8 @@ const createTenderEvaluationCatalog = {
             name: 'Delivery and Logistics',
             category: 'Delivery and Logistics',
             defaultWeight: 15,
+            evaluationType: 'delivery_based',
+            evidenceRequired: ['Delivery schedule', 'Logistics plan'],
             subcriteria: [
                 'Delivery time compliance',
                 'Availability of stock',
@@ -1279,6 +1285,8 @@ const createTenderEvaluationCatalog = {
             name: 'Quality Assurance',
             category: 'Quality Assurance',
             defaultWeight: 10,
+            evaluationType: 'warranty_support',
+            evidenceRequired: ['Warranty letter', 'Quality certificate'],
             subcriteria: [
                 'Warranty period offered',
                 'After-sales support availability',
@@ -1291,6 +1299,8 @@ const createTenderEvaluationCatalog = {
             name: 'Supplier Capability',
             category: 'Supplier Capability',
             defaultWeight: 5,
+            evaluationType: 'document_check',
+            evidenceRequired: ['Past supply contracts', 'Manufacturer authorization', 'Financial capacity evidence'],
             subcriteria: [
                 'Past performance / similar supply experience',
                 'Financial capacity of supplier',
@@ -1305,6 +1315,8 @@ const createTenderEvaluationCatalog = {
             name: 'Technical Methodology',
             category: 'Technical Methodology',
             defaultWeight: 20,
+            evaluationType: 'scored',
+            evidenceRequired: ['Construction methodology', 'Work execution plan', 'Risk mitigation plan', 'Quality assurance approach'],
             subcriteria: [
                 'Construction methodology',
                 'Work execution plan',
@@ -1319,6 +1331,8 @@ const createTenderEvaluationCatalog = {
             name: 'Personnel',
             category: 'Personnel',
             defaultWeight: 15,
+            evaluationType: 'scored',
+            evidenceRequired: ['Key personnel CVs', 'Professional certificates', 'Availability declaration'],
             subcriteria: [
                 'Project manager qualification',
                 'Site engineer qualifications',
@@ -1332,6 +1346,8 @@ const createTenderEvaluationCatalog = {
             name: 'Equipment and Resources',
             category: 'Equipment and Resources',
             defaultWeight: 10,
+            evaluationType: 'scored',
+            evidenceRequired: ['Equipment list', 'Ownership proof', 'Lease agreements', 'Availability declaration'],
             subcriteria: [
                 'Availability of construction equipment',
                 'Ownership vs leased equipment',
@@ -1344,6 +1360,8 @@ const createTenderEvaluationCatalog = {
             name: 'Experience',
             category: 'Experience',
             defaultWeight: 15,
+            evaluationType: 'scored',
+            evidenceRequired: ['Similar completed project evidence', 'Completion certificates', 'Client references'],
             subcriteria: [
                 'Similar completed projects',
                 'Project value history',
@@ -1356,6 +1374,8 @@ const createTenderEvaluationCatalog = {
             name: 'Schedule and Execution',
             category: 'Schedule and Execution',
             defaultWeight: 10,
+            evaluationType: 'delivery_based',
+            evidenceRequired: ['Work program', 'Construction schedule', 'Milestone plan'],
             subcriteria: [
                 'Work program / timeline',
                 'Milestone alignment',
@@ -1368,6 +1388,10 @@ const createTenderEvaluationCatalog = {
             name: 'Health, Safety and Environment (HSE)',
             category: 'Health, Safety and Environment (HSE)',
             defaultWeight: 10,
+            evaluationType: 'document_check',
+            mandatory: true,
+            passFailGate: true,
+            evidenceRequired: ['HSE policy', 'PPE plan', 'Safety officer assignment', 'Incident management plan', 'Waste management plan'],
             subcriteria: [
                 'Safety plan compliance',
                 'Environmental mitigation measures',
@@ -1380,6 +1404,8 @@ const createTenderEvaluationCatalog = {
             name: 'Financial',
             category: 'Financial',
             defaultWeight: 20,
+            evaluationType: 'price_based',
+            evidenceRequired: ['Priced BOQ', 'Rate breakdown', 'Commercial terms'],
             subcriteria: ['Total BOQ price', 'Unit rate accuracy', 'Price realism', 'Corrected tender sum']
         }
     ],
@@ -1389,6 +1415,8 @@ const createTenderEvaluationCatalog = {
             name: 'Service Delivery Approach',
             category: 'Service Delivery Approach',
             defaultWeight: 20,
+            evaluationType: 'scored',
+            evidenceRequired: ['Technical response', 'Service delivery approach', 'Work schedule', 'Quality control plan', 'Risk management approach'],
             subcriteria: ['Service methodology', 'Operational plan', 'Service execution strategy', 'Workflow design']
         },
         {
@@ -1396,6 +1424,8 @@ const createTenderEvaluationCatalog = {
             name: 'Staffing and Personnel',
             category: 'Staffing and Personnel',
             defaultWeight: 20,
+            evaluationType: 'scored',
+            evidenceRequired: ['Staff CVs', 'Education certificates', 'Experience records', 'Professional certificates'],
             subcriteria: ['Staff qualifications', 'Staff availability', 'Training plan', 'Supervisory structure']
         },
         {
@@ -1403,6 +1433,8 @@ const createTenderEvaluationCatalog = {
             name: 'Service Capacity',
             category: 'Service Capacity',
             defaultWeight: 10,
+            evaluationType: 'scored',
+            evidenceRequired: ['Service coverage plan', 'Staff deployment plan', 'Continuity plan', 'Local support evidence'],
             subcriteria: [
                 'Ability to scale service',
                 'Resource availability',
@@ -1415,6 +1447,8 @@ const createTenderEvaluationCatalog = {
             name: 'SLA and Performance',
             category: 'SLA and Performance',
             defaultWeight: 20,
+            evaluationType: 'delivery_based',
+            evidenceRequired: ['SLA response', 'Response-time commitment', 'Support-hours commitment', 'Reporting arrangement'],
             subcriteria: [
                 'Response time',
                 'Resolution time',
@@ -1428,6 +1462,8 @@ const createTenderEvaluationCatalog = {
             name: 'Tools and Systems',
             category: 'Tools and Systems',
             defaultWeight: 10,
+            evaluationType: 'scored',
+            evidenceRequired: ['Equipment list', 'Tools list', 'Systems description', 'Availability proof'],
             subcriteria: ['Use of technology/tools', 'Service management systems', 'Monitoring and reporting systems']
         },
         {
@@ -1435,6 +1471,8 @@ const createTenderEvaluationCatalog = {
             name: 'Experience',
             category: 'Experience',
             defaultWeight: 10,
+            evaluationType: 'scored',
+            evidenceRequired: ['Past service contracts', 'Client references', 'Performance records'],
             subcriteria: ['Similar service contracts', 'Industry experience', 'Client references', 'Performance history']
         },
         {
@@ -1442,6 +1480,8 @@ const createTenderEvaluationCatalog = {
             name: 'Financial',
             category: 'Financial',
             defaultWeight: 10,
+            evaluationType: 'price_based',
+            evidenceRequired: ['Service BOQ', 'Monthly rate schedule', 'Unit rate schedule', 'Tax and discount details'],
             subcriteria: ['Service pricing model', 'Monthly/annual cost', 'Cost per unit/service', 'Value for money']
         }
     ],
@@ -1451,6 +1491,9 @@ const createTenderEvaluationCatalog = {
             name: 'Methodology and Approach',
             category: 'Methodology and Approach',
             defaultWeight: 30,
+            evaluationType: 'scored',
+            maxScore: 30,
+            evidenceRequired: ['Technical proposal', 'TOR understanding', 'Methodology response', 'Work plan', 'Risk and quality approach'],
             subcriteria: [
                 'Understanding of Terms of Reference (ToR)',
                 'Methodology clarity',
@@ -1465,6 +1508,9 @@ const createTenderEvaluationCatalog = {
             name: 'Key Experts',
             category: 'Key Experts',
             defaultWeight: 35,
+            evaluationType: 'scored',
+            maxScore: 35,
+            evidenceRequired: ['Key expert CVs', 'Academic certificates', 'Professional certificates', 'Role assignment matrix'],
             subcriteria: [
                 'Team leader qualification',
                 'Relevant academic qualifications',
@@ -1479,6 +1525,9 @@ const createTenderEvaluationCatalog = {
             name: 'Firm Experience',
             category: 'Firm Experience',
             defaultWeight: 15,
+            evaluationType: 'scored',
+            maxScore: 15,
+            evidenceRequired: ['Similar assignment evidence', 'Client references', 'Completion certificates', 'Firm profile'],
             subcriteria: [
                 'Similar consultancy assignments',
                 'Sector experience',
@@ -1492,6 +1541,9 @@ const createTenderEvaluationCatalog = {
             name: 'Work Plan and Organization',
             category: 'Work Plan and Organization',
             defaultWeight: 10,
+            evaluationType: 'scored',
+            maxScore: 10,
+            evidenceRequired: ['Work plan', 'Activity schedule', 'Deliverables schedule', 'Team organization chart'],
             subcriteria: [
                 'Task allocation clarity',
                 'Time schedule realism',
@@ -1504,6 +1556,9 @@ const createTenderEvaluationCatalog = {
             name: 'Knowledge Transfer',
             category: 'Knowledge Transfer',
             defaultWeight: 10,
+            evaluationType: 'scored',
+            maxScore: 10,
+            evidenceRequired: ['Training plan', 'Knowledge transfer plan', 'Documentation approach'],
             subcriteria: [
                 'Training plan for client staff',
                 'Capacity building approach',
@@ -1516,6 +1571,9 @@ const createTenderEvaluationCatalog = {
             name: 'Financial',
             category: 'Financial',
             defaultWeight: 0,
+            evaluationType: 'price_based',
+            maxScore: 0,
+            evidenceRequired: ['Separate financial proposal', 'Fee breakdown', 'Reimbursables schedule', 'Tax and validity confirmation'],
             subcriteria: [
                 'Total consultancy fee',
                 'Breakdown of costs',
@@ -2956,15 +3014,81 @@ function getCreateTenderAvailableEvaluationSubcriteria(profileId = 'works', crit
     return normalizeCreateTenderEvaluationSubcriteria(catalogItem?.subcriteria || []);
 }
 
+const createTenderEvaluationTypes = [
+    { value: 'scored', label: 'Scored' },
+    { value: 'pass_fail', label: 'Pass / Fail' },
+    { value: 'price_based', label: 'Price-based' },
+    { value: 'document_check', label: 'Document check' },
+    { value: 'specification_compliance', label: 'Specification compliance' },
+    { value: 'sample_based', label: 'Sample-based' },
+    { value: 'delivery_based', label: 'Delivery-based' },
+    { value: 'warranty_support', label: 'Warranty / support' }
+];
+
+function inferCreateTenderEvaluationType(item = {}, profileId = 'works') {
+    const text = `${item.evaluationType || item.type || ''} ${item.name || ''} ${item.category || ''} ${(item.subcriteria || []).join(' ')}`.toLowerCase();
+    if (/pass.?fail|gate/.test(text)) return 'pass_fail';
+    if (/financial|price|cost|boq|fee|rate/.test(text)) return 'price_based';
+    if (/document|license|certificate|authorization|registration|tax|eligibility/.test(text)) return 'document_check';
+    if (/sample|testing/.test(text)) return 'sample_based';
+    if (/delivery|logistics|stock|installation|commissioning/.test(text)) return 'delivery_based';
+    if (/warranty|support|after-sales|spare|return|replacement|quality assurance/.test(text)) return 'warranty_support';
+    if (profileId === 'goods' || /specification|technical compliance|brand|model|product/.test(text)) return 'specification_compliance';
+    return 'scored';
+}
+
+function normalizeCreateTenderEvaluationEvidence(value = []) {
+    if (Array.isArray(value)) return value.map(item => String(item || '').trim()).filter(Boolean);
+    return String(value || '')
+        .split(/\r?\n|,/)
+        .map(item => item.trim())
+        .filter(Boolean);
+}
+
+function normalizeCreateTenderEvaluationScoringGuide(value = []) {
+    if (Array.isArray(value)) {
+        return value.map(item => {
+            if (item && typeof item === 'object') {
+                return {
+                    label: String(item.label || '').trim(),
+                    scoreRange: String(item.scoreRange || '').trim(),
+                    description: String(item.description || '').trim()
+                };
+            }
+            return { label: String(item || '').trim(), scoreRange: '', description: '' };
+        }).filter(item => item.label || item.scoreRange || item.description);
+    }
+    return String(value || '')
+        .split(/\r?\n/)
+        .map(item => item.trim())
+        .filter(Boolean)
+        .map(item => ({ label: item, scoreRange: '', description: '' }));
+}
+
+function renderCreateTenderEvaluationGuideText(value = []) {
+    return normalizeCreateTenderEvaluationScoringGuide(value)
+        .map(item => [item.label, item.scoreRange, item.description].filter(Boolean).join(' - '))
+        .join('\n');
+}
+
 function normalizeCreateTenderEvaluationCriterion(item = {}, index = 0, profileId = 'works') {
     const catalogItem = getCreateTenderEvaluationCatalog(profileId).find(entry => entry.id === item.id || entry.name === item.name);
     const fallback = catalogItem || {};
+    const weight = clampCreateTenderEvaluationWeight(item.weight ?? fallback.defaultWeight ?? 0);
+    const evaluationType = String(item.evaluationType || item.type || fallback.evaluationType || inferCreateTenderEvaluationType({ ...fallback, ...item }, profileId));
 
     return {
         id: String(item.id || fallback.id || `evaluation-${profileId}-${Date.now()}-${index}`),
         name: String(item.name || fallback.name || `Criterion ${index + 1}`),
         category: String(item.category || fallback.category || item.name || `Criterion ${index + 1}`),
-        weight: clampCreateTenderEvaluationWeight(item.weight ?? fallback.defaultWeight ?? 0),
+        description: String(item.description || fallback.description || ''),
+        weight,
+        evaluationType,
+        maxScore: parseCreateTenderNumber(item.maxScore ?? fallback.maxScore ?? weight),
+        mandatory: Boolean(item.mandatory ?? fallback.mandatory ?? false),
+        passFailGate: Boolean(item.passFailGate ?? fallback.passFailGate ?? evaluationType === 'pass_fail'),
+        evidenceRequired: normalizeCreateTenderEvaluationEvidence(item.evidenceRequired || fallback.evidenceRequired || []),
+        scoringGuide: normalizeCreateTenderEvaluationScoringGuide(item.scoringGuide || fallback.scoringGuide || []),
         subcriteria: normalizeCreateTenderEvaluationSubcriteria(item.subcriteria || fallback.subcriteria || []),
         custom: Boolean(item.custom)
     };
@@ -4073,6 +4197,36 @@ function renderCreateTenderEvaluationSelectedCriteria(profile, evaluationDraft =
                             <span class="form-label">Category</span>
                             <input class="form-input" value="${escapeCreateTenderHtml(criterion.category)}" data-evaluation-field="category" aria-label="Criterion category">
                         </label>
+                        <label>
+                            <span class="form-label">Evaluation type</span>
+                            <select class="form-input" data-evaluation-field="evaluationType" aria-label="Evaluation type">
+                                ${createTenderEvaluationTypes.map(type => `<option value="${escapeCreateTenderHtml(type.value)}" ${criterion.evaluationType === type.value ? 'selected' : ''}>${escapeCreateTenderHtml(type.label)}</option>`).join('')}
+                            </select>
+                        </label>
+                        <label>
+                            <span class="form-label">Max score</span>
+                            <input class="form-input" type="number" min="0" max="100" step="0.01" value="${escapeCreateTenderHtml(criterion.maxScore ?? criterion.weight ?? 0)}" data-evaluation-field="maxScore" aria-label="Criterion max score">
+                        </label>
+                        <label class="wide">
+                            <span class="form-label">Description</span>
+                            <textarea class="form-input" rows="2" data-evaluation-field="description" aria-label="Criterion description">${escapeCreateTenderHtml(criterion.description || '')}</textarea>
+                        </label>
+                        <label class="confirm-action evaluation-toggle-field">
+                            <input type="checkbox" class="confirm-action-input" data-evaluation-field="mandatory" ${criterion.mandatory ? 'checked' : ''}>
+                            <span>Mandatory criterion</span>
+                        </label>
+                        <label class="confirm-action evaluation-toggle-field">
+                            <input type="checkbox" class="confirm-action-input" data-evaluation-field="passFailGate" ${criterion.passFailGate ? 'checked' : ''}>
+                            <span>Failure blocks ranking</span>
+                        </label>
+                        <label class="wide">
+                            <span class="form-label">Evidence required</span>
+                            <textarea class="form-input" rows="2" data-evaluation-field="evidenceRequired" aria-label="Evidence required">${escapeCreateTenderHtml((criterion.evidenceRequired || []).join('\n'))}</textarea>
+                        </label>
+                        <label class="wide">
+                            <span class="form-label">Scoring guide</span>
+                            <textarea class="form-input" rows="3" data-evaluation-field="scoringGuide" aria-label="Scoring guide">${escapeCreateTenderHtml(renderCreateTenderEvaluationGuideText(criterion.scoringGuide))}</textarea>
+                        </label>
                     </div>
                     ${renderCreateTenderEvaluationSubcriteriaControl(profile, criterion)}
                     <div class="evaluation-edit-actions">
@@ -4487,7 +4641,13 @@ function getCreateTenderSystemEvaluationSignature(profile, mainDraft = getCreate
         evaluation: evaluationDraft.criteria.map(item => ({
             name: item.name,
             weight: item.weight,
-            subcriteria: item.subcriteria
+            subcriteria: item.subcriteria,
+            evaluationType: item.evaluationType,
+            maxScore: item.maxScore,
+            mandatory: item.mandatory,
+            passFailGate: item.passFailGate,
+            evidenceRequired: item.evidenceRequired,
+            scoringGuide: item.scoringGuide
         })),
         milestones
     });
@@ -5850,7 +6010,17 @@ function initializeCreateTenderWizard() {
         }
 
         if (field !== 'weight') {
-            criterion[field] = input.value;
+            if (field === 'mandatory' || field === 'passFailGate') {
+                criterion[field] = Boolean(input.checked);
+            } else if (field === 'maxScore') {
+                criterion[field] = clampCreateTenderEvaluationWeight(input.value);
+            } else if (field === 'evidenceRequired') {
+                criterion[field] = normalizeCreateTenderEvaluationEvidence(input.value);
+            } else if (field === 'scoringGuide') {
+                criterion[field] = normalizeCreateTenderEvaluationScoringGuide(input.value);
+            } else {
+                criterion[field] = input.value;
+            }
         }
         saveSelectedEvaluationDraft(evaluationDraft);
         syncEvaluationStatus();
