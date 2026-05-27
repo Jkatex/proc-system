@@ -46,6 +46,7 @@ class ProcureXApp {
         const initialPage = urlParams.get('page') || 'welcome';
 
         this.navigateTo(initialPage, false);
+        history.replaceState({ page: this.currentPage }, '', window.location.href);
     }
 
     setupEventListeners() {
@@ -87,8 +88,9 @@ class ProcureXApp {
             'verification-status': 'account-profile'
         };
         page = pageAliases[page] || page;
+        const previousPage = this.currentPage;
         this.currentPage = page;
-        if (updateHistory) {
+        if (updateHistory && page !== previousPage) {
             const url = `?page=${page}`;
             history.pushState({ page }, '', url);
         }
@@ -186,7 +188,7 @@ class ProcureXApp {
 
                 <div class="profile-menu" data-profile-menu>
                     <button type="button" data-navigate="account-profile">Profile</button>
-                    <button type="button" data-navigate="communication-center">Notifications</button>
+                    <button type="button" data-navigate="communication-center">Messages</button>
                     <button type="button">Help</button>
                     <button type="button">Language</button>
                     <button type="button" data-navigate="welcome">Logout</button>

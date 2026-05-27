@@ -20,8 +20,6 @@ function getCommunicationState() {
             selectedId: null,
             query: '',
             category: 'All categories',
-            priority: 'All priorities',
-            sort: 'newest',
             composeOpen: false,
             composeDraft: null
         };
@@ -54,34 +52,130 @@ function getCommunicationDefaultMailboxId(type = '') {
     return ids[role] || `${role || 'user'}-001`;
 }
 
+function slugCommunicationMailbox(value = '') {
+    return normalizeCommunicationMailboxId(value)
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || `mailbox-${Math.random().toString(16).slice(2, 8)}`;
+}
+
+function createCommunicationMailboxProfile(name = '', type = 'Business', extra = {}) {
+    const cleanName = String(name || '').trim();
+    if (!cleanName) return null;
+    return {
+        id: extra.id || `business-${slugCommunicationMailbox(cleanName)}`,
+        role: extra.role || getCommunicationRoleFromType(type),
+        type,
+        name: cleanName,
+        email: extra.email || '',
+        aliases: [
+            extra.id,
+            extra.email,
+            cleanName,
+            `business-${slugCommunicationMailbox(cleanName)}`
+        ].map(normalizeCommunicationMailboxId).filter(Boolean)
+    };
+}
+
+function collectCommunicationBusinessDirectory() {
+    const profiles = [];
+    const addProfile = (name, type = 'Business', extra = {}) => {
+        const profile = createCommunicationMailboxProfile(name, type, extra);
+        if (!profile) return;
+        const normalizedId = normalizeCommunicationMailboxId(profile.id);
+        const normalizedName = normalizeCommunicationMailboxId(profile.name);
+        const existing = profiles.find(item => normalizeCommunicationMailboxId(item.id) === normalizedId || normalizeCommunicationMailboxId(item.name) === normalizedName);
+        if (existing) {
+            existing.aliases = Array.from(new Set([...(existing.aliases || []), ...(profile.aliases || [])]));
+            if (!existing.email && profile.email) existing.email = profile.email;
+            return;
+        }
+        profiles.push(profile);
+    };
+
+    addProfile(mockData.users?.buyer?.organization, 'Buyer', { id: 'buyer-001' });
+    addProfile(mockData.users?.current?.organization, 'Business', { id: 'user-001' });
+    addProfile(mockData.users?.supplier?.organization, 'Supplier', { id: 'supplier-001' });
+    addProfile(mockData.users?.admin?.organization, 'Admin', { id: 'admin-001', role: 'admin' });
+    (mockData.mockAuth?.accounts || []).forEach(account => addProfile(account.displayName, account.accountType === 'admin' ? 'Admin' : 'Business', {
+        id: account.email,
+        email: account.email,
+        role: account.accountType === 'admin' ? 'admin' : 'user'
+    }));
+    (mockData.tenders || []).forEach(tender => {
+        addProfile(tender.organization, 'Buyer');
+        (tender.invitedSuppliers || []).forEach(supplier => addProfile(supplier.organization || supplier.name, 'Supplier', { email: supplier.email }));
+        (tender.bids || tender.submittedBids || []).forEach(bid => addProfile(bid.supplier || bid.supplierName || bid.consultant || bid.provider, 'Supplier'));
+    });
+    (mockData.communicationCenter?.items || []).forEach(item => {
+        addProfile(item.senderName, item.senderType, { id: item.senderId, email: item.senderEmail });
+        addProfile(item.recipientName, item.recipientType, { id: item.recipientId, email: item.recipientEmail });
+    });
+
+    return profiles;
+}
+
 function getCommunicationMailboxProfiles() {
     const account = mockData.pendingAccount || {};
     const profileName = mockData.eKycProfile?.verifiedName || account.displayName || mockData.users?.current?.organization || 'Company User';
-    return [
+    const baseProfiles = [
         {
             id: 'user-001',
             role: 'user',
             type: 'User',
-            name: profileName
+            name: profileName,
+            aliases: ['user-001', profileName].map(normalizeCommunicationMailboxId)
         },
         {
             id: 'admin-001',
             role: 'admin',
             type: 'Admin',
-            name: mockData.users?.admin?.organization || 'ProcureX Platform'
+            name: mockData.users?.admin?.organization || 'ProcureX Platform',
+            aliases: ['admin-001', mockData.users?.admin?.organization || 'ProcureX Platform'].map(normalizeCommunicationMailboxId)
         },
         {
             id: 'system',
             role: 'system',
             type: 'System',
-            name: 'ProcureX System'
+            name: 'ProcureX System',
+            aliases: ['system', 'ProcureX System'].map(normalizeCommunicationMailboxId)
         }
     ];
+    const profiles = [...baseProfiles];
+    collectCommunicationBusinessDirectory().forEach(profile => {
+        const normalizedId = normalizeCommunicationMailboxId(profile.id);
+        const normalizedName = normalizeCommunicationMailboxId(profile.name);
+        const existing = profiles.find(item => normalizeCommunicationMailboxId(item.id) === normalizedId || normalizeCommunicationMailboxId(item.name) === normalizedName);
+        if (existing) {
+            existing.aliases = Array.from(new Set([...(existing.aliases || []), ...(profile.aliases || [])]));
+            if (!existing.email && profile.email) existing.email = profile.email;
+            return;
+        }
+        profiles.push(profile);
+    });
+    return profiles;
 }
 
 function getCommunicationMailboxById(mailboxId = '') {
     const normalizedId = normalizeCommunicationMailboxId(mailboxId);
-    return getCommunicationMailboxProfiles().find(profile => profile.id === normalizedId) || null;
+    return getCommunicationMailboxProfiles().find(profile => normalizeCommunicationMailboxId(profile.id) === normalizedId || (profile.aliases || []).includes(normalizedId)) || null;
+}
+
+function getCommunicationMailboxBySearch(value = '', profiles = getCommunicationMailboxProfiles()) {
+    const normalizedValue = normalizeCommunicationMailboxId(value);
+    if (!normalizedValue) return null;
+    return profiles.find(profile => {
+        const candidates = [
+            profile.id,
+            profile.name,
+            profile.email,
+            ...(profile.aliases || [])
+        ].map(normalizeCommunicationMailboxId).filter(Boolean);
+        return candidates.includes(normalizedValue);
+    }) || null;
+}
+
+function resolveCommunicationRecipient(id = '', searchValue = '') {
+    return getCommunicationMailboxById(id) || getCommunicationMailboxBySearch(searchValue);
 }
 
 function inferCommunicationRoleFromUser() {
@@ -114,6 +208,7 @@ function getCurrentCommunicationUser() {
             id,
             email,
             roleMailbox?.id,
+            ...(roleMailbox?.aliases || []),
             getCommunicationDefaultMailboxId(role),
             ...(role === 'admin' ? ['admin-001', 'evaluator-001'] : ['user-001', 'buyer-001', 'supplier-001'])
         ].map(normalizeCommunicationMailboxId).filter(Boolean)
@@ -242,21 +337,27 @@ function communicationIdMatchesUser(participantId = '', user = getCurrentCommuni
     return Boolean(normalizedId && user.aliases.includes(normalizedId));
 }
 
+function isCurrentCommunicationProfile(profile = {}, user = getCurrentCommunicationUser()) {
+    const currentIds = [user.id, user.email].map(normalizeCommunicationMailboxId).filter(Boolean);
+    const profileIds = [profile.id, profile.email].map(normalizeCommunicationMailboxId).filter(Boolean);
+    const sameId = profileIds.some(id => currentIds.includes(id));
+    const sameName = normalizeCommunicationMailboxId(profile.name) === normalizeCommunicationMailboxId(user.organization);
+    return sameId || sameName;
+}
+
 function isCommunicationUserItem(item, user = getCurrentCommunicationUser()) {
     const audience = getCommunicationAudience();
     if (audience === 'admin') {
-        return item.audience?.includes('admin') || communicationIdMatchesUser(item.senderId, user) || communicationIdMatchesUser(item.recipientId, user);
+        if (item.folder === 'sent') return communicationIdMatchesUser(item.senderId, user);
+        return item.audience?.includes('admin') || communicationIdMatchesUser(item.recipientId, user);
     }
     if (item.folder === 'sent') return communicationIdMatchesUser(item.senderId, user);
-    return item.audience?.includes('all') || item.audience?.includes('user') || communicationIdMatchesUser(item.recipientId, user);
+    return communicationIdMatchesUser(item.recipientId, user);
 }
 
 function filterCommunicationItems(items, state) {
     const query = state.query.trim().toLowerCase();
     return items.filter(item => {
-        if (state.tab === 'Clarifications' && item.kind !== 'clarification') return false;
-        if (state.tab === 'Notifications' && item.kind !== 'notification') return false;
-        if (state.tab === 'Alerts' && item.kind !== 'alert') return false;
         if (state.tab === 'Sent' && item.folder !== 'sent') return false;
         if (state.tab === 'Drafts') return false;
         if (state.tab === 'Archived' && item.folder !== 'archived' && item.status !== 'Archived') return false;
@@ -264,14 +365,13 @@ function filterCommunicationItems(items, state) {
         if (state.tab === 'Unread' && item.read) return false;
         if (state.tab === 'Inbox' && (item.folder === 'sent' || item.folder === 'archived' || item.status === 'Deleted')) return false;
         if (state.category !== 'All categories' && item.category !== state.category) return false;
-        if (state.priority !== 'All priorities' && item.priority !== state.priority) return false;
         if (!query) return true;
         return [item.senderName, item.subject, item.tenderReference, item.tenderTitle, item.body, item.category]
             .some(value => String(value || '').toLowerCase().includes(query));
     }).sort((first, second) => {
         const firstTime = Date.parse(first.createdAt) || 0;
         const secondTime = Date.parse(second.createdAt) || 0;
-        return state.sort === 'oldest' ? firstTime - secondTime : secondTime - firstTime;
+        return secondTime - firstTime;
     });
 }
 
@@ -284,9 +384,6 @@ function renderCommunicationOptions(values = [], selected = '', firstLabel = '')
 function renderCommunicationSidebar(state, counts) {
     const folders = [
         ['Inbox', counts.inbox],
-        ['Clarifications', counts.clarifications],
-        ['Notifications', counts.notifications],
-        ['Alerts', counts.alerts],
         ['Sent', counts.sent],
         ['Drafts', counts.drafts],
         ['Archived', counts.archived],
@@ -311,24 +408,27 @@ function renderCommunicationSidebar(state, counts) {
 }
 
 function renderCommunicationRow(item, selectedId) {
+    const isSentMessage = item.folder === 'sent';
+    const displayName = isSentMessage ? item.recipientName : item.senderName;
+    const displayLabel = isSentMessage ? 'Receiver' : 'Sender';
     return `
         <button class="communication-row ${item.read ? '' : 'unread'} ${item.id === selectedId ? 'active' : ''}" type="button" data-communication-select="${escapeCommunicationHtml(item.id)}">
             <span class="communication-unread-dot" aria-hidden="true"></span>
             <div class="communication-row-main">
                 <div class="communication-row-top">
-                    <strong>${escapeCommunicationHtml(item.senderName)}</strong>
+                    <strong>${escapeCommunicationHtml(displayName)}</strong>
                     <time>${escapeCommunicationHtml(formatCommunicationDate(item.createdAt))}</time>
                 </div>
                 <h3>${escapeCommunicationHtml(item.subject)}</h3>
                 <p>${escapeCommunicationHtml(item.body)}</p>
                 <div class="communication-row-meta">
+                    <span>${escapeCommunicationHtml(displayLabel)}</span>
                     <span>Tender: ${escapeCommunicationHtml(item.tenderReference)}</span>
                     <span>${escapeCommunicationHtml(item.category)}</span>
                 </div>
             </div>
             <div class="communication-row-badges">
                 <span class="badge ${getCommunicationBadgeClass(item.status)}">${escapeCommunicationHtml(item.status)}</span>
-                <span class="badge ${getCommunicationBadgeClass(item.priority)}">${escapeCommunicationHtml(item.priority)}</span>
             </div>
         </button>
     `;
@@ -354,10 +454,44 @@ function renderCommunicationThread(item) {
     `;
 }
 
+function isOpenClarificationRequest(item = {}) {
+    const rawStatus = String(item.status || '').toLowerCase();
+    if (item.kind !== 'clarification' || item.folder === 'sent') return false;
+    if (/answered|resolved|published|closed|replied/.test(rawStatus)) return false;
+    return /pending|submitted|unread|action required/.test(rawStatus);
+}
+
+function isBidderClarificationAnswer(item = {}) {
+    const rawStatus = String(item.status || '').toLowerCase();
+    const rawCategory = String(item.category || '').toLowerCase();
+    const rawSenderType = String(item.senderType || '').toLowerCase();
+    const answerActionLabels = ['View Response', 'Ask Follow-up'];
+    if (item.folder === 'sent') return false;
+    if (isOpenClarificationRequest(item)) return false;
+    if (item.kind !== 'clarification' && !rawCategory.includes('clarification')) return false;
+    if (!rawSenderType.includes('buyer') && !answerActionLabels.includes(item.actionLabel)) return false;
+    return /answered|resolved|published|replied|read/.test(rawStatus) || item.actionLabel === 'View Response';
+}
+
+function getCommunicationActionText(item = {}) {
+    if (item.kind === 'clarification') {
+        if (item.folder === 'sent') return 'Await buyer response';
+        if (isOpenClarificationRequest(item)) return 'Provide clarification answer';
+        if (isBidderClarificationAnswer(item)) return 'No action needed if satisfied';
+        return 'Clarification answered';
+    }
+    if (isBidderClarificationAnswer(item)) return 'No action needed if satisfied';
+    return item.actionLabel || (item.read ? 'Message reviewed' : 'Review message');
+}
+
 function renderCommunicationReplyBox(item) {
-    if (item.kind !== 'clarification') return '';
+    if (!isOpenClarificationRequest(item)) return '';
     return `
         <form class="communication-reply-box" data-communication-reply="${escapeCommunicationHtml(item.id)}">
+            <div>
+                <span class="section-kicker">Buyer response</span>
+                <strong>Answer this clarification request</strong>
+            </div>
             <label>
                 <span>Reply visibility</span>
                 <select class="form-input" name="visibility">
@@ -377,7 +511,7 @@ function renderCommunicationReplyBox(item) {
     `;
 }
 
-function renderCommunicationDetail(item) {
+function renderCommunicationDetail(item, fullScreen = false) {
     if (!item) {
         return `
             <aside class="communication-detail empty">
@@ -386,25 +520,31 @@ function renderCommunicationDetail(item) {
             </aside>
         `;
     }
+    const isSentMessage = item.folder === 'sent';
+    const contextPartyLabel = isSentMessage ? 'Receiver' : 'Sender';
+    const contextPartyName = isSentMessage ? item.recipientName : item.senderName;
     return `
-        <aside class="communication-detail">
-            <header>
+        <aside class="communication-detail ${fullScreen ? 'full-screen' : ''}">
+            <section class="communication-context-panel communication-context-panel-primary">
                 <div>
-                    <span class="section-kicker">${escapeCommunicationHtml(item.category)}</span>
-                    <h2>${escapeCommunicationHtml(item.subject)}</h2>
+                    <span class="section-kicker">Message context</span>
+                    <strong>${escapeCommunicationHtml(item.tenderTitle)}</strong>
+                </div>
+                <div class="record-summary compact">
+                    <div><span>${escapeCommunicationHtml(contextPartyLabel)}</span><strong>${escapeCommunicationHtml(contextPartyName)}</strong></div>
+                    <div><span>Date</span><strong>${escapeCommunicationHtml(formatCommunicationDate(item.createdAt))}</strong></div>
+                    <div><span>Tender reference</span><strong>${escapeCommunicationHtml(item.tenderReference)}</strong></div>
+                    <div><span>Status</span><strong>${item.kind === 'alert' ? 'Correction required' : 'Workflow active'}</strong></div>
+                    <div><span>Visibility</span><strong>${escapeCommunicationHtml(item.visibility)}</strong></div>
                 </div>
                 <div class="communication-detail-badges">
+                    <span class="badge ${getCommunicationBadgeClass(item.category)}">${escapeCommunicationHtml(item.category)}</span>
                     <span class="badge ${getCommunicationBadgeClass(item.status)}">${escapeCommunicationHtml(item.status)}</span>
-                    <span class="badge ${getCommunicationBadgeClass(item.priority)}">${escapeCommunicationHtml(item.priority)}</span>
                 </div>
-            </header>
-            <div class="record-summary compact">
-                <div><span>Sender</span><strong>${escapeCommunicationHtml(item.senderName)} (${escapeCommunicationHtml(item.senderType)})</strong></div>
-                <div><span>Recipient</span><strong>${escapeCommunicationHtml(item.recipientName)} (${escapeCommunicationHtml(item.recipientType)})</strong></div>
-                <div><span>Tender reference</span><strong>${escapeCommunicationHtml(item.tenderReference)}</strong></div>
-                <div><span>Date</span><strong>${escapeCommunicationHtml(formatCommunicationDate(item.createdAt))}</strong></div>
-            </div>
+            </section>
             <section class="communication-message-body">
+                <span class="section-kicker">Message</span>
+                <h2>${escapeCommunicationHtml(item.subject)}</h2>
                 <p>${escapeCommunicationHtml(item.body)}</p>
                 ${item.attachments.length ? `
                     <div class="communication-attachments">
@@ -412,55 +552,80 @@ function renderCommunicationDetail(item) {
                     </div>
                 ` : ''}
             </section>
-            ${renderCommunicationThread(item)}
-            ${renderCommunicationReplyBox(item)}
-            <section class="communication-context-panel">
-                <span class="section-kicker">Tender context</span>
-                <strong>${escapeCommunicationHtml(item.tenderTitle)}</strong>
-                <div class="record-summary compact">
-                    <div><span>Reference</span><strong>${escapeCommunicationHtml(item.tenderReference)}</strong></div>
-                    <div><span>Current status</span><strong>${item.kind === 'alert' ? 'Correction required' : 'Workflow active'}</strong></div>
-                    <div><span>Visibility</span><strong>${escapeCommunicationHtml(item.visibility)}</strong></div>
+            <section class="communication-action-panel">
+                <div>
+                    <span class="section-kicker">Next action</span>
+                    <strong>${escapeCommunicationHtml(getCommunicationActionText(item))}</strong>
                 </div>
                 <div class="inline-actions">
-                    ${item.actionPage ? `<button class="btn btn-primary" type="button" data-navigate="${escapeCommunicationHtml(item.actionPage)}">${escapeCommunicationHtml(item.actionLabel || 'Open')}</button>` : ''}
-                    <button class="btn btn-secondary" type="button" data-communication-mark-read="${escapeCommunicationHtml(item.id)}">Mark as Read</button>
+                    ${isBidderClarificationAnswer(item) ? `<button class="btn btn-primary" type="button" data-communication-followup="${escapeCommunicationHtml(item.id)}">Ask Further Clarification</button>` : ''}
+                    ${item.actionPage && !isBidderClarificationAnswer(item) ? `<button class="btn btn-primary" type="button" data-navigate="${escapeCommunicationHtml(item.actionPage)}">${escapeCommunicationHtml(item.actionLabel || 'Open')}</button>` : ''}
                     <button class="btn btn-secondary" type="button" data-communication-archive="${escapeCommunicationHtml(item.id)}">Archive</button>
                 </div>
             </section>
+            ${renderCommunicationReplyBox(item)}
         </aside>
     `;
+}
+
+function getCommunicationRecipientProfiles(user = getCurrentCommunicationUser()) {
+    return getCommunicationMailboxProfiles()
+        .filter(profile => profile.id !== 'system' && !isCurrentCommunicationProfile(profile, user))
+        .sort((first, second) => first.name.localeCompare(second.name));
+}
+
+function getFilteredCommunicationRecipientProfiles(profiles = [], searchValue = '') {
+    const normalizedSearch = normalizeCommunicationMailboxId(searchValue);
+    return profiles.filter(profile => !normalizedSearch || [profile.name, profile.email, profile.id]
+        .some(value => normalizeCommunicationMailboxId(value).includes(normalizedSearch)));
+}
+
+function renderCommunicationRecipientOptions(profiles = [], selectedRecipientId = '', searchValue = '') {
+    const filteredProfiles = getFilteredCommunicationRecipientProfiles(profiles, searchValue);
+    if (!filteredProfiles.length) {
+        return '<option value="">No registered businesses match this search</option>';
+    }
+
+    const selectedVisible = filteredProfiles.some(profile => profile.id === selectedRecipientId);
+    const options = selectedVisible ? [] : ['<option value="">Select business</option>'];
+    filteredProfiles.forEach(profile => {
+        options.push(`<option value="${escapeCommunicationHtml(profile.id)}" ${profile.id === selectedRecipientId ? 'selected' : ''}>${escapeCommunicationHtml(profile.name)}</option>`);
+    });
+    return options.join('');
 }
 
 function renderCommunicationCompose(state) {
     if (!state.composeOpen) return '';
     const categories = mockData.communicationCenter?.categories || [];
     const currentUser = getCurrentCommunicationUser();
-    const recipientProfiles = getCommunicationMailboxProfiles().filter(profile => !currentUser.aliases.includes(profile.id) && profile.id !== 'system');
+    const recipientProfiles = getCommunicationRecipientProfiles(currentUser);
     const draft = state.composeDraft || {};
     const selectedCategory = draft.category || 'General Message';
-    const selectedRecipientId = draft.recipientId || recipientProfiles[0]?.id || '';
+    const selectedRecipientId = draft.recipientId !== undefined ? draft.recipientId : recipientProfiles[0]?.id || '';
+    const selectedRecipient = selectedRecipientId ? getCommunicationMailboxById(selectedRecipientId) || recipientProfiles[0] || null : null;
+    const recipientSearchValue = draft.recipientSearch || '';
     return `
-        <form class="communication-compose-panel" data-communication-compose>
+        <form class="communication-compose-panel ${state.composeOpen ? 'full-screen' : ''}" data-communication-compose>
             <div class="panel-heading">
                 <div><span class="section-kicker">New message</span><h2>Send procurement communication</h2></div>
                 <button class="btn btn-secondary" type="button" data-communication-compose-close>Close</button>
             </div>
             <div class="communication-compose-grid">
                 <label><span>From mailbox</span><input class="form-input" value="${escapeCommunicationHtml(currentUser.organization)}" readonly></label>
-                <label><span>Category</span><select class="form-input" name="category">${renderCommunicationOptions(categories, selectedCategory)}</select></label>
+                <label><span>Category</span><select class="form-input" name="category" data-communication-compose-field>${renderCommunicationOptions(categories, selectedCategory)}</select></label>
                 <label>
-                    <span>Recipient mailbox</span>
-                    <select class="form-input" name="recipientId">
-                        ${recipientProfiles.map(profile => `<option value="${escapeCommunicationHtml(profile.id)}" ${profile.id === selectedRecipientId ? 'selected' : ''}>${escapeCommunicationHtml(profile.name)} (${escapeCommunicationHtml(profile.type)})</option>`).join('')}
+                    <span>Recipient business</span>
+                    <input class="form-input" name="recipientSearch" value="${escapeCommunicationHtml(recipientSearchValue)}" placeholder="Search registered business name" autocomplete="off" data-communication-recipient-search>
+                    <select class="form-input" name="recipientId" data-communication-recipient-select>
+                        ${renderCommunicationRecipientOptions(recipientProfiles, selectedRecipient?.id || '', recipientSearchValue)}
                     </select>
                 </label>
-                <label><span>Tender reference</span><input class="form-input" name="tenderReference" value="${escapeCommunicationHtml(draft.tenderReference || draft.tenderId || 'PX-WRK-2026-001')}"></label>
+                <label><span>Tender reference</span><input class="form-input" name="tenderReference" value="${escapeCommunicationHtml(draft.tenderReference || draft.tenderId || 'PX-WRK-2026-001')}" data-communication-compose-field></label>
                 <input type="hidden" name="tenderId" value="${escapeCommunicationHtml(draft.tenderId || '')}">
                 <input type="hidden" name="tenderTitle" value="${escapeCommunicationHtml(draft.tenderTitle || '')}">
                 <input type="hidden" name="kind" value="${escapeCommunicationHtml(draft.kind || '')}">
-                <label class="span-2"><span>Subject</span><input class="form-input" name="subject" placeholder="Subject" value="${escapeCommunicationHtml(draft.subject || '')}"></label>
-                <label class="span-2"><span>Message</span><textarea class="form-input" name="body" rows="4" placeholder="Write your message">${escapeCommunicationHtml(draft.body || '')}</textarea></label>
+                <label class="span-2"><span>Subject</span><input class="form-input" name="subject" placeholder="Subject" value="${escapeCommunicationHtml(draft.subject || '')}" data-communication-compose-field></label>
+                <label class="span-2"><span>Message</span><textarea class="form-input" name="body" rows="4" placeholder="Write your message" data-communication-compose-field>${escapeCommunicationHtml(draft.body || '')}</textarea></label>
             </div>
             <div class="inline-actions">
                 <label class="btn btn-secondary communication-file-button">
@@ -489,7 +654,6 @@ function renderCommunicationCenterInner(root) {
     const counts = {
         inbox: allItems.filter(item => item.folder !== 'sent' && item.folder !== 'archived' && item.status !== 'Deleted').length,
         clarifications: allItems.filter(item => item.kind === 'clarification').length,
-        notifications: allItems.filter(item => item.kind === 'notification').length,
         alerts: allItems.filter(item => item.kind === 'alert').length,
         sent: allItems.filter(item => item.folder === 'sent').length,
         drafts: 0,
@@ -497,58 +661,56 @@ function renderCommunicationCenterInner(root) {
         trash: allItems.filter(item => item.status === 'Deleted').length
     };
     const filtered = filterCommunicationItems(allItems, state);
-    const selected = filtered.find(item => item.id === state.selectedId) || filtered[0] || null;
-    if (selected && state.selectedId !== selected.id) state.selectedId = selected.id;
+    const selected = state.selectedId ? allItems.find(item => item.id === state.selectedId) || null : null;
+    if (state.selectedId && !selected) state.selectedId = null;
     const unreadCount = allItems.filter(item => !item.read).length;
     const actionCount = allItems.filter(item => item.actionRequired || /pending|action required/i.test(item.status)).length;
+    const messageView = Boolean(selected);
+    const composeView = state.composeOpen;
 
     root.innerHTML = `
         <main class="communication-center-page">
-            <section class="communication-hero">
-                <div>
-                    <span class="section-kicker">Personal mailbox</span>
-                    <h1>Communication Center</h1>
-                    <p>${escapeCommunicationHtml(currentUser.organization)} only sees messages sent to this mailbox or messages sent from it.</p>
-                </div>
-                <div class="communication-summary">
-                    <div><strong>${unreadCount}</strong><span>Unread</span></div>
-                    <div><strong>${counts.clarifications}</strong><span>Clarifications</span></div>
-                    <div><strong>${actionCount}</strong><span>Action required</span></div>
-                </div>
-            </section>
+            ${composeView || messageView ? '' : `
+                <section class="communication-hero">
+                    <div>
+                        <span class="section-kicker">Personal mailbox</span>
+                        <h1>Communication Center</h1>
+                        <p>${escapeCommunicationHtml(currentUser.organization)} only sees messages sent to this mailbox or messages sent from it.</p>
+                    </div>
+                    <div class="communication-summary">
+                        <div><strong>${unreadCount}</strong><span>Unread</span></div>
+                        <div><strong>${actionCount}</strong><span>Action required</span></div>
+                    </div>
+                </section>
+            `}
 
-            ${renderCommunicationCompose(state)}
-
-            <section class="communication-shell">
-                ${renderCommunicationSidebar(state, counts)}
-                <div class="communication-main">
-                    <div class="communication-toolbar">
-                        <input class="form-input" data-communication-search value="${escapeCommunicationHtml(state.query)}" placeholder="Search sender, tender, subject">
-                        <select class="form-input" data-communication-category>
-                            ${renderCommunicationOptions(mockData.communicationCenter?.categories || [], state.category, 'All categories')}
-                        </select>
-                        <select class="form-input" data-communication-priority>
-                            ${renderCommunicationOptions(mockData.communicationCenter?.priorities || [], state.priority, 'All priorities')}
-                        </select>
-                        <select class="form-input" data-communication-sort>
-                            <option value="newest" ${state.sort === 'newest' ? 'selected' : ''}>Newest first</option>
-                            <option value="oldest" ${state.sort === 'oldest' ? 'selected' : ''}>Oldest first</option>
-                        </select>
-                        <button class="btn btn-secondary" type="button" data-communication-mark-visible>Mark as Read</button>
-                        <button class="btn btn-secondary" type="button" data-communication-archive-selected>Archive</button>
-                        <button class="btn btn-primary" type="button" data-communication-compose-open>New Message</button>
+            ${composeView ? `
+                <section class="communication-compose-view">
+                    ${renderCommunicationCompose(state)}
+                </section>
+            ` : messageView ? `
+                <section class="communication-message-view">
+                    ${renderCommunicationDetail(selected, true)}
+                </section>
+            ` : `
+                <section class="communication-shell">
+                    ${renderCommunicationSidebar(state, counts)}
+                    <div class="communication-main">
+                        <div class="communication-toolbar">
+                            <input class="form-input" data-communication-search value="${escapeCommunicationHtml(state.query)}" placeholder="Search sender, tender, subject">
+                            <button class="btn btn-primary" type="button" data-communication-compose-open>New Message</button>
+                        </div>
+                        <div class="communication-tabs">
+                            ${['Inbox', 'Sent', 'Archived', 'Unread'].map(tab => `
+                                <button type="button" class="${state.tab === tab ? 'active' : ''}" data-communication-tab="${tab}">${tab}</button>
+                            `).join('')}
+                        </div>
+                        <div class="communication-list">
+                            ${filtered.length ? filtered.map(item => renderCommunicationRow(item, null)).join('') : '<div class="scope-empty">No communication items match this view.</div>'}
+                        </div>
                     </div>
-                    <div class="communication-tabs">
-                        ${['Inbox', 'Clarifications', 'Notifications', 'Alerts', 'Sent', 'Archived', 'Unread'].map(tab => `
-                            <button type="button" class="${state.tab === tab ? 'active' : ''}" data-communication-tab="${tab}">${tab}</button>
-                        `).join('')}
-                    </div>
-                    <div class="communication-list">
-                        ${filtered.length ? filtered.map(item => renderCommunicationRow(item, selected?.id)).join('') : '<div class="scope-empty">No communication items match this view.</div>'}
-                    </div>
-                </div>
-                ${renderCommunicationDetail(selected)}
-            </section>
+                </section>
+            `}
         </main>
     `;
 }
@@ -557,18 +719,111 @@ function renderCommunicationCenter() {
     return '<div class="workspace-home"><div class="workspace-shell" data-communication-center></div></div>';
 }
 
+function pushCommunicationMessageHistory(itemId) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', 'communication-center');
+    history.pushState(
+        { page: 'communication-center', communicationMessageId: itemId },
+        '',
+        `${url.pathname}${url.search}${url.hash}`
+    );
+}
+
+function pushCommunicationComposeHistory() {
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', 'communication-center');
+    history.pushState(
+        { page: 'communication-center', communicationCompose: true },
+        '',
+        `${url.pathname}${url.search}${url.hash}`
+    );
+}
+
+function updateCommunicationComposeDraftField(field, value) {
+    const state = getCommunicationState();
+    state.composeDraft = {
+        ...(state.composeDraft || {}),
+        [field]: value
+    };
+}
+
+function updateCommunicationRecipientDraft(searchValue, form) {
+    const profiles = getCommunicationRecipientProfiles();
+    const filteredProfiles = getFilteredCommunicationRecipientProfiles(profiles, searchValue);
+    const currentRecipient = getCommunicationMailboxById(getCommunicationState().composeDraft?.recipientId || '');
+    const selectedRecipient = currentRecipient && filteredProfiles.some(profile => profile.id === currentRecipient.id) ? currentRecipient : filteredProfiles[0] || null;
+    const recipientSelect = form?.querySelector('[data-communication-recipient-select]');
+    updateCommunicationComposeDraftField('recipientSearch', searchValue);
+    updateCommunicationComposeDraftField('recipientId', selectedRecipient?.id || '');
+    if (recipientSelect) {
+        recipientSelect.innerHTML = renderCommunicationRecipientOptions(profiles, selectedRecipient?.id || '', searchValue);
+        recipientSelect.value = selectedRecipient?.id || '';
+    }
+}
+
+function updateCommunicationSelectedRecipient(recipientId, form) {
+    const recipient = getCommunicationMailboxById(recipientId);
+    const searchField = form?.querySelector('[data-communication-recipient-search]');
+    updateCommunicationComposeDraftField('recipientId', recipient?.id || '');
+    updateCommunicationComposeDraftField('recipientSearch', searchField?.value || '');
+}
+
+function syncCommunicationComposeDraft(form) {
+    if (!form) return;
+    const data = new FormData(form);
+    const nextDraft = {
+        ...(getCommunicationState().composeDraft || {}),
+        category: data.get('category') || 'General Message',
+        recipientId: data.get('recipientId') || '',
+        recipientSearch: data.get('recipientSearch') || '',
+        tenderReference: data.get('tenderReference') || '',
+        tenderId: data.get('tenderId') || '',
+        tenderTitle: data.get('tenderTitle') || '',
+        kind: data.get('kind') || '',
+        subject: data.get('subject') || '',
+        body: data.get('body') || ''
+    };
+    getCommunicationState().composeDraft = nextDraft;
+}
+
+function openCommunicationFollowUpCompose(item = {}) {
+    const state = getCommunicationState();
+    const recipient = getCommunicationMailboxById(item.senderId) || getCommunicationMailboxBySearch(item.senderName);
+    state.composeDraft = {
+        category: 'Tender Clarification',
+        recipientId: recipient?.id || item.senderId || '',
+        recipientSearch: item.senderName || recipient?.name || '',
+        tenderReference: item.tenderReference || item.tenderId || '',
+        tenderId: item.tenderId || item.tenderReference || '',
+        tenderTitle: item.tenderTitle || '',
+        kind: 'clarification',
+        subject: `Follow-up: ${String(item.subject || 'Clarification response').replace(/^Re:\s*/i, '')}`,
+        body: '',
+        relatedMessageId: item.id
+    };
+    state.composeOpen = true;
+    state.selectedId = null;
+    pushCommunicationComposeHistory();
+}
+
 function initializeCommunicationCenter() {
     const root = document.querySelector('[data-communication-center]');
     if (!root || root.dataset.ready === 'true') return;
     const state = getCommunicationState();
     const pendingDraft = consumeCommunicationComposeDraft();
+    state.selectedId = null;
+    state.tab = 'Inbox';
+    state.folder = 'Inbox';
+    state.query = '';
+    state.category = 'All categories';
+    state.composeOpen = false;
+    state.composeDraft = null;
     if (pendingDraft) {
         state.composeDraft = pendingDraft;
         state.composeOpen = true;
         state.tab = pendingDraft.tab || 'Inbox';
         state.folder = state.tab;
-        state.category = pendingDraft.filterCategory || state.category;
-        state.priority = 'All priorities';
+        state.category = 'All categories';
     }
 
     const render = () => renderCommunicationCenterInner(root);
@@ -579,7 +834,13 @@ function initializeCommunicationCenter() {
         const selectButton = event.target.closest('[data-communication-select]');
         if (selectButton) {
             state.selectedId = selectButton.dataset.communicationSelect;
-            patchCommunicationItem(state.selectedId, { read: true, status: 'Read' });
+            const selectedItem = getCommunicationItems().find(item => item.id === state.selectedId);
+            const readPatch = { read: true };
+            if (/^unread$/i.test(String(selectedItem?.status || ''))) {
+                readPatch.status = 'Read';
+            }
+            patchCommunicationItem(state.selectedId, readPatch);
+            pushCommunicationMessageHistory(state.selectedId);
             render();
             return;
         }
@@ -588,6 +849,7 @@ function initializeCommunicationCenter() {
         if (tabButton) {
             state.tab = tabButton.dataset.communicationTab;
             state.folder = state.tab;
+            state.selectedId = null;
             render();
             return;
         }
@@ -595,6 +857,8 @@ function initializeCommunicationCenter() {
         if (event.target.closest('[data-communication-compose-open]')) {
             state.composeOpen = true;
             state.composeDraft = null;
+            state.selectedId = null;
+            pushCommunicationComposeHistory();
             render();
             return;
         }
@@ -606,10 +870,13 @@ function initializeCommunicationCenter() {
             return;
         }
 
-        const markReadButton = event.target.closest('[data-communication-mark-read]');
-        if (markReadButton) {
-            patchCommunicationItem(markReadButton.dataset.communicationMarkRead, { read: true, status: 'Read' });
-            render();
+        const followUpButton = event.target.closest('[data-communication-followup]');
+        if (followUpButton) {
+            const item = getCommunicationItems().find(entry => entry.id === followUpButton.dataset.communicationFollowup);
+            if (item) {
+                openCommunicationFollowUpCompose(item);
+                render();
+            }
             return;
         }
 
@@ -620,22 +887,20 @@ function initializeCommunicationCenter() {
             return;
         }
 
-        if (event.target.closest('[data-communication-mark-visible]')) {
-            const currentUser = getCurrentCommunicationUser();
-            filterCommunicationItems(getCommunicationItems().filter(item => isCommunicationUserItem(item, currentUser)), state)
-                .forEach(item => patchCommunicationItem(item.id, { read: true, status: item.status === 'Unread' ? 'Read' : item.status }));
-            render();
-            return;
-        }
-
-        if (event.target.closest('[data-communication-archive-selected]') && state.selectedId) {
-            patchCommunicationItem(state.selectedId, { folder: 'archived', status: 'Archived', read: true });
-            render();
-        }
     });
 
     root.addEventListener('input', (event) => {
         const state = getCommunicationState();
+        const recipientSearch = event.target.closest('[data-communication-recipient-search]');
+        if (recipientSearch) {
+            updateCommunicationRecipientDraft(recipientSearch.value, recipientSearch.closest('[data-communication-compose]'));
+            return;
+        }
+        const composeField = event.target.closest('[data-communication-compose-field]');
+        if (composeField) {
+            updateCommunicationComposeDraftField(composeField.name, composeField.value);
+            return;
+        }
         if (event.target.matches('[data-communication-search]')) {
             state.query = event.target.value;
             render();
@@ -644,10 +909,23 @@ function initializeCommunicationCenter() {
 
     root.addEventListener('change', (event) => {
         const state = getCommunicationState();
-        if (event.target.matches('[data-communication-category]')) state.category = event.target.value;
-        if (event.target.matches('[data-communication-priority]')) state.priority = event.target.value;
-        if (event.target.matches('[data-communication-sort]')) state.sort = event.target.value;
+        const recipientSearch = event.target.closest('[data-communication-recipient-search]');
+        if (recipientSearch) {
+            updateCommunicationRecipientDraft(recipientSearch.value, recipientSearch.closest('[data-communication-compose]'));
+            return;
+        }
+        const recipientSelect = event.target.closest('[data-communication-recipient-select]');
+        if (recipientSelect) {
+            updateCommunicationSelectedRecipient(recipientSelect.value, recipientSelect.closest('[data-communication-compose]'));
+            return;
+        }
+        const composeField = event.target.closest('[data-communication-compose-field]');
+        if (composeField) {
+            updateCommunicationComposeDraftField(composeField.name, composeField.value);
+            return;
+        }
         if (event.target.matches('[data-communication-attachment]')) {
+            syncCommunicationComposeDraft(event.target.closest('[data-communication-compose]'));
             state.composeDraft = {
                 ...(state.composeDraft || {}),
                 attachments: Array.from(event.target.files || []).map(file => ({
@@ -669,9 +947,14 @@ function initializeCommunicationCenter() {
         const state = getCommunicationState();
 
         if (composeForm) {
+            syncCommunicationComposeDraft(composeForm);
             const form = new FormData(composeForm);
             const currentUser = getCurrentCommunicationUser();
-            const recipient = getCommunicationMailboxById(form.get('recipientId')) || getCommunicationMailboxProfiles()[1];
+            const recipient = resolveCommunicationRecipient(form.get('recipientId'), form.get('recipientSearch'));
+            if (!recipient) {
+                alert('Select a registered business before sending.');
+                return;
+            }
             const category = String(form.get('category') || 'General Message');
             const kind = String(form.get('kind') || '').trim() || (/clarification/i.test(category) ? 'clarification' : 'message');
             const tenderReference = form.get('tenderReference') || 'Not linked';
@@ -701,7 +984,7 @@ function initializeCommunicationCenter() {
                 status: kind === 'clarification' ? 'Pending Buyer Response' : 'Unread',
                 read: false,
                 actionRequired: kind === 'clarification',
-                actionLabel: kind === 'clarification' ? 'Reply' : 'Open',
+                actionLabel: kind === 'clarification' ? 'Provide Answer' : 'Open',
                 actionPage: 'communication-center'
             });
             const item = addProcurexCommunicationItem({
@@ -744,7 +1027,7 @@ function initializeCommunicationCenter() {
                 visibility: visibility.includes('all bidders') ? 'Public to all bidders' : 'Private'
             });
             addProcurexCommunicationItem({
-                kind: 'notification',
+                kind: 'clarification',
                 category: 'Tender Clarification',
                 subject: `Re: ${item?.subject || 'Clarification response'}`,
                 body,
@@ -758,9 +1041,10 @@ function initializeCommunicationCenter() {
                 tenderReference: item?.tenderReference,
                 tenderTitle: item?.tenderTitle,
                 priority: 'Normal',
-                status: 'Unread',
+                status: 'Answered',
                 read: false,
-                actionLabel: 'View Response',
+                actionRequired: false,
+                actionLabel: 'Ask Follow-up',
                 actionPage: 'communication-center'
             });
             render();

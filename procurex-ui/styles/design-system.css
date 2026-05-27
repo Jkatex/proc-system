@@ -2516,9 +2516,15 @@ textarea.form-input {
 
 .communication-shell {
     display: grid;
-    grid-template-columns: 214px minmax(360px, 1fr) minmax(320px, 0.82fr);
+    grid-template-columns: 214px minmax(0, 1fr);
     gap: 16px;
     align-items: start;
+}
+
+.communication-message-view,
+.communication-compose-view {
+    display: grid;
+    min-width: 0;
 }
 
 .communication-folders,
@@ -2605,7 +2611,7 @@ textarea.form-input {
 
 .communication-toolbar {
     display: grid;
-    grid-template-columns: minmax(220px, 1.2fr) minmax(160px, 0.7fr) minmax(140px, 0.55fr) 132px auto auto auto;
+    grid-template-columns: minmax(220px, 1fr) auto;
     gap: 8px;
     align-items: center;
     padding: 14px;
@@ -2741,6 +2747,14 @@ textarea.form-input {
     padding: 20px;
 }
 
+.communication-detail.full-screen {
+    position: static;
+    width: 100%;
+    max-height: none;
+    min-height: 620px;
+    align-content: start;
+}
+
 .communication-detail.empty {
     min-height: 280px;
     align-content: center;
@@ -2762,11 +2776,22 @@ textarea.form-input {
 
 .communication-message-body {
     display: grid;
-    gap: 12px;
-    padding: 16px;
-    border: 1px solid var(--border-soft);
+    gap: 14px;
+    padding: 22px;
+    border: 2px solid rgba(0, 128, 128, 0.26);
     border-radius: 8px;
-    background: #ffffff;
+    background: #fbffff;
+}
+
+.communication-detail.full-screen .communication-message-body {
+    border-color: rgba(0, 128, 128, 0.32);
+    padding: clamp(24px, 3vw, 34px);
+}
+
+.communication-message-body h2 {
+    margin: 0;
+    font-size: clamp(24px, 3vw, 34px);
+    line-height: 1.18;
 }
 
 .communication-message-body p,
@@ -2774,6 +2799,28 @@ textarea.form-input {
     margin: 0;
     color: var(--text-primary);
     line-height: 1.6;
+}
+
+.communication-detail.full-screen .communication-message-body p {
+    font-size: 16px;
+    line-height: 1.75;
+}
+
+.communication-action-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: center;
+    padding: 16px;
+    border: 1px solid rgba(0, 128, 128, 0.2);
+    border-radius: 8px;
+    background: #effafa;
+}
+
+.communication-action-panel strong {
+    display: block;
+    margin-top: 4px;
+    color: var(--text-primary);
 }
 
 .communication-attachments button {
@@ -2842,11 +2889,30 @@ textarea.form-input {
     padding: 16px;
     border: 1px solid var(--border-soft);
     border-radius: 8px;
-    background: #fff7ed;
+    background: #fafafa;
+}
+
+.communication-context-panel-primary {
+    background: #ffffff;
+}
+
+.communication-context-panel-primary > div:first-child {
+    display: grid;
+    gap: 4px;
+}
+
+.communication-context-panel-primary > div:first-child strong {
+    font-size: 18px;
 }
 
 .communication-compose-panel {
     padding: 20px;
+}
+
+.communication-compose-panel.full-screen {
+    min-height: calc(100vh - 150px);
+    align-content: start;
+    padding: clamp(20px, 4vw, 34px);
 }
 
 .communication-compose-grid {
@@ -2874,6 +2940,7 @@ textarea.form-input {
 @media (max-width: 820px) {
     .communication-hero,
     .communication-shell,
+    .communication-action-panel,
     .communication-compose-grid,
     .communication-toolbar {
         grid-template-columns: 1fr;
@@ -18707,7 +18774,7 @@ body:not([data-page="iam-verification"]) .communication-folders {
 }
 
 body:not([data-page="iam-verification"]) .communication-shell {
-    grid-template-columns: minmax(420px, 1fr) minmax(320px, 0.82fr) !important;
+    grid-template-columns: minmax(0, 1fr) !important;
 }
 
 .iam-profile-page {
