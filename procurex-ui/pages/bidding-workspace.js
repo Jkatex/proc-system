@@ -1367,7 +1367,7 @@ function renderBidWorkspaceLicenseEvidenceSection(licenseRequirements = [], draf
         'Business licenses, regulatory permits, registration certificates, and other eligibility certificates.',
         licenseRequirements,
         draft,
-        'No license or certification document is required for this tender.'
+        'The buyer has not requested any license or certification documents for this tender.'
     );
 }
 
@@ -3202,10 +3202,9 @@ function getServiceBidCategoryConfig(category = '') {
                 ['Technician requirements', 'technicianRequirements']
             ],
             responses: [
-                ['maintenance-plan', 'Maintenance Schedule Response', 'textarea'],
-                ['spares', 'Spare Parts Availability', 'textarea'],
-                ['technicians', 'Technician Qualifications', 'textarea'],
-                ['workshop-evidence', 'Workshop / Tooling Evidence', 'upload']
+                ['maintenance-plan', 'Maintenance Schedule Response', 'maintenance-schedule-table'],
+                ['spares', 'Spare Parts Availability', 'spare-parts-table'],
+                ['technicians', 'Technician Qualifications', 'technician-qualifications-table']
             ]
         };
     }
@@ -3244,11 +3243,118 @@ function getServiceBidCategoryConfig(category = '') {
     return null;
 }
 
+function renderServiceBidCategoryTableResponse(type, key, label, draft = {}) {
+    const tableConfigs = {
+        'maintenance-schedule-table': {
+            eyebrow: 'Operational cadence',
+            summary: 'Planned maintenance coverage by activity, type, frequency, vehicle category, turnaround, ownership, and evidence.',
+            leadingHeader: 'Service Activity',
+            rows: [
+                ['01', 'Routine servicing', 'Scheduled vehicle maintenance activity'],
+                ['02', 'Corrective repair', 'Fault diagnosis and repair activity'],
+                ['03', 'Emergency support', 'Urgent breakdown response activity']
+            ],
+            columns: [
+                ['maintenance-type', 'Maintenance Type', ['Preventive', 'Corrective', 'Emergency', 'Inspection', 'Scheduled service']],
+                ['frequency', 'Frequency', ['Daily', 'Weekly', 'Monthly', 'Quarterly', 'Every 5,000 km', 'On demand']],
+                ['vehicle-category', 'Vehicle Category', ['Light vehicles', 'Heavy vehicles', 'Motorcycles', 'Buses', 'Trucks', 'All vehicle categories']],
+                ['response-time', 'Response Time', ['Same day', 'Within 4 hours', 'Within 24 hours', '1-2 days', '2-3 days']],
+                ['responsible-team', 'Responsible Person / Team', ['Workshop supervisor', 'Lead mechanic', 'Mobile service team', 'Fleet maintenance coordinator', 'OEM service partner']],
+                ['report-evidence', 'Report / Evidence', ['Service report', 'Job card', 'Inspection checklist', 'Photos', 'Invoice / parts receipt']]
+            ]
+        },
+        'spare-parts-table': {
+            eyebrow: 'Parts readiness',
+            summary: 'Availability, sourcing, delivery timing, and warranty coverage for required vehicle spare parts.',
+            leadingHeader: 'Part Category',
+            rows: [
+                ['OF', 'Oil filters', 'Routine service filter replacement'],
+                ['BP', 'Brake pads', 'Brake system replacement parts'],
+                ['TY', 'Tyres', 'Vehicle tyre replacement stock']
+            ],
+            columns: [
+                ['availability', 'Availability', ['In stock', 'Available on request', 'Limited stock', 'Back order']],
+                ['source', 'Source', ['Authorized supplier', 'Approved supplier', 'Local supplier', 'OEM dealer']],
+                ['delivery-time', 'Delivery Time', ['Same day', '1-2 days', '2-3 days', '3-5 days']],
+                ['warranty', 'Warranty', ['Yes', 'No', 'Manufacturer warranty', 'Supplier warranty']]
+            ]
+        },
+        'technician-qualifications-table': {
+            eyebrow: 'Technical team',
+            summary: 'Named technicians, assigned role, qualification level, experience, and vehicle maintenance specialization.',
+            leadingHeader: 'Technician Name',
+            rows: [
+                ['T1', 'Technician 1', 'Primary assigned technician'],
+                ['T2', 'Technician 2', 'Backup or specialist technician'],
+                ['T3', 'Technician 3', 'Additional support technician']
+            ],
+            columns: [
+                ['role', 'Role', ['Lead mechanic', 'Auto electrician', 'Service technician', 'Diagnostic technician', 'Workshop supervisor']],
+                ['qualification', 'Qualification', ['Certificate', 'Diploma', 'Advanced diploma', 'Trade test', 'Manufacturer certification']],
+                ['years-experience', 'Years of Experience', ['1-2 years', '3-5 years', '6-10 years', 'Over 10 years']],
+                ['specialization', 'Specialization', ['General vehicle maintenance', 'Engine systems', 'Brake systems', 'Electrical systems', 'Tyres and suspension', 'Diagnostics']]
+            ]
+        }
+    };
+    const config = tableConfigs[type];
+    if (!config) return '';
+    return `
+        <div class="wide service-category-table-response premium-response-matrix">
+            <div class="premium-response-matrix-heading">
+                <div>
+                    <span>${escapeBidWorkspaceHtml(config.eyebrow)}</span>
+                    <strong>${escapeBidWorkspaceHtml(label)}</strong>
+                    <p>${escapeBidWorkspaceHtml(config.summary)}</p>
+                </div>
+                <em>${config.rows.length} rows</em>
+            </div>
+            <div class="data-table service-category-response-table premium-response-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>${escapeBidWorkspaceHtml(config.leadingHeader)}</th>
+                            ${config.columns.map(([, columnLabel]) => `<th>${escapeBidWorkspaceHtml(columnLabel)}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${config.rows.map(([rowCode, rowLabel, rowDetail], rowIndex) => `
+                            <tr class="premium-response-table-row">
+                                <td class="premium-response-row-label">
+                                    <span>${escapeBidWorkspaceHtml(rowCode)}</span>
+                                    <div>
+                                        <strong>${escapeBidWorkspaceHtml(rowLabel)}</strong>
+                                        <small>${escapeBidWorkspaceHtml(rowDetail)}</small>
+                                    </div>
+                                </td>
+                                ${config.columns.map(([columnKey, columnLabel, options = []]) => {
+                                    const responseId = `service-category-${key}-${rowIndex}-${columnKey}`;
+                                    const savedValue = getBidWorkspaceSavedResponse(draft, responseId);
+                                    return `
+                                        <td class="premium-response-cell">
+                                            <select class="form-input premium-response-input" data-bid-response="${responseId}" data-bid-workflow-required-response="true" aria-label="${escapeBidWorkspaceHtml(`${columnLabel} for ${rowLabel}`)}">
+                                                <option value="">Select</option>
+                                                ${options.map(option => `<option value="${escapeBidWorkspaceHtml(option)}" ${savedValue === option ? 'selected' : ''}>${escapeBidWorkspaceHtml(option)}</option>`).join('')}
+                                            </select>
+                                        </td>
+                                    `;
+                                }).join('')}
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
 function renderServiceBidCategoryResponse(tender = {}, draft = {}) {
     const fields = tender.requirements?.fields || {};
     const category = fields.serviceCategory || tender.category || tender.type || '';
     const config = getServiceBidCategoryConfig(category);
     if (!config) return '';
+    const buyerFields = config.buyerFields
+        .map(([label, key]) => [label, fields[key]])
+        .filter(([, value]) => String(value || '').trim());
     return `
         <section class="service-response-section service-category-response">
             <div class="bid-dynamic-group-heading">
@@ -3258,19 +3364,24 @@ function renderServiceBidCategoryResponse(tender = {}, draft = {}) {
                 </div>
                 <span class="badge badge-warning">Category response</span>
             </div>
+            ${buyerFields.length ? `
             <div class="service-category-context-grid">
-                ${config.buyerFields.map(([label, key]) => `
+                ${buyerFields.map(([label, value]) => `
                     <article>
                         <span>${escapeBidWorkspaceHtml(label)}</span>
-                        <strong>${escapeBidWorkspaceHtml(fields[key] || 'Not specified')}</strong>
+                        <strong>${escapeBidWorkspaceHtml(value)}</strong>
                     </article>
                 `).join('')}
             </div>
+            ` : ''}
             <div class="form-grid two">
                 ${config.responses.map(([key, label, type]) => {
                     const responseId = `service-category-${key}`;
                     if (type === 'upload') {
                         return `<div class="form-group wide">${renderBidWorkspaceUploadControl(responseId, draft, label, '.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png', false)}</div>`;
+                    }
+                    if (type === 'maintenance-schedule-table' || type === 'spare-parts-table' || type === 'technician-qualifications-table') {
+                        return renderServiceBidCategoryTableResponse(type, key, label, draft);
                     }
                     if (type === 'number') {
                         return `<div class="form-group"><label class="form-label">${escapeBidWorkspaceHtml(label)}</label><input class="form-input" type="number" min="0" data-bid-response="${responseId}" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, responseId))}"></div>`;
@@ -3285,9 +3396,188 @@ function renderServiceBidCategoryResponse(tender = {}, draft = {}) {
     `;
 }
 
+function renderServiceBidQualityAssuranceContent(draft = {}) {
+    const rows = [
+        ['01', 'Pre-service inspection', 'Initial readiness and scope check'],
+        ['02', 'In-process quality check', 'Inspection during service delivery'],
+        ['03', 'Final acceptance test', 'Completion, handover, and buyer acceptance']
+    ];
+    const columns = [
+        ['frequency', 'Frequency', ['Before service', 'Daily', 'Weekly', 'Per job', 'On completion']],
+        ['criteria', 'Acceptance Criteria', ['Buyer checklist met', 'No defects found', 'Defects corrected', 'Supervisor approved', 'Buyer sign-off']],
+        ['responsible-team', 'Responsible Person / Team', ['Quality supervisor', 'Lead technician', 'Workshop supervisor', 'Service manager', 'Buyer representative']],
+        ['evidence', 'Report / Evidence', ['Inspection checklist', 'Test report', 'Photos', 'Signed job card', 'Completion report']]
+    ];
+    return `
+        <div class="form-group wide">
+            <label class="form-label">Quality Control Process</label>
+            <textarea class="form-input works-rich-textarea" rows="5" data-bid-response="service-method-quality" data-bid-workflow-required-response="true">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'service-method-quality'))}</textarea>
+        </div>
+        <div class="wide service-category-table-response premium-response-matrix">
+            <div class="premium-response-matrix-heading">
+                <div>
+                    <span>Quality controls</span>
+                    <strong>Inspection and Testing Plan</strong>
+                    <p>Define the inspection activity, frequency, acceptance criteria, responsible team, and proof submitted to the buyer.</p>
+                </div>
+                <em>${rows.length} rows</em>
+            </div>
+            <div class="data-table service-category-response-table premium-response-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Inspection / Test Activity</th>
+                            ${columns.map(([, columnLabel]) => `<th>${escapeBidWorkspaceHtml(columnLabel)}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows.map(([rowCode, rowLabel, rowDetail], rowIndex) => `
+                            <tr class="premium-response-table-row">
+                                <td class="premium-response-row-label">
+                                    <span>${escapeBidWorkspaceHtml(rowCode)}</span>
+                                    <div>
+                                        <strong>${escapeBidWorkspaceHtml(rowLabel)}</strong>
+                                        <small>${escapeBidWorkspaceHtml(rowDetail)}</small>
+                                    </div>
+                                </td>
+                                ${columns.map(([columnKey, columnLabel, options]) => {
+                                    const responseId = `service-quality-inspection-${rowIndex}-${columnKey}`;
+                                    const savedValue = getBidWorkspaceSavedResponse(draft, responseId);
+                                    return `
+                                        <td class="premium-response-cell">
+                                            <select class="form-input premium-response-input" data-bid-response="${responseId}" data-bid-workflow-required-response="true" aria-label="${escapeBidWorkspaceHtml(`${columnLabel} for ${rowLabel}`)}">
+                                                <option value="">Select</option>
+                                                ${options.map(option => `<option value="${escapeBidWorkspaceHtml(option)}" ${savedValue === option ? 'selected' : ''}>${escapeBidWorkspaceHtml(option)}</option>`).join('')}
+                                            </select>
+                                        </td>
+                                    `;
+                                }).join('')}
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+function getServiceBidRiskRowCount(draft = {}) {
+    const responses = draft.responses || {};
+    const indexes = Object.keys(responses)
+        .map(key => /^service-risk-(\d+)-/.exec(key))
+        .filter(Boolean)
+        .map(match => Number(match[1]))
+        .filter(Number.isFinite);
+    return Math.max(3, indexes.length ? Math.max(...indexes) + 1 : 3);
+}
+
+function renderServiceBidRiskSelect(responseId, label, options = [], draft = {}, defaultValue = '') {
+    const savedValue = getBidWorkspaceSavedResponse(draft, responseId);
+    const selectedValue = savedValue || defaultValue;
+    return `
+        <select class="form-input premium-response-input" data-bid-response="${responseId}" data-bid-workflow-required-response="true" aria-label="${escapeBidWorkspaceHtml(label)}">
+            <option value="">Select</option>
+            ${options.map(option => `<option value="${escapeBidWorkspaceHtml(option)}" ${selectedValue === option ? 'selected' : ''}>${escapeBidWorkspaceHtml(option)}</option>`).join('')}
+        </select>
+    `;
+}
+
+function renderServiceBidRiskTableRow(rowIndex, draft = {}, defaults = {}) {
+    const baseId = `service-risk-${rowIndex}`;
+    const riskOptions = ['Spare parts delay', 'Poor-quality repair', 'Emergency breakdown', 'Technician unavailability', 'Vehicle downtime', 'Safety incident', 'Parts price increase'];
+    const mitigationOptions = [
+        'Maintain supplier network and stock common parts',
+        'Use checklists and supervisor inspection',
+        'Provide emergency response contact',
+        'Assign backup technician',
+        'Escalate to service manager',
+        'Use approved substitute parts'
+    ];
+    const contingencyOptions = [
+        'Use approved alternative supplier',
+        'Rework at no extra cost',
+        'Dispatch mobile technician',
+        'Assign replacement technician',
+        'Escalate for buyer approval',
+        'Provide temporary service support'
+    ];
+    const responsibleOptions = ['Spare Parts Officer', 'Workshop Supervisor', 'Service Coordinator', 'Quality Supervisor', 'Fleet Maintenance Coordinator', 'Service Manager'];
+    return `
+        <tr class="premium-response-table-row" data-service-risk-row>
+            <td class="premium-response-cell">${renderServiceBidRiskSelect(`${baseId}-risk`, `Risk for row ${rowIndex + 1}`, riskOptions, draft, defaults.risk || '')}</td>
+            <td class="premium-response-cell">${renderServiceBidRiskSelect(`${baseId}-likelihood`, `Likelihood for row ${rowIndex + 1}`, ['Low', 'Medium', 'High'], draft, defaults.likelihood || '')}</td>
+            <td class="premium-response-cell">${renderServiceBidRiskSelect(`${baseId}-impact`, `Impact for row ${rowIndex + 1}`, ['Low', 'Medium', 'High', 'Critical'], draft, defaults.impact || '')}</td>
+            <td class="premium-response-cell">${renderServiceBidRiskSelect(`${baseId}-mitigation`, `Mitigation action for row ${rowIndex + 1}`, mitigationOptions, draft, defaults.mitigation || '')}</td>
+            <td class="premium-response-cell">${renderServiceBidRiskSelect(`${baseId}-contingency`, `Contingency plan for row ${rowIndex + 1}`, contingencyOptions, draft, defaults.contingency || '')}</td>
+            <td class="premium-response-cell">${renderServiceBidRiskSelect(`${baseId}-responsible`, `Responsible person for row ${rowIndex + 1}`, responsibleOptions, draft, defaults.responsible || '')}</td>
+        </tr>
+    `;
+}
+
+function renderServiceBidRiskManagementContent(draft = {}) {
+    const defaultRows = [
+        {
+            risk: 'Spare parts delay',
+            likelihood: 'Medium',
+            impact: 'High',
+            mitigation: 'Maintain supplier network and stock common parts',
+            contingency: 'Use approved alternative supplier',
+            responsible: 'Spare Parts Officer'
+        },
+        {
+            risk: 'Poor-quality repair',
+            likelihood: 'Low',
+            impact: 'High',
+            mitigation: 'Use checklists and supervisor inspection',
+            contingency: 'Rework at no extra cost',
+            responsible: 'Workshop Supervisor'
+        },
+        {
+            risk: 'Emergency breakdown',
+            likelihood: 'Medium',
+            impact: 'High',
+            mitigation: 'Provide emergency response contact',
+            contingency: 'Dispatch mobile technician',
+            responsible: 'Service Coordinator'
+        }
+    ];
+    const rowCount = getServiceBidRiskRowCount(draft);
+    return `
+        <div class="wide service-category-table-response premium-response-matrix">
+            <div class="premium-response-matrix-heading">
+                <div>
+                    <span>Risk controls</span>
+                    <strong>Risk Management Table</strong>
+                    <p>Identify likely delivery risks, assess likelihood and impact, then assign mitigation, contingency, and ownership.</p>
+                </div>
+                <em data-service-risk-count>${rowCount} rows</em>
+            </div>
+            <div class="data-table service-category-response-table premium-response-table service-risk-response-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Risk</th>
+                            <th>Likelihood</th>
+                            <th>Impact</th>
+                            <th>Mitigation Action</th>
+                            <th>Contingency Plan</th>
+                            <th>Responsible Person</th>
+                        </tr>
+                    </thead>
+                    <tbody data-service-risk-table-body>
+                        ${Array.from({ length: rowCount }, (_, index) => renderServiceBidRiskTableRow(index, draft, defaultRows[index] || {})).join('')}
+                    </tbody>
+                </table>
+            </div>
+            <div class="premium-response-matrix-actions">
+                <button class="btn btn-secondary" type="button" data-add-service-risk>Add Risk</button>
+            </div>
+        </div>
+    `;
+}
+
 function renderServiceBidMethodology(tender = {}, draft = {}) {
     const fields = tender.requirements?.fields || {};
-    const methodologyUploadRequired = [fields.serviceMethodologyDocumentRequired, fields.requireServiceMethodologyDocument, fields.methodologyDocumentRequired].some(isBidWorkspaceRequiredConfig);
     const blocks = [
         ['understanding', 'Understanding of Service', fields.scopeOfServices || tender.description || 'Explain the buyer service need and operational context.'],
         ['methodology', 'Service Delivery Methodology', 'Describe how the service will be delivered, controlled, supervised, and improved.'],
@@ -3299,7 +3589,6 @@ function renderServiceBidMethodology(tender = {}, draft = {}) {
     const deliverables = fields.serviceDeliverables || tender.deliverables?.map(text => ({ text })) || [];
     return `
         <div class="service-workbook">
-            ${renderServiceBidCategoryResponse(tender, draft)}
             <section class="service-response-section">
                 <div class="bid-dynamic-group-heading">
                     <div>
@@ -3314,24 +3603,22 @@ function renderServiceBidMethodology(tender = {}, draft = {}) {
                         return `
                             <details class="service-accordion-card" ${index < 2 ? 'open' : ''}>
                                 <summary><strong>${escapeBidWorkspaceHtml(block[1])}</strong><span>${escapeBidWorkspaceHtml(block[2])}</span></summary>
-                                <textarea class="form-input works-rich-textarea" rows="5" data-bid-response="${responseId}" data-bid-workflow-required-response="true">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, responseId))}</textarea>
+                                ${block[0] === 'quality'
+                                    ? renderServiceBidQualityAssuranceContent(draft)
+                                    : block[0] === 'risk'
+                                        ? renderServiceBidRiskManagementContent(draft)
+                                    : `<textarea class="form-input works-rich-textarea" rows="5" data-bid-response="${responseId}" data-bid-workflow-required-response="true">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, responseId))}</textarea>`}
                             </details>
+                            ${block[0] === 'work-plan' ? renderServiceBidCategoryResponse(tender, draft) : ''}
                         `;
                     }).join('')}
-                </div>
-                <div class="form-grid two">
-                    <div class="form-group"><label class="form-label">Tools / Systems Used</label><input class="form-input" data-bid-response="service-method-tools" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'service-method-tools'))}" placeholder="Systems, software, equipment, or service tools"></div>
-                    <div class="form-group"><label class="form-label">Service Frequency</label><select class="form-input" data-bid-response="service-method-frequency" data-bid-workflow-required-response="true"><option value="">Select</option>${['Daily', 'Weekly', 'Monthly', 'Quarterly', 'On demand', fields.cleaningFrequency || 'As required'].filter(Boolean).map(option => `<option ${getBidWorkspaceSavedResponse(draft, 'service-method-frequency') === option ? 'selected' : ''}>${escapeBidWorkspaceHtml(option)}</option>`).join('')}</select></div>
-                    <div class="form-group wide"><label class="form-label">Service Workflow Steps</label><textarea class="form-input" rows="3" data-bid-response="service-method-workflow" data-bid-workflow-required-response="true" placeholder="List the steps from request/intake through delivery, QA, reporting, and closure.">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'service-method-workflow'))}</textarea></div>
-                    <div class="form-group wide"><label class="form-label">Service Assumptions</label><textarea class="form-input" rows="2" data-bid-response="service-method-assumptions">${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, 'service-method-assumptions'))}</textarea></div>
-                    <div class="form-group wide">${renderBidWorkspaceUploadControl('service-methodology-upload', draft, 'Upload methodology document', '.pdf,.doc,.docx', methodologyUploadRequired)}</div>
                 </div>
             </section>
             <section class="service-response-section">
                 <div class="bid-dynamic-group-heading">
                     <div>
                         <h3>Deliverables mapping</h3>
-                        <p>Map each buyer deliverable to the supplier method, output evidence, and reporting proof.</p>
+                        <p>Map each buyer deliverable to the proof the supplier will provide after completion.</p>
                     </div>
                     <span class="badge badge-info">${deliverables.length} deliverables</span>
                 </div>
@@ -3344,8 +3631,13 @@ function renderServiceBidMethodology(tender = {}, draft = {}) {
                                 <span class="section-kicker">Buyer deliverable</span>
                                 <strong>${escapeBidWorkspaceHtml(label)}</strong>
                                 <div class="form-grid two">
-                                    <div class="form-group"><label class="form-label">Supplier Output Evidence</label><input class="form-input" data-bid-response="${baseId}-evidence" data-bid-workflow-required-response="true" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-evidence`))}"></div>
-                                    <div class="form-group"><label class="form-label">Acceptance Method</label><input class="form-input" data-bid-response="${baseId}-acceptance" value="${escapeBidWorkspaceHtml(getBidWorkspaceSavedResponse(draft, `${baseId}-acceptance`))}"></div>
+                                    <div class="form-group wide">
+                                        <label class="form-label">Proof of Completion</label>
+                                        <select class="form-input" data-bid-response="${baseId}-evidence" data-bid-workflow-required-response="true">
+                                            <option value="">Select</option>
+                                            ${['Completion report', 'Signed job card', 'Inspection checklist', 'Before and after photos', 'Service delivery report', 'Buyer sign-off'].map(option => `<option value="${escapeBidWorkspaceHtml(option)}" ${getBidWorkspaceSavedResponse(draft, `${baseId}-evidence`) === option ? 'selected' : ''}>${escapeBidWorkspaceHtml(option)}</option>`).join('')}
+                                        </select>
+                                    </div>
                                 </div>
                             </article>
                         `;
@@ -5181,7 +5473,7 @@ function initializeBiddingWorkspace() {
     };
 
     const markBidSemanticInvalid = (input, invalid, show = false) => {
-        const container = input?.closest('[data-bid-requirement-card], [data-bid-product-spec-row], .form-group, .bid-response-check, .goods-compliance-card, .goods-offer-row, .goods-sample-card, .works-capacity-card, .works-person-card, .works-accordion-card, .works-boq-row, .works-drawing-card, .site-visit-card, .site-visit-response, .service-accordion-card, .service-staff-card, .service-pricing-row, .service-document-card, .service-kpi-card') || input;
+        const container = input?.closest('[data-bid-requirement-card], [data-bid-product-spec-row], .form-group, .bid-response-check, .goods-compliance-card, .goods-offer-row, .goods-sample-card, .works-capacity-card, .works-person-card, .works-accordion-card, .works-boq-row, .works-drawing-card, .site-visit-card, .site-visit-response, .service-accordion-card, .service-staff-card, .service-pricing-row, .service-document-card, .service-kpi-card, .service-category-table-response') || input;
         container?.classList.toggle('invalid', Boolean(show && invalid));
     };
 
@@ -5256,7 +5548,7 @@ function initializeBiddingWorkspace() {
             parentDetails.open = true;
             parentDetails = parentDetails.parentElement?.closest?.('details');
         }
-        const context = input?.closest?.('[data-bid-upload-control], [data-bid-requirement-card], [data-bid-product-spec-row], .form-group, .bid-response-check, .goods-compliance-card, .goods-offer-row, .goods-sample-card, .works-capacity-card, .works-person-card, .works-accordion-card, .works-boq-row, .works-drawing-card, .site-visit-card, .site-visit-response, .service-accordion-card, .service-sla-card, .service-staff-card, .service-pricing-row, .service-document-card, .service-kpi-card');
+        const context = input?.closest?.('[data-bid-upload-control], [data-bid-requirement-card], [data-bid-product-spec-row], .form-group, .bid-response-check, .goods-compliance-card, .goods-offer-row, .goods-sample-card, .works-capacity-card, .works-person-card, .works-accordion-card, .works-boq-row, .works-drawing-card, .site-visit-card, .site-visit-response, .service-accordion-card, .service-sla-card, .service-staff-card, .service-pricing-row, .service-document-card, .service-kpi-card, .service-category-table-response');
         context?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
         const uploadInput = input?.closest('[data-bid-upload-control]')?.querySelector('[data-bid-file-input]');
         window.setTimeout(() => (uploadInput || input)?.focus?.(), 80);
@@ -5276,7 +5568,7 @@ function initializeBiddingWorkspace() {
         if (!input) return;
         const targetPanelIndex = panels.findIndex(panel => panel.contains(input));
         if (targetPanelIndex > -1) setActiveStep(targetPanelIndex, true);
-        const container = input.closest('[data-bid-upload-control], [data-bid-requirement-card], [data-bid-product-spec-row], .form-group, .bid-response-check, .goods-compliance-card, .goods-offer-row, .goods-sample-card, .works-capacity-card, .works-person-card, .works-accordion-card, .works-boq-row, .works-drawing-card, .site-visit-card, .site-visit-response, .service-accordion-card, .service-sla-card, .service-staff-card, .service-pricing-row, .service-document-card, .service-kpi-card') || input;
+        const container = input.closest('[data-bid-upload-control], [data-bid-requirement-card], [data-bid-product-spec-row], .form-group, .bid-response-check, .goods-compliance-card, .goods-offer-row, .goods-sample-card, .works-capacity-card, .works-person-card, .works-accordion-card, .works-boq-row, .works-drawing-card, .site-visit-card, .site-visit-response, .service-accordion-card, .service-sla-card, .service-staff-card, .service-pricing-row, .service-document-card, .service-kpi-card, .service-category-table-response') || input;
         container.classList.add('bid-review-edit-target');
         window.setTimeout(() => container.classList.remove('bid-review-edit-target'), 2200);
         window.setTimeout(() => {
@@ -5330,7 +5622,7 @@ function initializeBiddingWorkspace() {
     };
 
     const markWorkflowInputState = (input, show = false) => {
-        const container = input.closest('[data-bid-requirement-card], [data-bid-product-spec-row], .form-group, .bid-response-check, .goods-compliance-card, .goods-offer-row, .goods-sample-card, .works-capacity-card, .works-person-card, .works-accordion-card, .works-boq-row, .works-drawing-card, .site-visit-card, .site-visit-response, .service-accordion-card, .service-sla-card, .service-staff-card, .service-pricing-row, .service-document-card, .service-kpi-card');
+        const container = input.closest('[data-bid-requirement-card], [data-bid-product-spec-row], .form-group, .bid-response-check, .goods-compliance-card, .goods-offer-row, .goods-sample-card, .works-capacity-card, .works-person-card, .works-accordion-card, .works-boq-row, .works-drawing-card, .site-visit-card, .site-visit-response, .service-accordion-card, .service-sla-card, .service-staff-card, .service-pricing-row, .service-document-card, .service-kpi-card, .service-category-table-response');
         const complete = isResponseComplete(input);
         container?.classList.toggle('completed', complete);
         container?.classList.toggle('invalid', show && !complete);
@@ -6212,6 +6504,28 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
             const uploadControl = card.querySelector('[data-bid-upload-control]');
             if (uploadControl) clearBidUpload(uploadControl);
             card.remove();
+            validateWorkflowResponses(false);
+            refreshBidProgress();
+            refreshBidResponseReviews();
+            saveDraft();
+            return;
+        }
+
+        if (target.matches('[data-add-service-risk]')) {
+            const matrix = target.closest('.premium-response-matrix');
+            const body = matrix?.querySelector('[data-service-risk-table-body]');
+            if (!body) return;
+            const existingIndexes = Array.from(body.querySelectorAll('[data-bid-response]'))
+                .map(input => /^service-risk-(\d+)-/.exec(input.dataset.bidResponse || ''))
+                .filter(Boolean)
+                .map(match => Number(match[1]))
+                .filter(Number.isFinite);
+            const nextIndex = existingIndexes.length ? Math.max(...existingIndexes) + 1 : 0;
+            body.insertAdjacentHTML('beforeend', renderServiceBidRiskTableRow(nextIndex, {}, {}));
+            const countBadge = matrix.querySelector('[data-service-risk-count]');
+            const rowCount = body.querySelectorAll('[data-service-risk-row]').length;
+            if (countBadge) countBadge.textContent = `${rowCount} rows`;
+            body.querySelector('[data-service-risk-row]:last-child [data-bid-response]')?.focus?.();
             validateWorkflowResponses(false);
             refreshBidProgress();
             refreshBidResponseReviews();
