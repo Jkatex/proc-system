@@ -139,6 +139,10 @@ class ProcureXApp {
                 <span class="app-menu-icon">${this.getAppMenuIcon('insights')}</span>
                 <span><strong>Compliance Dashboard</strong><em>Review, approve, hold, and return procurements</em></span>
             </button>
+            <button class="app-menu-card app-menu-procurement" data-navigate="admin-search">
+                <span class="app-menu-icon">${this.getAppMenuIcon('search')}</span>
+                <span><strong>Admin Deep Search</strong><em>Tenders, bids, users, evidence, evaluations</em></span>
+            </button>
             <button class="app-menu-card app-menu-iam" data-navigate="account-profile">
                 <span class="app-menu-icon">${this.getAppMenuIcon('iam')}</span>
                 <span><strong>Admin Profile</strong><em>Platform compliance identity and verification</em></span>
@@ -205,7 +209,8 @@ class ProcureXApp {
             awarding: '<circle cx="12" cy="8" r="4"/><path d="M8.5 11.5L7 21l5-3 5 3-1.5-9.5"/><path d="M10.5 8l1 1 2-2"/>',
             contracts: '<path d="M8 3h8l3 3v15H5V3z"/><path d="M15 3v4h4"/><path d="M8 12h8"/><path d="M8 16h6"/>',
             communication: '<path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8"/><path d="M8 13h5"/>',
-            insights: '<path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16v-5"/><path d="M12 16V8"/><path d="M16 16v-9"/>'
+            insights: '<path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16v-5"/><path d="M12 16V8"/><path d="M16 16v-9"/>',
+            search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/><path d="M8 11h6"/><path d="M11 8v6"/>'
         };
 
         return `
@@ -220,6 +225,7 @@ class ProcureXApp {
             'app-launcher': 'Apps',
             'workspace-dashboard': 'Dashboard',
             'admin-dashboard': 'Admin',
+            'admin-search': 'Admin Deep Search',
             'account-profile': 'Registration and Verification',
             'verification-status': 'Registration and Verification',
             'supplier-journey': 'Procurement',
@@ -257,6 +263,7 @@ class ProcureXApp {
             'workspace-dashboard': 'app-launcher',
             'procurement-dashboard': 'workspace-dashboard',
             'admin-dashboard': null,
+            'admin-search': 'admin-dashboard',
             'buyer-dashboard': 'workspace-dashboard',
             'buyer-journey': 'workspace-dashboard',
             'procurement-guide': 'workspace-dashboard',
@@ -294,6 +301,7 @@ class ProcureXApp {
             'workspace-dashboard': 'Dashboard',
             'procurement-dashboard': 'Dashboard',
             'admin-dashboard': 'Admin Dashboard',
+            'admin-search': 'Admin Deep Search',
             'buyer-dashboard': 'Dashboard',
             'buyer-journey': 'Procurement Process Guide',
             'procurement-guide': 'Procurement Process Guide',
@@ -375,6 +383,12 @@ class ProcureXApp {
         }
         if (typeof window.initializeRecordsHistory === 'function') {
             window.initializeRecordsHistory();
+        }
+        if (typeof window.initializeBidEvaluation === 'function') {
+            window.initializeBidEvaluation();
+        }
+        if (typeof window.initializeAdminSearch === 'function') {
+            window.initializeAdminSearch();
         }
         if (typeof window.initializeWorkspaceDashboard === 'function') {
             window.initializeWorkspaceDashboard();
@@ -1760,6 +1774,7 @@ class ProcureXApp {
             'app-launcher',
             'workspace-dashboard',
             'admin-dashboard',
+            'admin-search',
             'procurement-guide',
             'guest-marketplace',
             'marketplace',
@@ -1833,6 +1848,7 @@ class ProcureXApp {
     renderVerificationStatus() { return this.getLoadingSpinner('account profile'); }
     renderWorkspaceDashboard() { return this.getLoadingSpinner('dashboard'); }
     renderAdminDashboard() { return this.getLoadingSpinner('admin dashboard'); }
+    renderAdminSearch() { return this.getLoadingSpinner('admin search'); }
     renderBuyerDashboard() { return this.getLoadingSpinner('dashboard'); }
     renderSupplierDashboard() { return this.getLoadingSpinner('dashboard'); }
     renderSupplierJourney() { return this.getLoadingSpinner('procurement process guide'); }

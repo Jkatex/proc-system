@@ -89,6 +89,7 @@ function renderRecordsHistory() {
                 <ul class="sidebar-nav">
                     <li><a href="#" data-navigate="records-history" class="active">Records</a></li>
                     <li><a href="#" data-navigate="${isAdmin ? 'admin-dashboard' : 'workspace-dashboard'}">${isAdmin ? 'Compliance Dashboard' : 'Dashboard'}</a></li>
+                    ${isAdmin ? '<li><a href="#" data-navigate="admin-search">Admin Deep Search</a></li>' : ''}
                     <li><a href="#" data-navigate="marketplace">Marketplace</a></li>
                     <li><a href="#" data-navigate="communication-center">Communication Center</a></li>
                 </ul>
@@ -103,6 +104,7 @@ function renderRecordsHistory() {
                             <p>Search tenders, bids, contracts, amendments, awards, cancellations, and compliance evidence in one exportable archive.</p>
                         </div>
                         <div class="hero-action-stack">
+                            ${isAdmin ? '<button class="btn btn-secondary" type="button" data-navigate="admin-search">Open Deep Search</button>' : ''}
                             <button class="btn btn-secondary" type="button" data-records-export="csv">Export CSV</button>
                             <button class="btn btn-primary" type="button" data-records-export="pdf">Export PDF</button>
                         </div>

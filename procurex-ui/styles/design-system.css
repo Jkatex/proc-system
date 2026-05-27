@@ -4265,7 +4265,9 @@ textarea.form-input {
 }
 
 .admin-review-list,
-.compliance-check-list {
+.compliance-check-list,
+.admin-monitor-list,
+.evaluation-evidence-search-list {
     display: grid;
     gap: 12px;
 }
@@ -4300,6 +4302,78 @@ textarea.form-input {
     max-width: 360px;
 }
 
+.admin-search-entry-panel .record-summary {
+    margin-top: 12px;
+}
+
+.admin-monitor-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: center;
+    padding: 14px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-sm);
+    background: var(--card-bg);
+}
+
+.admin-monitor-row h3 {
+    margin: 4px 0;
+    font-size: 15px;
+}
+
+.admin-monitor-row p,
+.admin-search-table td span {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.admin-monitor-row > div:last-child {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.admin-search-filter-grid {
+    grid-template-columns: minmax(260px, 2fr) repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.admin-search-quick-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.admin-search-table td strong {
+    display: block;
+    color: var(--text-primary);
+}
+
+.admin-search-table td {
+    vertical-align: top;
+}
+
+.evaluation-evidence-search {
+    display: grid;
+    gap: 12px;
+    margin: 14px 0;
+    padding: 14px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-sm);
+    background: var(--surface-soft);
+}
+
+.evaluation-evidence-search .panel-heading h3 {
+    margin: 0;
+}
+
+.evaluation-evidence-search-list {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
 .records-filter-panel {
     margin-bottom: 16px;
 }
@@ -4320,9 +4394,15 @@ textarea.form-input {
         grid-template-columns: 1fr;
     }
 
-    .admin-review-actions {
+    .admin-review-actions,
+    .admin-monitor-row,
+    .admin-monitor-row > div:last-child {
         justify-content: flex-start;
         max-width: none;
+    }
+
+    .admin-monitor-row {
+        grid-template-columns: 1fr;
     }
 }
 
