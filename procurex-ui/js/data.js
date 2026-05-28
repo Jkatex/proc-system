@@ -87,6 +87,16 @@ const mockData = {
                 isNewUser: false,
                 ekycCompleted: true,
                 displayName: 'Admin User'
+            },
+            {
+                email: 'compliance.reviewer@procurex.tz',
+                phone: '+255 716 777 888',
+                password: 'Review123!',
+                role: 'compliance-reviewer',
+                accountType: 'admin',
+                isNewUser: false,
+                ekycCompleted: true,
+                displayName: 'Compliance Reviewer'
             }
         ]
     },
@@ -117,7 +127,12 @@ const mockData = {
         admin: {
             name: 'Platform Admin',
             organization: 'ProcureX Platform',
-            permissions: ['compliance:review', 'compliance:approve', 'compliance:hold', 'compliance:return', 'audit:read']
+            permissions: ['admin:search', 'admin:users:read', 'admin:audit:read', 'admin:compliance:action', 'compliance:review', 'compliance:approve', 'compliance:hold', 'compliance:return', 'audit:read', 'reports:export']
+        },
+        complianceReviewer: {
+            name: 'Compliance Reviewer',
+            organization: 'ProcureX Platform',
+            permissions: ['evaluation:read', 'compliance:review', 'compliance:flag', 'compliance:return', 'audit:read', 'reports:export']
         }
     },
 

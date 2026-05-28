@@ -356,8 +356,13 @@ function getEvaluationDraft(reference = '') {
     }
 }
 
+function isEvaluationAdminOversightSession() {
+    return mockData.session?.accountType === 'admin' || mockData.pendingAccount?.accountType === 'admin';
+}
+
 function saveEvaluationDraft(reference = '', payload = {}) {
     if (!reference) return;
+    if (isEvaluationAdminOversightSession()) return;
     try {
         localStorage.setItem(`procurex.evaluationDraft.${reference}`, JSON.stringify(payload));
     } catch (error) {
@@ -503,7 +508,7 @@ function createEvaluationReviewItem(sectionId, title, options = {}) {
 function getEvaluationTypeSections(tender = {}) {
     const profileId = getEvaluationProfileId(tender);
     const commonFirst = [{ id: 'supplier-info', label: 'Supplier Information', detail: 'Submission identity, receipt, contact, and offer summary' }];
-    const commonLast = [{ id: 'declaration', label: 'Declaration and Recommendation', detail: 'Final evaluator declaration and recommendation readiness' }];
+    const commonLast = [{ id: 'declaration', label: 'Declaration and Recommendation', detail: 'Final buyer declaration and recommendation readiness' }];
     const sections = {
         goods: [
             ...commonFirst,
@@ -616,9 +621,9 @@ function getEvaluationReviewSections(tender = {}) {
         }));
     });
 
-    byId.get('declaration')?.items.push(createEvaluationReviewItem('declaration', 'Evaluator confirms all supplier responses were reviewed', {
-        id: 'evaluator-final-declaration',
-        category: 'Evaluator declaration',
+    byId.get('declaration')?.items.push(createEvaluationReviewItem('declaration', 'Buyer confirms all supplier responses were reviewed', {
+        id: 'buyer-final-declaration',
+        category: 'Buyer declaration',
         description: 'Confirm the evaluation decision is based on the published tender requirements and recorded bid evidence.',
         source: 'system',
         maxScore: 0
@@ -844,6 +849,11 @@ function getEvaluationRecommendedBid(tender = {}, bids = []) {
 }
 
 function renderEvaluationShell(content, title = 'Evaluation', subtitle = '') {
+    const oversightNotice = isEvaluationAdminOversightSession() ? `
+        <section class="evaluation-notice warning">
+            System Admin / Compliance Reviewer oversight mode: this page is read-only for procurement rule checks. Buyer users enter scores, percentages, rankings, recommendations, and complete the evaluation.
+        </section>
+    ` : '';
     return `
         <div class="main-layout procurement-layout evaluation-app-layout">
             <aside class="sidebar evaluation-sidebar">
@@ -860,6 +870,7 @@ function renderEvaluationShell(content, title = 'Evaluation', subtitle = '') {
                 </ul>
             </aside>
             <main class="main-content procurement-content evaluation-workspace">
+                ${oversightNotice}
                 ${content}
             </main>
         </div>
@@ -884,6 +895,29 @@ function renderEvaluationTenderList() {
                 <div><strong>${readyCount}</strong><span>Ready to evaluate</span></div>
                 <div><strong>${draftRows.length}</strong><span>Drafted evaluations</span></div>
                 <div><strong>${lockedCount}</strong><span>Locked until closing</span></div>
+            </div>
+        </section>
+
+        <section class="procurement-panel evaluation-panel records-filter-panel" data-evaluation-tender-filter-panel>
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Evaluation records search</span>
+                    <h2>Find tender evaluations</h2>
+                </div>
+                ${renderEvaluationStatusBadge(`${tenders.length + draftRows.length} records`)}
+            </div>
+            <div class="records-filter-grid">
+                <input class="form-input" type="search" data-evaluation-list-search placeholder="Search tender, buyer, reference, procurement type">
+                <select class="form-input" data-evaluation-list-status>
+                    <option value="">All evaluation statuses</option>
+                    <option value="ready">Ready</option>
+                    <option value="locked">Locked</option>
+                    <option value="draft">Draft</option>
+                </select>
+                <select class="form-input" data-evaluation-list-type>
+                    <option value="">All procurement types</option>
+                    ${[...new Set(tenders.map(tender => getEvaluationProfile(tender).id).filter(Boolean))].sort().map(type => `<option value="${escapeEvaluationHtml(type)}">${escapeEvaluationHtml(type)}</option>`).join('')}
+                </select>
             </div>
         </section>
 
@@ -922,7 +956,7 @@ function renderEvaluationDraftTenderRow(item = {}) {
     const savedAt = item.savedAt ? new Date(item.savedAt).toLocaleString() : 'Not recorded';
     const supplierIndex = Number(draft.currentSupplierIndex || draft.goods?.currentSupplierIndex || draft.works?.currentSupplierIndex || draft.services?.currentSupplierIndex || draft.consultancy?.currentSupplierIndex || 0) + 1;
     return `
-        <article class="evaluation-tender-row is-ready is-draft">
+        <article class="evaluation-tender-row is-ready is-draft" data-evaluation-tender-row data-evaluation-status="draft" data-evaluation-type="${escapeEvaluationHtml(profile.id)}" data-search="${escapeEvaluationHtml([profile.id, tender.title, tender.reference, tender.organization, item.stageLabel, draft.status].filter(Boolean).join(' ').toLowerCase())}">
             <div class="evaluation-tender-row-main">
                 <span class="section-kicker">${escapeEvaluationHtml(profile.id)} evaluation draft</span>
                 <h3>${escapeEvaluationHtml(tender.title)}</h3>
@@ -954,7 +988,7 @@ function renderEvaluationTenderRow(tender = {}) {
     const progress = getEvaluationProgress(tender.reference, tender);
     const lockedText = tender.ready ? 'Evaluation open' : 'Evaluation opens after tender closing';
     return `
-        <article class="evaluation-tender-row ${tender.ready ? 'is-ready' : 'is-locked'}">
+        <article class="evaluation-tender-row ${tender.ready ? 'is-ready' : 'is-locked'}" data-evaluation-tender-row data-evaluation-status="${tender.ready ? 'ready' : 'locked'}" data-evaluation-type="${escapeEvaluationHtml(profile.id)}" data-search="${escapeEvaluationHtml([profile.id, tender.title, tender.reference, tender.type, tender.organization, tender.status, lockedText].filter(Boolean).join(' ').toLowerCase())}">
             <div class="evaluation-tender-row-main">
                 <span class="section-kicker">${escapeEvaluationHtml(profile.id)} procurement</span>
                 <h3>${escapeEvaluationHtml(tender.title)}</h3>
@@ -1088,12 +1122,44 @@ function renderEvaluationRequirementRow(tender = {}, bid = {}, bidderIndex = 0, 
                         <input class="form-input" type="number" min="0" max="${escapeEvaluationHtml(requirement.maxScore)}" step="0.5" value="${escapeEvaluationHtml(score)}" data-evaluation-score>
                     </label>
                 ` : ''}
-                <label class="wide">Evaluator comment ${commentRequired ? '<span>Required</span>' : ''}
+                <label class="wide">Buyer comment ${commentRequired ? '<span>Required</span>' : ''}
                     <textarea class="form-input" rows="3" data-evaluation-comment placeholder="Record reason, evidence note, or clarification needed.">${escapeEvaluationHtml(comment)}</textarea>
                 </label>
                 ${commentRequired && !comment ? '<p class="evaluation-field-alert">A comment is required for this decision.</p>' : ''}
             </div>
         </article>
+    `;
+}
+
+function renderEvaluationEvidenceSearchPanel(tender = {}, bid = {}, bidderIndex = 0) {
+    const rows = getEvaluationBidEvidenceRows(tender, bid, bidderIndex);
+    if (!rows.length) return '';
+    return `
+        <section class="evaluation-evidence-search" data-evaluation-evidence-search-root>
+            <div class="panel-heading">
+                <div>
+                    <span class="section-kicker">Submitted evidence</span>
+                    <h3>Search this supplier package</h3>
+                </div>
+                <span class="badge badge-info" data-evaluation-evidence-count>${rows.length} evidence row${rows.length === 1 ? '' : 's'}</span>
+            </div>
+            <div class="records-filter-grid">
+                <input class="form-input" type="search" data-evaluation-evidence-search placeholder="Search file, section, response, requirement">
+                <select class="form-input" data-evaluation-evidence-section>
+                    <option value="">All sections</option>
+                    ${[...new Set(rows.map(row => row.section || 'Submitted evidence'))].sort().map(section => `<option>${escapeEvaluationHtml(section)}</option>`).join('')}
+                </select>
+            </div>
+            <div class="evaluation-evidence-search-list">
+                ${rows.map(row => `
+                    <article class="evaluation-evidence-item" data-evaluation-evidence-row data-section="${escapeEvaluationHtml(row.section || 'Submitted evidence')}" data-search="${escapeEvaluationHtml([row.section, row.label, row.value, row.fileKey, getEvaluationEvidenceDocumentName(row)].filter(Boolean).join(' ').toLowerCase())}">
+                        <span>${escapeEvaluationHtml(row.section || 'Submitted evidence')}</span>
+                        <p>${escapeEvaluationHtml(row.label || 'Evidence')}: ${escapeEvaluationHtml(row.value || getEvaluationEvidenceDocumentName(row) || 'Provided')}</p>
+                        ${renderEvaluationEvidenceDocumentActions(row)}
+                    </article>
+                `).join('')}
+            </div>
+        </section>
     `;
 }
 
@@ -1112,6 +1178,7 @@ function renderEvaluationActiveSection(tender = {}, bid = {}, bidderIndex = 0, s
                 </div>
                 ${renderEvaluationStatusBadge(`${section.items.length} checks`)}
             </div>
+            ${renderEvaluationEvidenceSearchPanel(tender, bid, bidderIndex)}
             <div class="evaluation-requirement-list">
                 ${section.items.map(item => renderEvaluationRequirementRow(tender, bid, bidderIndex, item, supplierRows[item.id] || {})).join('')}
             </div>
@@ -1467,7 +1534,7 @@ function renderGoodsCriteriaEvaluation(tender = {}, bid = {}, bidderIndex = 0, g
                                         <input class="form-input" type="number" min="0" max="${escapeEvaluationHtml(criterion.maxScore)}" step="0.5" value="${escapeEvaluationHtml(saved.score ?? '')}" data-goods-criterion-score>
                                     </label>
                                 ` : ''}
-                                <label class="wide">Evaluator comment
+                                <label class="wide">Buyer comment
                                     <textarea class="form-input" rows="3" data-goods-criterion-comment>${escapeEvaluationHtml(saved.comment || '')}</textarea>
                                 </label>
                             </div>
@@ -4288,7 +4355,7 @@ function renderBidEvaluationWorkspace(reference = '') {
                 <div>
                     <span class="section-kicker">Finish evaluation</span>
                     <h3>${completion.canComplete ? 'Ready to complete this tender evaluation' : 'Complete all supplier requirement decisions'}</h3>
-                    <p>${completion.complete} of ${completion.total} required supplier checks are complete. Not eligible and clarification decisions require evaluator comments before completion.</p>
+                    <p>${completion.complete} of ${completion.total} required supplier checks are complete. Not eligible and clarification decisions require buyer comments before completion.</p>
                     ${recommended.supplier ? `<p>Current recommended supplier basis: ${escapeEvaluationHtml(recommended.supplier)} / ${formatEvaluationMoney(recommended.financial?.correctedPrice || recommended.price || mockData.bidEvaluation?.recommendation?.amount || 0, recommended.financial?.currency || mockData.bidEvaluation?.recommendation?.currency || 'TZS')}.</p>` : ''}
                 </div>
                 <div class="inline-actions">
@@ -4997,6 +5064,19 @@ function renderBidEvaluation() {
     return renderBidEvaluationWorkspace(selectedReference);
 }
 
+function initializeBidEvaluation() {
+    if (!isEvaluationAdminOversightSession()) return;
+    document.querySelectorAll('[data-evaluation-workspace] input, [data-evaluation-workspace] select, [data-evaluation-workspace] textarea').forEach(control => {
+        control.disabled = true;
+    });
+    document.querySelectorAll('[data-evaluation-save-draft], [data-evaluation-complete]').forEach(button => {
+        button.disabled = true;
+        button.title = 'System Admin and Compliance Reviewer accounts can monitor only. Buyer users complete scoring and selection.';
+    });
+}
+
+window.initializeBidEvaluation = initializeBidEvaluation;
+
 if (window.app) {
     window.app.renderBidEvaluation = renderBidEvaluation;
 }
@@ -5032,6 +5112,17 @@ if (typeof document !== 'undefined' && !window.procurexEvaluationRedesignListene
             const action = documentActionButton.getAttribute('data-evaluation-document-action') || 'view';
             if (action === 'download') downloadEvaluationEvidenceDocument(documentId);
             else openEvaluationEvidenceDocument(documentId);
+            if (typeof appendProcurexAdminAudit === 'function') {
+                const adminOversight = isEvaluationAdminOversightSession();
+                appendProcurexAdminAudit({
+                    action: `${adminOversight ? 'Compliance reviewer' : 'Buyer'} ${action === 'download' ? 'downloaded' : 'viewed'} evidence`,
+                    entityType: 'Evaluation Evidence',
+                    entityRef: getSelectedEvaluationTenderReference(),
+                    actorRole: adminOversight ? 'Compliance Reviewer' : 'Buyer Evaluator',
+                    severity: 'info',
+                    summary: `Evidence document ${documentId} was ${action === 'download' ? 'downloaded' : 'viewed'} during evaluation.`
+                });
+            }
             return;
         }
 
@@ -5132,13 +5223,38 @@ if (typeof document !== 'undefined' && !window.procurexEvaluationRedesignListene
             saveEvaluationDraft(reference, draft);
         } else if (saveButton) {
             const reference = saveButton.getAttribute('data-evaluation-save-draft') || getSelectedEvaluationTenderReference();
+            if (isEvaluationAdminOversightSession()) {
+                if (typeof appendProcurexAdminAudit === 'function') {
+                    appendProcurexAdminAudit({ action: 'Compliance reviewer viewed buyer evaluation draft', entityType: 'Evaluation Oversight', entityRef: reference, ref: reference, actorRole: 'Compliance Reviewer', summary: `Read-only oversight view opened for ${reference}.` });
+                }
+                setSelectedEvaluationTender('');
+                if (window.app?.navigateTo) window.app.navigateTo('bid-evaluation');
+                return;
+            }
             saveEvaluationDraft(reference, collectEvaluationDraftFromDom(reference, 'Saved as draft'));
+            if (typeof appendProcurexAdminAudit === 'function') {
+                appendProcurexAdminAudit({ action: 'Buyer saved evaluation draft', entityType: 'Evaluation', entityRef: reference, ref: reference, actorRole: 'Buyer Evaluator', summary: `Buyer evaluation draft saved for ${reference}.` });
+            }
             setSelectedEvaluationTender('');
         } else if (completeButton) {
-            completeEvaluation(completeButton.getAttribute('data-evaluation-complete') || getSelectedEvaluationTenderReference());
+            const reference = completeButton.getAttribute('data-evaluation-complete') || getSelectedEvaluationTenderReference();
+            if (isEvaluationAdminOversightSession()) {
+                if (typeof appendProcurexAdminAudit === 'function') {
+                    appendProcurexAdminAudit({ action: 'Compliance reviewer attempted read-only evaluation completion', entityType: 'Evaluation Oversight', entityRef: reference, ref: reference, actorRole: 'Compliance Reviewer', severity: 'warning', summary: `Completion is restricted to buyer evaluators for ${reference}.` });
+                }
+                return;
+            }
+            completeEvaluation(reference);
+            if (typeof appendProcurexAdminAudit === 'function') {
+                appendProcurexAdminAudit({ action: 'Buyer completed evaluation', entityType: 'Evaluation', entityRef: reference, ref: reference, actorRole: 'Buyer Evaluator', severity: 'info', summary: `Buyer evaluation completed for ${reference}.` });
+            }
         } else if (viewReportButton) {
             const reference = viewReportButton.getAttribute('data-evaluation-view-report') || getSelectedEvaluationTenderReference();
-            saveEvaluationDraft(reference, collectEvaluationDraftFromDom(reference, 'Saved as draft'));
+            if (!isEvaluationAdminOversightSession()) saveEvaluationDraft(reference, collectEvaluationDraftFromDom(reference, 'Saved as draft'));
+            if (typeof appendProcurexAdminAudit === 'function') {
+                const adminOversight = isEvaluationAdminOversightSession();
+                appendProcurexAdminAudit({ action: `${adminOversight ? 'Compliance reviewer previewed buyer evaluation report' : 'Buyer previewed evaluation report'}`, entityType: 'Evaluation Report', entityRef: reference, ref: reference, actorRole: adminOversight ? 'Compliance Reviewer' : 'Buyer Evaluator', summary: `Evaluation report preview opened for ${reference}.` });
+            }
             setSelectedEvaluationReport(reference);
         } else if (closeReportButton) {
             setSelectedEvaluationReport('');
@@ -5160,9 +5276,73 @@ if (typeof document !== 'undefined' && !window.procurexEvaluationRedesignListene
                 window.print();
                 reportNode.remove();
             }
+            if (typeof appendProcurexAdminAudit === 'function') {
+                const adminOversight = isEvaluationAdminOversightSession();
+                appendProcurexAdminAudit({ action: `${adminOversight ? 'Compliance reviewer exported buyer evaluation report' : 'Buyer exported evaluation report'}`, entityType: 'Evaluation Report', entityRef: reference, ref: reference, actorRole: adminOversight ? 'Compliance Reviewer' : 'Buyer Evaluator', summary: `Evaluation report exported for ${reference}.` });
+            }
             return;
         }
 
         if (window.app?.navigateTo) window.app.navigateTo('bid-evaluation');
+    });
+
+    document.addEventListener('input', (event) => {
+        if (event.target.matches('[data-evaluation-list-search]')) {
+            const panel = event.target.closest('[data-evaluation-tender-filter-panel]');
+            const root = panel?.parentElement || document;
+            const query = String(event.target.value || '').trim().toLowerCase();
+            const status = panel?.querySelector('[data-evaluation-list-status]')?.value || '';
+            const type = panel?.querySelector('[data-evaluation-list-type]')?.value || '';
+            root.querySelectorAll('[data-evaluation-tender-row]').forEach(row => {
+                const visible = (!query || String(row.dataset.search || '').includes(query))
+                    && (!status || row.dataset.evaluationStatus === status)
+                    && (!type || row.dataset.evaluationType === type);
+                row.hidden = !visible;
+            });
+        }
+        if (event.target.matches('[data-evaluation-evidence-search]')) {
+            const root = event.target.closest('[data-evaluation-evidence-search-root]');
+            const query = String(event.target.value || '').trim().toLowerCase();
+            const section = root?.querySelector('[data-evaluation-evidence-section]')?.value || '';
+            let count = 0;
+            root?.querySelectorAll('[data-evaluation-evidence-row]').forEach(row => {
+                const visible = (!query || String(row.dataset.search || '').includes(query))
+                    && (!section || row.dataset.section === section);
+                row.hidden = !visible;
+                if (visible) count += 1;
+            });
+            const badge = root?.querySelector('[data-evaluation-evidence-count]');
+            if (badge) badge.textContent = `${count} evidence row${count === 1 ? '' : 's'}`;
+        }
+    });
+
+    document.addEventListener('change', (event) => {
+        if (event.target.matches('[data-evaluation-list-status], [data-evaluation-list-type]')) {
+            const panel = event.target.closest('[data-evaluation-tender-filter-panel]');
+            const root = panel?.parentElement || document;
+            const query = String(panel?.querySelector('[data-evaluation-list-search]')?.value || '').trim().toLowerCase();
+            const status = panel?.querySelector('[data-evaluation-list-status]')?.value || '';
+            const type = panel?.querySelector('[data-evaluation-list-type]')?.value || '';
+            root.querySelectorAll('[data-evaluation-tender-row]').forEach(row => {
+                const visible = (!query || String(row.dataset.search || '').includes(query))
+                    && (!status || row.dataset.evaluationStatus === status)
+                    && (!type || row.dataset.evaluationType === type);
+                row.hidden = !visible;
+            });
+        }
+        if (event.target.matches('[data-evaluation-evidence-section]')) {
+            const root = event.target.closest('[data-evaluation-evidence-search-root]');
+            const query = String(root?.querySelector('[data-evaluation-evidence-search]')?.value || '').trim().toLowerCase();
+            const section = event.target.value || '';
+            let count = 0;
+            root?.querySelectorAll('[data-evaluation-evidence-row]').forEach(row => {
+                const visible = (!query || String(row.dataset.search || '').includes(query))
+                    && (!section || row.dataset.section === section);
+                row.hidden = !visible;
+                if (visible) count += 1;
+            });
+            const badge = root?.querySelector('[data-evaluation-evidence-count]');
+            if (badge) badge.textContent = `${count} evidence row${count === 1 ? '' : 's'}`;
+        }
     });
 }
