@@ -87,16 +87,6 @@ const mockData = {
                 isNewUser: false,
                 ekycCompleted: true,
                 displayName: 'Admin User'
-            },
-            {
-                email: 'compliance.reviewer@procurex.tz',
-                phone: '+255 716 777 888',
-                password: 'Review123!',
-                role: 'compliance-reviewer',
-                accountType: 'admin',
-                isNewUser: false,
-                ekycCompleted: true,
-                displayName: 'Compliance Reviewer'
             }
         ]
     },
@@ -127,12 +117,7 @@ const mockData = {
         admin: {
             name: 'Platform Admin',
             organization: 'ProcureX Platform',
-            permissions: ['admin:search', 'admin:users:read', 'admin:audit:read', 'admin:compliance:action', 'compliance:review', 'compliance:approve', 'compliance:hold', 'compliance:return', 'audit:read', 'reports:export']
-        },
-        complianceReviewer: {
-            name: 'Compliance Reviewer',
-            organization: 'ProcureX Platform',
-            permissions: ['evaluation:read', 'compliance:review', 'compliance:flag', 'compliance:return', 'audit:read', 'reports:export']
+            permissions: ['admin:search', 'admin:users:read', 'admin:audit:read', 'admin:compliance:action', 'evaluation:read', 'compliance:review', 'compliance:approve', 'compliance:hold', 'compliance:flag', 'compliance:return', 'audit:read', 'reports:export']
         }
     },
 
@@ -4641,6 +4626,240 @@ const mockData = {
         ]
     },
 
+    // Awarding and Contracts lifecycle workspace
+    awardingContracts: {
+        summary: [
+            { label: 'Pending Awarding', value: 3, detail: 'Buyer-side tenders ready for award or contract action', tab: 'pending-awarding' },
+            { label: 'Awarded to you', value: 3, detail: 'Supplier-side awards awaiting response, review, or signature', tab: 'awarded-to-us' },
+            { label: 'Pending Action', value: 4, detail: 'Contracts needing buyer or supplier action', tab: 'pending-action' },
+            { label: 'Active Contracts', value: 2, detail: 'Signed contracts under delivery and payment tracking', tab: 'active-contracts' },
+            { label: 'Closed Contracts', value: 2, detail: 'Completed, terminated, or archived contract records', tab: 'closed-contracts' }
+        ],
+        pendingAwarding: [
+            {
+                title: 'Construction of Rural Health Centers',
+                reference: 'PX-TND-2026-014',
+                procurementType: 'Works',
+                evaluationStatus: 'Completed',
+                recommendedSupplier: 'ABC Construction Ltd',
+                awardStatus: 'Pending Award Decision',
+                contractStatus: 'Not Created',
+                action: 'Continue Award',
+                nav: 'award-recommendation'
+            },
+            {
+                title: 'Supply of Office Furniture',
+                reference: 'PX-TND-2026-021',
+                procurementType: 'Goods',
+                evaluationStatus: 'Completed',
+                recommendedSupplier: 'Kijani Office Supplies',
+                awardStatus: 'Award Approved',
+                contractStatus: 'Awaiting Contract Generation',
+                action: 'Generate Contract',
+                nav: 'contract-negotiation'
+            },
+            {
+                title: 'Cleaning Services Framework',
+                reference: 'PX-TND-2026-033',
+                procurementType: 'Services',
+                evaluationStatus: 'Ready',
+                recommendedSupplier: 'Usafi Pro Services',
+                awardStatus: 'Notice Drafted',
+                contractStatus: 'Not Created',
+                action: 'Send Award',
+                nav: 'award-recommendation'
+            }
+        ],
+        awardedToUs: [
+            {
+                title: 'Supply of Laptops',
+                buyer: 'ABC University',
+                awardValue: 25000000,
+                currency: 'TZS',
+                awardStatus: 'Awaiting Acceptance',
+                contractStatus: 'Not Started',
+                requiredAction: 'Accept Award',
+                nav: 'award-recommendation'
+            },
+            {
+                title: 'Maintenance Services',
+                buyer: 'City Council',
+                awardValue: 8000000,
+                currency: 'TZS',
+                awardStatus: 'Award Accepted',
+                contractStatus: 'Contract Review',
+                requiredAction: 'Review Contract',
+                nav: 'contract-negotiation'
+            },
+            {
+                title: 'Consultancy Assignment',
+                buyer: 'Health Project',
+                awardValue: 15000000,
+                currency: 'TZS',
+                awardStatus: 'Terms Agreed',
+                contractStatus: 'Awaiting Your Signature',
+                requiredAction: 'Sign Contract',
+                nav: 'contract-negotiation'
+            }
+        ],
+        pendingActions: [
+            { contract: 'Clinic Renovation Works', role: 'Buyer', otherParty: 'ABC Construction Ltd', status: 'Supplier Signed', requiredAction: 'Buyer Signature Required', dueDate: '2026-07-05', nav: 'contract-negotiation' },
+            { contract: 'Laptop Supply', role: 'Supplier', otherParty: 'ABC University', status: 'Contract Received', requiredAction: 'Review and Sign', dueDate: '2026-07-04', nav: 'contract-negotiation' },
+            { contract: 'Cleaning Services', role: 'Buyer', otherParty: 'Usafi Pro Services', status: 'Award Accepted', requiredAction: 'Generate Contract', dueDate: '2026-07-06', nav: 'contract-negotiation' },
+            { contract: 'Rural Health Centers', role: 'Buyer', otherParty: 'ABC Construction Ltd', status: 'Change Requested', requiredAction: 'Review Supplier Request', dueDate: '2026-07-03', nav: 'contract-negotiation' }
+        ],
+        activeContracts: [
+            { title: 'Rural Health Centers', role: 'Buyer', otherParty: 'ABC Construction Ltd', progress: 65, status: 'In Progress', nextMilestone: 'MEP installations inspection', paymentStatus: 'Invoice Review', nav: 'post-award-tracking' },
+            { title: 'ICT Equipment Supply', role: 'Supplier', otherParty: 'XYZ College', progress: 20, status: 'Delivery Pending', nextMilestone: 'First batch delivery', paymentStatus: 'Not Invoiced', nav: 'post-award-tracking' }
+        ],
+        closedContracts: [
+            { title: 'Office Stationery Supply', role: 'Buyer', otherParty: 'Tanzania Stationers', finalValue: 12300000, currency: 'TZS', completionDate: '2026-03-15', performanceRating: '4.5/5', status: 'Completed' },
+            { title: 'Network Cabling Works', role: 'Supplier', otherParty: 'North District Hospital', finalValue: 9100000, currency: 'TZS', completionDate: '2026-02-28', performanceRating: '4.2/5', status: 'Closed' }
+        ],
+        award: {
+            tenderTitle: 'Construction of Rural Health Centers',
+            reference: 'PX-TND-2026-014',
+            buyer: 'Dodoma Regional Health Authority',
+            procurementType: 'Works',
+            closingDate: '2026-06-10',
+            evaluationStatus: 'Completed',
+            awardStatus: 'Awaiting Supplier Acceptance',
+            selectedSupplier: 'ABC Construction Ltd',
+            awardAmount: 4670000000,
+            currency: 'TZS',
+            reason: 'Best evaluated responsive bid with strong methodology, corrected price, and confirmed mobilization plan.',
+            approval: {
+                approver: 'Authorized Representative',
+                date: '2026-06-30',
+                note: 'Award package reviewed against final evaluation report and conflict declaration.',
+                status: 'Approved'
+            },
+            notices: [
+                { type: 'Notice of Intention to Award', recipient: 'All bidders', status: 'Sent', deadline: '2026-07-14' },
+                { type: 'Unsuccessful Bidder Notice', recipient: '2 bidders', status: 'Ready', deadline: '2026-07-14' },
+                { type: 'Award Notification', recipient: 'ABC Construction Ltd', status: 'Awaiting Response', deadline: '2026-07-05' }
+            ],
+            supplierResponses: [
+                { action: 'Accept Award', status: 'Primary path', detail: 'Unlocks pre-contract documents and draft contract generation.' },
+                { action: 'Request Clarification', status: 'Allowed', detail: 'Buyer can clarify without changing evaluation result or bid substance.' },
+                { action: 'Decline Award', status: 'Fallback', detail: 'Buyer may award next ranked responsive bidder or cancel the award process.' }
+            ]
+        },
+        contract: {
+            contractId: 'PX-2026-0892',
+            title: 'Construction of Rural Health Centers',
+            tenderReference: 'PX-TND-2026-014',
+            buyer: 'Dodoma Regional Health Authority',
+            supplier: 'ABC Construction Ltd',
+            value: 4670000000,
+            currency: 'TZS',
+            duration: '90 days',
+            startDate: '2026-07-15',
+            endDate: '2026-10-13',
+            status: 'Supplier Reviewing Counter-Proposal',
+            poMatched: true,
+            budgetVerified: true,
+            supplierConfirmedTerms: true,
+            buyerConfirmedTerms: false,
+            lockedForSignature: false,
+            clauses: [
+                { title: 'Awarded Supplier', text: 'ABC Construction Ltd is the awarded supplier selected through the completed evaluation.', category: 'Award Data', lock: 'Locked', status: 'Agreed', comments: 0, requestedChange: 'Not negotiable after award.' },
+                { title: 'Contract Price', text: 'Total contract value is TZS 4,670,000,000 based on the final evaluated bid price.', category: 'Price', lock: 'Locked', status: 'Agreed', comments: 1, requestedChange: 'Only formal arithmetic or tax clarification may be recorded.' },
+                { title: 'Scope of Works', text: 'Construct and hand over rural health centers according to the tender scope, drawings, BOQ, and accepted methodology.', category: 'Scope', lock: 'Locked', status: 'Agreed', comments: 1, requestedChange: 'Main scope cannot be materially changed.' },
+                { title: 'Delivery Schedule', text: 'Milestones run from mobilization to final handover over a 90 day period.', category: 'Delivery', lock: 'Negotiable', status: 'Countered', comments: 3, requestedChange: 'Supplier requested 21 days for first milestone; buyer countered 18 days.' },
+                { title: 'Payment Terms', text: 'Payment follows accepted milestones, interim certificates, inspection, and invoice approval.', category: 'Payment', lock: 'Negotiable', status: 'Pending Buyer Review', comments: 2, requestedChange: 'Supplier requested 30% advance; buyer reviewing retention and security conditions.' },
+                { title: 'Inspection and Acceptance', text: 'Buyer inspection, completion certificates, and correction of defects are required before milestone acceptance.', category: 'Acceptance', lock: 'Negotiable', status: 'Agreed', comments: 1, requestedChange: 'Inspection notice period clarified to 3 business days.' },
+                { title: 'Performance Security', text: 'Supplier submits performance security equal to 10% of contract value before effectiveness.', category: 'Security', lock: 'Negotiable', status: 'Pending Supplier Document', comments: 1, requestedChange: 'Submission deadline requested within 7 days after signing.' },
+                { title: 'Dispute Resolution', text: 'Disputes are first handled through contract notices, then escalation and formal resolution.', category: 'Clause', lock: 'Negotiable', status: 'Agreed', comments: 0, requestedChange: 'Clause wording accepted.' }
+            ],
+            negotiationRequests: [
+                { clause: 'Delivery Schedule', requestBy: 'Supplier', request: 'Extend first milestone from 14 to 21 days due to imported equipment clearance.', status: 'Countered', buyerResponse: 'Counter-proposed 18 days to protect semester opening deadline.' },
+                { clause: 'Payment Terms', requestBy: 'Supplier', request: 'Add 30% advance payment against performance security.', status: 'Pending Buyer Review', buyerResponse: 'Finance and budget verification in progress.' },
+                { clause: 'Inspection and Acceptance', requestBy: 'Supplier', request: 'Clarify inspection response time after milestone submission.', status: 'Accepted', buyerResponse: 'Inspection response set to 3 business days.' },
+                { clause: 'Warranty / Defects Liability', requestBy: 'Buyer', request: 'Defects liability must remain 12 months from completion certificate.', status: 'Accepted', buyerResponse: 'Supplier accepted without change.' }
+            ],
+            versions: [
+                { version: '1.0', changedBy: 'Buyer', date: '2026-07-01 09:00', summary: 'Initial draft contract generated from tender, bid, award, milestones, and payment rules.', previousClause: '-', newClause: 'Draft contract body created.', reason: 'Award accepted and contract drafting opened.' },
+                { version: '1.1', changedBy: 'Supplier', date: '2026-07-02 11:15', summary: 'Supplier requested schedule and advance payment changes.', previousClause: '14 day first milestone; no advance payment.', newClause: '21 day first milestone; 30% advance request.', reason: 'Mobilization and cash flow clarification.' },
+                { version: '1.2', changedBy: 'Buyer', date: '2026-07-02 14:20', summary: 'Buyer counter-proposed schedule and accepted inspection clarification.', previousClause: '21 day first milestone request.', newClause: '18 day first milestone counter-proposal.', reason: 'Project must complete before semester start.' },
+                { version: '2.0', changedBy: 'System', date: 'Pending', summary: 'Final agreed version after both parties confirm terms.', previousClause: 'Negotiable clauses open.', newClause: 'Contract locked for signature.', reason: 'Dual confirmation required.' }
+            ],
+            documents: [
+                { name: 'Draft Contract v1.2', type: 'Contract Draft', status: 'Current', owner: 'Buyer' },
+                { name: 'Performance Security Undertaking', type: 'Pre-contract Requirement', status: 'Pending Upload', owner: 'Supplier' },
+                { name: 'Tax Clearance', type: 'Supplier Document', status: 'Verified', owner: 'Supplier' },
+                { name: 'Award Approval Memo', type: 'Award Record', status: 'Locked', owner: 'Buyer' }
+            ],
+            signatures: [
+                { party: 'Supplier', representative: 'Managing Director', status: 'Ready after terms lock', timestamp: 'Pending' },
+                { party: 'Buyer', representative: 'Authorized Representative', status: 'Countersign after supplier', timestamp: 'Pending' }
+            ],
+            activityLog: [
+                { time: '2026-06-30 09:15', actor: 'Buyer', event: 'Award decision approved', status: 'Complete' },
+                { time: '2026-07-01 09:00', actor: 'Buyer', event: 'Draft contract generated', status: 'Complete' },
+                { time: '2026-07-02 11:15', actor: 'Supplier', event: 'Requested clause changes', status: 'Change Requested' },
+                { time: '2026-07-02 14:20', actor: 'Buyer', event: 'Counter-proposal sent', status: 'Counter-Proposal Sent' },
+                { time: 'Pending', actor: 'Both Parties', event: 'Confirm terms and lock for signing', status: 'Next' }
+            ],
+            messages: [
+                { from: 'buyer', message: 'Please review the payment terms in section 3.2.', timestamp: '2026-07-02 10:30' },
+                { from: 'supplier', message: 'We can accept the revised inspection timeline, but request schedule relief for imported items.', timestamp: '2026-07-02 11:15' },
+                { from: 'buyer', message: 'We counter-propose 18 days instead of 21 days for the first milestone.', timestamp: '2026-07-02 14:20' }
+            ]
+        },
+        execution: {
+            contractId: 'PX-2026-0892',
+            title: 'Construction of Rural Health Centers',
+            status: 'In Progress',
+            progress: 65,
+            contractValue: 4670000000,
+            currency: 'TZS',
+            startDate: '2026-07-15',
+            endDate: '2026-10-13',
+            supplier: 'ABC Construction Ltd',
+            buyer: 'Dodoma Regional Health Authority',
+            milestones: [
+                { name: 'Mobilization', description: 'Site handover, work program, and performance security verification.', scheduled: '2026-07-20', actual: '2026-07-18', status: 'Accepted', evidence: 'Site handover memo', paymentPercent: 10 },
+                { name: 'MEP Installations', description: 'Mechanical, electrical, and plumbing installations.', scheduled: '2026-08-20', actual: '2026-08-23', status: 'Under Review', evidence: 'Inspection request GRN-2026-002', paymentPercent: 40 },
+                { name: 'Final Handover', description: 'Finishing works, completion certificate, and defect list.', scheduled: '2026-09-30', actual: '-', status: 'Pending', evidence: 'Not submitted', paymentPercent: 50 }
+            ],
+            invoices: [
+                { invoice: 'INV-2026-001', milestone: 'Mobilization', amount: 467000000, status: 'Paid', match: 'PO, certificate, and invoice align.' },
+                { invoice: 'INV-2026-002', milestone: 'MEP Installations', amount: 1868000000, status: 'Pending Approval', match: 'Inspection accepted after original due date; finance review required.' },
+                { invoice: 'INV-2026-003', milestone: 'Final Handover', amount: 2335000000, status: 'Blocked', match: 'No completion certificate yet.' }
+            ],
+            issues: [
+                { id: 'ISS-001', title: 'Delivery delay for Item #5', raisedBy: 'Buyer', priority: 'Medium', responsibleParty: 'Supplier', status: 'Resolved', requiredAction: 'Record accepted revised schedule.' },
+                { id: 'ISS-002', title: 'Missing updated insurance document', raisedBy: 'Buyer', priority: 'High', responsibleParty: 'Supplier', status: 'Action Required', requiredAction: 'Upload valid insurance certificate.' }
+            ],
+            variations: [
+                { title: 'Extension of Time for Imported Equipment', requestedBy: 'Supplier', priceImpact: 'None', timelineImpact: '4 days', status: 'Under Review', document: 'Courier notice and customs letter' },
+                { title: 'Additional Drainage Works', requestedBy: 'Buyer', priceImpact: 'TZS 42,000,000', timelineImpact: '6 days', status: 'Draft Variation', document: 'Site instruction draft' }
+            ],
+            closureChecklist: [
+                { item: 'All deliverables completed', status: 'Pending' },
+                { item: 'All inspections completed', status: 'In Progress' },
+                { item: 'All invoices processed', status: 'Pending' },
+                { item: 'All disputes resolved', status: 'In Progress' },
+                { item: 'Performance security release recorded', status: 'Pending' },
+                { item: 'Supplier performance rated', status: 'Pending' }
+            ],
+            performance: [
+                { criteria: 'Delivery timeliness', rating: 4 },
+                { criteria: 'Quality of works', rating: 5 },
+                { criteria: 'Communication', rating: 4 },
+                { criteria: 'Contract compliance', rating: 5 },
+                { criteria: 'Issue handling', rating: 4 }
+            ],
+            history: [
+                { date: '2026-07-01', event: 'Contract signed and activated' },
+                { date: '2026-07-18', event: 'Mobilization accepted' },
+                { date: '2026-07-25', event: 'Mobilization payment released' },
+                { date: '2026-08-22', event: 'Delay issue resolved and schedule memory updated' }
+            ]
+        }
+    },
+
     // Contract negotiation
     contractNegotiation: {
         contractId: 'PX-2026-0892',
@@ -5120,22 +5339,22 @@ const mockData = {
     // Procurement Dashboard operating data. The dashboard filters, sorts, and counts this per active account.
     userWorkspace: {
         urgentItems: [
-            { type: 'Pending approvals', count: 3, urgency: 92, due: 'Today', nav: 'award-recommendation', audience: ['buyer', 'all'] },
+            { type: 'Pending approvals', count: 3, urgency: 92, due: 'Today', nav: 'awarding-contracts', audience: ['buyer', 'all'] },
             { type: 'New bids received', count: 7, urgency: 86, due: '2 hours', nav: 'bid-evaluation', audience: ['buyer', 'all'] },
-            { type: 'Contracts awaiting signature', count: 2, urgency: 95, due: 'Today', nav: 'contract-negotiation', audience: ['buyer', 'supplier', 'all'] },
-            { type: 'Payments overdue', count: 4, urgency: 89, due: 'Overdue', nav: 'post-award-tracking', audience: ['buyer', 'supplier', 'all'] },
+            { type: 'Contracts awaiting signature', count: 2, urgency: 95, due: 'Today', nav: 'awarding-contracts', audience: ['buyer', 'supplier', 'all'] },
+            { type: 'Payments overdue', count: 4, urgency: 89, due: 'Overdue', nav: 'awarding-contracts', audience: ['buyer', 'supplier', 'all'] },
             { type: 'Messages requiring reply', count: 5, urgency: 84, due: '1 day', nav: 'communication-center', audience: ['buyer', 'supplier', 'all'] }
         ],
         workflows: [
             { title: 'Office IT Procurement', status: 'Draft', updatedHours: 2, urgency: 78, nav: 'create-tender', audience: ['buyer', 'all'] },
             { title: 'Vehicle Tender', status: 'Evaluation stage', updatedHours: 5, urgency: 88, nav: 'bid-evaluation', audience: ['buyer', 'all'] },
-            { title: 'Contract - ABC Ltd', status: 'Execution', updatedHours: 1, urgency: 91, nav: 'post-award-tracking', audience: ['buyer', 'supplier', 'all'] },
+            { title: 'Contract - ABC Ltd', status: 'Execution', updatedHours: 1, urgency: 91, nav: 'awarding-contracts', audience: ['buyer', 'supplier', 'all'] },
             { title: 'Medical Equipment Bid', status: 'Clarification response due', updatedHours: 3, urgency: 87, nav: 'bidding-workspace', audience: ['supplier', 'all'] }
         ],
         quickActions: [
-            { title: 'Review approvals', detail: 'Award and budget approvals waiting', nav: 'award-recommendation', audience: ['buyer', 'all'], signal: 'approvals' },
+            { title: 'Review approvals', detail: 'Award and budget approvals waiting', nav: 'awarding-contracts', audience: ['buyer', 'all'], signal: 'approvals' },
             { title: 'Evaluate new bids', detail: 'Open technical and financial review', nav: 'bid-evaluation', audience: ['buyer', 'all'], signal: 'bids' },
-            { title: 'Sign contract', detail: 'Complete digital signature workflow', nav: 'contract-negotiation', audience: ['buyer', 'supplier', 'all'], signal: 'contracts' },
+            { title: 'Sign contract', detail: 'Complete digital signature workflow', nav: 'awarding-contracts', audience: ['buyer', 'supplier', 'all'], signal: 'contracts' },
             { title: 'Reply to messages', detail: 'Clarifications, alerts, and tender workflow messages', nav: 'communication-center', audience: ['buyer', 'supplier', 'all'], signal: 'messages' },
             { title: 'Find tenders', detail: 'Open matching tenders and tenders near closing date', nav: 'marketplace', audience: ['supplier', 'all'], signal: 'tenders' },
             { title: 'Create tender', detail: 'Start a new buyer procurement', nav: 'create-tender', audience: ['buyer', 'all'], signal: 'drafts' }
@@ -5144,7 +5363,7 @@ const mockData = {
             { app: 'Procurement', detail: 'Marketplace, create tender, bid', usage: 96, nav: 'marketplace', audience: ['buyer', 'supplier', 'all'] },
             { app: 'Communication Center', detail: 'Inbox, clarifications, alerts', usage: 95, nav: 'communication-center', audience: ['buyer', 'supplier', 'all'] },
             { app: 'Evaluation', detail: 'Bid opening, scoring, review', usage: 94, nav: 'bid-evaluation', audience: ['buyer', 'all'] },
-            { app: 'Awarding and Contract', detail: 'Awards, approvals, signatures', usage: 92, nav: 'award-recommendation', audience: ['buyer', 'supplier', 'all'] },
+            { app: 'Awarding and Contract', detail: 'Awards, approvals, signatures', usage: 92, nav: 'awarding-contracts', audience: ['buyer', 'supplier', 'all'] },
             { app: 'Records and History', detail: 'Past tenders, bids, awards, cancellations', usage: 90, nav: 'records-history', audience: ['buyer', 'supplier', 'all'] },
             { app: 'Registration and Verification', detail: 'Registration and identity verification', usage: 88, nav: 'account-profile', audience: ['buyer', 'supplier', 'all'] },
             { app: 'Dashboard', detail: 'Your work, spend, and insights', usage: 84, nav: 'workspace-dashboard', audience: ['buyer', 'supplier', 'all'] }
@@ -5152,7 +5371,7 @@ const mockData = {
         insights: [
             { type: 'Suggested tenderer', title: '3 tenderers match Office IT Procurement', detail: 'Two have low risk and recent delivery capacity.', urgency: 78, nav: 'marketplace', audience: ['buyer', 'all'] },
             { type: 'Price insight', title: 'Network equipment prices up 4.2%', detail: 'Use the updated benchmark before publishing.', urgency: 72, nav: 'create-tender', audience: ['buyer', 'all'] },
-            { type: 'Risk alert', title: 'Buyer conflict declaration needs review', detail: 'Resolve before award recommendation is locked.', urgency: 90, nav: 'award-recommendation', audience: ['buyer', 'all'] },
+            { type: 'Risk alert', title: 'Buyer conflict declaration needs review', detail: 'Resolve before award recommendation is locked.', urgency: 90, nav: 'awarding-contracts', audience: ['buyer', 'all'] },
             { type: 'Matching tender', title: 'New ICT tender matches your profile', detail: 'Closes soon and accepts digital service providers.', urgency: 84, nav: 'marketplace', audience: ['supplier', 'all'] },
             { type: 'Partnership', title: 'Logistics partner available in Dodoma', detail: 'Could improve bid feasibility for rural delivery.', urgency: 70, nav: 'marketplace', audience: ['supplier', 'all'] },
             { type: 'Market trend', title: 'Healthcare works liquidity is improving', detail: 'Average eligible supplier count rose this month.', urgency: 64, nav: 'workspace-dashboard', audience: ['buyer', 'supplier', 'all'] }
@@ -5162,3 +5381,374 @@ const mockData = {
 
 // Export for use in other modules
 window.mockData = mockData;
+
+const awardContractDraftStoragePrefix = 'procurex.awardContractDraft.v1.';
+
+function getAwardContractTenderId(tender = {}) {
+    return String(tender.id || tender.reference || tender.tenderReference || mockData.awardingContracts?.contract?.tenderReference || 'demo-award-contract');
+}
+
+function getAwardContractDraftKey(tenderId) {
+    return `${awardContractDraftStoragePrefix}${tenderId || 'demo-award-contract'}`;
+}
+
+function normalizeAwardContractType(tender = {}) {
+    const raw = String(tender.procurementTypeId || tender.type || tender.procurementType || tender.category || 'works').toLowerCase();
+    if (raw.includes('good')) return 'goods';
+    if (raw.includes('consult')) return 'consultancy';
+    if (raw.includes('service')) return 'services';
+    return 'works';
+}
+
+function getAwardContractTypeLabel(typeId) {
+    return ({ goods: 'Goods', works: 'Works', services: 'Services', consultancy: 'Consultancy' })[typeId] || 'Works';
+}
+
+function getSelectedAwardContractTender() {
+    const selectedId = mockData.selectedTenderId || localStorage.getItem('procurex.marketplace.selectedTenderId');
+    if (selectedId && String(selectedId).startsWith('supplier-award-')) {
+        const index = Number(String(selectedId).replace('supplier-award-', '')) - 1;
+        const row = mockData.awardingContracts?.awardedToUs?.[index];
+        if (row) {
+            return {
+                id: selectedId,
+                reference: selectedId,
+                title: row.title,
+                type: row.procurementType || 'Services',
+                procurementTypeId: normalizeAwardContractType(row),
+                organization: row.buyer,
+                createdByCurrentUser: false,
+                budget: row.awardValue,
+                currency: row.currency || 'TZS',
+                status: row.awardStatus || 'Award Received'
+            };
+        }
+    }
+    if (typeof getProcurexSelectedTender === 'function') return getProcurexSelectedTender();
+    const fallback = mockData.tenders?.[0] || {};
+    return fallback;
+}
+
+function getAwardContractTenders() {
+    if (typeof getProcurexAllTenders === 'function') return getProcurexAllTenders();
+    return mockData.tenders || [];
+}
+
+function formatAwardContractIsoDate(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toISOString().slice(0, 10);
+}
+
+function buildRequiredDocuments(tender = {}) {
+    const typeId = normalizeAwardContractType(tender);
+    const common = [
+        { name: 'Tax Clearance', type: 'Tax Clearance', owner: 'Supplier', status: 'Pending Upload' },
+        { name: 'Bank Details', type: 'Bank Details', owner: 'Supplier', status: 'Pending Upload' },
+        { name: 'Authorized Signatory Details', type: 'Signed Authorization', owner: 'Supplier', status: 'Pending Upload' }
+    ];
+    const byType = {
+        goods: [
+            { name: 'Updated Delivery Schedule', type: 'Delivery Schedule', owner: 'Supplier', status: 'Pending Upload' },
+            { name: 'Warranty Certificate Template', type: 'Technical Attachment', owner: 'Supplier', status: 'Pending Upload' }
+        ],
+        works: [
+            { name: 'Performance Security', type: 'Performance Security', owner: 'Supplier', status: 'Pending Upload' },
+            { name: 'Insurance Certificate', type: 'Insurance Certificate', owner: 'Supplier', status: 'Pending Upload' },
+            { name: 'Work Program', type: 'Work Program', owner: 'Supplier', status: 'Pending Upload' }
+        ],
+        services: [
+            { name: 'Service Delivery Plan', type: 'Technical Attachment', owner: 'Supplier', status: 'Pending Upload' },
+            { name: 'SLA Reporting Template', type: 'Contract Attachment', owner: 'Supplier', status: 'Pending Upload' }
+        ],
+        consultancy: [
+            { name: 'Key Expert Availability Confirmation', type: 'Technical Attachment', owner: 'Supplier', status: 'Pending Upload' },
+            { name: 'Work Plan and Deliverables Schedule', type: 'Delivery Schedule', owner: 'Supplier', status: 'Pending Upload' }
+        ]
+    };
+    return [...(byType[typeId] || byType.works), ...common];
+}
+
+function buildTypeSpecificClauses(tender = {}) {
+    const typeId = normalizeAwardContractType(tender);
+    const fallbackContract = mockData.awardingContracts?.contract || {};
+    const title = tender.title || fallbackContract.title || 'Contract';
+    const reference = tender.reference || tender.id || fallbackContract.tenderReference || 'Tender reference';
+    const scope = tender.description || tender.requirements?.fields?.scopeSummary || 'Scope follows the awarded tender and accepted bid.';
+    const value = Number(tender.budget || fallbackContract.value || 0);
+    const currency = tender.currency || fallbackContract.currency || 'TZS';
+    const locked = [
+        { title: 'Tender Reference', category: 'Award Data', text: reference, lock: 'Locked', status: 'Locked', comments: 0, requestedChange: 'This term cannot be changed because it comes from the awarded tender or evaluation result.' },
+        { title: 'Main Tender Scope', category: 'Scope of Contract', text: scope, lock: 'Locked', status: 'Locked', comments: 0, requestedChange: 'Main scope cannot be materially changed after award.' },
+        { title: 'Contract Price Basis', category: 'Contract Price', text: value ? `${currency} ${value.toLocaleString()}` : 'Final evaluated bid price from award decision.', lock: 'Locked', status: 'Locked', comments: 0, requestedChange: 'Only formal corrections or approved adjustments may be recorded.' }
+    ];
+    const byType = {
+        goods: [
+            ['Delivery Schedule', 'Delivery location, delivery dates, partial delivery rules, handover documents, and replacement timeline.'],
+            ['Quantity and Item Acceptance', 'Quantity check, specification check, delivery note, accepted quantity, and rejected quantity.'],
+            ['Warranty and Replacement', 'Warranty period, repair or replacement obligations, and defect reporting process.'],
+            ['Packaging and Transport', 'Packaging standards, transport responsibility, and delivery risk transfer.']
+        ],
+        works: [
+            ['Site Handover and Access', 'Site possession, access conditions, utilities, and buyer obligations.'],
+            ['Work Program and Milestones', 'Milestone dates, work program updates, inspection requests, and payment certificate timing.'],
+            ['Health, Safety, and Environment', 'Safety plan, environmental protection, incident reporting, and worker safety obligations.'],
+            ['Defects Liability and Variations', 'Defects period, correction obligations, variation request process, and extension of time rules.'],
+            ['Performance Security', 'Security value, validity, submission deadline, and release conditions.']
+        ],
+        services: [
+            ['Service Scope and Boundaries', 'Service description, exclusions, deliverables, and acceptance conditions.'],
+            ['Service Level Agreement', 'Performance standards, response times, reporting frequency, and remedies.'],
+            ['Staffing and Resources', 'Required personnel, replacement approval, equipment, and continuity obligations.'],
+            ['Service Renewal and Termination', 'Renewal conditions, poor performance triggers, and notice period.']
+        ],
+        consultancy: [
+            ['Terms of Reference', 'Assignment objectives, methodology, deliverables, and review responsibilities.'],
+            ['Key Experts and Substitution', 'Named experts, CV approval, availability, and substitution restrictions.'],
+            ['Reports and Deliverables', 'Inception report, draft report, final report, presentation, and acceptance criteria.'],
+            ['Intellectual Property and Data', 'Ownership of reports, data, designs, usage rights, and confidentiality.']
+        ]
+    };
+    return [
+        ...locked,
+        ...(byType[typeId] || byType.works).map(([clauseTitle, text], index) => ({
+            title: clauseTitle,
+            category: clauseTitle,
+            text,
+            lock: 'Negotiable',
+            status: index === 0 ? 'Change Requested' : 'Pending Review',
+            comments: index === 0 ? 1 : 0,
+            requestedChange: 'You may comment or request changes before signing.'
+        }))
+    ];
+}
+
+function createAwardContractDraftFromTender(tender = getSelectedAwardContractTender()) {
+    const fallback = mockData.awardingContracts || {};
+    const fallbackContract = fallback.contract || {};
+    const typeId = normalizeAwardContractType(tender);
+    const tenderId = getAwardContractTenderId(tender);
+    const title = tender.title || fallback.award?.tenderTitle || fallbackContract.title || 'Awarded tender';
+    const reference = tender.reference || tender.id || fallback.award?.reference || fallbackContract.tenderReference || tenderId;
+    const buyer = tender.organization || fallback.award?.buyer || fallbackContract.buyer || mockData.users?.buyer?.organization || 'Buyer';
+    const supplier = fallback.award?.selectedSupplier || fallbackContract.supplier || mockData.users?.supplier?.organization || 'Recommended supplier';
+    const amount = Number(tender.budget || fallback.award?.awardAmount || fallbackContract.value || 0);
+    const closingDate = tender.closingDate || fallback.award?.closingDate || '';
+    const today = new Date().toISOString();
+    return {
+        tenderId,
+        tenderReference: reference,
+        title,
+        buyer,
+        supplier,
+        procurementTypeId: typeId,
+        procurementType: getAwardContractTypeLabel(typeId),
+        role: tender.createdByCurrentUser === false ? 'Supplier' : 'Buyer',
+        currentStep: 'evaluation-result',
+        requiredAction: tender.createdByCurrentUser === false ? 'Accept Award' : 'Continue Award',
+        awardStatus: tender.createdByCurrentUser === false ? 'Award Received' : 'Pending Award Decision',
+        contractStatus: 'Draft saved',
+        amount,
+        currency: tender.currency || fallbackContract.currency || 'TZS',
+        closingDate,
+        lastEditedAt: today,
+        draftSaved: false,
+        awardDecision: {
+            selectedSupplier: supplier,
+            awardAmount: amount,
+            currency: tender.currency || fallbackContract.currency || 'TZS',
+            awardDate: formatAwardContractIsoDate(today),
+            reason: fallback.award?.reason || 'Supplier had the highest evaluated score and met all technical and financial requirements.',
+            conditions: 'Supplier must submit required pre-contract documents before signing.',
+            negotiationRequired: 'Yes',
+            approver: 'Authorized Representative',
+            approvalConfirmed: false
+        },
+        notification: {
+            subject: `Notice of Award - ${title}`,
+            message: 'Your company has been selected for award subject to acceptance and contract finalization.',
+            responseDeadline: '',
+            notifyUnsuccessful: 'Yes'
+        },
+        contract: {
+            contractId: fallbackContract.contractId || `CTR-${reference}`,
+            startDate: fallbackContract.startDate || '',
+            endDate: fallbackContract.endDate || '',
+            duration: fallbackContract.duration || 'To confirm',
+            status: 'Draft Contract',
+            supplierConfirmedTerms: false,
+            buyerConfirmedTerms: false,
+            lockedForSignature: false
+        },
+        clauses: buildTypeSpecificClauses(tender),
+        documents: buildRequiredDocuments(tender),
+        negotiationRequests: fallbackContract.negotiationRequests || [],
+        versions: fallbackContract.versions || [],
+        activityLog: [
+            { time: today.slice(0, 16).replace('T', ' '), actor: 'System', event: 'Awarding and contract draft created', status: 'Draft', version: '1.0' }
+        ]
+    };
+}
+
+function loadAwardContractDraft(tenderId, tender = null) {
+    const selectedTender = tender || getSelectedAwardContractTender();
+    const id = tenderId || getAwardContractTenderId(selectedTender);
+    try {
+        const parsed = JSON.parse(localStorage.getItem(getAwardContractDraftKey(id)) || 'null');
+        if (parsed && typeof parsed === 'object') {
+            return {
+                ...createAwardContractDraftFromTender(selectedTender),
+                ...parsed,
+                awardDecision: { ...createAwardContractDraftFromTender(selectedTender).awardDecision, ...(parsed.awardDecision || {}) },
+                notification: { ...createAwardContractDraftFromTender(selectedTender).notification, ...(parsed.notification || {}) },
+                contract: { ...createAwardContractDraftFromTender(selectedTender).contract, ...(parsed.contract || {}) },
+                clauses: parsed.clauses?.length ? parsed.clauses : buildTypeSpecificClauses(selectedTender),
+                documents: parsed.documents?.length ? parsed.documents : buildRequiredDocuments(selectedTender)
+            };
+        }
+    } catch (error) {
+        localStorage.removeItem(getAwardContractDraftKey(id));
+    }
+    return createAwardContractDraftFromTender(selectedTender);
+}
+
+function saveAwardContractDraft(tenderId, patch = {}) {
+    const tender = getAwardContractTenders().find(item => getAwardContractTenderId(item) === tenderId) || getSelectedAwardContractTender();
+    const current = loadAwardContractDraft(tenderId, tender);
+    const next = {
+        ...current,
+        ...patch,
+        awardDecision: { ...(current.awardDecision || {}), ...(patch.awardDecision || {}) },
+        notification: { ...(current.notification || {}), ...(patch.notification || {}) },
+        contract: { ...(current.contract || {}), ...(patch.contract || {}) },
+        lastEditedAt: new Date().toISOString(),
+        draftSaved: true
+    };
+    localStorage.setItem(getAwardContractDraftKey(tenderId), JSON.stringify(next));
+    return next;
+}
+
+function getAwardContractLifecycleContext() {
+    const tender = getSelectedAwardContractTender();
+    const draft = loadAwardContractDraft(getAwardContractTenderId(tender), tender);
+    const contract = {
+        ...(mockData.awardingContracts?.contract || {}),
+        contractId: draft.contract?.contractId,
+        title: draft.title,
+        tenderReference: draft.tenderReference,
+        buyer: draft.buyer,
+        supplier: draft.awardDecision?.selectedSupplier || draft.supplier,
+        value: draft.awardDecision?.awardAmount || draft.amount,
+        currency: draft.currency,
+        duration: draft.contract?.duration,
+        startDate: draft.contract?.startDate,
+        endDate: draft.contract?.endDate,
+        status: draft.contract?.status || draft.contractStatus,
+        clauses: draft.clauses,
+        documents: draft.documents,
+        negotiationRequests: draft.negotiationRequests,
+        versions: draft.versions,
+        activityLog: draft.activityLog,
+        supplierConfirmedTerms: draft.contract?.supplierConfirmedTerms,
+        buyerConfirmedTerms: draft.contract?.buyerConfirmedTerms,
+        lockedForSignature: draft.contract?.lockedForSignature
+    };
+    return { tender, draft, contract };
+}
+
+function collectAwardContractDraftFields(root = document) {
+    const patch = {};
+    root.querySelectorAll('[data-award-draft-field]').forEach(field => {
+        const path = field.getAttribute('data-award-draft-field');
+        const value = field.type === 'checkbox' ? field.checked : field.value;
+        const parts = path.split('.');
+        let cursor = patch;
+        parts.forEach((part, index) => {
+            if (index === parts.length - 1) cursor[part] = value;
+            else {
+                cursor[part] = cursor[part] || {};
+                cursor = cursor[part];
+            }
+        });
+    });
+    return patch;
+}
+
+function initializeAwardContractDraftControls() {
+    const workspace = document.querySelector('[data-award-contract-workspace]');
+    if (!workspace || workspace.dataset.awardDraftReady === 'true') return;
+    workspace.dataset.awardDraftReady = 'true';
+    const tenderId = workspace.getAttribute('data-award-tender-id') || getAwardContractTenderId(getSelectedAwardContractTender());
+    let dirty = false;
+    let autoSaveTimer = null;
+    const save = (extra = {}) => {
+        const saved = saveAwardContractDraft(tenderId, { ...collectAwardContractDraftFields(workspace), ...extra });
+        dirty = false;
+        workspace.dataset.dirty = 'false';
+        return saved;
+    };
+    const scheduleAutoSave = () => {
+        window.clearTimeout(autoSaveTimer);
+        autoSaveTimer = window.setTimeout(() => {
+            save({ currentStep: workspace.getAttribute('data-award-current-step') || 'draft' });
+            workspace.dataset.autoSaved = 'true';
+        }, 700);
+    };
+
+    workspace.querySelectorAll('input, textarea, select').forEach(input => {
+        input.addEventListener('input', () => {
+            dirty = true;
+            workspace.dataset.dirty = 'true';
+            scheduleAutoSave();
+        });
+        input.addEventListener('change', () => {
+            dirty = true;
+            workspace.dataset.dirty = 'true';
+            scheduleAutoSave();
+        });
+    });
+
+    workspace.querySelectorAll('[data-award-save-draft]').forEach(button => {
+        button.addEventListener('click', () => {
+            save({ currentStep: button.getAttribute('data-award-step') || workspace.getAttribute('data-award-current-step') || 'draft' });
+            alert('Awarding and contract draft saved.');
+        });
+    });
+
+    workspace.querySelectorAll('[data-award-save-exit]').forEach(button => {
+        button.addEventListener('click', () => {
+            save({ currentStep: button.getAttribute('data-award-step') || workspace.getAttribute('data-award-current-step') || 'draft' });
+            if (typeof window.app?.navigateTo === 'function') window.app.navigateTo('awarding-contracts');
+        });
+    });
+
+    workspace.querySelectorAll('[data-award-save-continue]').forEach(button => {
+        button.addEventListener('click', () => {
+            const nextStep = button.getAttribute('data-award-next-step') || workspace.getAttribute('data-award-current-step') || 'draft';
+            save({ currentStep: nextStep, requiredAction: button.getAttribute('data-award-required-action') || 'Continue' });
+        });
+    });
+
+    workspace.querySelectorAll('[data-award-guard-navigate]').forEach(link => {
+        link.addEventListener('click', event => {
+            if (!dirty) return;
+            const decision = window.confirm('Save this awarding/contract draft before leaving? Press OK to save and leave, or Cancel to stay.');
+            if (!decision) {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+            }
+            save();
+        }, true);
+    });
+}
+
+window.getAwardContractDraftKey = getAwardContractDraftKey;
+window.loadAwardContractDraft = loadAwardContractDraft;
+window.saveAwardContractDraft = saveAwardContractDraft;
+window.getSelectedAwardContractTender = getSelectedAwardContractTender;
+window.buildTypeSpecificClauses = buildTypeSpecificClauses;
+window.buildRequiredDocuments = buildRequiredDocuments;
+window.getAwardContractLifecycleContext = getAwardContractLifecycleContext;
+window.initializeAwardContractDraftControls = initializeAwardContractDraftControls;

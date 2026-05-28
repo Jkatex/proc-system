@@ -851,7 +851,7 @@ function getEvaluationRecommendedBid(tender = {}, bids = []) {
 function renderEvaluationShell(content, title = 'Evaluation', subtitle = '') {
     const oversightNotice = isEvaluationAdminOversightSession() ? `
         <section class="evaluation-notice warning">
-            System Admin / Compliance Reviewer oversight mode: this page is read-only for procurement rule checks. Buyer users enter scores, percentages, rankings, recommendations, and complete the evaluation.
+            System Admin oversight mode: this page is read-only for procurement rule checks. Buyer users enter scores, percentages, rankings, recommendations, and complete the evaluation.
         </section>
     ` : '';
     return `
@@ -5071,7 +5071,7 @@ function initializeBidEvaluation() {
     });
     document.querySelectorAll('[data-evaluation-save-draft], [data-evaluation-complete]').forEach(button => {
         button.disabled = true;
-        button.title = 'System Admin and Compliance Reviewer accounts can monitor only. Buyer users complete scoring and selection.';
+        button.title = 'System Admin accounts can monitor only. Buyer users complete scoring and selection.';
     });
 }
 
@@ -5115,10 +5115,10 @@ if (typeof document !== 'undefined' && !window.procurexEvaluationRedesignListene
             if (typeof appendProcurexAdminAudit === 'function') {
                 const adminOversight = isEvaluationAdminOversightSession();
                 appendProcurexAdminAudit({
-                    action: `${adminOversight ? 'Compliance reviewer' : 'Buyer'} ${action === 'download' ? 'downloaded' : 'viewed'} evidence`,
+                    action: `${adminOversight ? 'System Admin' : 'Buyer'} ${action === 'download' ? 'downloaded' : 'viewed'} evidence`,
                     entityType: 'Evaluation Evidence',
                     entityRef: getSelectedEvaluationTenderReference(),
-                    actorRole: adminOversight ? 'Compliance Reviewer' : 'Buyer Evaluator',
+                    actorRole: adminOversight ? 'System Admin' : 'Buyer',
                     severity: 'info',
                     summary: `Evidence document ${documentId} was ${action === 'download' ? 'downloaded' : 'viewed'} during evaluation.`
                 });
@@ -5225,7 +5225,7 @@ if (typeof document !== 'undefined' && !window.procurexEvaluationRedesignListene
             const reference = saveButton.getAttribute('data-evaluation-save-draft') || getSelectedEvaluationTenderReference();
             if (isEvaluationAdminOversightSession()) {
                 if (typeof appendProcurexAdminAudit === 'function') {
-                    appendProcurexAdminAudit({ action: 'Compliance reviewer viewed buyer evaluation draft', entityType: 'Evaluation Oversight', entityRef: reference, ref: reference, actorRole: 'Compliance Reviewer', summary: `Read-only oversight view opened for ${reference}.` });
+                    appendProcurexAdminAudit({ action: 'System Admin viewed buyer evaluation draft', entityType: 'Evaluation Oversight', entityRef: reference, ref: reference, actorRole: 'System Admin', summary: `Read-only oversight view opened for ${reference}.` });
                 }
                 setSelectedEvaluationTender('');
                 if (window.app?.navigateTo) window.app.navigateTo('bid-evaluation');
@@ -5233,27 +5233,27 @@ if (typeof document !== 'undefined' && !window.procurexEvaluationRedesignListene
             }
             saveEvaluationDraft(reference, collectEvaluationDraftFromDom(reference, 'Saved as draft'));
             if (typeof appendProcurexAdminAudit === 'function') {
-                appendProcurexAdminAudit({ action: 'Buyer saved evaluation draft', entityType: 'Evaluation', entityRef: reference, ref: reference, actorRole: 'Buyer Evaluator', summary: `Buyer evaluation draft saved for ${reference}.` });
+                appendProcurexAdminAudit({ action: 'Buyer saved evaluation draft', entityType: 'Evaluation', entityRef: reference, ref: reference, actorRole: 'Buyer', summary: `Buyer evaluation draft saved for ${reference}.` });
             }
             setSelectedEvaluationTender('');
         } else if (completeButton) {
             const reference = completeButton.getAttribute('data-evaluation-complete') || getSelectedEvaluationTenderReference();
             if (isEvaluationAdminOversightSession()) {
                 if (typeof appendProcurexAdminAudit === 'function') {
-                    appendProcurexAdminAudit({ action: 'Compliance reviewer attempted read-only evaluation completion', entityType: 'Evaluation Oversight', entityRef: reference, ref: reference, actorRole: 'Compliance Reviewer', severity: 'warning', summary: `Completion is restricted to buyer evaluators for ${reference}.` });
+                    appendProcurexAdminAudit({ action: 'System Admin attempted read-only evaluation completion', entityType: 'Evaluation Oversight', entityRef: reference, ref: reference, actorRole: 'System Admin', severity: 'warning', summary: `Completion is restricted to buyer users for ${reference}.` });
                 }
                 return;
             }
             completeEvaluation(reference);
             if (typeof appendProcurexAdminAudit === 'function') {
-                appendProcurexAdminAudit({ action: 'Buyer completed evaluation', entityType: 'Evaluation', entityRef: reference, ref: reference, actorRole: 'Buyer Evaluator', severity: 'info', summary: `Buyer evaluation completed for ${reference}.` });
+                appendProcurexAdminAudit({ action: 'Buyer completed evaluation', entityType: 'Evaluation', entityRef: reference, ref: reference, actorRole: 'Buyer', severity: 'info', summary: `Buyer evaluation completed for ${reference}.` });
             }
         } else if (viewReportButton) {
             const reference = viewReportButton.getAttribute('data-evaluation-view-report') || getSelectedEvaluationTenderReference();
             if (!isEvaluationAdminOversightSession()) saveEvaluationDraft(reference, collectEvaluationDraftFromDom(reference, 'Saved as draft'));
             if (typeof appendProcurexAdminAudit === 'function') {
                 const adminOversight = isEvaluationAdminOversightSession();
-                appendProcurexAdminAudit({ action: `${adminOversight ? 'Compliance reviewer previewed buyer evaluation report' : 'Buyer previewed evaluation report'}`, entityType: 'Evaluation Report', entityRef: reference, ref: reference, actorRole: adminOversight ? 'Compliance Reviewer' : 'Buyer Evaluator', summary: `Evaluation report preview opened for ${reference}.` });
+                appendProcurexAdminAudit({ action: `${adminOversight ? 'System Admin previewed buyer evaluation report' : 'Buyer previewed evaluation report'}`, entityType: 'Evaluation Report', entityRef: reference, ref: reference, actorRole: adminOversight ? 'System Admin' : 'Buyer', summary: `Evaluation report preview opened for ${reference}.` });
             }
             setSelectedEvaluationReport(reference);
         } else if (closeReportButton) {
@@ -5278,7 +5278,7 @@ if (typeof document !== 'undefined' && !window.procurexEvaluationRedesignListene
             }
             if (typeof appendProcurexAdminAudit === 'function') {
                 const adminOversight = isEvaluationAdminOversightSession();
-                appendProcurexAdminAudit({ action: `${adminOversight ? 'Compliance reviewer exported buyer evaluation report' : 'Buyer exported evaluation report'}`, entityType: 'Evaluation Report', entityRef: reference, ref: reference, actorRole: adminOversight ? 'Compliance Reviewer' : 'Buyer Evaluator', summary: `Evaluation report exported for ${reference}.` });
+                appendProcurexAdminAudit({ action: `${adminOversight ? 'System Admin exported buyer evaluation report' : 'Buyer exported evaluation report'}`, entityType: 'Evaluation Report', entityRef: reference, ref: reference, actorRole: adminOversight ? 'System Admin' : 'Buyer', summary: `Evaluation report exported for ${reference}.` });
             }
             return;
         }

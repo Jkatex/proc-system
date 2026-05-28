@@ -1,0 +1,27 @@
+{
+  "name": "procurement-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Canonical monorepo for the ProcureX production platform.",
+  "type": "module",
+  "workspaces": [
+    "server",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "npm --workspace server run dev",
+    "build": "npm --workspace shared run build && npm --workspace server run build",
+    "test": "npm --workspace server test",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
+    "db:validate": "npm --workspace server run db:validate",
+    "db:migrate": "npm --workspace server run db:migrate",
+    "db:deploy": "npm --workspace server run db:deploy",
+    "db:seed": "npm --workspace server run db:seed",
+    "db:seed:twice": "npm --workspace server run db:seed:twice"
+  },
+  "engines": {
+    "node": ">=20.11"
+  }
+}
+

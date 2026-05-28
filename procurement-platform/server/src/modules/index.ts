@@ -1,0 +1,31 @@
+import { createModuleRouter as createIdentityRouter, moduleDefinition as identityDefinition } from './identity/index.js';
+import { createModuleRouter as createOrganizationRouter, moduleDefinition as organizationDefinition } from './organization/index.js';
+import { createModuleRouter as createProcurementRouter, moduleDefinition as procurementDefinition } from './procurement/index.js';
+import { createModuleRouter as createBiddingRouter, moduleDefinition as biddingDefinition } from './bidding/index.js';
+import { createModuleRouter as createEvaluationRouter, moduleDefinition as evaluationDefinition } from './evaluation/index.js';
+import { createModuleRouter as createAwardContractRouter, moduleDefinition as awardContractDefinition } from './award-contract/index.js';
+import { createModuleRouter as createFinancialRouter, moduleDefinition as financialDefinition } from './financial/index.js';
+import { createModuleRouter as createComplianceAdminRouter, moduleDefinition as complianceAdminDefinition } from './compliance-admin/index.js';
+import { createModuleRouter as createCommunicationRouter, moduleDefinition as communicationDefinition } from './communication/index.js';
+import { createModuleRouter as createRecordsRouter, moduleDefinition as recordsDefinition } from './records/index.js';
+import { createModuleRouter as createIntelligenceRouter, moduleDefinition as intelligenceDefinition } from './intelligence/index.js';
+import { createModuleRouter as createIntegrationRouter, moduleDefinition as integrationDefinition } from './integration/index.js';
+import { createModuleRouter as createDocumentsRouter, moduleDefinition as documentsDefinition } from './documents/index.js';
+import type { RegisteredModule } from './module-contract.js';
+
+export const registeredModules: RegisteredModule[] = [
+  { ...identityDefinition, basePath: '/api/identity', router: createIdentityRouter() },
+  { ...organizationDefinition, basePath: '/api/organization', router: createOrganizationRouter() },
+  { ...procurementDefinition, basePath: '/api/procurement', router: createProcurementRouter() },
+  { ...biddingDefinition, basePath: '/api/bidding', router: createBiddingRouter() },
+  { ...evaluationDefinition, basePath: '/api/evaluation', router: createEvaluationRouter() },
+  { ...awardContractDefinition, basePath: '/api/award-contract', router: createAwardContractRouter() },
+  { ...financialDefinition, basePath: '/api/financial', router: createFinancialRouter() },
+  { ...complianceAdminDefinition, basePath: '/api/compliance-admin', router: createComplianceAdminRouter() },
+  { ...communicationDefinition, basePath: '/api/communication', router: createCommunicationRouter() },
+  { ...recordsDefinition, basePath: '/api/records', router: createRecordsRouter() },
+  { ...intelligenceDefinition, basePath: '/api/intelligence', router: createIntelligenceRouter() },
+  { ...integrationDefinition, basePath: '/api/integration', router: createIntegrationRouter() },
+  { ...documentsDefinition, basePath: '/api/documents', router: createDocumentsRouter() }
+];
+

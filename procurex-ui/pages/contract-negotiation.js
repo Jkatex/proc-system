@@ -1,72 +1,4 @@
-// Contract Negotiation Page Component
-
-const contractNegotiationClauseCatalog = {
-    goods: {
-        label: 'Goods',
-        clauses: [
-            ['Delivery Clause', 'Delivery location, timeline, and partial vs full delivery allowed.'],
-            ['Payment Terms', 'Payment after delivery or inspection, invoice requirements, and payment timeline.'],
-            ['Inspection and Acceptance', 'Inspection process, rejection conditions, replacement rules, and acceptance certificate.'],
-            ['Warranty Clause', 'Warranty period, repair or replacement obligations, and defect handling.'],
-            ['Penalty for Delay', 'Liquidated damages per day or week and maximum penalty cap.'],
-            ['Risk and Ownership Transfer', 'When risk passes to the buyer, usually upon delivery or acceptance.'],
-            ['Packaging and Transport', 'Packaging standards, transport responsibility, and Incoterms where applicable.'],
-            ['Termination Clause', 'Breach conditions, cancellation rights, and notice period.']
-        ]
-    },
-    works: {
-        label: 'Works',
-        clauses: [
-            ['Scope of Works Clause', 'Project scope, drawings reference, specifications, and BOQ reference.'],
-            ['Contract Price and Payment Schedule', 'Milestone payments, interim certificates, and retention money percentage.'],
-            ['Time for Completion', 'Project duration, start date, completion deadline, and extension process.'],
-            ['Liquidated Damages', 'Penalty per delay day or week and maximum cap, often 10% of contract value.'],
-            ['Defects Liability', 'Post-completion defect period, usually 12-24 months, and repair obligations.'],
-            ['Variation Clause', 'How scope changes are approved and price adjustments are handled.'],
-            ['Site and Access Clause', 'Site handover rules, access rights, and utility responsibilities.'],
-            ['Health, Safety and Environment', 'Safety compliance, environmental protection, and worker safety obligations.'],
-            ['Performance Security', 'Bank guarantee requirement and percentage such as 5-10% before signing or effectiveness.']
-        ]
-    },
-    services: {
-        label: 'Services',
-        clauses: [
-            ['Service Scope Clause', 'Detailed service description, boundaries, and exclusions.'],
-            ['Service Level Agreement', 'Performance standards, uptime, response times, and quality metrics.'],
-            ['KPI and Performance Monitoring', 'KPIs, measurement method, reporting mechanism, and remedies.'],
-            ['Payment Terms', 'Monthly or periodic payments and deductions for poor performance.'],
-            ['Penalty Clause', 'SLA breach penalties, service credit deductions, and escalation rules.'],
-            ['Staffing and Personnel', 'Required staff roles, qualifications, and replacement approval.'],
-            ['Equipment and Resources', 'Tools or equipment required and ownership responsibilities.'],
-            ['Reporting Requirements', 'Reporting frequency, format, and submission channels.'],
-            ['Termination Clause', 'Poor performance termination triggers and notice period.'],
-            ['Renewal Clause', 'Extension conditions and performance-based renewal.']
-        ]
-    },
-    consultancy: {
-        label: 'Consultancy',
-        clauses: [
-            ['Scope of Services', 'Deliverables, methodology boundaries, reports, studies, or designs.'],
-            ['Deliverables and Milestones', 'Outputs required, submission timeline, approval, and revision process.'],
-            ['Payment Terms', 'Milestone-based and acceptance-linked payments.'],
-            ['Personnel Clause', 'Key experts named, CV approval, and substitution restrictions.'],
-            ['Performance and Evaluation', 'Quality evaluation of deliverables and acceptance criteria.'],
-            ['Intellectual Property', 'Ownership of reports, data, designs, usage rights, and reproduction limits.'],
-            ['Time Schedule', 'Assignment duration and submission deadlines per deliverable.'],
-            ['Termination Clause', 'Termination for unsatisfactory performance and withdrawal rules.'],
-            ['Conflict of Interest', 'Disclosure obligations and restrictions on engaging competing parties.'],
-            ['Knowledge Transfer', 'Training, mentorship, manuals, and handover documentation.'],
-            ['Data Ownership', 'Client data usage limits, return obligations, and confidential data handling.']
-        ]
-    }
-};
-
-const contractNegotiationEthicalClauses = [
-    ['Conflict of Interest Clause', 'Disclosure duties, restrictions, and remediation steps.'],
-    ['Confidentiality Clause', 'Non-disclosure of procurement, technical, commercial, and personal data.'],
-    ['Anti-Corruption Clause', 'Prohibits bribery, collusion, coercion, and fraudulent conduct during execution.'],
-    ['Data Protection Clause', 'Data handling, access control, retention, and incident reporting obligations.']
-];
+// Contract review, clause negotiation, version control, and signature workspace.
 
 function escapeContractNegotiationHtml(value = '') {
     return String(value)
@@ -78,386 +10,334 @@ function escapeContractNegotiationHtml(value = '') {
 }
 
 function formatContractNegotiationMoney(value, currency = 'TZS') {
-    if (typeof formatEvaluationMoney === 'function') return formatEvaluationMoney(value, currency);
-    const amount = Number(value);
+    const amount = Number(value || 0);
     return Number.isFinite(amount) ? `${currency} ${amount.toLocaleString()}` : escapeContractNegotiationHtml(value || '-');
 }
 
 function renderContractNegotiationBadge(value = '') {
-    if (typeof renderEvaluationStatusBadge === 'function') return renderEvaluationStatusBadge(value);
-    return `<span class="badge badge-info">${escapeContractNegotiationHtml(value)}</span>`;
+    const text = String(value || '');
+    const lower = text.toLowerCase();
+    const tone = lower.includes('locked') || lower.includes('agreed') || lower.includes('signed') || lower.includes('verified') || lower.includes('accepted')
+        ? 'badge-success'
+        : lower.includes('pending') || lower.includes('review') || lower.includes('counter') || lower.includes('requested')
+            ? 'badge-warning'
+            : lower.includes('reject') || lower.includes('declined')
+                ? 'badge-error'
+                : 'badge-info';
+    return `<span class="badge ${tone}">${escapeContractNegotiationHtml(text)}</span>`;
 }
 
-function getContractNegotiationTender() {
-    if (typeof getProcurexSelectedTender === 'function') return getProcurexSelectedTender();
-    return mockData.tenders?.[0] || {};
-}
-
-function getContractNegotiationTypeId(tender = {}) {
-    const raw = String(tender.procurementTypeId || tender.type || tender.label || 'works').toLowerCase();
-    if (raw.includes('good')) return 'goods';
-    if (raw.includes('consult')) return 'consultancy';
-    if (raw.includes('service')) return 'services';
-    return 'works';
-}
-
-function getContractNegotiationRecommendation() {
-    return mockData.bidEvaluation?.recommendation || {};
-}
-
-function getContractNegotiationWinner() {
-    const recommendation = getContractNegotiationRecommendation();
-    const bids = mockData.bidEvaluation?.bids || [];
-    return bids.find(bid => bid.supplier === recommendation.supplier)
-        || bids.slice().sort((a, b) => (a.financial?.ranking || 99) - (b.financial?.ranking || 99))[0]
-        || {};
-}
-
-function getContractNegotiationClauseStatus(index = 0) {
-    return index % 7 === 2 ? 'Disputed' : index % 3 === 0 ? 'Agreed' : 'Pending';
-}
-
-function renderContractNegotiationClauseGroup(title, kicker, clauses = [], options = {}) {
+function renderContractNegotiationDataTable(headers = [], rows = []) {
     return `
-        <section class="contract-clause-category active">
-            <div class="contract-clause-category-heading">
-                <div>
-                    <span class="section-kicker">${escapeContractNegotiationHtml(kicker)}</span>
-                    <h4>${escapeContractNegotiationHtml(title)}</h4>
-                </div>
-                <span class="badge badge-info">${escapeContractNegotiationHtml(options.badge || `${clauses.length} clauses`)}</span>
-            </div>
-            <div class="contract-clause-grid">
-                ${clauses.map(([clauseTitle, detail], index) => {
-                    const status = options.fixedStatus || getContractNegotiationClauseStatus(index);
-                    return `
-                        <article class="contract-clause-card">
-                            <div class="contract-clause-card-head">
-                                <strong>${escapeContractNegotiationHtml(clauseTitle)}</strong>
-                                ${renderContractNegotiationBadge(status)}
-                            </div>
-                            <span>${escapeContractNegotiationHtml(detail)}</span>
-                        </article>
-                    `;
-                }).join('')}
-            </div>
-        </section>
+        <div class="data-table evaluation-table-scroll">
+            <table>
+                <thead><tr>${headers.map(header => `<th>${escapeContractNegotiationHtml(header)}</th>`).join('')}</tr></thead>
+                <tbody>${rows.join('')}</tbody>
+            </table>
+        </div>
     `;
 }
 
-function renderContractNegotiationClauseLibrary(tender = {}) {
-    const activeTypeId = getContractNegotiationTypeId(tender);
-    const category = contractNegotiationClauseCatalog[activeTypeId] || contractNegotiationClauseCatalog.works;
-
+function renderContractOverview(contract) {
     return `
-        <section class="procurement-panel evaluation-panel contract-clause-library">
-            <div class="panel-heading">
-                <div>
-                    <span class="section-kicker">Contract clause definition</span>
-                    <h2>${escapeContractNegotiationHtml(category.label)} contract clauses</h2>
-                </div>
-                ${renderContractNegotiationBadge(`${category.clauses.length + contractNegotiationEthicalClauses.length} clauses`)}
-            </div>
-            <p class="contract-clause-note">Buyer-defined contract clauses are managed after award. They do not reopen tender evaluation or supplier responsiveness.</p>
-            <div class="contract-clause-library-stack">
-                ${renderContractNegotiationClauseGroup('Ethical Clauses', 'Mandatory for all procurement types', contractNegotiationEthicalClauses, { fixedStatus: 'Mandatory' })}
-                ${renderContractNegotiationClauseGroup(`${category.label} Clauses`, 'Selected procurement type', category.clauses)}
-            </div>
-        </section>
-    `;
-}
-
-function renderContractNegotiationFlow() {
-    const steps = [
-        ['01', 'Internal approval confirmed', 'Award package is approved before negotiation.'],
-        ['02', 'Standstill satisfied', 'Complaints and debrief requests are closed.'],
-        ['03', 'Supplier accepts award', 'Winner confirms willingness to proceed.'],
-        ['04', 'Buyer shares draft v1', 'Clause catalog and contract body are issued.'],
-        ['05', 'Supplier counter-proposal v2', 'Supplier proposes clause amendments in chat.'],
-        ['06', 'Buyer revised draft v3', 'Buyer accepts, rejects, or counter-proposes.'],
-        ['07', 'Final agreed version', 'All clauses marked agreed before signing.'],
-        ['08', 'Signed hash and activation', 'Dual signature creates immutable audit record.']
-    ];
-
-    return `
-        <section class="award-workflow-map contract-workflow-map">
-            <div class="panel-heading">
-                <div>
-                    <span class="section-kicker">Contracting workflow</span>
-                    <h2>Negotiation opens only after award controls are satisfied</h2>
-                </div>
-                ${renderContractNegotiationBadge('Controlled sequence')}
-            </div>
-            <div class="award-workflow-grid">
-                ${steps.map(([step, title, note]) => `
-                    <article>
-                        <strong>${step}</strong>
-                        <span>${escapeContractNegotiationHtml(title)}</span>
-                        <em>${escapeContractNegotiationHtml(note)}</em>
-                    </article>
-                `).join('')}
-            </div>
-        </section>
-    `;
-}
-
-function renderContractVersionHistory() {
-    const versions = [
-        ['Draft v1', 'Buyer initial contract draft', '2026-07-01 09:00', 'Issued'],
-        ['Counter v2', 'Supplier payment schedule clarification', '2026-07-02 11:15', 'Reviewed'],
-        ['Revised v3', 'Buyer revised milestone wording', '2026-07-02 14:20', 'Current'],
-        ['Final agreed version', 'All clauses agreed, pending signatures', 'Pending', 'Next'],
-        ['Final signed version hash', 'SHA-256 stored after digital signing', 'Pending', 'Locked after signing']
-    ];
-
-    return `
-        <section class="procurement-panel evaluation-panel">
-            <div class="panel-heading">
-                <div>
-                    <span class="section-kicker">Contract version history</span>
-                    <h2>Every negotiation round is auditable</h2>
-                </div>
-                ${renderContractNegotiationBadge('Version controlled')}
-            </div>
-            <div class="data-table evaluation-table-scroll">
-                <table>
-                    <thead><tr><th>Version</th><th>Change</th><th>Timestamp</th><th>Status</th></tr></thead>
-                    <tbody>
-                        ${versions.map(row => `
-                            <tr>
-                                <td><strong>${escapeContractNegotiationHtml(row[0])}</strong></td>
-                                <td>${escapeContractNegotiationHtml(row[1])}</td>
-                                <td>${escapeContractNegotiationHtml(row[2])}</td>
-                                <td>${renderContractNegotiationBadge(row[3])}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        </section>
-    `;
-}
-
-function renderNegotiationRules() {
-    const canNegotiate = [
-        ['Payment schedule / milestone dates', 'Allowed when it does not alter evaluated value or scope.'],
-        ['Minor delivery or mobilization dates', 'Allowed within evaluated delivery period.'],
-        ['Clause wording', 'Allowed when risk allocation remains lawful and transparent.'],
-        ['Penalty rates', 'Limited and capped by procurement standards.'],
-        ['Staffing confirmation', 'Allowed for mobilization, named personnel, and substitutions under approval.'],
-        ['Warranty / defects period', 'Limited; cannot fall below tender minimum standard.']
-    ];
-    const cannotNegotiate = [
-        ['Evaluated bid price', 'No material change; only approved arithmetic corrections, tax clarification, or lawful method-specific adjustments.'],
-        ['Technical scope or deliverables', 'Changing scope after award would create a new bid.'],
-        ['Evaluation criteria or result', 'Fixed, audited, and outside negotiation.'],
-        ['Supplier identity', 'Award cannot be transferred to another entity.']
-    ];
-
-    return `
-        <section class="procurement-panel evaluation-panel">
-            <div class="panel-heading">
-                <div>
-                    <span class="section-kicker">Negotiation boundaries</span>
-                    <h2>Contract negotiation must not reopen competition</h2>
-                </div>
-                ${renderContractNegotiationBadge('No material change')}
-            </div>
-            <div class="contract-rules-grid">
+        <div class="contract-overview-grid">
+            ${[
+                ['Tender title', contract.title],
+                ['Buyer', contract.buyer],
+                ['Supplier', contract.supplier],
+                ['Tender reference', contract.tenderReference],
+                ['Procurement type', contract.procurementType],
+                ['Your role', contract.role],
+                ['Award value', formatContractNegotiationMoney(contract.value, contract.currency)],
+                ['Duration', contract.duration],
+                ['Start date', contract.startDate],
+                ['End date', contract.endDate],
+                ['Status', renderContractNegotiationBadge(contract.status)]
+            ].map(([label, value]) => `
                 <article>
-                    <h3>Can be negotiated</h3>
-                    ${canNegotiate.map(([title, note]) => `<div><strong>${escapeContractNegotiationHtml(title)}</strong><span>${escapeContractNegotiationHtml(note)}</span></div>`).join('')}
+                    <span>${escapeContractNegotiationHtml(label)}</span>
+                    <strong>${typeof value === 'string' && value.includes('<span') ? value : escapeContractNegotiationHtml(value || '-')}</strong>
                 </article>
-                <article>
-                    <h3>Cannot be negotiated</h3>
-                    ${cannotNegotiate.map(([title, note]) => `<div><strong>${escapeContractNegotiationHtml(title)}</strong><span>${escapeContractNegotiationHtml(note)}</span></div>`).join('')}
-                </article>
-            </div>
-        </section>
+            `).join('')}
+        </div>
+        <div class="evaluation-form-grid recommendation-form contract-draft-form">
+            <label>Contract start date <input class="form-input" type="date" data-award-draft-field="contract.startDate" value="${escapeContractNegotiationHtml(contract.startDate || '')}"></label>
+            <label>Contract end date <input class="form-input" type="date" data-award-draft-field="contract.endDate" value="${escapeContractNegotiationHtml(contract.endDate || '')}"></label>
+            <label>Contract duration <input class="form-input" data-award-draft-field="contract.duration" value="${escapeContractNegotiationHtml(contract.duration || '')}"></label>
+            <label>Current status <input class="form-input" data-award-draft-field="contract.status" value="${escapeContractNegotiationHtml(contract.status || '')}"></label>
+        </div>
+        <div class="contract-rule-banner">
+            <strong>Negotiation rule</strong>
+            <span>The contract can be negotiated only after award acceptance and before signing. Once both parties agree and the contract is locked for signature, later changes become amendments, variations, extensions of time, or change orders.</span>
+        </div>
+        <div class="inline-actions">
+            <button class="btn btn-secondary" type="button" data-award-save-draft data-award-step="draft-contract">Save Draft</button>
+            <button class="btn btn-secondary" type="button" data-award-save-exit data-award-step="draft-contract">Save Draft & Exit</button>
+            <button class="btn btn-primary" type="button" data-award-save-continue data-award-next-step="terms-clauses" data-award-required-action="Review Terms and Clauses">Continue to Terms & Clauses</button>
+        </div>
     `;
 }
 
-function renderDigitalSignaturePanel(typeId = 'works') {
-    const securityRequired = typeId === 'works';
-    return `
-        <section class="procurement-panel evaluation-panel">
-            <div class="panel-heading">
-                <div>
-                    <span class="section-kicker">Digital contract signing</span>
-                    <h2>Signatures, security verification, and activation</h2>
-                </div>
-                ${renderContractNegotiationBadge('Signature pending')}
-            </div>
-            <div class="contract-prerequisite-grid">
-                <article>
-                    <strong>Performance security</strong>
-                    <span>${securityRequired ? 'Required before signing/effectiveness for this works contract.' : 'Not required for this procurement type unless buyer configured it.'}</span>
-                    ${renderContractNegotiationBadge(securityRequired ? 'Verify before signing' : 'Conditional')}
-                </article>
-                <article>
-                    <strong>Signing order</strong>
-                    <span>Configurable: buyer first, supplier first, or parallel signing.</span>
-                    ${renderContractNegotiationBadge('Configurable')}
-                </article>
-                <article>
-                    <strong>Activation rule</strong>
-                    <span>Contract activates only after agreed clauses, required security, and both signatures.</span>
-                    ${renderContractNegotiationBadge('Controlled')}
-                </article>
-            </div>
-            <div class="contract-signature-grid">
-                ${[
-                    ['Buyer Signature Block', 'Procurement Officer', 'Full name, title, digital signature, timestamp.'],
-                    ['Supplier Signature Block', 'Managing Director', 'Full name, title, digital signature, timestamp.']
-                ].map(([title, role, note]) => `
-                    <article class="contract-signature-card">
-                        <h3>${escapeContractNegotiationHtml(title)}</h3>
-                        <div class="signature-preview"><strong>Signature Area</strong><span>Click to sign digitally</span></div>
-                        <input class="form-input" placeholder="Full Name">
-                        <input class="form-input" value="${escapeContractNegotiationHtml(role)}" placeholder="Position / Title">
-                        <button class="btn btn-secondary" type="button">Apply Digital Signature</button>
-                        <small>${escapeContractNegotiationHtml(note)}</small>
-                    </article>
-                `).join('')}
-            </div>
-            <div class="evaluation-notice success">Signature audit records signer identity, document hash, timestamp, certificate metadata, and final signed version hash. The audit record is permanent and cannot be modified.</div>
-            <div class="inline-actions">
-                <button class="btn btn-secondary" type="button" data-navigate="award-recommendation">Back to Award</button>
-                <button class="btn btn-primary" type="button" data-navigate="post-award-tracking">Activate Contract Tracking</button>
-            </div>
-        </section>
-    `;
-}
+function renderContractClauses(contract) {
+    const locked = ['Awarded supplier', 'Final evaluated bid price', 'Main tender scope', 'Core technical requirements', 'Evaluation criteria', 'Procurement method', 'Bid ranking', 'Tender reference'];
+    const negotiable = ['Delivery schedule', 'Milestone dates', 'Payment schedule', 'Reporting frequency', 'Acceptance process details', 'Warranty procedure', 'Contract clause wording', 'Performance security deadline'];
 
-function renderNegotiationChat(negotiation = {}) {
     return `
-        <aside class="contract-chat-panel">
-            <div class="panel-heading">
-                <div>
-                    <span class="section-kicker">Negotiation chat</span>
-                    <h3>Clause positions</h3>
-                </div>
-                ${renderContractNegotiationBadge('Round 3')}
-            </div>
-            <div class="chat-messages">
-                ${(negotiation.messages || []).map(msg => `
-                    <article class="contract-chat-message ${msg.from === 'buyer' ? 'buyer' : 'supplier'}">
-                        <div>
-                            <strong>${msg.from === 'buyer' ? 'Procurement Officer' : 'Winning Supplier'}</strong>
-                            <span>${escapeContractNegotiationHtml(msg.timestamp)}</span>
+        <div class="contract-boundary-grid">
+            <article>
+                <h3>Locked after award</h3>
+                ${locked.map(item => `<span>${escapeContractNegotiationHtml(item)}</span>`).join('')}
+            </article>
+            <article>
+                <h3>Negotiable before signing</h3>
+                ${negotiable.map(item => `<span>${escapeContractNegotiationHtml(item)}</span>`).join('')}
+            </article>
+        </div>
+        <div class="contract-clause-grid contract-workspace-clause-grid">
+            ${(contract.clauses || []).map(clause => `
+                <article class="contract-clause-card ${clause.lock === 'Locked' ? 'locked' : 'negotiable'}">
+                    <div class="contract-clause-card-head">
+                        <strong>${escapeContractNegotiationHtml(clause.title)}</strong>
+                        ${renderContractNegotiationBadge(clause.lock)}
+                    </div>
+                    <p>${escapeContractNegotiationHtml(clause.text)}</p>
+                    <div class="contract-clause-meta">
+                        ${renderContractNegotiationBadge(clause.status)}
+                        <span>${escapeContractNegotiationHtml(clause.comments)} comments</span>
+                    </div>
+                    <em>${escapeContractNegotiationHtml(clause.requestedChange)}</em>
+                    ${clause.lock === 'Negotiable' ? `
+                        <div class="inline-actions">
+                            <button class="btn btn-secondary btn-sm" type="button">Accept</button>
+                            <button class="btn btn-secondary btn-sm" type="button">Comment</button>
+                            <button class="btn btn-primary btn-sm" type="button">Request Change</button>
                         </div>
-                        <p>${escapeContractNegotiationHtml(msg.message)}</p>
-                    </article>
-                `).join('')}
-            </div>
-            <div class="chat-input">
-                <input class="form-input" type="text" placeholder="Type your message...">
-                <button class="btn btn-primary" type="button">Send</button>
-            </div>
-            <div class="contract-quick-actions">
-                <h4>Quick actions</h4>
-                <button class="btn btn-secondary" type="button">Request Clarification</button>
-                <button class="btn btn-secondary" type="button">Counter Proposal</button>
-                <button class="btn btn-secondary" type="button">Accept Terms</button>
-            </div>
-        </aside>
+                    ` : ''}
+                </article>
+            `).join('')}
+        </div>
+        <div class="inline-actions">
+            <button class="btn btn-secondary" type="button" data-award-save-draft data-award-step="terms-clauses">Save Draft</button>
+            <button class="btn btn-primary" type="button" data-award-save-continue data-award-next-step="contract-negotiation" data-award-required-action="Negotiate Contract">Send Contract for Review</button>
+        </div>
     `;
+}
+
+function renderContractNegotiationTab(contract) {
+    return `
+        ${renderContractNegotiationDataTable(
+            ['Clause', 'Requested By', 'Request', 'Status', 'Buyer Response'],
+            (contract.negotiationRequests || []).map(row => `
+                <tr>
+                    <td><strong>${escapeContractNegotiationHtml(row.clause)}</strong></td>
+                    <td>${escapeContractNegotiationHtml(row.requestBy)}</td>
+                    <td>${escapeContractNegotiationHtml(row.request)}</td>
+                    <td>${renderContractNegotiationBadge(row.status)}</td>
+                    <td>${escapeContractNegotiationHtml(row.buyerResponse)}</td>
+                </tr>
+            `)
+        )}
+        <div class="contract-negotiation-grid compact">
+            <section class="contract-chat-panel">
+                <div class="panel-heading">
+                    <div>
+                        <span class="section-kicker">Negotiation comments</span>
+                        <h3>Clause conversation</h3>
+                    </div>
+                    ${renderContractNegotiationBadge('Round 3')}
+                </div>
+                <div class="chat-messages">
+                    ${(contract.messages || []).map(msg => `
+                        <article class="contract-chat-message ${msg.from === 'buyer' ? 'buyer' : 'supplier'}">
+                            <div><strong>${msg.from === 'buyer' ? 'Buyer' : 'Supplier'}</strong><span>${escapeContractNegotiationHtml(msg.timestamp)}</span></div>
+                            <p>${escapeContractNegotiationHtml(msg.message)}</p>
+                        </article>
+                    `).join('')}
+                </div>
+                <div class="contract-quick-actions">
+                    <button class="btn btn-secondary" type="button">Accept Supplier Request</button>
+                    <button class="btn btn-secondary" type="button">Reject Request</button>
+                    <button class="btn btn-primary" type="button">Counter-Propose</button>
+                </div>
+            </section>
+            <section class="contract-chat-panel">
+                <div class="panel-heading">
+                    <div>
+                        <span class="section-kicker">Final agreement</span>
+                        <h3>Dual confirmation before signing</h3>
+                    </div>
+                    ${renderContractNegotiationBadge(contract.lockedForSignature ? 'Locked' : 'Not Locked')}
+                </div>
+                <div class="contract-confirmation-stack">
+                    <div><strong>Supplier Confirms Terms</strong>${renderContractNegotiationBadge(contract.supplierConfirmedTerms ? 'Confirmed' : 'Pending')}</div>
+                    <div><strong>Buyer Confirms Terms</strong>${renderContractNegotiationBadge(contract.buyerConfirmedTerms ? 'Confirmed' : 'Pending')}</div>
+                    <div><strong>Contract Locked for Signing</strong>${renderContractNegotiationBadge(contract.lockedForSignature ? 'Ready for Signature' : 'Awaiting Buyer Confirmation')}</div>
+                </div>
+                <button class="btn btn-primary" type="button">Confirm Terms and Lock</button>
+            </section>
+        </div>
+        <div class="inline-actions">
+            <button class="btn btn-secondary" type="button" data-award-save-draft data-award-step="contract-negotiation">Save Draft</button>
+            <button class="btn btn-primary" type="button" data-award-save-continue data-award-next-step="final-agreement" data-award-required-action="Confirm Final Terms">Mark Terms Ready for Agreement</button>
+        </div>
+    `;
+}
+
+function renderContractVersions(contract) {
+    return renderContractNegotiationDataTable(
+        ['Version', 'Changed By', 'Date', 'Summary', 'Previous Clause', 'New Clause', 'Reason'],
+        (contract.versions || []).map(row => `
+            <tr>
+                <td><strong>${escapeContractNegotiationHtml(row.version)}</strong></td>
+                <td>${escapeContractNegotiationHtml(row.changedBy)}</td>
+                <td>${escapeContractNegotiationHtml(row.date)}</td>
+                <td>${escapeContractNegotiationHtml(row.summary)}</td>
+                <td>${escapeContractNegotiationHtml(row.previousClause)}</td>
+                <td>${escapeContractNegotiationHtml(row.newClause)}</td>
+                <td>${escapeContractNegotiationHtml(row.reason)}</td>
+            </tr>
+        `)
+    );
+}
+
+function renderContractDocuments(contract) {
+    return renderContractNegotiationDataTable(
+        ['Document', 'Type', 'Owner', 'Status', 'Action'],
+        (contract.documents || []).map(row => `
+            <tr>
+                <td><strong>${escapeContractNegotiationHtml(row.name)}</strong></td>
+                <td>${escapeContractNegotiationHtml(row.type)}</td>
+                <td>${escapeContractNegotiationHtml(row.owner)}</td>
+                <td>${renderContractNegotiationBadge(row.status)}</td>
+                <td><button class="btn btn-secondary btn-sm" type="button">${row.status === 'Pending Upload' ? 'Upload' : 'View'}</button></td>
+            </tr>
+        `)
+    );
+}
+
+function renderContractSignatures(contract) {
+    return `
+        <div class="contract-signature-grid">
+            ${(contract.signatures || []).map((row, index) => `
+                <article class="contract-signature-card">
+                    <h3>${escapeContractNegotiationHtml(row.party)} Signature</h3>
+                    <div class="signature-preview"><strong>${escapeContractNegotiationHtml(row.party)}</strong><span>${escapeContractNegotiationHtml(row.status)}</span></div>
+                    <input class="form-input" value="${escapeContractNegotiationHtml(row.representative)}" aria-label="${escapeContractNegotiationHtml(row.party)} representative">
+                    <span>${renderContractNegotiationBadge(index === 0 ? 'Supplier signs first' : 'Buyer countersigns')}</span>
+                    <small>Timestamp: ${escapeContractNegotiationHtml(row.timestamp)}</small>
+                    <button class="btn ${index === 0 ? 'btn-primary' : 'btn-secondary'}" type="button">Apply Digital Signature</button>
+                </article>
+            `).join('')}
+        </div>
+        <div class="status-pipeline horizontal contract-signature-pipeline">
+            <div class="done"><strong>Terms Agreed</strong><span>Both parties confirm contract terms</span></div>
+            <div class="current"><strong>Supplier Signs</strong><span>Supplier signature is first</span></div>
+            <div><strong>Buyer Signs</strong><span>Buyer countersigns</span></div>
+            <div><strong>Contract Active</strong><span>Execution workspace opens</span></div>
+        </div>
+        <div class="evaluation-notice success">Signature audit records signer identity, document hash, timestamp, certificate metadata, and final signed version hash.</div>
+        <div class="inline-actions">
+            <button class="btn btn-secondary" type="button" data-award-save-draft data-award-step="signature">Save Draft</button>
+            <button class="btn btn-secondary" type="button" data-award-save-exit data-award-step="signature">Save Draft & Exit</button>
+            <button class="btn btn-primary" type="button" data-award-save-continue data-award-next-step="execution" data-award-required-action="Track Execution" data-navigate="post-award-tracking">Activate Contract Tracking</button>
+        </div>
+    `;
+}
+
+function renderContractActivity(contract) {
+    return renderContractNegotiationDataTable(
+        ['Time', 'Actor', 'Event', 'Status'],
+        (contract.activityLog || []).map(row => `
+            <tr>
+                <td>${escapeContractNegotiationHtml(row.time)}</td>
+                <td>${escapeContractNegotiationHtml(row.actor)}</td>
+                <td>${escapeContractNegotiationHtml(row.event)}</td>
+                <td>${renderContractNegotiationBadge(row.status)}</td>
+            </tr>
+        `)
+    );
 }
 
 function renderContractNegotiation() {
-    const negotiation = mockData.contractNegotiation || {};
-    const tender = getContractNegotiationTender();
-    const typeId = getContractNegotiationTypeId(tender);
-    const recommendation = getContractNegotiationRecommendation();
-    const winner = getContractNegotiationWinner();
-    const contractAmount = recommendation.amount || winner.financial?.correctedPrice || winner.price || 0;
-    const supplier = recommendation.supplier || winner.supplier || 'Winning Supplier';
-    const activeType = contractNegotiationClauseCatalog[typeId] || contractNegotiationClauseCatalog.works;
+    const context = typeof getAwardContractLifecycleContext === 'function' ? getAwardContractLifecycleContext() : null;
+    const draft = context?.draft || {};
+    const tender = context?.tender || {};
+    const contract = context?.contract || mockData.awardingContracts?.contract || {};
+    contract.procurementType = draft.procurementType || contract.procurementType || 'Works';
+    contract.role = draft.role || 'Buyer';
 
     return `
-        <div class="main-layout procurement-layout evaluation-app-layout contract-page">
+        <div class="main-layout procurement-layout evaluation-app-layout contract-page" data-award-contract-workspace data-award-current-step="${escapeContractNegotiationHtml(draft.currentStep || 'draft-contract')}" data-award-tender-id="${escapeContractNegotiationHtml(draft.tenderId || tender.id || '')}">
             <aside class="sidebar evaluation-sidebar">
                 <div class="evaluation-sidebar-head">
-                    <h3>Contracting</h3>
-                    <span>Contract #${escapeContractNegotiationHtml(negotiation.contractId || 'Draft')}</span>
+                    <h3>Contract Workspace</h3>
+                    <span>Contract #${escapeContractNegotiationHtml(contract.contractId || 'Draft')}</span>
                 </div>
                 <ul class="sidebar-nav">
-                    <li><a href="#" data-navigate="award-recommendation">Back to Award</a></li>
-                    <li><a href="#" data-navigate="post-award-tracking">Post-Award Tracking</a></li>
-                    <li><a href="#" data-navigate="workspace-dashboard">Workspace Dashboard</a></li>
-                    <li><a href="#" data-navigate="welcome">Logout</a></li>
+                    <li><a href="#" data-award-guard-navigate data-navigate="awarding-contracts">Awarding Dashboard</a></li>
+                    <li><a href="#" data-award-guard-navigate data-navigate="award-recommendation">Award Decision</a></li>
+                    <li><a href="#" data-award-guard-navigate data-navigate="contract-negotiation" class="active">Contract Workspace</a></li>
+                    <li><a href="#" data-award-guard-navigate data-navigate="post-award-tracking">Post-Award Tracking</a></li>
+                    <li><a href="#" data-award-guard-navigate data-navigate="workspace-dashboard">Workspace Dashboard</a></li>
+                    <li><a href="#" data-award-guard-navigate data-navigate="welcome">Logout</a></li>
                 </ul>
             </aside>
 
             <main class="main-content procurement-content contract-negotiation-workspace">
                 <section class="procurement-hero evaluation-hero-panel award-hero-panel">
                     <div>
-                        <span class="section-kicker">Contract negotiation</span>
-                        <h1>${escapeContractNegotiationHtml(tender.title || 'Contract finalization')}</h1>
-                        <p>Finalize the ${escapeContractNegotiationHtml(activeType.label.toLowerCase())} contract after internal approval, standstill completion, and supplier acceptance. Negotiation is clause-level and cannot materially change the evaluated bid.</p>
+                        <span class="section-kicker">Contract review and negotiation</span>
+                        <h1>${escapeContractNegotiationHtml(contract.title || 'Contract finalization')}</h1>
+                        <p>Negotiate selected contract terms and clauses after award acceptance and before signing. Locked tender and evaluation fields cannot be reopened.</p>
                     </div>
                     <div class="evaluation-hero-stats">
-                        <div><strong>${formatContractNegotiationMoney(contractAmount, recommendation.currency || winner.financial?.currency || 'TZS')}</strong><span>Contract value</span></div>
-                        <div><strong>${escapeContractNegotiationHtml(recommendation.contractDuration || 'To confirm')}</strong><span>Duration</span></div>
-                        <div><strong>${escapeContractNegotiationHtml(negotiation.status || 'Negotiation')}</strong><span>Status</span></div>
+                        <div><strong>${formatContractNegotiationMoney(contract.value, contract.currency)}</strong><span>Contract value</span></div>
+                        <div><strong>${escapeContractNegotiationHtml(contract.duration || '-')}</strong><span>Duration</span></div>
+                        <div><strong>${escapeContractNegotiationHtml(contract.status || 'Draft')}</strong><span>Status</span></div>
                     </div>
                 </section>
 
-                <section class="evaluation-top-summary">
-                    <div><span>Buyer</span><strong>${escapeContractNegotiationHtml(tender.organization || 'Procuring Entity')}</strong></div>
-                    <div><span>Supplier</span><strong>${escapeContractNegotiationHtml(supplier)}</strong></div>
-                    <div><span>Contract type</span><strong>${escapeContractNegotiationHtml(activeType.label)}</strong></div>
-                    <div><span>PO Matched</span>${renderContractNegotiationBadge(negotiation.poMatched ? 'Verified' : 'Pending')}</div>
-                    <div><span>Budget</span>${renderContractNegotiationBadge(negotiation.budgetVerified ? 'Verified' : 'Pending')}</div>
-                    <div><span>Signature</span>${renderContractNegotiationBadge(negotiation.signaturePending ? 'Pending' : 'Complete')}</div>
-                </section>
-
-                ${renderContractNegotiationFlow()}
-
-                <div class="contract-negotiation-grid">
-                    <div class="contract-main-column">
-                        <section class="procurement-panel evaluation-panel">
-                            <div class="panel-heading">
-                                <div>
-                                    <span class="section-kicker">Contract document</span>
-                                    <h2>Formal agreement draft</h2>
-                                </div>
-                                ${renderContractNegotiationBadge('Draft v3')}
-                            </div>
-                            <div class="contract-document-grid">
-                                <article>
-                                    <strong>Parties to the Agreement</strong>
-                                    <span>Employer: ${escapeContractNegotiationHtml(tender.organization || 'Procuring Entity')}</span>
-                                    <span>Supplier: ${escapeContractNegotiationHtml(supplier)}</span>
-                                    <span>Contract price: ${formatContractNegotiationMoney(contractAmount, recommendation.currency || winner.financial?.currency || 'TZS')}</span>
-                                    <span>Duration: ${escapeContractNegotiationHtml(recommendation.contractDuration || 'To confirm')}</span>
-                                </article>
-                                <article>
-                                    <strong>Scope / Deliverables</strong>
-                                    <span>${escapeContractNegotiationHtml(tender.description || 'Scope follows the evaluated tender and accepted bid. Scope cannot be materially changed during negotiation.')}</span>
-                                </article>
-                                <article>
-                                    <strong>Payment Terms</strong>
-                                    <span>Milestone or acceptance-linked payment schedule is agreed here without changing the evaluated contract value.</span>
-                                    ${renderContractNegotiationBadge('Negotiable timing')}
-                                </article>
-                            </div>
-                        </section>
-
-                        ${renderNegotiationRules()}
-                        ${renderContractNegotiationClauseLibrary(tender)}
-                        ${renderContractVersionHistory()}
-                        ${renderDigitalSignaturePanel(typeId)}
+                <section class="procurement-panel evaluation-panel contract-workspace-panel">
+                    <div class="panel-heading">
+                        <div>
+                            <span class="section-kicker">Contract workspace</span>
+                            <h2>Overview, terms, negotiation, documents, signatures, and activity</h2>
+                        </div>
+                        ${renderContractNegotiationBadge(contract.poMatched && contract.budgetVerified ? 'PO and budget verified' : 'Verification pending')}
+                    </div>
+                    <div class="contract-rule-banner">
+                        <strong>Draft progress</strong>
+                        <span>Current step: ${escapeContractNegotiationHtml(draft.currentStep || 'draft-contract')} / Required action: ${escapeContractNegotiationHtml(draft.requiredAction || 'Review contract')}. Last saved: ${escapeContractNegotiationHtml(draft.lastEditedAt ? new Date(draft.lastEditedAt).toLocaleString() : 'Not saved')}.</span>
+                    </div>
+                    <div class="inline-actions">
+                        <button class="btn btn-secondary" type="button" data-award-save-draft data-award-step="${escapeContractNegotiationHtml(draft.currentStep || 'draft-contract')}">Save Draft</button>
+                        <button class="btn btn-secondary" type="button" data-award-save-exit data-award-step="${escapeContractNegotiationHtml(draft.currentStep || 'draft-contract')}">Save Draft & Exit</button>
+                        <button class="btn btn-secondary" type="button" data-award-guard-navigate data-navigate="awarding-contracts">Open Another Tender</button>
                     </div>
 
-                    ${renderNegotiationChat(negotiation)}
-                </div>
+                    <div class="tabs contract-workspace-tabs">
+                        <div class="tab active" data-tab="overview">Overview</div>
+                        <div class="tab" data-tab="clauses">Terms & Clauses</div>
+                        <div class="tab" data-tab="negotiation">Negotiation</div>
+                        <div class="tab" data-tab="documents">Documents</div>
+                        <div class="tab" data-tab="signatures">Signatures</div>
+                        <div class="tab" data-tab="activity">Activity Log</div>
+                    </div>
+
+                    <div class="contract-workspace-tab-content">
+                        <div class="tab-content" data-tab="overview" style="display: block;">${renderContractOverview(contract)}</div>
+                        <div class="tab-content" data-tab="clauses" style="display: none;">${renderContractClauses(contract)}</div>
+                        <div class="tab-content" data-tab="negotiation" style="display: none;">${renderContractNegotiationTab(contract)}${renderContractVersions(contract)}</div>
+                        <div class="tab-content" data-tab="documents" style="display: none;">${renderContractDocuments(contract)}</div>
+                        <div class="tab-content" data-tab="signatures" style="display: none;">${renderContractSignatures(contract)}</div>
+                        <div class="tab-content" data-tab="activity" style="display: none;">${renderContractActivity(contract)}</div>
+                    </div>
+                </section>
             </main>
         </div>
     `;
 }
 
-// Register the page render function
 if (window.app) {
     window.app.renderContractNegotiation = renderContractNegotiation;
 }

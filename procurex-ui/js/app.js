@@ -125,9 +125,9 @@ class ProcureXApp {
                 <span class="app-menu-icon">${this.getAppMenuIcon('evaluation')}</span>
                 <span><strong>Evaluation</strong><em>Evaluate bids on your tenders</em></span>
             </button>
-            <button class="app-menu-card app-menu-awarding" data-navigate="award-recommendation">
+            <button class="app-menu-card app-menu-awarding" data-navigate="awarding-contracts">
                 <span class="app-menu-icon">${this.getAppMenuIcon('awarding')}</span>
-                <span><strong>Awarding and Contract</strong><em>Award, approvals, signature</em></span>
+                <span><strong>Awarding and Contract</strong><em>Awards, negotiations, signatures</em></span>
             </button>
             <button class="app-menu-card app-menu-contracts" data-navigate="records-history">
                 <span class="app-menu-icon">${this.getAppMenuIcon('contracts')}</span>
@@ -242,6 +242,7 @@ class ProcureXApp {
             'records-history': 'Records and History',
             'bidding-workspace': 'Procurement',
             'bid-evaluation': 'Evaluation',
+            'awarding-contracts': 'Awarding and Contract',
             'award-recommendation': 'Awarding and Contract',
             'contract-negotiation': 'Awarding and Contract',
             'post-award-tracking': 'Awarding and Contract'
@@ -281,8 +282,9 @@ class ProcureXApp {
             'records-history': 'workspace-dashboard',
             'bidding-workspace': 'tender-detail',
             'bid-evaluation': 'workspace-dashboard',
-            'award-recommendation': 'bid-evaluation',
-            'contract-negotiation': 'award-recommendation',
+            'awarding-contracts': 'workspace-dashboard',
+            'award-recommendation': 'awarding-contracts',
+            'contract-negotiation': 'awarding-contracts',
             'post-award-tracking': 'contract-negotiation'
         };
         return navigationFlow[this.currentPage] || null;
@@ -319,6 +321,7 @@ class ProcureXApp {
             'records-history': 'Records and History',
             'bidding-workspace': 'Bidding Workspace',
             'bid-evaluation': 'Bid Evaluation',
+            'awarding-contracts': 'Awarding and Contracts',
             'award-recommendation': 'Award Recommendation',
             'contract-negotiation': 'Contract Negotiation',
             'post-award-tracking': 'Post-Award Tracking'
@@ -377,6 +380,12 @@ class ProcureXApp {
         }
         if (typeof window.initializeCommunicationCenter === 'function') {
             window.initializeCommunicationCenter();
+        }
+        if (typeof window.initializeAwardingContracts === 'function') {
+            window.initializeAwardingContracts();
+        }
+        if (typeof window.initializeAwardContractDraftControls === 'function') {
+            window.initializeAwardContractDraftControls();
         }
         if (typeof window.initializeProcurexMarketplace === 'function') {
             window.initializeProcurexMarketplace();
@@ -1786,6 +1795,7 @@ class ProcureXApp {
             'records-history',
             'bidding-workspace',
             'bid-evaluation',
+            'awarding-contracts',
             'award-recommendation',
             'contract-negotiation',
             'post-award-tracking'

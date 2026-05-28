@@ -175,6 +175,7 @@ function getDashboardSeverity(score = 0) {
 
 function getDashboardActionLabel(nav = '') {
     const labels = {
+        'awarding-contracts': 'Open',
         'award-recommendation': 'Review',
         'bid-evaluation': 'Score',
         'contract-negotiation': 'Sign',
@@ -200,7 +201,7 @@ function getWorkspaceDashboardPipeline(tenders = [], bidDrafts = [], submittedBi
     return Object.entries(counts).map(([stage, count]) => ({
         stage,
         count,
-        nav: stage === 'Draft' ? 'create-tender' : stage === 'Published' ? 'marketplace' : stage === 'Evaluation' ? 'bid-evaluation' : stage === 'Award' ? 'award-recommendation' : stage === 'Contract' ? 'post-award-tracking' : 'records-history'
+        nav: stage === 'Draft' ? 'create-tender' : stage === 'Published' ? 'marketplace' : stage === 'Evaluation' ? 'bid-evaluation' : stage === 'Award' ? 'awarding-contracts' : stage === 'Contract' ? 'awarding-contracts' : 'records-history'
     }));
 }
 
@@ -232,7 +233,7 @@ function getWorkspaceDashboardActiveWork(tenders = [], bidDrafts = [], submitted
             deadline: tender.closingDate || tender.milestones?.find(item => item.id === 'milestone-evaluation')?.date || '',
             lastActivity: tender.publishedAt || tender.closingDate || '',
             amount: Number(tender.budget || 0),
-            nav: /evaluation/i.test(tender.status || '') ? 'bid-evaluation' : 'tender-details'
+            nav: /evaluation/i.test(tender.status || '') ? 'bid-evaluation' : /award/i.test(tender.status || '') ? 'awarding-contracts' : 'tender-details'
         });
     });
 
@@ -248,7 +249,7 @@ function getWorkspaceDashboardActiveWork(tenders = [], bidDrafts = [], submitted
             deadline: '2026-08-30',
             lastActivity: '2026-07-02T14:20:00',
             amount: 0,
-            nav: 'post-award-tracking'
+            nav: 'awarding-contracts'
         });
     }
 
@@ -401,7 +402,7 @@ function renderDashboardSidebar(dashboard) {
                 <li><a href="#" data-navigate="marketplace">Marketplace</a></li>
                 <li><a href="#" data-navigate="create-tender">Create Tender</a></li>
                 <li><a href="#" data-navigate="bid-evaluation">Evaluation</a></li>
-                <li><a href="#" data-navigate="award-recommendation">Awards and Contracts</a></li>
+                <li><a href="#" data-navigate="awarding-contracts">Awards and Contracts</a></li>
                 <li><a href="#" data-navigate="records-history">Records and History</a></li>
                 <li><a href="#" data-navigate="account-profile">Account and Verification</a></li>
                 <li><a href="#" data-navigate="welcome">Logout</a></li>

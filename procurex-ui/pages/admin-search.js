@@ -42,7 +42,7 @@ function getProcurexAdminAuditTrail() {
 function appendProcurexAdminAudit(action = {}) {
     const actor = mockData.session?.email || mockData.pendingAccount?.email || mockData.users?.admin?.name || 'Platform Admin';
     const isAdminActor = mockData.session?.accountType === 'admin' || mockData.pendingAccount?.accountType === 'admin';
-    const actorRole = action.actorRole || (isAdminActor ? 'System Admin' : /evaluation/i.test(`${action.entityType || ''} ${action.action || ''}`) ? 'Buyer Evaluator' : 'Compliance Reviewer');
+    const actorRole = action.actorRole || (isAdminActor ? 'System Admin' : /evaluation/i.test(`${action.entityType || ''} ${action.action || ''}`) ? 'Buyer' : 'User');
     const item = {
         id: action.id || `AUD-${Date.now()}`,
         time: new Date().toISOString(),

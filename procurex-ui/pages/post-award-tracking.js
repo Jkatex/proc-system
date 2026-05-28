@@ -1,291 +1,246 @@
-// Post-Award Tracking Page Component
+// Post-award execution workspace for delivery, payments, issues, variations, closure, and performance.
 
-function renderPostAwardTracking() {
-    const tracking = mockData.postAwardTracking;
+function escapePostAwardHtml(value = '') {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
 
+function formatPostAwardMoney(value, currency = 'TZS') {
+    const amount = Number(value || 0);
+    return Number.isFinite(amount) ? `${currency} ${amount.toLocaleString()}` : escapePostAwardHtml(value || '-');
+}
+
+function renderPostAwardBadge(value = '') {
+    const text = String(value || '');
+    const lower = text.toLowerCase();
+    const tone = lower.includes('accepted') || lower.includes('paid') || lower.includes('resolved') || lower.includes('complete')
+        ? 'badge-success'
+        : lower.includes('pending') || lower.includes('review') || lower.includes('required') || lower.includes('progress') || lower.includes('draft')
+            ? 'badge-warning'
+            : lower.includes('blocked') || lower.includes('high')
+                ? 'badge-error'
+                : 'badge-info';
+    return `<span class="badge ${tone}">${escapePostAwardHtml(text)}</span>`;
+}
+
+function renderPostAwardTable(headers = [], rows = []) {
     return `
-        <div class="main-layout">
-            <div class="sidebar">
-                <div style="padding: 0 16px 20px;">
-                    <h3>Post-Award Tracking</h3>
-                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Contract #${tracking.contractId}</div>
-                </div>
-
-                <ul class="sidebar-nav">
-                    <li><a href="#" data-navigate="contract-negotiation">Back to Negotiation</a></li>
-                    <li><a href="#" data-navigate="procurement-dashboard">Procurement Dashboard</a></li>
-                    <li><a href="#" data-navigate="marketplace">Marketplace</a></li>
-                    <li><a href="#" data-navigate="welcome">Logout</a></li>
-                </ul>
-            </div>
-
-            <div class="main-content">
-                <div class="tracking-content">
-                    <div class="tracking-main">
-                        <div class="tracking-header">
-                            <div class="panel-heading">
-                                <div>
-                                    <span class="badge badge-info">${tracking.status.replace('_', ' ')}</span>
-                                    <h1>Contract #${tracking.contractId}</h1>
-                                    <p style="color: var(--text-secondary); margin-top: 4px;">Construction of Rural Health Centers - ABC Construction Ltd</p>
-                                </div>
-                                <button class="btn btn-secondary">Export Audit Pack</button>
-                            </div>
-
-                            <div class="card">
-                                <div class="panel-heading">
-                                    <div>
-                                        <span class="section-kicker">Contract Performance History</span>
-                                        <h3>Delivery Fulfillment Progress</h3>
-                                    </div>
-                                    <span class="badge badge-success">${tracking.progress}% complete</span>
-                                </div>
-                                <div style="margin-bottom: 16px;">
-                                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                                        <span>Overall Progress</span>
-                                        <span style="font-weight: 600;">${tracking.progress}%</span>
-                                    </div>
-                                    <div class="progress-bar">
-                                        <div class="progress-fill" style="width: ${tracking.progress}%"></div>
-                                    </div>
-                                </div>
-                                <div class="status-pipeline horizontal">
-                                    <div class="done"><strong>Award</strong><span>July 01, 2026</span></div>
-                                    <div class="done"><strong>Dispatch</strong><span>July 20, 2026</span></div>
-                                    <div class="current"><strong>Delivery</strong><span>August 20, 2026</span></div>
-                                    <div><strong>Closure</strong><span>September 30, 2026</span></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="tabs">
-                            <div class="tab active" data-tab="grn">GRN and Acceptance</div>
-                            <div class="tab" data-tab="billing">Invoices and Matching</div>
-                            <div class="tab" data-tab="disputes">Disputes and Evidence</div>
-                        </div>
-
-                        <div class="tab-content" data-tab="grn" style="display: block;">
-                            <div class="card">
-                                <div class="panel-heading">
-                                    <div>
-                                        <span class="section-kicker">Delivery and Invoice Verification</span>
-                                        <h3>Goods Receipt Notes and Acceptance</h3>
-                                    </div>
-                                    <span class="badge badge-warning">1 review pending</span>
-                                </div>
-                                <div class="data-table">
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>Milestone</th>
-                                                <th>Description</th>
-                                                <th>Scheduled Date</th>
-                                                <th>Actual Date</th>
-                                                <th>Status</th>
-                                                <th>GRN #</th>
-                                                <th>Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>Milestone 1</td>
-                                                <td>Foundation and structural completion</td>
-                                                <td>July 20, 2026</td>
-                                                <td>July 18, 2026</td>
-                                                <td><span class="badge badge-success">Accepted</span></td>
-                                                <td>GRN-2026-001</td>
-                                                <td><button class="btn btn-secondary">View</button></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Milestone 2</td>
-                                                <td>MEP installations</td>
-                                                <td>August 20, 2026</td>
-                                                <td>August 23, 2026</td>
-                                                <td><span class="badge badge-warning">Under Review</span></td>
-                                                <td>GRN-2026-002</td>
-                                                <td><button class="btn btn-secondary">Review</button></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Milestone 3</td>
-                                                <td>Finishing works and handover</td>
-                                                <td>September 30, 2026</td>
-                                                <td>-</td>
-                                                <td><span class="badge badge-info">Pending</span></td>
-                                                <td>-</td>
-                                                <td><button class="btn btn-secondary">Schedule</button></td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="tab-content" data-tab="billing" style="display: none;">
-                            <div class="journey-grid two-col">
-                                <div class="journey-panel">
-                                    <div class="panel-heading">
-                                        <div>
-                                            <span class="section-kicker">Three-Way Invoice Matching</span>
-                                            <h2>Three-Way Matching</h2>
-                                        </div>
-                                        <span class="badge badge-warning">Finance review</span>
-                                    </div>
-                                    <div class="data-table">
-                                        <table>
-                                            <thead>
-                                                <tr>
-                                                    <th>Invoice</th>
-                                                    <th>Milestone</th>
-                                                    <th>Amount</th>
-                                                    <th>PO</th>
-                                                    <th>GRN</th>
-                                                    <th>Status</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td>INV-2026-001</td>
-                                                    <td>Milestone 1</td>
-                                                    <td>TZS 960,000,000</td>
-                                                    <td>PO-0892</td>
-                                                    <td>GRN-2026-001</td>
-                                                    <td><span class="badge badge-success">Paid</span></td>
-                                                </tr>
-                                                <tr>
-                                                    <td>INV-2026-002</td>
-                                                    <td>Milestone 2</td>
-                                                    <td>TZS 1,440,000,000</td>
-                                                    <td>PO-0892</td>
-                                                    <td>GRN-2026-002</td>
-                                                    <td><span class="badge badge-warning">Pending approval</span></td>
-                                                </tr>
-                                                <tr>
-                                                    <td>INV-2026-003</td>
-                                                    <td>Milestone 3</td>
-                                                    <td>TZS 1,200,000,000</td>
-                                                    <td>PO-0892</td>
-                                                    <td>-</td>
-                                                    <td><span class="badge badge-error">Blocked</span></td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                                <div class="journey-panel">
-                                    <div class="panel-heading">
-                                        <div>
-                                            <span class="section-kicker">Duplicate and fraud controls</span>
-                                            <h2>Validation Results</h2>
-                                        </div>
-                                        <span class="badge badge-info">${tracking.invoiceChecks.length} checks</span>
-                                    </div>
-                                    <div class="risk-list">
-                                        ${tracking.invoiceChecks.map(check => `
-                                            <div class="risk-item ${check.result === 'Matched' ? 'success' : 'warning'}">
-                                                <strong>${check.invoice}: ${check.result}</strong>
-                                                <span>${check.detail}</span>
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                    <div class="inline-actions" style="margin-top: 16px;">
-                                        <button class="btn btn-primary">Approve Payment</button>
-                                        <button class="btn btn-secondary">Return to Tenderer</button>
-                                        <button class="btn btn-secondary">Escalate</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="tab-content" data-tab="disputes" style="display: none;">
-                            <div class="journey-grid two-col">
-                                <div class="journey-panel">
-                                    <div class="panel-heading">
-                                        <div>
-                                            <span class="section-kicker">Exception Management</span>
-                                            <h2>Dispute Case File</h2>
-                                        </div>
-                                        <span class="badge badge-warning">${tracking.disputes.length} case</span>
-                                    </div>
-                                    <div class="inbox-list">
-                                        ${tracking.disputes.map(dispute => `
-                                            <div class="inbox-item">
-                                                <strong>${dispute.id}: ${dispute.title}</strong>
-                                                <span>Status: ${dispute.status}. ${dispute.responseDue}</span>
-                                                <span class="badge badge-${dispute.priority === 'high' ? 'error' : 'warning'}">${dispute.priority}</span>
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                    <button class="btn btn-secondary" style="margin-top: 16px;">Raise Dispute</button>
-                                </div>
-                                <div class="journey-panel">
-                                    <span class="section-kicker">Evidence and outcome</span>
-                                    <h2>Mediator View</h2>
-                                    ${tracking.disputes.map(dispute => `
-                                        <div class="record-summary">
-                                            <div><span>Evidence</span><strong>${dispute.evidence.join(', ')}</strong></div>
-                                            <div><span>Outcome</span><strong>${dispute.outcome}</strong></div>
-                                            <div><span>Performance impact</span><strong>Contract performance record updated</strong></div>
-                                        </div>
-                                    `).join('')}
-                                    <div class="inline-actions">
-                                        <button class="btn btn-primary">Record Resolution</button>
-                                        <button class="btn btn-secondary">Assign Mediator</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="tracking-sidebar">
-                        <div class="card" style="margin-bottom: 24px;">
-                            <h4 style="margin-bottom: 16px;">Tenderer Performance</h4>
-                            ${[
-                                ['Delivery', tracking.supplierPerformance.delivery],
-                                ['Quality', tracking.supplierPerformance.quality],
-                                ['Communication', tracking.supplierPerformance.communication]
-                            ].map(item => `
-                                <div style="margin-bottom: 14px;">
-                                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                                        <span style="font-size: 14px;">${item[0]}</span>
-                                        <span style="font-size: 14px; font-weight: 600;">${item[1]}%</span>
-                                    </div>
-                                    <div class="progress-bar">
-                                        <div class="progress-fill" style="width: ${item[1]}%"></div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                            <div style="text-align: center; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border-soft);">
-                                <div style="font-size: 24px; font-weight: 600; color: var(--primary-blue);">${tracking.supplierPerformance.overall}%</div>
-                                <div style="font-size: 12px; color: var(--text-secondary);">Overall Rating</div>
-                            </div>
-                        </div>
-
-                        <div class="card" style="margin-bottom: 24px;">
-                            <h4 style="margin-bottom: 16px;">Tenderer Performance Card</h4>
-                            <div class="record-summary compact">
-                                <div><span>Performance Rating</span><strong>${tracking.supplierHealth.trustScore}/100</strong></div>
-                                <div><span>Risk Level</span><strong>${tracking.supplierHealth.riskLevel}</strong></div>
-                                <div><span>Last Audit</span><strong>${tracking.supplierHealth.lastAudit}</strong></div>
-                            </div>
-                        </div>
-
-                        <div class="card">
-                            <h4 style="margin-bottom: 16px;">Contract History</h4>
-                            <div class="execution-lane">
-                                <div><strong>July 01, 2026</strong><span>Contract signed</span></div>
-                                <div><strong>July 18, 2026</strong><span>Milestone 1 accepted</span></div>
-                                <div><strong>July 25, 2026</strong><span>Payment released</span></div>
-                                <div><strong>August 22, 2026</strong><span>Dispute resolved and recorded</span></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="data-table evaluation-table-scroll">
+            <table>
+                <thead><tr>${headers.map(header => `<th>${escapePostAwardHtml(header)}</th>`).join('')}</tr></thead>
+                <tbody>${rows.join('')}</tbody>
+            </table>
         </div>
     `;
 }
 
-// Register the page render function
+function renderPostAwardTracking() {
+    const context = typeof getAwardContractLifecycleContext === 'function' ? getAwardContractLifecycleContext() : null;
+    const draft = context?.draft || {};
+    const contract = context?.contract || {};
+    const execution = {
+        ...(mockData.awardingContracts?.execution || {}),
+        contractId: contract.contractId || mockData.awardingContracts?.execution?.contractId,
+        title: contract.title || mockData.awardingContracts?.execution?.title,
+        supplier: contract.supplier || mockData.awardingContracts?.execution?.supplier,
+        buyer: contract.buyer || mockData.awardingContracts?.execution?.buyer,
+        contractValue: contract.value || mockData.awardingContracts?.execution?.contractValue,
+        currency: contract.currency || mockData.awardingContracts?.execution?.currency,
+        status: draft.currentStep === 'execution' ? 'In Progress' : (mockData.awardingContracts?.execution?.status || 'In Progress')
+    };
+    const paid = (execution.invoices || []).filter(invoice => /paid/i.test(invoice.status || '')).reduce((sum, invoice) => sum + Number(invoice.amount || 0), 0);
+    const invoiced = (execution.invoices || []).reduce((sum, invoice) => sum + Number(invoice.amount || 0), 0);
+    const averagePerformance = (execution.performance || []).length
+        ? ((execution.performance || []).reduce((sum, row) => sum + Number(row.rating || 0), 0) / execution.performance.length).toFixed(1)
+        : '0.0';
+
+    return `
+        <div class="main-layout procurement-layout evaluation-app-layout post-award-page" data-award-contract-workspace data-award-current-step="execution" data-award-tender-id="${escapePostAwardHtml(draft.tenderId || '')}">
+            <aside class="sidebar evaluation-sidebar">
+                <div class="evaluation-sidebar-head">
+                    <h3>Post-Award Tracking</h3>
+                    <span>Contract #${escapePostAwardHtml(execution.contractId || 'Active')}</span>
+                </div>
+                <ul class="sidebar-nav">
+                    <li><a href="#" data-award-guard-navigate data-navigate="awarding-contracts">Awarding Dashboard</a></li>
+                    <li><a href="#" data-award-guard-navigate data-navigate="contract-negotiation">Back to Contract</a></li>
+                    <li><a href="#" data-award-guard-navigate data-navigate="post-award-tracking" class="active">Execution</a></li>
+                    <li><a href="#" data-award-guard-navigate data-navigate="workspace-dashboard">Workspace Dashboard</a></li>
+                    <li><a href="#" data-award-guard-navigate data-navigate="welcome">Logout</a></li>
+                </ul>
+            </aside>
+
+            <main class="main-content procurement-content post-award-workspace">
+                <section class="procurement-hero evaluation-hero-panel award-hero-panel">
+                    <div>
+                        <span class="section-kicker">Contract execution and monitoring</span>
+                        <h1>${escapePostAwardHtml(execution.title || 'Active contract')}</h1>
+                        <p>After signing, delivery, inspection, invoices, issues, variations, closure, and supplier performance are managed here.</p>
+                    </div>
+                    <div class="evaluation-hero-stats">
+                        <div><strong>${execution.progress || 0}%</strong><span>Delivery progress</span></div>
+                        <div><strong>${formatPostAwardMoney(paid, execution.currency)}</strong><span>Paid</span></div>
+                        <div><strong>${averagePerformance}/5</strong><span>Performance</span></div>
+                    </div>
+                </section>
+
+                <section class="evaluation-top-summary">
+                    <div><span>Buyer</span><strong>${escapePostAwardHtml(execution.buyer)}</strong></div>
+                    <div><span>Supplier</span><strong>${escapePostAwardHtml(execution.supplier)}</strong></div>
+                    <div><span>Value</span><strong>${formatPostAwardMoney(execution.contractValue, execution.currency)}</strong></div>
+                    <div><span>Status</span>${renderPostAwardBadge(execution.status)}</div>
+                    <div><span>Balance</span><strong>${formatPostAwardMoney(Number(execution.contractValue || 0) - paid, execution.currency)}</strong></div>
+                </section>
+
+                <section class="procurement-panel evaluation-panel award-draft-control-panel">
+                    <div class="panel-heading">
+                        <div>
+                            <span class="section-kicker">Execution draft</span>
+                            <h2>Leave execution tracking and return to another tender</h2>
+                        </div>
+                        ${renderPostAwardBadge(draft.draftSaved ? 'Draft saved' : 'Execution active')}
+                    </div>
+                    <div class="inline-actions">
+                        <button class="btn btn-secondary" type="button" data-award-save-draft data-award-step="execution">Save Draft</button>
+                        <button class="btn btn-secondary" type="button" data-award-save-exit data-award-step="execution">Save Draft & Exit</button>
+                        <button class="btn btn-secondary" type="button" data-award-guard-navigate data-navigate="awarding-contracts">Open Another Tender</button>
+                    </div>
+                </section>
+
+                <section class="procurement-panel evaluation-panel post-award-panel">
+                    <div class="panel-heading">
+                        <div>
+                            <span class="section-kicker">Execution workspace</span>
+                            <h2>Milestones, payments, issues, variations, closure, and performance</h2>
+                        </div>
+                        ${renderPostAwardBadge(`${execution.progress || 0}% complete`)}
+                    </div>
+
+                    <div class="tabs post-award-tabs">
+                        <div class="tab active" data-tab="milestones">Delivery / Milestones</div>
+                        <div class="tab" data-tab="payments">Invoices & Payments</div>
+                        <div class="tab" data-tab="issues">Issues</div>
+                        <div class="tab" data-tab="variations">Variations</div>
+                        <div class="tab" data-tab="closure">Closure</div>
+                        <div class="tab" data-tab="performance">Performance</div>
+                    </div>
+
+                    <div class="post-award-tab-content">
+                        <div class="tab-content" data-tab="milestones" style="display: block;">
+                            <div class="post-award-progress-card">
+                                <div><strong>Overall Progress</strong><span>${execution.progress || 0}%</span></div>
+                                <div class="progress-bar"><div class="progress-fill" style="width: ${Number(execution.progress || 0)}%"></div></div>
+                            </div>
+                            ${renderPostAwardTable(
+                                ['Milestone', 'Description', 'Scheduled', 'Actual', 'Status', 'Evidence', 'Payment %', 'Action'],
+                                (execution.milestones || []).map(row => `
+                                    <tr>
+                                        <td><strong>${escapePostAwardHtml(row.name)}</strong></td>
+                                        <td>${escapePostAwardHtml(row.description)}</td>
+                                        <td>${escapePostAwardHtml(row.scheduled)}</td>
+                                        <td>${escapePostAwardHtml(row.actual)}</td>
+                                        <td>${renderPostAwardBadge(row.status)}</td>
+                                        <td>${escapePostAwardHtml(row.evidence)}</td>
+                                        <td>${escapePostAwardHtml(row.paymentPercent)}%</td>
+                                        <td><button class="btn btn-secondary btn-sm" type="button">${/pending/i.test(row.status) ? 'Schedule' : 'Review'}</button></td>
+                                    </tr>
+                                `)
+                            )}
+                        </div>
+
+                        <div class="tab-content" data-tab="payments" style="display: none;">
+                            <section class="post-award-metric-grid">
+                                <article><span>Contract amount</span><strong>${formatPostAwardMoney(execution.contractValue, execution.currency)}</strong></article>
+                                <article><span>Amount invoiced</span><strong>${formatPostAwardMoney(invoiced, execution.currency)}</strong></article>
+                                <article><span>Amount paid</span><strong>${formatPostAwardMoney(paid, execution.currency)}</strong></article>
+                                <article><span>Balance remaining</span><strong>${formatPostAwardMoney(Number(execution.contractValue || 0) - paid, execution.currency)}</strong></article>
+                            </section>
+                            ${renderPostAwardTable(
+                                ['Invoice', 'Milestone', 'Amount', 'Status', 'Matching Result', 'Action'],
+                                (execution.invoices || []).map(row => `
+                                    <tr>
+                                        <td><strong>${escapePostAwardHtml(row.invoice)}</strong></td>
+                                        <td>${escapePostAwardHtml(row.milestone)}</td>
+                                        <td>${formatPostAwardMoney(row.amount, execution.currency)}</td>
+                                        <td>${renderPostAwardBadge(row.status)}</td>
+                                        <td>${escapePostAwardHtml(row.match)}</td>
+                                        <td><button class="btn btn-secondary btn-sm" type="button">${/pending/i.test(row.status) ? 'Approve' : 'View'}</button></td>
+                                    </tr>
+                                `)
+                            )}
+                        </div>
+
+                        <div class="tab-content" data-tab="issues" style="display: none;">
+                            ${renderPostAwardTable(
+                                ['Issue', 'Raised By', 'Priority', 'Responsible Party', 'Status', 'Required Action'],
+                                (execution.issues || []).map(row => `
+                                    <tr>
+                                        <td><strong>${escapePostAwardHtml(row.id)}: ${escapePostAwardHtml(row.title)}</strong></td>
+                                        <td>${escapePostAwardHtml(row.raisedBy)}</td>
+                                        <td>${renderPostAwardBadge(row.priority)}</td>
+                                        <td>${escapePostAwardHtml(row.responsibleParty)}</td>
+                                        <td>${renderPostAwardBadge(row.status)}</td>
+                                        <td>${escapePostAwardHtml(row.requiredAction)}</td>
+                                    </tr>
+                                `)
+                            )}
+                            <div class="inline-actions"><button class="btn btn-primary" type="button">Raise Issue</button><button class="btn btn-secondary" type="button">Upload Evidence</button></div>
+                        </div>
+
+                        <div class="tab-content" data-tab="variations" style="display: none;">
+                            <div class="evaluation-notice warning">After signing, changes are managed as formal amendments, variation requests, extensions of time, or change orders.</div>
+                            ${renderPostAwardTable(
+                                ['Variation', 'Requested By', 'Price Impact', 'Timeline Impact', 'Status', 'Supporting Document'],
+                                (execution.variations || []).map(row => `
+                                    <tr>
+                                        <td><strong>${escapePostAwardHtml(row.title)}</strong></td>
+                                        <td>${escapePostAwardHtml(row.requestedBy)}</td>
+                                        <td>${escapePostAwardHtml(row.priceImpact)}</td>
+                                        <td>${escapePostAwardHtml(row.timelineImpact)}</td>
+                                        <td>${renderPostAwardBadge(row.status)}</td>
+                                        <td>${escapePostAwardHtml(row.document)}</td>
+                                    </tr>
+                                `)
+                            )}
+                        </div>
+
+                        <div class="tab-content" data-tab="closure" style="display: none;">
+                            <div class="closure-checklist">
+                                ${(execution.closureChecklist || []).map(row => `
+                                    <article>
+                                        <strong>${escapePostAwardHtml(row.item)}</strong>
+                                        ${renderPostAwardBadge(row.status)}
+                                    </article>
+                                `).join('')}
+                            </div>
+                            <div class="inline-actions"><button class="btn btn-primary" type="button">Submit Completion Request</button><button class="btn btn-secondary" type="button">Issue Completion Certificate</button></div>
+                        </div>
+
+                        <div class="tab-content" data-tab="performance" style="display: none;">
+                            <div class="post-award-performance-grid">
+                                ${(execution.performance || []).map(row => `
+                                    <article>
+                                        <div><strong>${escapePostAwardHtml(row.criteria)}</strong><span>${escapePostAwardHtml(row.rating)}/5</span></div>
+                                        <div class="progress-bar"><div class="progress-fill" style="width: ${Number(row.rating || 0) * 20}%"></div></div>
+                                    </article>
+                                `).join('')}
+                            </div>
+                            ${renderPostAwardTable(
+                                ['Date', 'Contract History'],
+                                (execution.history || []).map(row => `<tr><td>${escapePostAwardHtml(row.date)}</td><td>${escapePostAwardHtml(row.event)}</td></tr>`)
+                            )}
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    `;
+}
+
 if (window.app) {
     window.app.renderPostAwardTracking = renderPostAwardTracking;
 }

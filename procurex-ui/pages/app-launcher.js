@@ -74,11 +74,11 @@ function renderAppLauncher() {
             icon: 'awarding',
             tone: 'awarding',
             title: 'Awarding and Contract',
-            subtitle: 'Award recommendation, approvals, and contract signature',
-            badge: 'Award',
+            subtitle: 'Awards, negotiations, signatures, delivery, and closure',
+            badge: 'Lifecycle',
             badgeClass: 'badge-success',
-            nav: 'award-recommendation',
-            action: 'Open awarding'
+            nav: 'awarding-contracts',
+            action: 'Open workspace'
         },
         {
             icon: 'contracts',

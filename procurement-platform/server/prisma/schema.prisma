@@ -1,0 +1,1183 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["identity", "organization", "procurement", "bidding", "evaluation", "contract", "financial", "compliance", "communication", "documents", "records", "intelligence", "integration"]
+}
+
+enum AccountType {
+  USER
+  ADMIN
+
+  @@schema("identity")
+}
+
+enum VerificationStatus {
+  NOT_STARTED
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+
+  @@schema("identity")
+}
+
+enum SessionStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+
+  @@schema("identity")
+}
+
+enum OrganizationKind {
+  COMPANY
+  PLATFORM
+
+  @@schema("organization")
+}
+
+enum OrganizationCapabilityName {
+  BUYER
+  SUPPLIER
+
+  @@schema("organization")
+}
+
+enum MemberStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+  REMOVED
+
+  @@schema("organization")
+}
+
+enum TrustTier {
+  UNVERIFIED
+  VERIFIED
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+
+  @@schema("organization")
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+
+  @@schema("organization")
+}
+
+enum TenderType {
+  GOODS
+  WORKS
+  SERVICE
+  CONSULTANCY
+
+  @@schema("procurement")
+}
+
+enum TenderStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  OPEN
+  CLOSED
+  EVALUATION
+  AWARDED
+  CANCELLED
+
+  @@schema("procurement")
+}
+
+enum ProcurementMethod {
+  OPEN_TENDER
+  INVITED_TENDER
+
+  @@schema("procurement")
+}
+
+enum Visibility {
+  PRIVATE
+  INVITED
+  PUBLIC_MARKETPLACE
+
+  @@schema("procurement")
+}
+
+enum ContractType {
+  UNIT_PRICE
+  LUMP_SUM
+  FRAMEWORK
+  TIME_AND_MATERIALS
+  OTHER
+
+  @@schema("procurement")
+}
+
+enum BidStatus {
+  DRAFT
+  SUBMITTED
+  WITHDRAWN
+  OPENED
+  UNDER_EVALUATION
+  DISQUALIFIED
+  AWARDED
+  LOST
+
+  @@schema("bidding")
+}
+
+enum EnvelopeType {
+  TECHNICAL
+  FINANCIAL
+  COMBINED
+
+  @@schema("bidding")
+}
+
+enum DocumentReviewStatus {
+  UPLOADED
+  VERIFIED
+  REVIEW
+  REJECTED
+
+  @@schema("documents")
+}
+
+enum EvaluationStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  LOCKED
+  COMPLETED
+  RETURNED
+
+  @@schema("evaluation")
+}
+
+enum EvaluationStage {
+  OPENING
+  CONFLICT
+  PRELIMINARY
+  ELIGIBILITY
+  TECHNICAL
+  FINANCIAL
+  CLARIFICATIONS
+  COMPARISON
+  REPORT
+  RECOMMENDATION
+
+  @@schema("evaluation")
+}
+
+enum WorkflowAssignmentType {
+  EVALUATOR
+  APPROVER
+  AUDITOR
+  OBSERVER
+
+  @@schema("evaluation")
+}
+
+enum ApprovalStatus {
+  WAITING
+  PENDING
+  APPROVED
+  RETURNED
+  REJECTED
+
+  @@schema("evaluation")
+}
+
+enum RecommendationStatus {
+  DRAFT
+  RECOMMENDED
+  APPROVED
+  RETURNED
+  REJECTED
+
+  @@schema("evaluation")
+}
+
+enum ContractStatus {
+  DRAFT
+  NEGOTIATION
+  SIGNATURE_PENDING
+  ACTIVE
+  COMPLETED
+  TERMINATED
+
+  @@schema("contract")
+}
+
+enum SignatureStatus {
+  PENDING
+  SIGNED
+  DECLINED
+  EXPIRED
+
+  @@schema("contract")
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SUBMITTED
+  MATCHED
+  REVIEW
+  BLOCKED
+  PAID
+  REJECTED
+
+  @@schema("financial")
+}
+
+enum AuditSeverity {
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+
+  @@schema("compliance")
+}
+
+enum ComplianceCaseStatus {
+  OPEN
+  INVESTIGATION
+  FALSE_POSITIVE
+  RESOLVED
+  ESCALATED
+
+  @@schema("compliance")
+}
+
+enum AdminActionType {
+  REVIEW
+  APPROVE
+  RETURN
+  HOLD
+  FLAG
+  EXPORT
+
+  @@schema("compliance")
+}
+
+enum CommunicationKind {
+  MESSAGE
+  CLARIFICATION
+  NOTIFICATION
+  ALERT
+
+  @@schema("communication")
+}
+
+enum CommunicationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+
+  @@schema("communication")
+}
+
+enum CommunicationStatus {
+  UNREAD
+  READ
+  REPLIED
+  PENDING_RESPONSE
+  RESOLVED
+  ARCHIVED
+  DELETED
+  ACTION_REQUIRED
+  COMPLETED
+
+  @@schema("communication")
+}
+
+model User {
+  id                   String                  @id @default(uuid()) @db.Uuid
+  email                String                  @unique
+  phone                String?
+  displayName          String                  @map("display_name")
+  passwordHash         String?                 @map("password_hash")
+  accountType          AccountType             @default(USER) @map("account_type")
+  verificationStatus   VerificationStatus      @default(NOT_STARTED) @map("verification_status")
+  metadata             Json                    @default("{}")
+  createdAt            DateTime                @default(now()) @map("created_at")
+  updatedAt            DateTime                @updatedAt @map("updated_at")
+  accounts             Account[]
+  sessions             Session[]
+  mfaFactors           MfaFactor[]
+  memberships          OrganizationMember[]
+  verificationProfiles VerificationProfile[]
+  uploadedDocuments    DocumentObject[]        @relation("DocumentUploader")
+  ownedTenders         Tender[]                @relation("TenderOwner")
+  submittedBids        Bid[]                   @relation("BidSubmitter")
+  workflowAssignments  WorkflowAssignment[]
+  evaluationScores     EvaluationScore[]       @relation("EvaluationScoreEvaluator")
+  auditEvents          AuditEvent[]            @relation("AuditActor")
+  adminActions         AdminAction[]           @relation("AdminActionActor")
+
+  @@map("users")
+  @@schema("identity")
+}
+
+model Account {
+  id             String      @id @default(uuid()) @db.Uuid
+  userId         String      @map("user_id") @db.Uuid
+  provider       String      @default("password")
+  providerUserId String?     @map("provider_user_id")
+  accountType    AccountType @default(USER) @map("account_type")
+  metadata       Json        @default("{}")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
+  @@map("accounts")
+  @@schema("identity")
+}
+
+model Session {
+  id             String        @id @default(uuid()) @db.Uuid
+  userId         String        @map("user_id") @db.Uuid
+  organizationId String?       @map("organization_id") @db.Uuid
+  tokenHash      String        @map("token_hash")
+  status         SessionStatus @default(ACTIVE)
+  expiresAt      DateTime      @map("expires_at")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([organizationId])
+  @@map("sessions")
+  @@schema("identity")
+}
+
+model MfaFactor {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  type      String
+  secretRef String?  @map("secret_ref")
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("mfa_factors")
+  @@schema("identity")
+}
+
+model VerificationProfile {
+  id             String             @id @default(uuid()) @db.Uuid
+  userId         String             @map("user_id") @db.Uuid
+  organizationId String?            @map("organization_id") @db.Uuid
+  status         VerificationStatus @default(DRAFT)
+  registrySource String?            @map("registry_source")
+  registryNumber String?            @map("registry_number")
+  payload        Json               @default("{}")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization?      @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  documents      VerificationDocument[]
+
+  @@index([userId])
+  @@index([organizationId, status])
+  @@map("verification_profiles")
+  @@schema("identity")
+}
+
+model VerificationDocument {
+  id                    String               @id @default(uuid()) @db.Uuid
+  verificationProfileId String               @map("verification_profile_id") @db.Uuid
+  documentId            String               @map("document_id") @db.Uuid
+  status                DocumentReviewStatus @default(UPLOADED)
+  createdAt             DateTime             @default(now()) @map("created_at")
+  verificationProfile   VerificationProfile  @relation(fields: [verificationProfileId], references: [id], onDelete: Cascade)
+  document              DocumentObject       @relation(fields: [documentId], references: [id], onDelete: Restrict)
+
+  @@index([verificationProfileId])
+  @@index([documentId])
+  @@map("verification_documents")
+  @@schema("identity")
+}
+
+model Organization {
+  id                   String                    @id @default(uuid()) @db.Uuid
+  name                 String                    @unique
+  kind                 OrganizationKind          @default(COMPANY)
+  taxId                String?                   @map("tax_id")
+  country              String                    @default("TZ")
+  metadata             Json                      @default("{}")
+  createdAt            DateTime                  @default(now()) @map("created_at")
+  updatedAt            DateTime                  @updatedAt @map("updated_at")
+  members              OrganizationMember[]
+  capabilities         OrganizationCapability[]
+  profile              OrganizationProfile?
+  buyerProfile         BuyerProfile?
+  supplierProfile      SupplierProfile?
+  sessions             Session[]
+  verificationProfiles VerificationProfile[]
+  documents            DocumentObject[]
+  tendersAsBuyer       Tender[]                  @relation("TenderBuyerOrg")
+  bidsAsBuyer          Bid[]                     @relation("BidBuyerOrg")
+  bidsAsSupplier       Bid[]                     @relation("BidSupplierOrg")
+  evaluationWorkspaces EvaluationWorkspace[]     @relation("EvaluationBuyerOrg")
+  contractsAsBuyer     Contract[]                @relation("ContractBuyerOrg")
+  contractsAsSupplier  Contract[]                @relation("ContractSupplierOrg")
+  purchaseOrders       PurchaseOrder[]           @relation("PurchaseOrderBuyerOrg")
+  invoicesAsBuyer      Invoice[]                 @relation("InvoiceBuyerOrg")
+  invoicesAsSupplier   Invoice[]                 @relation("InvoiceSupplierOrg")
+  communicationOwned   CommunicationItem[]       @relation("CommunicationOwnerOrg")
+  communicationSent    CommunicationItem[]       @relation("CommunicationSenderOrg")
+  communicationReceived CommunicationItem[]      @relation("CommunicationRecipientOrg")
+  auditEvents          AuditEvent[]
+  complianceCases      ComplianceCase[]
+  adminActions         AdminAction[]
+
+  @@index([kind])
+  @@map("organizations")
+  @@schema("organization")
+}
+
+model OrganizationMember {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  userId         String       @map("user_id") @db.Uuid
+  status         MemberStatus @default(ACTIVE)
+  title          String?
+  isDefault      Boolean      @default(true) @map("is_default")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@map("organization_members")
+  @@schema("organization")
+}
+
+model OrganizationCapability {
+  id             String                     @id @default(uuid()) @db.Uuid
+  organizationId String                     @map("organization_id") @db.Uuid
+  capability     OrganizationCapabilityName
+  enabled        Boolean                    @default(true)
+  createdAt      DateTime                   @default(now()) @map("created_at")
+  organization   Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, capability])
+  @@index([capability, enabled])
+  @@map("organization_capabilities")
+  @@schema("organization")
+}
+
+model OrganizationProfile {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @unique @map("organization_id") @db.Uuid
+  summary        String?
+  payload        Json         @default("{}")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("organization_profiles")
+  @@schema("organization")
+}
+
+model BuyerProfile {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @unique @map("organization_id") @db.Uuid
+  procuringType  String?      @map("procuring_type")
+  budgetCode     String?      @map("budget_code")
+  payload        Json         @default("{}")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("buyer_profiles")
+  @@schema("organization")
+}
+
+model SupplierProfile {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @unique @map("organization_id") @db.Uuid
+  trustTier      TrustTier    @default(UNVERIFIED) @map("trust_tier")
+  riskLevel      RiskLevel    @default(MEDIUM) @map("risk_level")
+  bidLimit       Decimal?     @map("bid_limit") @db.Decimal(18, 2)
+  categories     Json         @default("[]")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("supplier_profiles")
+  @@schema("organization")
+}
+
+model Tender {
+  id              String              @id @default(uuid()) @db.Uuid
+  reference       String              @unique
+  buyerOrgId      String              @map("buyer_org_id") @db.Uuid
+  ownerUserId     String?             @map("owner_user_id") @db.Uuid
+  title           String
+  description     String?
+  type            TenderType
+  status          TenderStatus        @default(DRAFT)
+  method          ProcurementMethod   @default(OPEN_TENDER)
+  visibility      Visibility          @default(PUBLIC_MARKETPLACE)
+  budget          Decimal?            @db.Decimal(18, 2)
+  currency        String              @default("TZS")
+  location        String?
+  contractType    ContractType?       @map("contract_type")
+  closingDate     DateTime?           @map("closing_date")
+  publishedAt     DateTime?           @map("published_at")
+  requirements    Json                @default("{}")
+  metadata        Json                @default("{}")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+  buyerOrg        Organization        @relation("TenderBuyerOrg", fields: [buyerOrgId], references: [id], onDelete: Restrict)
+  ownerUser       User?               @relation("TenderOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  categories      TenderCategory[]
+  documents       TenderDocument[]
+  requirementRows TenderRequirement[]
+  milestones      TenderMilestone[]
+  commercialItems TenderCommercialItem[]
+  bids            Bid[]
+  evaluation      EvaluationWorkspace?
+  communications  CommunicationItem[]
+  contracts       Contract[]
+  riskSignals     RiskSignal[]
+  supplierMatches SupplierMatchSignal[]
+
+  @@index([buyerOrgId, status])
+  @@index([status, type, closingDate])
+  @@map("tenders")
+  @@schema("procurement")
+}
+
+model TenderCategory {
+  id        String     @id @default(uuid()) @db.Uuid
+  tenderId  String?    @map("tender_id") @db.Uuid
+  type      TenderType?
+  name      String
+  createdAt DateTime   @default(now()) @map("created_at")
+  tender    Tender?    @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@unique([tenderId, name])
+  @@unique([type, name])
+  @@map("tender_categories")
+  @@schema("procurement")
+}
+
+model TenderDocument {
+  id         String         @id @default(uuid()) @db.Uuid
+  tenderId   String         @map("tender_id") @db.Uuid
+  documentId String         @map("document_id") @db.Uuid
+  label      String?
+  createdAt  DateTime       @default(now()) @map("created_at")
+  tender     Tender         @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  document   DocumentObject @relation(fields: [documentId], references: [id], onDelete: Restrict)
+
+  @@unique([tenderId, documentId])
+  @@index([documentId])
+  @@map("tender_documents")
+  @@schema("procurement")
+}
+
+model TenderRequirement {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenderId  String   @map("tender_id") @db.Uuid
+  section   String
+  payload   Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  tender    Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@index([tenderId, section])
+  @@map("tender_requirements")
+  @@schema("procurement")
+}
+
+model TenderMilestone {
+  id        String    @id @default(uuid()) @db.Uuid
+  tenderId  String    @map("tender_id") @db.Uuid
+  name      String
+  dueDate   DateTime? @map("due_date")
+  payload   Json      @default("{}")
+  createdAt DateTime  @default(now()) @map("created_at")
+  tender    Tender    @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@index([tenderId, dueDate])
+  @@map("tender_milestones")
+  @@schema("procurement")
+}
+
+model TenderCommercialItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenderId    String   @map("tender_id") @db.Uuid
+  itemNo      String?  @map("item_no")
+  description String
+  quantity    Decimal? @db.Decimal(18, 4)
+  unit        String?
+  rate        Decimal? @db.Decimal(18, 2)
+  total       Decimal? @db.Decimal(18, 2)
+  payload     Json     @default("{}")
+  tender      Tender   @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@index([tenderId])
+  @@map("tender_commercial_items")
+  @@schema("procurement")
+}
+
+model Bid {
+  id              String       @id @default(uuid()) @db.Uuid
+  tenderId        String       @map("tender_id") @db.Uuid
+  buyerOrgId      String       @map("buyer_org_id") @db.Uuid
+  supplierOrgId   String       @map("supplier_org_id") @db.Uuid
+  submittedByUserId String?    @map("submitted_by_user_id") @db.Uuid
+  reference       String       @unique
+  status          BidStatus    @default(DRAFT)
+  submittedAt     DateTime?    @map("submitted_at")
+  totalAmount     Decimal?     @map("total_amount") @db.Decimal(18, 2)
+  currency        String       @default("TZS")
+  payload         Json         @default("{}")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+  tender          Tender       @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  buyerOrg        Organization @relation("BidBuyerOrg", fields: [buyerOrgId], references: [id], onDelete: Restrict)
+  supplierOrg     Organization @relation("BidSupplierOrg", fields: [supplierOrgId], references: [id], onDelete: Restrict)
+  submittedByUser User?        @relation("BidSubmitter", fields: [submittedByUserId], references: [id], onDelete: SetNull)
+  versions        BidVersion[]
+  documents       BidDocument[]
+  responses       BidResponse[]
+  receipt         BidReceipt?
+  evaluationScores EvaluationScore[]
+  recommendations AwardRecommendation[]
+
+  @@index([tenderId, status])
+  @@index([buyerOrgId, status])
+  @@index([supplierOrgId, status])
+  @@map("bids")
+  @@schema("bidding")
+}
+
+model BidVersion {
+  id          String       @id @default(uuid()) @db.Uuid
+  bidId       String       @map("bid_id") @db.Uuid
+  versionNo   Int          @map("version_no")
+  envelope    EnvelopeType @default(COMBINED)
+  sealedHash  String?      @map("sealed_hash")
+  payload     Json         @default("{}")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  bid         Bid          @relation(fields: [bidId], references: [id], onDelete: Cascade)
+
+  @@unique([bidId, versionNo, envelope])
+  @@map("bid_versions")
+  @@schema("bidding")
+}
+
+model BidDocument {
+  id           String               @id @default(uuid()) @db.Uuid
+  bidId        String               @map("bid_id") @db.Uuid
+  documentId   String               @map("document_id") @db.Uuid
+  envelope     EnvelopeType         @default(COMBINED)
+  reviewStatus DocumentReviewStatus @default(UPLOADED) @map("review_status")
+  createdAt    DateTime             @default(now()) @map("created_at")
+  bid          Bid                  @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  document     DocumentObject       @relation(fields: [documentId], references: [id], onDelete: Restrict)
+
+  @@unique([bidId, documentId])
+  @@index([bidId, envelope])
+  @@map("bid_documents")
+  @@schema("bidding")
+}
+
+model BidResponse {
+  id             String   @id @default(uuid()) @db.Uuid
+  bidId          String   @map("bid_id") @db.Uuid
+  requirementKey String   @map("requirement_key")
+  response       Json     @default("{}")
+  createdAt      DateTime @default(now()) @map("created_at")
+  bid            Bid      @relation(fields: [bidId], references: [id], onDelete: Cascade)
+
+  @@index([bidId])
+  @@map("bid_responses")
+  @@schema("bidding")
+}
+
+model BidReceipt {
+  id          String   @id @default(uuid()) @db.Uuid
+  bidId       String   @unique @map("bid_id") @db.Uuid
+  receiptRef  String   @unique @map("receipt_ref")
+  receiptHash String   @map("receipt_hash")
+  createdAt   DateTime @default(now()) @map("created_at")
+  bid         Bid      @relation(fields: [bidId], references: [id], onDelete: Cascade)
+
+  @@map("bid_receipts")
+  @@schema("bidding")
+}
+
+model EvaluationWorkspace {
+  id              String                  @id @default(uuid()) @db.Uuid
+  tenderId        String                  @unique @map("tender_id") @db.Uuid
+  buyerOrgId      String                  @map("buyer_org_id") @db.Uuid
+  status          EvaluationStatus        @default(NOT_STARTED)
+  currentStage    EvaluationStage?        @map("current_stage")
+  progress        Int                     @default(0)
+  payload         Json                    @default("{}")
+  createdAt       DateTime                @default(now()) @map("created_at")
+  updatedAt       DateTime                @updatedAt @map("updated_at")
+  tender          Tender                  @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  buyerOrg        Organization            @relation("EvaluationBuyerOrg", fields: [buyerOrgId], references: [id], onDelete: Restrict)
+  assignments     WorkflowAssignment[]
+  criteria        EvaluationCriterion[]
+  scores          EvaluationScore[]
+  recommendations AwardRecommendation[]
+
+  @@index([buyerOrgId, status])
+  @@map("evaluation_workspaces")
+  @@schema("evaluation")
+}
+
+model WorkflowAssignment {
+  id          String                 @id @default(uuid()) @db.Uuid
+  workspaceId String                 @map("workspace_id") @db.Uuid
+  userId      String                 @map("user_id") @db.Uuid
+  assignment  WorkflowAssignmentType
+  status      String                 @default("ACTIVE")
+  payload     Json                   @default("{}")
+  createdAt   DateTime               @default(now()) @map("created_at")
+  workspace   EvaluationWorkspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId, assignment])
+  @@index([userId])
+  @@map("workflow_assignments")
+  @@schema("evaluation")
+}
+
+model EvaluationCriterion {
+  id          String              @id @default(uuid()) @db.Uuid
+  workspaceId String              @map("workspace_id") @db.Uuid
+  stage       EvaluationStage
+  name        String
+  weight      Decimal?            @db.Decimal(8, 2)
+  maxScore    Decimal?            @map("max_score") @db.Decimal(8, 2)
+  payload     Json                @default("{}")
+  workspace   EvaluationWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  scores      EvaluationScore[]
+
+  @@index([workspaceId, stage])
+  @@map("evaluation_criteria")
+  @@schema("evaluation")
+}
+
+model EvaluationScore {
+  id              String               @id @default(uuid()) @db.Uuid
+  workspaceId     String               @map("workspace_id") @db.Uuid
+  criterionId     String?              @map("criterion_id") @db.Uuid
+  bidId           String               @map("bid_id") @db.Uuid
+  evaluatorUserId String?              @map("evaluator_user_id") @db.Uuid
+  score           Decimal?             @db.Decimal(8, 2)
+  comment         String?
+  lockedAt        DateTime?            @map("locked_at")
+  payload         Json                 @default("{}")
+  createdAt       DateTime             @default(now()) @map("created_at")
+  workspace       EvaluationWorkspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  criterion       EvaluationCriterion? @relation(fields: [criterionId], references: [id], onDelete: SetNull)
+  bid             Bid                  @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  evaluatorUser   User?                @relation("EvaluationScoreEvaluator", fields: [evaluatorUserId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, bidId])
+  @@index([evaluatorUserId])
+  @@map("evaluation_scores")
+  @@schema("evaluation")
+}
+
+model AwardRecommendation {
+  id            String               @id @default(uuid()) @db.Uuid
+  workspaceId   String               @map("workspace_id") @db.Uuid
+  bidId         String?              @map("bid_id") @db.Uuid
+  supplierOrgId String?              @map("supplier_org_id") @db.Uuid
+  status        RecommendationStatus @default(DRAFT)
+  amount        Decimal?             @db.Decimal(18, 2)
+  currency      String               @default("TZS")
+  reason        String?
+  payload       Json                 @default("{}")
+  createdAt     DateTime             @default(now()) @map("created_at")
+  workspace     EvaluationWorkspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  bid           Bid?                 @relation(fields: [bidId], references: [id], onDelete: SetNull)
+  approvals     ApprovalStep[]
+  contracts     Contract[]
+
+  @@index([workspaceId, status])
+  @@index([supplierOrgId])
+  @@map("award_recommendations")
+  @@schema("evaluation")
+}
+
+model ApprovalStep {
+  id               String              @id @default(uuid()) @db.Uuid
+  recommendationId String              @map("recommendation_id") @db.Uuid
+  actorUserId      String?             @map("actor_user_id") @db.Uuid
+  assignment       WorkflowAssignmentType @default(APPROVER)
+  status           ApprovalStatus      @default(WAITING)
+  action           String?
+  decidedAt        DateTime?           @map("decided_at")
+  payload          Json                @default("{}")
+  recommendation   AwardRecommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+
+  @@index([recommendationId, status])
+  @@index([actorUserId])
+  @@map("approval_steps")
+  @@schema("evaluation")
+}
+
+model Contract {
+  id            String               @id @default(uuid()) @db.Uuid
+  reference     String               @unique
+  tenderId      String?              @map("tender_id") @db.Uuid
+  awardId       String?              @map("award_id") @db.Uuid
+  buyerOrgId    String               @map("buyer_org_id") @db.Uuid
+  supplierOrgId String?              @map("supplier_org_id") @db.Uuid
+  title         String
+  status        ContractStatus       @default(DRAFT)
+  amount        Decimal?             @db.Decimal(18, 2)
+  currency      String               @default("TZS")
+  payload       Json                 @default("{}")
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
+  tender        Tender?              @relation(fields: [tenderId], references: [id], onDelete: SetNull)
+  award         AwardRecommendation? @relation(fields: [awardId], references: [id], onDelete: SetNull)
+  buyerOrg      Organization         @relation("ContractBuyerOrg", fields: [buyerOrgId], references: [id], onDelete: Restrict)
+  supplierOrg   Organization?        @relation("ContractSupplierOrg", fields: [supplierOrgId], references: [id], onDelete: SetNull)
+  versions      ContractVersion[]
+  invoices      Invoice[]
+  purchaseOrders PurchaseOrder[]
+
+  @@index([buyerOrgId, status])
+  @@index([supplierOrgId])
+  @@map("contracts")
+  @@schema("contract")
+}
+
+model ContractVersion {
+  id         String         @id @default(uuid()) @db.Uuid
+  contractId String         @map("contract_id") @db.Uuid
+  versionNo  Int            @map("version_no")
+  documentId String?        @map("document_id") @db.Uuid
+  payload    Json           @default("{}")
+  createdAt  DateTime       @default(now()) @map("created_at")
+  contract   Contract       @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  document   DocumentObject? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  @@unique([contractId, versionNo])
+  @@map("contract_versions")
+  @@schema("contract")
+}
+
+model PurchaseOrder {
+  id          String       @id @default(uuid()) @db.Uuid
+  reference   String       @unique
+  contractId  String?      @map("contract_id") @db.Uuid
+  buyerOrgId  String       @map("buyer_org_id") @db.Uuid
+  amount      Decimal      @db.Decimal(18, 2)
+  currency    String       @default("TZS")
+  payload     Json         @default("{}")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  contract    Contract?    @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  buyerOrg    Organization @relation("PurchaseOrderBuyerOrg", fields: [buyerOrgId], references: [id], onDelete: Restrict)
+  invoices    Invoice[]
+
+  @@index([buyerOrgId])
+  @@map("purchase_orders")
+  @@schema("financial")
+}
+
+model Invoice {
+  id              String        @id @default(uuid()) @db.Uuid
+  reference       String        @unique
+  purchaseOrderId String?       @map("purchase_order_id") @db.Uuid
+  contractId      String?       @map("contract_id") @db.Uuid
+  buyerOrgId      String        @map("buyer_org_id") @db.Uuid
+  supplierOrgId   String?       @map("supplier_org_id") @db.Uuid
+  status          InvoiceStatus @default(DRAFT)
+  amount          Decimal       @db.Decimal(18, 2)
+  currency        String        @default("TZS")
+  payload         Json          @default("{}")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull)
+  contract        Contract?     @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  buyerOrg        Organization  @relation("InvoiceBuyerOrg", fields: [buyerOrgId], references: [id], onDelete: Restrict)
+  supplierOrg     Organization? @relation("InvoiceSupplierOrg", fields: [supplierOrgId], references: [id], onDelete: SetNull)
+
+  @@index([buyerOrgId, status])
+  @@index([supplierOrgId])
+  @@map("invoices")
+  @@schema("financial")
+}
+
+model DocumentObject {
+  id                    String                 @id @default(uuid()) @db.Uuid
+  ownerOrgId            String?                @map("owner_org_id") @db.Uuid
+  uploadedByUserId      String?                @map("uploaded_by_user_id") @db.Uuid
+  name                  String
+  objectKey             String                 @unique @map("object_key")
+  documentType          String                 @map("document_type")
+  checksum              String?
+  encryptionKeyRef      String?                @map("encryption_key_ref")
+  metadata              Json                   @default("{}")
+  createdAt             DateTime               @default(now()) @map("created_at")
+  ownerOrg              Organization?          @relation(fields: [ownerOrgId], references: [id], onDelete: SetNull)
+  uploadedByUser        User?                  @relation("DocumentUploader", fields: [uploadedByUserId], references: [id], onDelete: SetNull)
+  verificationDocuments VerificationDocument[]
+  tenderDocuments       TenderDocument[]
+  bidDocuments          BidDocument[]
+  contractVersions      ContractVersion[]
+  communicationAttachments CommunicationAttachment[]
+
+  @@index([ownerOrgId])
+  @@index([uploadedByUserId])
+  @@map("document_objects")
+  @@schema("documents")
+}
+
+model AuditEvent {
+  id             String        @id @default(uuid()) @db.Uuid
+  ownerOrgId     String?       @map("owner_org_id") @db.Uuid
+  actorUserId    String?       @map("actor_user_id") @db.Uuid
+  event          String
+  entityType     String        @map("entity_type")
+  entityRef      String?       @map("entity_ref")
+  severity       AuditSeverity @default(INFO)
+  payload        Json          @default("{}")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  ownerOrg       Organization? @relation(fields: [ownerOrgId], references: [id], onDelete: SetNull)
+  actorUser      User?         @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([ownerOrgId, createdAt])
+  @@index([entityType, entityRef])
+  @@map("audit_events")
+  @@schema("compliance")
+}
+
+model ComplianceCase {
+  id             String               @id @default(uuid()) @db.Uuid
+  ownerOrgId     String?              @map("owner_org_id") @db.Uuid
+  title          String
+  severity       AuditSeverity        @default(WARNING)
+  status         ComplianceCaseStatus @default(OPEN)
+  owner          String?
+  payload        Json                 @default("{}")
+  createdAt      DateTime             @default(now()) @map("created_at")
+  ownerOrg       Organization?        @relation(fields: [ownerOrgId], references: [id], onDelete: SetNull)
+
+  @@index([ownerOrgId, status])
+  @@map("compliance_cases")
+  @@schema("compliance")
+}
+
+model RiskSignal {
+  id            String      @id @default(uuid()) @db.Uuid
+  tenderId      String?     @map("tender_id") @db.Uuid
+  supplierOrgId String?     @map("supplier_org_id") @db.Uuid
+  riskLevel     RiskLevel   @default(MEDIUM) @map("risk_level")
+  score         Int?
+  driver        String?
+  payload       Json        @default("{}")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  tender        Tender?     @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@index([tenderId])
+  @@index([supplierOrgId])
+  @@map("risk_signals")
+  @@schema("compliance")
+}
+
+model AdminAction {
+  id             String          @id @default(uuid()) @db.Uuid
+  actorUserId    String?         @map("actor_user_id") @db.Uuid
+  ownerOrgId     String?         @map("owner_org_id") @db.Uuid
+  actionType     AdminActionType @map("action_type")
+  entityType     String          @map("entity_type")
+  entityRef      String?         @map("entity_ref")
+  summary        String?
+  createdAt      DateTime        @default(now()) @map("created_at")
+  actorUser      User?           @relation("AdminActionActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  ownerOrg       Organization?   @relation(fields: [ownerOrgId], references: [id], onDelete: SetNull)
+
+  @@index([ownerOrgId])
+  @@index([entityType, entityRef])
+  @@map("admin_actions")
+  @@schema("compliance")
+}
+
+model CommunicationItem {
+  id             String                @id @default(uuid()) @db.Uuid
+  ownerOrgId     String?               @map("owner_org_id") @db.Uuid
+  senderOrgId    String?               @map("sender_org_id") @db.Uuid
+  recipientOrgId String?               @map("recipient_org_id") @db.Uuid
+  tenderId       String?               @map("tender_id") @db.Uuid
+  kind           CommunicationKind
+  folder         String                @default("inbox")
+  category       String
+  subject        String
+  body           String
+  status         CommunicationStatus   @default(UNREAD)
+  priority       CommunicationPriority @default(NORMAL)
+  read           Boolean               @default(false)
+  actionRequired Boolean               @default(false) @map("action_required")
+  visibility     String?
+  payload        Json                  @default("{}")
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+  ownerOrg       Organization?         @relation("CommunicationOwnerOrg", fields: [ownerOrgId], references: [id], onDelete: SetNull)
+  senderOrg      Organization?         @relation("CommunicationSenderOrg", fields: [senderOrgId], references: [id], onDelete: SetNull)
+  recipientOrg   Organization?         @relation("CommunicationRecipientOrg", fields: [recipientOrgId], references: [id], onDelete: SetNull)
+  tender         Tender?               @relation(fields: [tenderId], references: [id], onDelete: SetNull)
+  attachments    CommunicationAttachment[]
+
+  @@index([ownerOrgId, folder, status])
+  @@index([recipientOrgId, status])
+  @@index([tenderId, kind])
+  @@map("communication_items")
+  @@schema("communication")
+}
+
+model CommunicationAttachment {
+  id                  String            @id @default(uuid()) @db.Uuid
+  communicationItemId String            @map("communication_item_id") @db.Uuid
+  documentId          String            @map("document_id") @db.Uuid
+  createdAt           DateTime          @default(now()) @map("created_at")
+  communicationItem   CommunicationItem @relation(fields: [communicationItemId], references: [id], onDelete: Cascade)
+  document            DocumentObject    @relation(fields: [documentId], references: [id], onDelete: Restrict)
+
+  @@unique([communicationItemId, documentId])
+  @@index([documentId])
+  @@map("communication_attachments")
+  @@schema("communication")
+}
+
+model RecordEntry {
+  id         String   @id @default(uuid()) @db.Uuid
+  ownerOrgId String?  @map("owner_org_id") @db.Uuid
+  entityType String   @map("entity_type")
+  entityRef  String   @map("entity_ref")
+  title      String
+  payload    Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([ownerOrgId, entityType])
+  @@index([entityType, entityRef])
+  @@map("record_entries")
+  @@schema("records")
+}
+
+model MarketSnapshot {
+  id         String   @id @default(uuid()) @db.Uuid
+  ownerOrgId String?  @map("owner_org_id") @db.Uuid
+  name       String
+  payload    Json     @default("{}")
+  capturedAt DateTime @default(now()) @map("captured_at")
+
+  @@index([ownerOrgId, capturedAt])
+  @@map("market_snapshots")
+  @@schema("intelligence")
+}
+
+model PriceBenchmark {
+  id         String      @id @default(uuid()) @db.Uuid
+  ownerOrgId String?     @map("owner_org_id") @db.Uuid
+  tenderType TenderType? @map("tender_type")
+  category   String?
+  payload    Json        @default("{}")
+  capturedAt DateTime    @default(now()) @map("captured_at")
+
+  @@index([ownerOrgId])
+  @@index([tenderType, category])
+  @@map("price_benchmarks")
+  @@schema("intelligence")
+}
+
+model SupplierMatchSignal {
+  id            String   @id @default(uuid()) @db.Uuid
+  tenderId      String?  @map("tender_id") @db.Uuid
+  supplierOrgId String?  @map("supplier_org_id") @db.Uuid
+  score         Int?
+  payload       Json     @default("{}")
+  createdAt     DateTime @default(now()) @map("created_at")
+  tender        Tender?  @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@index([tenderId])
+  @@index([supplierOrgId])
+  @@map("supplier_match_signals")
+  @@schema("intelligence")
+}
+
+model ModuleRegistry {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  status    String   @default("Available")
+  version   String
+  payload   Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("module_registry")
+  @@schema("intelligence")
+}
+
+model ExternalSystem {
+  id          String   @id @default(uuid()) @db.Uuid
+  ownerOrgId  String?  @map("owner_org_id") @db.Uuid
+  name        String
+  systemType  String   @map("system_type")
+  status      String   @default("Configured")
+  config      Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+  syncRuns    IntegrationSyncRun[]
+
+  @@index([ownerOrgId, systemType])
+  @@map("external_systems")
+  @@schema("integration")
+}
+
+model IntegrationSyncRun {
+  id               String          @id @default(uuid()) @db.Uuid
+  externalSystemId String          @map("external_system_id") @db.Uuid
+  ownerOrgId       String?         @map("owner_org_id") @db.Uuid
+  status           String
+  direction        String
+  payload          Json            @default("{}")
+  startedAt        DateTime        @default(now()) @map("started_at")
+  finishedAt       DateTime?       @map("finished_at")
+  externalSystem   ExternalSystem  @relation(fields: [externalSystemId], references: [id], onDelete: Cascade)
+  events           IntegrationEvent[]
+
+  @@index([externalSystemId, startedAt])
+  @@index([ownerOrgId])
+  @@map("integration_sync_runs")
+  @@schema("integration")
+}
+
+model IntegrationEvent {
+  id         String              @id @default(uuid()) @db.Uuid
+  syncRunId  String?             @map("sync_run_id") @db.Uuid
+  ownerOrgId String?             @map("owner_org_id") @db.Uuid
+  eventType  String              @map("event_type")
+  status     String
+  payload    Json                @default("{}")
+  createdAt  DateTime            @default(now()) @map("created_at")
+  syncRun    IntegrationSyncRun?  @relation(fields: [syncRunId], references: [id], onDelete: SetNull)
+
+  @@index([syncRunId])
+  @@index([ownerOrgId, eventType])
+  @@map("integration_events")
+  @@schema("integration")
+}
