@@ -1875,11 +1875,16 @@
 
 .communication-toolbar {
     display: grid;
-    grid-template-columns: minmax(220px, 1.2fr) minmax(160px, 0.7fr) minmax(140px, 0.55fr) 132px auto auto;
+    grid-template-columns: minmax(260px, 1fr) minmax(170px, 0.35fr) auto auto;
     gap: 8px;
     align-items: center;
     padding: 14px;
     border-bottom: 1px solid var(--border-soft);
+}
+
+.communication-toolbar .form-input {
+    width: 100%;
+    min-width: 0;
 }
 
 .communication-toolbar .btn {
@@ -1902,19 +1907,22 @@
 
 .communication-list {
     display: grid;
+    gap: 4px;
     max-height: 760px;
     overflow: auto;
+    padding: 4px;
+    background: var(--surface-soft);
 }
 
 .communication-row {
     position: relative;
     display: grid;
-    grid-template-columns: 12px minmax(0, 1fr) auto;
+    grid-template-columns: 14px minmax(0, 1fr) auto;
     gap: 12px;
     align-items: start;
     width: 100%;
-    border: 0;
-    border-bottom: 1px solid var(--border-soft);
+    border: 1px solid var(--border-soft);
+    border-radius: 6px;
     background: var(--card-bg);
     padding: 16px 14px;
     color: var(--text-primary);
@@ -1928,12 +1936,13 @@
 }
 
 .communication-row.unread {
-    background: #f8fbff;
+    background: #f3fbff;
+    box-shadow: inset 4px 0 0 var(--primary-blue);
 }
 
 .communication-unread-dot {
-    width: 9px;
-    height: 9px;
+    width: 10px;
+    height: 10px;
     margin-top: 8px;
     border-radius: var(--radius-full);
     background: transparent;
@@ -1941,6 +1950,20 @@
 
 .communication-row.unread .communication-unread-dot {
     background: var(--primary-blue);
+    box-shadow: 0 0 0 4px rgba(0, 128, 128, 0.12);
+}
+
+.communication-row.unread .communication-row-top strong,
+.communication-row.unread h3 {
+    font-weight: 900;
+}
+
+.communication-row.unread h3 {
+    color: var(--primary-blue);
+}
+
+.communication-row.unread p {
+    color: var(--text-primary);
 }
 
 .communication-row-main {
@@ -2011,6 +2034,20 @@
     padding: 20px;
 }
 
+.communication-attachment-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px;
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    background: var(--surface-soft);
+}
+
+.communication-attachment-item span {
+    font-weight: 800;
+}
+
 .communication-detail.full-screen {
     position: static;
     max-height: none;
@@ -2062,10 +2099,74 @@
     min-height: 34px;
     border: 1px solid var(--border);
     border-radius: 8px;
-    background: var(--surface-soft);
+    background: #ffffff;
     padding: 6px 10px;
     cursor: pointer;
     font-weight: 800;
+}
+
+.communication-continuity-panel {
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.communication-continuity-panel strong {
+    display: block;
+    margin-top: 4px;
+}
+
+.communication-continuity-list {
+    display: grid;
+    gap: 8px;
+}
+
+.communication-continuity-list button {
+    display: grid;
+    grid-template-columns: 110px minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+    min-height: 42px;
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    background: var(--surface-soft);
+    padding: 8px 10px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.communication-continuity-list button.active {
+    border-color: var(--primary);
+    background: #effafa;
+}
+
+.communication-continuity-list span,
+.communication-continuity-list em {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 800;
+}
+
+.communication-continuity-list strong {
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+    .communication-continuity-list button {
+        grid-template-columns: 1fr;
+        align-items: start;
+    }
+
+    .communication-continuity-list strong {
+        white-space: normal;
+    }
 }
 
 .communication-thread {

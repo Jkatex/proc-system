@@ -1,6 +1,6 @@
 // Communication Center Page Component
 
-const communicationCenterStorageKey = 'procurex.communicationCenter.v1.items';
+const communicationCenterStorageKey = 'procurex.communicationCenter.v2.items';
 const communicationCenterComposeDraftStorageKey = 'procurex.communicationCenter.v1.composeDraft';
 
 function escapeCommunicationHtml(value = '') {
@@ -19,6 +19,7 @@ function getCommunicationState() {
             folder: 'Inbox',
             selectedId: null,
             query: '',
+            date: '',
             category: 'All categories',
             composeOpen: false,
             composeDraft: null
@@ -250,17 +251,54 @@ function consumeCommunicationComposeDraft() {
     }
 }
 
+function normalizeCommunicationSubjectForContext(subject = '', category = '') {
+    const rawCategory = String(category || '').toLowerCase();
+    return String(subject || 'procurement message')
+        .toLowerCase()
+        .replace(/^(re|fw|fwd|follow-up):\s*/i, '')
+        .replace(/\b(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\b/g, '')
+        .replace(/\b(20\d{2}|\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|week\s*\d+|wk\s*\d+|no\.\s*\d+|#\d+)\b/g, '')
+        .replace(/\b(submitted|submission|attached|updated|update|for review|reporting)\b/g, '')
+        .replace(rawCategory.includes('report') || /report/.test(String(subject || '').toLowerCase()) ? /\b(monthly|weekly|daily)\b/g : /a^/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'procurement-message';
+}
+
+function buildCommunicationContextKey(item = {}) {
+    const tenderKey = normalizeCommunicationMailboxId(item.tenderReference || item.tenderId || 'not-linked');
+    const categoryKey = normalizeCommunicationMailboxId(item.category || item.kind || 'message');
+    const subjectKey = normalizeCommunicationSubjectForContext(item.subject || item.title, item.category);
+    const participants = [item.senderId, item.recipientId]
+        .map(normalizeCommunicationMailboxId)
+        .filter(Boolean)
+        .sort()
+        .join('-') || 'participants';
+    return [tenderKey, categoryKey, participants, subjectKey].filter(Boolean).join('::');
+}
+
 function normalizeCommunicationItem(item = {}) {
     const createdAt = item.createdAt || new Date().toISOString();
     const kind = item.kind || item.type || 'message';
     const senderId = getCommunicationParticipantId(item, 'sender');
     const recipientId = getCommunicationParticipantId(item, 'recipient');
+    const tenderReference = item.tenderReference || item.tenderId || 'Not linked';
+    const subject = item.subject || item.title || 'Procurement message';
+    const category = item.category || (kind === 'alert' ? 'System Alert' : kind === 'notification' ? 'System Notification' : 'General Message');
+    const contextKey = item.contextKey || buildCommunicationContextKey({
+        ...item,
+        kind,
+        category,
+        subject,
+        senderId,
+        recipientId,
+        tenderReference
+    });
     return {
         id: item.id || `comm-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
         kind,
         folder: item.folder || 'inbox',
-        category: item.category || (kind === 'alert' ? 'System Alert' : kind === 'notification' ? 'System Notification' : 'General Message'),
-        subject: item.subject || item.title || 'Procurement message',
+        category,
+        subject,
         body: item.body || item.message || '',
         senderId,
         senderType: item.senderType || 'System',
@@ -269,7 +307,7 @@ function normalizeCommunicationItem(item = {}) {
         recipientType: item.recipientType || 'User',
         recipientName: item.recipientName || 'Account Details',
         tenderId: item.tenderId || '',
-        tenderReference: item.tenderReference || item.tenderId || 'Not linked',
+        tenderReference,
         tenderTitle: item.tenderTitle || 'No tender linked',
         priority: item.priority || (kind === 'alert' ? 'High' : 'Normal'),
         status: item.status || 'Unread',
@@ -280,6 +318,9 @@ function normalizeCommunicationItem(item = {}) {
         actionPage: item.actionPage || '',
         attachments: Array.isArray(item.attachments) ? item.attachments : [],
         thread: Array.isArray(item.thread) ? item.thread : [],
+        relatedMessageId: item.relatedMessageId || '',
+        conversationId: item.conversationId || item.threadId || item.relatedMessageId || contextKey,
+        contextKey,
         actions: Array.isArray(item.actions) ? item.actions : [],
         createdAt,
         updatedAt: item.updatedAt || createdAt,
@@ -324,6 +365,14 @@ function formatCommunicationDate(value) {
     return date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
+function formatCommunicationInputDate(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${date.getFullYear()}-${month}-${day}`;
+}
+
 function getCommunicationBadgeClass(value = '') {
     const raw = String(value).toLowerCase();
     if (raw.includes('urgent') || raw.includes('action') || raw.includes('rejected') || raw.includes('returned') || raw.includes('high')) return 'badge-error';
@@ -356,7 +405,8 @@ function isCommunicationUserItem(item, user = getCurrentCommunicationUser()) {
 }
 
 function filterCommunicationItems(items, state) {
-    const query = state.query.trim().toLowerCase();
+    const query = String(state.query || '').trim().toLowerCase();
+    const selectedDate = String(state.date || '').trim();
     return items.filter(item => {
         if (state.tab === 'Sent' && item.folder !== 'sent') return false;
         if (state.tab === 'Drafts') return false;
@@ -365,9 +415,28 @@ function filterCommunicationItems(items, state) {
         if (state.tab === 'Unread' && item.read) return false;
         if (state.tab === 'Inbox' && (item.folder === 'sent' || item.folder === 'archived' || item.status === 'Deleted')) return false;
         if (state.category !== 'All categories' && item.category !== state.category) return false;
+        if (selectedDate) {
+            if (formatCommunicationInputDate(item.createdAt) !== selectedDate) return false;
+        }
         if (!query) return true;
-        return [item.senderName, item.subject, item.tenderReference, item.tenderTitle, item.body, item.category]
-            .some(value => String(value || '').toLowerCase().includes(query));
+        const searchableValues = [
+            item.senderName,
+            item.recipientName,
+            item.subject,
+            item.tenderReference,
+            item.tenderTitle,
+            item.body,
+            item.category,
+            item.status,
+            item.priority,
+            item.visibility,
+            item.actionLabel,
+            item.createdAt,
+            formatCommunicationDate(item.createdAt),
+            ...(item.attachments || []).map(attachment => getCommunicationAttachmentName(attachment)),
+            ...(item.thread || []).flatMap(entry => [entry.senderName, entry.senderType, entry.body, entry.notice])
+        ];
+        return searchableValues.some(value => String(value || '').toLowerCase().includes(query));
     }).sort((first, second) => {
         const firstTime = Date.parse(first.createdAt) || 0;
         const secondTime = Date.parse(second.createdAt) || 0;
@@ -379,6 +448,60 @@ function renderCommunicationOptions(values = [], selected = '', firstLabel = '')
     const options = firstLabel ? [`<option>${escapeCommunicationHtml(firstLabel)}</option>`] : [];
     values.forEach(value => options.push(`<option ${value === selected ? 'selected' : ''}>${escapeCommunicationHtml(value)}</option>`));
     return options.join('');
+}
+
+function getCommunicationAttachmentName(attachment = {}, index = 0) {
+    return attachment.name || attachment.fileName || `Attachment ${index + 1}`;
+}
+
+function renderCommunicationAttachmentActions(attachments = []) {
+    if (!attachments.length) return '';
+    return `
+        <div class="communication-attachments">
+            ${attachments.map((attachment, index) => `
+                <div class="communication-attachment-item">
+                    <span>${escapeCommunicationHtml(getCommunicationAttachmentName(attachment, index))}</span>
+                    <button type="button" data-communication-download-attachment="${escapeCommunicationHtml(String(index))}">Download</button>
+                    <button type="button" data-communication-open-attachment="${escapeCommunicationHtml(String(index))}">Open</button>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function getCommunicationAttachmentBlobUrl(attachment = {}) {
+    if (attachment.url || attachment.href || attachment.dataUrl) {
+        return attachment.url || attachment.href || attachment.dataUrl;
+    }
+    const name = getCommunicationAttachmentName(attachment);
+    const body = attachment.content || `ProcureX attachment placeholder for ${name}.`;
+    const type = attachment.fileType?.includes('/') ? attachment.fileType : 'text/plain';
+    return URL.createObjectURL(new Blob([body], { type }));
+}
+
+function downloadCommunicationAttachment(attachment = {}, index = 0) {
+    const name = getCommunicationAttachmentName(attachment, index);
+    const url = getCommunicationAttachmentBlobUrl(attachment);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    if (url.startsWith('blob:')) {
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+}
+
+function openCommunicationAttachment(attachment = {}, index = 0) {
+    const url = getCommunicationAttachmentBlobUrl(attachment);
+    const opened = window.open(url, '_blank', 'noopener');
+    if (url.startsWith('blob:')) {
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+    if (!opened) {
+        alert(`Allow pop-ups to open ${getCommunicationAttachmentName(attachment, index)}.`);
+    }
 }
 
 function renderCommunicationSidebar(state, counts) {
@@ -454,6 +577,44 @@ function renderCommunicationThread(item) {
     `;
 }
 
+function getCommunicationConversationItems(item = {}, items = []) {
+    const conversationId = item.conversationId || item.contextKey || '';
+    const contextKey = item.contextKey || '';
+    const relatedIds = new Set([item.id, item.relatedMessageId].filter(Boolean));
+    return items
+        .filter(entry => {
+            if (!entry || entry.id === item.id) return true;
+            if (conversationId && entry.conversationId === conversationId) return true;
+            if (contextKey && entry.contextKey === contextKey) return true;
+            if (relatedIds.has(entry.id) || relatedIds.has(entry.relatedMessageId)) return true;
+            if (entry.relatedMessageId === item.id || item.relatedMessageId === entry.id) return true;
+            return false;
+        })
+        .sort((first, second) => (Date.parse(first.createdAt) || 0) - (Date.parse(second.createdAt) || 0));
+}
+
+function renderCommunicationContinuityPanel(item = {}, items = []) {
+    const conversationItems = getCommunicationConversationItems(item, items);
+    if (conversationItems.length < 2) return '';
+    return `
+        <section class="communication-continuity-panel">
+            <div>
+                <span class="section-kicker">Context trail</span>
+                <strong>${conversationItems.length} linked messages in this conversation</strong>
+            </div>
+            <div class="communication-continuity-list">
+                ${conversationItems.map(entry => `
+                    <button type="button" class="${entry.id === item.id ? 'active' : ''}" data-communication-select="${escapeCommunicationHtml(entry.id)}">
+                        <span>${escapeCommunicationHtml(formatCommunicationDate(entry.createdAt))}</span>
+                        <strong>${escapeCommunicationHtml(entry.subject)}</strong>
+                        <em>${escapeCommunicationHtml(entry.folder === 'sent' ? `To ${entry.recipientName}` : `From ${entry.senderName}`)}</em>
+                    </button>
+                `).join('')}
+            </div>
+        </section>
+    `;
+}
+
 function isOpenClarificationRequest(item = {}) {
     const rawStatus = String(item.status || '').toLowerCase();
     if (item.kind !== 'clarification' || item.folder === 'sent') return false;
@@ -473,6 +634,35 @@ function isBidderClarificationAnswer(item = {}) {
     return /answered|resolved|published|replied|read/.test(rawStatus) || item.actionLabel === 'View Response';
 }
 
+function isInboxCommunicationItem(item = {}) {
+    return item.folder !== 'sent' && item.folder !== 'archived' && item.status !== 'Deleted';
+}
+
+function canReplyToCommunicationItem(item = {}) {
+    if (!isInboxCommunicationItem(item)) return false;
+    if (item.senderId === 'system' || String(item.senderType || '').toLowerCase().includes('system')) return false;
+    if (isOpenClarificationRequest(item) || isBidderClarificationAnswer(item)) return false;
+    return !item.actionPage || item.actionPage === 'communication-center' || item.kind === 'message';
+}
+
+function isCommunicationReportMessage(item = {}) {
+    return isInboxCommunicationItem(item) && /reporting documents|report/i.test(`${item.category || ''} ${item.subject || ''}`);
+}
+
+function getCommunicationPrimaryAction(item = {}) {
+    if (!isInboxCommunicationItem(item) || isBidderClarificationAnswer(item)) return '';
+    if (isCommunicationReportMessage(item)) {
+        return `<button class="btn btn-primary" type="button" data-communication-report-feedback="${escapeCommunicationHtml(item.id)}">Offer Feedback</button>`;
+    }
+    if (item.actionPage && item.actionPage !== 'communication-center') {
+        return `<button class="btn btn-primary" type="button" data-navigate="${escapeCommunicationHtml(item.actionPage)}">${escapeCommunicationHtml(item.actionLabel || 'Open')}</button>`;
+    }
+    if (canReplyToCommunicationItem(item)) {
+        return `<button class="btn btn-primary" type="button" data-communication-reply-message="${escapeCommunicationHtml(item.id)}">Reply</button>`;
+    }
+    return '';
+}
+
 function getCommunicationActionText(item = {}) {
     if (item.kind === 'clarification') {
         if (item.folder === 'sent') return 'Await buyer response';
@@ -481,6 +671,8 @@ function getCommunicationActionText(item = {}) {
         return 'Clarification answered';
     }
     if (isBidderClarificationAnswer(item)) return 'No action needed if satisfied';
+    if (isCommunicationReportMessage(item)) return 'Offer feedback on this report';
+    if (canReplyToCommunicationItem(item)) return 'Reply to this message';
     return item.actionLabel || (item.read ? 'Message reviewed' : 'Review message');
 }
 
@@ -495,7 +687,7 @@ function renderCommunicationReplyBox(item) {
             <label>
                 <span>Reply visibility</span>
                 <select class="form-input" name="visibility">
-                    ${renderCommunicationOptions(mockData.communicationCenter?.replyVisibilityOptions || [], 'Publish answer to all bidders for this tender')}
+                    ${renderCommunicationOptions(mockData.communicationCenter?.replyVisibilityOptions || [], 'Reply to this supplier only')}
                 </select>
             </label>
             <label>
@@ -503,7 +695,6 @@ function renderCommunicationReplyBox(item) {
                 <textarea class="form-input" name="body" rows="4" placeholder="Write the buyer response"></textarea>
             </label>
             <div class="communication-reply-actions">
-                <label class="communication-check"><input type="checkbox" name="resolved" checked> Mark as resolved</label>
                 <button class="btn btn-secondary" type="button">Attach</button>
                 <button class="btn btn-primary" type="submit">Send Response</button>
             </div>
@@ -511,7 +702,7 @@ function renderCommunicationReplyBox(item) {
     `;
 }
 
-function renderCommunicationDetail(item, fullScreen = false) {
+function renderCommunicationDetail(item, fullScreen = false, allItems = []) {
     if (!item) {
         return `
             <aside class="communication-detail empty">
@@ -546,12 +737,9 @@ function renderCommunicationDetail(item, fullScreen = false) {
                 <span class="section-kicker">Message</span>
                 <h2>${escapeCommunicationHtml(item.subject)}</h2>
                 <p>${escapeCommunicationHtml(item.body)}</p>
-                ${item.attachments.length ? `
-                    <div class="communication-attachments">
-                        ${item.attachments.map(attachment => `<button type="button">${escapeCommunicationHtml(attachment.name || 'Attachment')}</button>`).join('')}
-                    </div>
-                ` : ''}
+                ${renderCommunicationAttachmentActions(item.attachments)}
             </section>
+            ${renderCommunicationContinuityPanel(item, allItems)}
             <section class="communication-action-panel">
                 <div>
                     <span class="section-kicker">Next action</span>
@@ -559,7 +747,7 @@ function renderCommunicationDetail(item, fullScreen = false) {
                 </div>
                 <div class="inline-actions">
                     ${isBidderClarificationAnswer(item) ? `<button class="btn btn-primary" type="button" data-communication-followup="${escapeCommunicationHtml(item.id)}">Ask Further Clarification</button>` : ''}
-                    ${item.actionPage && !isBidderClarificationAnswer(item) ? `<button class="btn btn-primary" type="button" data-navigate="${escapeCommunicationHtml(item.actionPage)}">${escapeCommunicationHtml(item.actionLabel || 'Open')}</button>` : ''}
+                    ${getCommunicationPrimaryAction(item)}
                     <button class="btn btn-secondary" type="button" data-communication-archive="${escapeCommunicationHtml(item.id)}">Archive</button>
                 </div>
             </section>
@@ -690,14 +878,16 @@ function renderCommunicationCenterInner(root) {
                 </section>
             ` : messageView ? `
                 <section class="communication-message-view">
-                    ${renderCommunicationDetail(selected, true)}
+                    ${renderCommunicationDetail(selected, true, allItems)}
                 </section>
             ` : `
                 <section class="communication-shell">
                     ${renderCommunicationSidebar(state, counts)}
                     <div class="communication-main">
                         <div class="communication-toolbar">
-                            <input class="form-input" data-communication-search value="${escapeCommunicationHtml(state.query)}" placeholder="Search sender, tender, subject">
+                            <input class="form-input" data-communication-search value="${escapeCommunicationHtml(state.query)}" placeholder="Search sender, receiver, tender, subject, status">
+                            <input class="form-input" type="${state.date ? 'date' : 'text'}" data-communication-date-search value="${escapeCommunicationHtml(state.date || '')}" placeholder="Search by date" aria-label="Search messages by date">
+                            ${state.query || state.date ? '<button class="btn btn-secondary" type="button" data-communication-clear-search>Clear</button>' : ''}
                             <button class="btn btn-primary" type="button" data-communication-compose-open>New Message</button>
                         </div>
                         <div class="communication-tabs">
@@ -786,6 +976,17 @@ function syncCommunicationComposeDraft(form) {
     getCommunicationState().composeDraft = nextDraft;
 }
 
+function focusCommunicationFilter(selector, cursorPosition = null) {
+    requestAnimationFrame(() => {
+        const input = document.querySelector(selector);
+        if (!input) return;
+        input.focus();
+        if (cursorPosition !== null && typeof input.setSelectionRange === 'function') {
+            input.setSelectionRange(cursorPosition, cursorPosition);
+        }
+    });
+}
+
 function openCommunicationFollowUpCompose(item = {}) {
     const state = getCommunicationState();
     const recipient = getCommunicationMailboxById(item.senderId) || getCommunicationMailboxBySearch(item.senderName);
@@ -806,6 +1007,46 @@ function openCommunicationFollowUpCompose(item = {}) {
     pushCommunicationComposeHistory();
 }
 
+function openCommunicationReplyCompose(item = {}) {
+    const state = getCommunicationState();
+    const recipient = getCommunicationMailboxById(item.senderId) || getCommunicationMailboxBySearch(item.senderName);
+    state.composeDraft = {
+        category: item.category || 'General Message',
+        recipientId: recipient?.id || item.senderId || '',
+        recipientSearch: item.senderName || recipient?.name || '',
+        tenderReference: item.tenderReference || item.tenderId || '',
+        tenderId: item.tenderId || item.tenderReference || '',
+        tenderTitle: item.tenderTitle || '',
+        kind: item.kind === 'clarification' ? 'clarification' : 'message',
+        subject: `Re: ${String(item.subject || 'Procurement message').replace(/^Re:\s*/i, '')}`,
+        body: '',
+        relatedMessageId: item.id
+    };
+    state.composeOpen = true;
+    state.selectedId = null;
+    pushCommunicationComposeHistory();
+}
+
+function openCommunicationReportFeedbackCompose(item = {}) {
+    const state = getCommunicationState();
+    const recipient = getCommunicationMailboxById(item.senderId) || getCommunicationMailboxBySearch(item.senderName);
+    state.composeDraft = {
+        category: 'Reporting Documents',
+        recipientId: recipient?.id || item.senderId || '',
+        recipientSearch: item.senderName || recipient?.name || '',
+        tenderReference: item.tenderReference || item.tenderId || '',
+        tenderId: item.tenderId || item.tenderReference || '',
+        tenderTitle: item.tenderTitle || '',
+        kind: 'message',
+        subject: `Feedback: ${String(item.subject || 'Submitted report').replace(/^(Re|Feedback):\s*/i, '')}`,
+        body: 'Acknowledged. ',
+        relatedMessageId: item.id
+    };
+    state.composeOpen = true;
+    state.selectedId = null;
+    pushCommunicationComposeHistory();
+}
+
 function initializeCommunicationCenter() {
     const root = document.querySelector('[data-communication-center]');
     if (!root || root.dataset.ready === 'true') return;
@@ -815,6 +1056,7 @@ function initializeCommunicationCenter() {
     state.tab = 'Inbox';
     state.folder = 'Inbox';
     state.query = '';
+    state.date = '';
     state.category = 'All categories';
     state.composeOpen = false;
     state.composeDraft = null;
@@ -831,6 +1073,14 @@ function initializeCommunicationCenter() {
 
     root.addEventListener('click', (event) => {
         const state = getCommunicationState();
+        if (event.target.matches('[data-communication-date-search]')) {
+            event.target.type = 'date';
+            if (typeof event.target.showPicker === 'function') {
+                event.target.showPicker();
+            }
+            return;
+        }
+
         const selectButton = event.target.closest('[data-communication-select]');
         if (selectButton) {
             state.selectedId = selectButton.dataset.communicationSelect;
@@ -870,6 +1120,13 @@ function initializeCommunicationCenter() {
             return;
         }
 
+        if (event.target.closest('[data-communication-clear-search]')) {
+            state.query = '';
+            state.date = '';
+            render();
+            return;
+        }
+
         const followUpButton = event.target.closest('[data-communication-followup]');
         if (followUpButton) {
             const item = getCommunicationItems().find(entry => entry.id === followUpButton.dataset.communicationFollowup);
@@ -880,10 +1137,57 @@ function initializeCommunicationCenter() {
             return;
         }
 
+        const replyMessageButton = event.target.closest('[data-communication-reply-message]');
+        if (replyMessageButton) {
+            const item = getCommunicationItems().find(entry => entry.id === replyMessageButton.dataset.communicationReplyMessage);
+            if (item) {
+                openCommunicationReplyCompose(item);
+                render();
+            }
+            return;
+        }
+
+        const reportFeedbackButton = event.target.closest('[data-communication-report-feedback]');
+        if (reportFeedbackButton) {
+            const item = getCommunicationItems().find(entry => entry.id === reportFeedbackButton.dataset.communicationReportFeedback);
+            if (item) {
+                openCommunicationReportFeedbackCompose(item);
+                render();
+            }
+            return;
+        }
+
         const archiveButton = event.target.closest('[data-communication-archive]');
         if (archiveButton) {
             patchCommunicationItem(archiveButton.dataset.communicationArchive, { folder: 'archived', status: 'Archived', read: true });
             render();
+            return;
+        }
+
+        const downloadAttachmentButton = event.target.closest('[data-communication-download-attachment]');
+        if (downloadAttachmentButton) {
+            const state = getCommunicationState();
+            const item = getCommunicationItems().find(entry => entry.id === state.selectedId);
+            const attachmentIndex = Number(downloadAttachmentButton.dataset.communicationDownloadAttachment);
+            const attachment = item?.attachments?.[attachmentIndex];
+            if (attachment) {
+                downloadCommunicationAttachment(attachment, attachmentIndex);
+                if (confirm('Download started. Open the attachment now? Choose Cancel to keep it saved.')) {
+                    openCommunicationAttachment(attachment, attachmentIndex);
+                }
+            }
+            return;
+        }
+
+        const openAttachmentButton = event.target.closest('[data-communication-open-attachment]');
+        if (openAttachmentButton) {
+            const state = getCommunicationState();
+            const item = getCommunicationItems().find(entry => entry.id === state.selectedId);
+            const attachmentIndex = Number(openAttachmentButton.dataset.communicationOpenAttachment);
+            const attachment = item?.attachments?.[attachmentIndex];
+            if (attachment) {
+                openCommunicationAttachment(attachment, attachmentIndex);
+            }
             return;
         }
 
@@ -902,8 +1206,17 @@ function initializeCommunicationCenter() {
             return;
         }
         if (event.target.matches('[data-communication-search]')) {
+            const cursorPosition = event.target.selectionStart;
             state.query = event.target.value;
             render();
+            focusCommunicationFilter('[data-communication-search]', cursorPosition);
+            return;
+        }
+        if (event.target.matches('[data-communication-date-search]')) {
+            event.target.type = 'date';
+            state.date = event.target.value;
+            render();
+            focusCommunicationFilter('[data-communication-date-search]');
         }
     });
 
@@ -936,6 +1249,9 @@ function initializeCommunicationCenter() {
                 }))
             };
         }
+        if (event.target.matches('[data-communication-date-search]')) {
+            state.date = event.target.value;
+        }
         render();
     });
 
@@ -959,6 +1275,8 @@ function initializeCommunicationCenter() {
             const kind = String(form.get('kind') || '').trim() || (/clarification/i.test(category) ? 'clarification' : 'message');
             const tenderReference = form.get('tenderReference') || 'Not linked';
             const tenderTitle = form.get('tenderTitle') || tenderReference || 'Tender communication';
+            const relatedMessageId = state.composeDraft?.relatedMessageId || '';
+            const relatedMessage = relatedMessageId ? getCommunicationItems().find(entry => entry.id === relatedMessageId) : null;
             const baseMessage = {
                 kind,
                 category,
@@ -976,8 +1294,14 @@ function initializeCommunicationCenter() {
                 status: kind === 'clarification' ? 'Pending Buyer Response' : 'Read',
                 priority: 'Normal',
                 audience: [recipient.role || 'user', 'all'],
-                attachments: state.composeDraft?.attachments || []
+                attachments: state.composeDraft?.attachments || [],
+                relatedMessageId,
+                conversationId: relatedMessage?.conversationId || '',
+                contextKey: relatedMessage?.contextKey || ''
             };
+            const baseContextKey = baseMessage.contextKey || buildCommunicationContextKey(baseMessage);
+            baseMessage.contextKey = baseContextKey;
+            baseMessage.conversationId = baseMessage.conversationId || baseContextKey;
             addProcurexCommunicationItem({
                 ...baseMessage,
                 folder: 'inbox',
@@ -992,6 +1316,23 @@ function initializeCommunicationCenter() {
                 folder: 'sent',
                 read: true
             });
+            if (relatedMessage) {
+                patchCommunicationItem(relatedMessageId, {
+                    status: relatedMessage.kind === 'clarification' ? 'Answered' : 'Replied',
+                    read: true,
+                    conversationId: baseMessage.conversationId,
+                    contextKey: baseMessage.contextKey,
+                    thread: [
+                        ...(relatedMessage.thread || []),
+                        {
+                            senderType: currentUser.type,
+                            senderName: currentUser.organization,
+                            body: form.get('body') || '',
+                            createdAt: new Date().toISOString()
+                        }
+                    ]
+                });
+            }
             state.composeOpen = false;
             state.composeDraft = null;
             state.tab = 'Sent';
@@ -1010,6 +1351,7 @@ function initializeCommunicationCenter() {
             }
             const item = getCommunicationItems().find(entry => entry.id === itemId);
             const visibility = String(form.get('visibility') || 'Reply to this supplier only');
+            const conversationId = item?.conversationId || item?.contextKey || buildCommunicationContextKey(item);
             const thread = [
                 ...(item?.thread || []),
                 {
@@ -1020,11 +1362,14 @@ function initializeCommunicationCenter() {
                     createdAt: new Date().toISOString()
                 }
             ];
+            const publishToAll = visibility.toLowerCase().includes('all bidders');
             patchCommunicationItem(itemId, {
                 thread,
-                status: form.get('resolved') ? (visibility.includes('all bidders') ? 'Published to All Bidders' : 'Resolved') : 'Replied',
+                status: publishToAll ? 'Published to All Bidders' : 'Answered',
                 read: true,
-                visibility: visibility.includes('all bidders') ? 'Public to all bidders' : 'Private'
+                conversationId,
+                contextKey: item?.contextKey || conversationId,
+                visibility: publishToAll ? 'Public to all bidders' : 'Private'
             });
             addProcurexCommunicationItem({
                 kind: 'clarification',
@@ -1045,7 +1390,10 @@ function initializeCommunicationCenter() {
                 read: false,
                 actionRequired: false,
                 actionLabel: 'Ask Follow-up',
-                actionPage: 'communication-center'
+                actionPage: 'communication-center',
+                relatedMessageId: itemId,
+                conversationId,
+                contextKey: item?.contextKey || conversationId
             });
             render();
         }

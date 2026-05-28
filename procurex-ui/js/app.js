@@ -36,9 +36,9 @@ class ProcureXApp {
     setupRouting() {
         // Handle browser back/forward
         window.addEventListener('popstate', (e) => {
-            if (e.state && e.state.page) {
-                this.navigateTo(e.state.page, false);
-            }
+            const urlParams = new URLSearchParams(window.location.search);
+            const page = e.state?.page || urlParams.get('page') || 'welcome';
+            this.navigateTo(page, false);
         });
 
         // Handle initial load
