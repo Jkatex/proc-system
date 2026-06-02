@@ -5,13 +5,19 @@
   "description": "Canonical monorepo for the ProcureX production platform.",
   "type": "module",
   "workspaces": [
+    "client",
     "server",
     "shared"
   ],
   "scripts": {
     "dev": "npm --workspace server run dev",
-    "build": "npm --workspace shared run build && npm --workspace server run build",
-    "test": "npm --workspace server test",
+    "dev:client": "npm --workspace client run dev",
+    "build": "npm --workspace shared run build && npm --workspace server run build && npm --workspace client run build",
+    "build:client": "npm --workspace shared run build && npm --workspace client run build",
+    "test": "npm --workspace server test && npm --workspace client test",
+    "test:client": "npm --workspace client run test",
+    "lint:client": "npm --workspace client run lint",
+    "generate:client:procurex-pages": "npm --workspace client run generate:procurex-pages",
     "infra:up": "docker compose up -d",
     "infra:down": "docker compose down",
     "db:validate": "npm --workspace server run db:validate",
@@ -24,4 +30,3 @@
     "node": ">=20.11"
   }
 }
-

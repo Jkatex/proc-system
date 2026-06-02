@@ -1,0 +1,198 @@
+{
+  "brand": "ProcureX",
+  "language": "Lugha",
+  "english": "Kiingereza",
+  "swahili": "Kiswahili",
+  "actions": {
+    "getStarted": "Anza Sasa",
+    "signIn": "Ingia",
+    "register": "Fungua Akaunti",
+    "browse": "Tazama Zabuni Zilizo Wazi",
+    "saveDraft": "Hifadhi Rasimu",
+    "continue": "Endelea",
+    "submit": "Wasilisha",
+    "review": "Hakiki",
+    "open": "Fungua",
+    "publish": "Chapisha",
+    "logout": "Toka"
+  },
+  "nav": {
+    "welcome": "Karibu",
+    "marketplace": "Soko la Zabuni",
+    "about": "Kuhusu",
+    "privacy": "Faragha",
+    "terms": "Masharti",
+    "contact": "Mawasiliano",
+    "dashboard": "Dashibodi",
+    "identity": "Usajili na Uthibitishaji",
+    "procurement": "Ununuzi",
+    "bidding": "Uandaaji Zabuni",
+    "evaluation": "Tathmini",
+    "awards": "Tuzo na Mikataba",
+    "communication": "Kituo cha Mawasiliano",
+    "records": "Kumbukumbu na Historia",
+    "admin": "Msimamizi"
+  },
+  "pages": {
+    "welcome": {
+      "title": "ProcureX",
+      "subtitle": "Eneo la kidijitali la ununuzi kwa uandaaji wa zabuni, uwasilishaji, ukaguzi wa uzingatiaji, tuzo, mikataba, ankara, na kumbukumbu endelevu."
+    },
+    "about": {
+      "title": "Kuhusu ProcureX",
+      "subtitle": "ProcureX inaleta wanunuzi, wazabuni, watathmini, na wasimamizi katika mazingira moja ya kazi ya ununuzi yenye udhibiti."
+    },
+    "privacy": {
+      "title": "Sera ya Faragha",
+      "subtitle": "Ufafanuzi wa matumizi ya data za utambulisho, rekodi za ununuzi, nyaraka, vielelezo vya ukaguzi, na mawasiliano."
+    },
+    "terms": {
+      "title": "Vigezo na Masharti",
+      "subtitle": "Kanuni za jukwaa kwa zabuni halali, mashirika yaliyothibitishwa, ushindani wa haki, ukaguzi, mawasiliano, na kumbukumbu."
+    },
+    "contact": {
+      "title": "Wasiliana na ProcureX",
+      "subtitle": "Pata msaada kuhusu kujiunga, uthibitishaji, michakato ya zabuni, masuala ya uzingatiaji, na changamoto za kiufundi."
+    },
+    "guestMarketplace": {
+      "title": "Soko la Zabuni Zilizo Wazi",
+      "subtitle": "Tazama fursa za umma kabla ya kuingia."
+    },
+    "register": {
+      "title": "Fungua Akaunti",
+      "subtitle": "Sajili akaunti moja ya kampuni inayoweza kufanya kazi kama mnunuzi, mzabuni, au vyote baada ya kuthibitishwa."
+    },
+    "signIn": {
+      "title": "Ingia",
+      "subtitle": "Fikia eneo lako la kazi la ProcureX."
+    },
+    "roleSelection": {
+      "title": "Anza Usajili",
+      "subtitle": "Chagua njia ya akaunti inayolingana na shirika lako."
+    },
+    "identity": {
+      "title": "Uthibitishaji wa Utambulisho",
+      "subtitle": "Thibitisha taarifa za TRA/BRELA, umiliki, watia saini walioidhinishwa, na uwezo wa shirika."
+    },
+    "profile": {
+      "title": "Wasifu wa Akaunti",
+      "subtitle": "Simamia hali ya uthibitishaji, lugha unayopendelea, nyaraka, na uwezo wa shirika."
+    },
+    "launcher": {
+      "title": "Programu za ProcureX",
+      "subtitle": "Fungua zana zinazopatikana kwa shirika lako lililothibitishwa."
+    },
+    "dashboard": {
+      "title": "Dashibodi ya Kazi",
+      "subtitle": "Fuatilia zabuni hai, zabuni ulizowasilisha, mawasiliano, tathmini, tuzo, muda wa mwisho, na kumbukumbu."
+    },
+    "procurementGuide": {
+      "title": "Mwongozo wa Mchakato wa Ununuzi",
+      "subtitle": "Toka kwenye mipango na uchapishaji hadi uwasilishaji, tathmini, tuzo, mkataba, malipo, na kumbukumbu."
+    },
+    "marketplace": {
+      "title": "Soko la Zabuni",
+      "subtitle": "Tafuta zabuni zilizo wazi, hakiki mahitaji, hifadhi fursa, na anza kuandaa zabuni."
+    },
+    "createTender": {
+      "title": "Tengeneza Zabuni",
+      "subtitle": "Andaa taarifa za ununuzi, vipengele vya kibiashara, mahitaji, hatua, nyaraka, na ukaguzi wa uchapishaji."
+    },
+    "tenderPublication": {
+      "title": "Maelezo ya Rasimu ya Zabuni",
+      "subtitle": "Hakiki kifurushi cha zabuni kilichotengenezwa kabla ya kuidhinisha na kuchapisha."
+    },
+    "tenderDetails": {
+      "title": "Maelezo ya Zabuni",
+      "subtitle": "Fuatilia uchapishaji wa upande wa mnunuzi, ufafanuzi, wahusika waliovutiwa, maandalizi ya tathmini, na kumbukumbu."
+    },
+    "tenderDocument": {
+      "title": "Nyaraka ya Zabuni",
+      "subtitle": "Hakiki sehemu za zabuni na viambatisho."
+    },
+    "supplierTenderDetail": {
+      "title": "Maelezo ya Zabuni kwa Mzabuni",
+      "subtitle": "Chunguza mahitaji, nyaraka, historia ya ufafanuzi, na utayari wa kuwasilisha zabuni."
+    },
+    "bidding": {
+      "title": "Eneo la Kuandaa Zabuni",
+      "subtitle": "Andaa majibu ya kiufundi, bei za kibiashara, viambatisho, matamko, na uwasilishaji uliofungwa."
+    },
+    "evaluation": {
+      "title": "Tathmini ya Zabuni",
+      "subtitle": "Fungua zabuni, kagua ustahiki, toa alama, linganisha fedha, na toa mapendekezo."
+    },
+    "awards": {
+      "title": "Tuzo na Mikataba",
+      "subtitle": "Fuatilia maamuzi ya tuzo, taarifa, majadiliano, nyaraka kabla ya mkataba, saini, na rekodi za mkataba."
+    },
+    "awardRecommendation": {
+      "title": "Pendekezo la Tuzo",
+      "subtitle": "Andaa uamuzi wa tuzo, idhini, ukaguzi wa kusubiri, taarifa kwa mzabuni, na uhamishaji kwenda mkataba."
+    },
+    "contractNegotiation": {
+      "title": "Majadiliano ya Mkataba",
+      "subtitle": "Hakiki masharti yaliyofungwa ya tuzo, jadili vifungu, pakia nyaraka, na andaa saini."
+    },
+    "postAward": {
+      "title": "Ufuatiliaji Baada ya Tuzo",
+      "subtitle": "Fuatilia oda za ununuzi, hatua za utoaji, ankara, hali ya malipo, na rekodi za utendaji."
+    },
+    "communication": {
+      "title": "Kituo cha Mawasiliano",
+      "subtitle": "Simamia ujumbe, ufafanuzi, taarifa, tahadhari, na historia ya mawasiliano yanayohusiana na zabuni."
+    },
+    "records": {
+      "title": "Kumbukumbu na Historia",
+      "subtitle": "Tafuta rekodi za ununuzi, matukio ya ukaguzi, nyaraka, zabuni, tuzo, mikataba, na historia ya fedha."
+    },
+    "adminDashboard": {
+      "title": "Dashibodi ya Msimamizi",
+      "subtitle": "Simamia shughuli za jukwaa, foleni za uzingatiaji, hali ya uthibitishaji, tofauti, na matukio ya ukaguzi."
+    },
+    "adminSearch": {
+      "title": "Utafutaji wa Kina wa Msimamizi",
+      "subtitle": "Tafuta zabuni, mawasilisho, watumiaji, nyaraka, vielelezo vya ukaguzi, tathmini, na masuala ya uzingatiaji."
+    },
+    "adminUsers": {
+      "title": "Usimamizi wa Watumiaji",
+      "subtitle": "Hakiki akaunti, wasifu wa mashirika, uwezo, hali ya uthibitishaji, na taarifa za ufikiaji."
+    },
+    "adminCompliance": {
+      "title": "Kanuni za Uzingatiaji",
+      "subtitle": "Tunza viwango vya mbinu, sheria za ukaguzi, orodha za ukaguzi, njia za kupandisha suala, na foleni za tofauti."
+    },
+    "adminAnalytics": {
+      "title": "Takwimu za Jukwaa",
+      "subtitle": "Chambua thamani ya ununuzi, ushiriki, muda wa mchakato, mwenendo wa uzingatiaji, na mgawanyo wa makundi."
+    },
+    "adminAudit": {
+      "title": "Historia Kamili ya Ukaguzi",
+      "subtitle": "Chunguza vitendo vya mfumo, watendaji, vitu, muda, ukubwa wa tukio, na rejea za ushahidi."
+    }
+  },
+  "status": {
+    "open": "Wazi",
+    "draft": "Rasimu",
+    "published": "Imechapishwa",
+    "pending": "Inasubiri",
+    "approved": "Imeidhinishwa",
+    "verified": "Imethibitishwa",
+    "submitted": "Imewasilishwa",
+    "review": "Ukaguzi",
+    "complete": "Imekamilika"
+  },
+  "common": {
+    "budget": "Bajeti",
+    "status": "Hali",
+    "organization": "Shirika",
+    "closingDate": "Tarehe ya kufungwa",
+    "reference": "Rejea",
+    "owner": "Mmiliki",
+    "amount": "Kiasi",
+    "stage": "Hatua",
+    "priority": "Kipaumbele",
+    "search": "Tafuta",
+    "filters": "Vichujio"
+  }
+}

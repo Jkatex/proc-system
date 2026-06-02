@@ -1,0 +1,198 @@
+{
+  "brand": "ProcureX",
+  "language": "Language",
+  "english": "English",
+  "swahili": "Swahili",
+  "actions": {
+    "getStarted": "Get Started",
+    "signIn": "Sign In",
+    "register": "Create Account",
+    "browse": "Browse Open Tenders",
+    "saveDraft": "Save Draft",
+    "continue": "Continue",
+    "submit": "Submit",
+    "review": "Review",
+    "open": "Open",
+    "publish": "Publish",
+    "logout": "Logout"
+  },
+  "nav": {
+    "welcome": "Welcome",
+    "marketplace": "Marketplace",
+    "about": "About",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "contact": "Contact",
+    "dashboard": "Dashboard",
+    "identity": "Registration and Verification",
+    "procurement": "Procurement",
+    "bidding": "Bidding",
+    "evaluation": "Evaluation",
+    "awards": "Awards and Contracts",
+    "communication": "Communication Center",
+    "records": "Records and History",
+    "admin": "Admin"
+  },
+  "pages": {
+    "welcome": {
+      "title": "ProcureX",
+      "subtitle": "A digital procurement workspace for Tanzanian tender creation, bidding, compliance review, awards, contracts, invoices, and durable records."
+    },
+    "about": {
+      "title": "About ProcureX",
+      "subtitle": "ProcureX brings buyers, suppliers, evaluators, and administrators into one controlled procurement operating environment."
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "subtitle": "Clear data handling for identity, procurement records, documents, audit evidence, and communication workflows."
+    },
+    "terms": {
+      "title": "Terms and Conditions",
+      "subtitle": "Platform rules for lawful tenders, verified organizations, fair bidding, review, communication, and records."
+    },
+    "contact": {
+      "title": "Contact ProcureX",
+      "subtitle": "Reach support for onboarding, verification, tender workflows, compliance questions, and technical help."
+    },
+    "guestMarketplace": {
+      "title": "Open Tender Marketplace",
+      "subtitle": "Explore public opportunities before signing in."
+    },
+    "register": {
+      "title": "Create Account",
+      "subtitle": "Register one company account that can act as buyer, supplier, or both after verification."
+    },
+    "signIn": {
+      "title": "Sign In",
+      "subtitle": "Access your ProcureX workspace."
+    },
+    "roleSelection": {
+      "title": "Start Registration",
+      "subtitle": "Select the account path that matches your organization."
+    },
+    "identity": {
+      "title": "Identity Verification",
+      "subtitle": "Verify TRA/BRELA details, ownership, authorized signatories, and organization capabilities."
+    },
+    "profile": {
+      "title": "Account Profile",
+      "subtitle": "Manage verification status, preferred language, documents, and organization capabilities."
+    },
+    "launcher": {
+      "title": "ProcureX Apps",
+      "subtitle": "Open the tools available to your verified organization."
+    },
+    "dashboard": {
+      "title": "Workspace Dashboard",
+      "subtitle": "Track active tenders, bids, communications, evaluations, awards, deadlines, and records."
+    },
+    "procurementGuide": {
+      "title": "Procurement Process Guide",
+      "subtitle": "Move from planning and publication to bidding, evaluation, award, contract, payment, and records."
+    },
+    "marketplace": {
+      "title": "Tender Marketplace",
+      "subtitle": "Find open tenders, review requirements, save opportunities, and start bids."
+    },
+    "createTender": {
+      "title": "Create Tender",
+      "subtitle": "Prepare procurement details, commercial items, requirements, milestones, documents, and publication review."
+    },
+    "tenderPublication": {
+      "title": "Tender Draft Detail",
+      "subtitle": "Review the generated tender package before approval and publication."
+    },
+    "tenderDetails": {
+      "title": "Tender Detail",
+      "subtitle": "Monitor buyer-side publication, clarifications, bidder interest, evaluation readiness, and records."
+    },
+    "tenderDocument": {
+      "title": "Tender Document",
+      "subtitle": "Preview structured tender sections and annexes."
+    },
+    "supplierTenderDetail": {
+      "title": "Supplier Tender Detail",
+      "subtitle": "Inspect requirements, documents, clarification history, and bid readiness."
+    },
+    "bidding": {
+      "title": "Bidding Workspace",
+      "subtitle": "Prepare technical responses, commercial pricing, attachments, declarations, and sealed submission."
+    },
+    "evaluation": {
+      "title": "Bid Evaluation",
+      "subtitle": "Open bids, check eligibility, score criteria, compare financials, and produce recommendations."
+    },
+    "awards": {
+      "title": "Awarding and Contracts",
+      "subtitle": "Track award decisions, notices, negotiations, pre-contract documents, signatures, and contract records."
+    },
+    "awardRecommendation": {
+      "title": "Award Recommendation",
+      "subtitle": "Prepare the award decision, approvals, standstill checks, supplier notices, and contract handoff."
+    },
+    "contractNegotiation": {
+      "title": "Contract Negotiation",
+      "subtitle": "Review locked award terms, negotiate clauses, upload pre-contract documents, and prepare signatures."
+    },
+    "postAward": {
+      "title": "Post-Award Tracking",
+      "subtitle": "Track purchase orders, delivery milestones, invoices, payment status, and performance records."
+    },
+    "communication": {
+      "title": "Communication Center",
+      "subtitle": "Manage messages, clarifications, notifications, alerts, and tender-related communication history."
+    },
+    "records": {
+      "title": "Records and History",
+      "subtitle": "Search procurement records, audit events, documents, bids, awards, contracts, and financial history."
+    },
+    "adminDashboard": {
+      "title": "Admin Dashboard",
+      "subtitle": "Oversee platform activity, compliance queues, verification status, exceptions, and audit events."
+    },
+    "adminSearch": {
+      "title": "Admin Deep Search",
+      "subtitle": "Search tenders, bids, users, documents, audit evidence, evaluations, and compliance cases."
+    },
+    "adminUsers": {
+      "title": "User Management",
+      "subtitle": "Review accounts, organization profiles, capabilities, verification status, and access metadata."
+    },
+    "adminCompliance": {
+      "title": "Compliance Rules",
+      "subtitle": "Maintain method thresholds, review rules, checklists, escalation paths, and exception queues."
+    },
+    "adminAnalytics": {
+      "title": "Platform Analytics",
+      "subtitle": "Analyze procurement value, participation, cycle times, compliance trends, and category distribution."
+    },
+    "adminAudit": {
+      "title": "Full Audit Trail",
+      "subtitle": "Inspect system-wide actions, actors, entities, timestamps, severity, and evidence references."
+    }
+  },
+  "status": {
+    "open": "Open",
+    "draft": "Draft",
+    "published": "Published",
+    "pending": "Pending",
+    "approved": "Approved",
+    "verified": "Verified",
+    "submitted": "Submitted",
+    "review": "Review",
+    "complete": "Complete"
+  },
+  "common": {
+    "budget": "Budget",
+    "status": "Status",
+    "organization": "Organization",
+    "closingDate": "Closing date",
+    "reference": "Reference",
+    "owner": "Owner",
+    "amount": "Amount",
+    "stage": "Stage",
+    "priority": "Priority",
+    "search": "Search",
+    "filters": "Filters"
+  }
+}
