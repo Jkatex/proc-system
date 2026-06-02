@@ -28532,7 +28532,7 @@ body[data-page="admin-audit"] {
         grid-template-columns: 1fr;
     }
 }
-/* Tender Planning app */
+/* Procurement Planning app */
 body[data-page="tender-planning"] .main-layout.tender-planning-page {
     display: block !important;
 }
@@ -28717,7 +28717,8 @@ body[data-page="tender-planning"] .main-layout.tender-planning-page {
     }
 
     .planning-two-col,
-    .planning-report-grid {
+    .planning-report-grid,
+    .planning-detail-hero {
         grid-template-columns: 1fr;
     }
 }
@@ -28729,13 +28730,18 @@ body[data-page="tender-planning"] .main-layout.tender-planning-page {
 
     .planning-filter-bar,
     .planning-form-grid,
-    .planning-timeline-list div {
+    .planning-timeline-list div,
+    .planning-detail-metrics {
         grid-template-columns: 1fr;
     }
 
     .planning-upload-box {
         align-items: flex-start;
         flex-direction: column;
+    }
+
+    .planning-detail-hero {
+        padding: 18px;
     }
 }
 
@@ -28754,6 +28760,139 @@ body[data-page="tender-planning"] .tender-planning-content {
     background:
         linear-gradient(180deg, rgba(245, 249, 251, 0.94) 0%, rgba(255, 255, 255, 0.98) 360px),
         var(--planning-soft);
+}
+
+.planning-detail-page {
+    --planning-teal: var(--ink-button);
+    --planning-ink: var(--text-primary);
+    --planning-muted: var(--text-secondary);
+    --planning-line: var(--border-soft);
+    --planning-soft: #f5f9fb;
+}
+
+.planning-detail-page .tender-planning-content {
+    background:
+        linear-gradient(180deg, rgba(245, 249, 251, 0.94) 0%, rgba(255, 255, 255, 0.98) 320px),
+        var(--planning-soft);
+}
+
+.planning-detail-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 320px);
+    gap: 18px;
+    align-items: stretch;
+    border: 1px solid rgba(0, 128, 128, 0.16);
+    border-radius: 8px;
+    background: var(--card-bg);
+    padding: 28px;
+    margin-bottom: 18px;
+    box-shadow: 0 18px 44px rgba(15, 35, 50, 0.08);
+}
+
+.planning-detail-hero h1 {
+    color: var(--planning-ink);
+    margin: 8px 0;
+}
+
+.planning-detail-hero p {
+    max-width: 820px;
+    color: var(--planning-muted);
+}
+
+.planning-detail-badge {
+    display: grid;
+    align-content: center;
+    gap: 8px;
+    border: 1px solid var(--planning-line);
+    border-radius: 8px;
+    background: var(--surface-soft);
+    padding: 20px;
+}
+
+.planning-detail-badge span {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: #07131a;
+    color: #ffffff;
+    font-weight: 900;
+}
+
+.planning-detail-badge strong {
+    color: var(--planning-teal);
+    font-size: 28px;
+    line-height: 1;
+}
+
+.planning-detail-badge em {
+    color: var(--planning-muted);
+    font-style: normal;
+}
+
+.planning-detail-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.planning-detail-metric {
+    display: grid;
+    gap: 8px;
+    min-height: 118px;
+    border: 1px solid var(--planning-line);
+    border-radius: 8px;
+    background: var(--card-bg);
+    padding: 18px;
+}
+
+.planning-detail-metric span,
+.planning-detail-metric em {
+    color: var(--planning-muted);
+    font-style: normal;
+}
+
+.planning-detail-metric strong {
+    color: var(--planning-teal);
+    font-size: 30px;
+    line-height: 1;
+}
+
+.planning-detail-checklist {
+    display: grid;
+    gap: 12px;
+}
+
+.planning-detail-checklist div {
+    display: grid;
+    gap: 6px;
+    border: 1px solid var(--planning-line);
+    border-radius: 8px;
+    background: var(--surface-soft);
+    padding: 14px;
+}
+
+.planning-detail-checklist span {
+    color: var(--planning-muted);
+    font-size: 14px;
+}
+
+@media (max-width: 1180px) {
+    .planning-detail-hero {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 760px) {
+    .planning-detail-metrics {
+        grid-template-columns: 1fr;
+    }
+
+    .planning-detail-hero {
+        padding: 18px;
+    }
 }
 
 .planning-command-hero {

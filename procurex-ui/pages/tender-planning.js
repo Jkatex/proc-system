@@ -3,20 +3,20 @@ function renderTenderPlanning() {
         <div class="main-layout tender-planning-page">
             <main class="main-content tender-planning-content">
                 <nav class="planning-top-nav" aria-label="Tender planning sections">
-                    <a href="#planning-dashboard" class="planning-nav-card active"><span>01</span><strong>Procurement details</strong><em>Overview and readiness</em></a>
-                    <a href="#spp-plan" class="planning-nav-card"><span>02</span><strong>Questions and requirements</strong><em>SPP schedule and permissions</em></a>
-                    <a href="#budget-confirmation" class="planning-nav-card"><span>03</span><strong>Complaints</strong><em>Risks, alerts, and actions</em></a>
-                    <a href="#planning-reports" class="planning-nav-card"><span>04</span><strong>Monitoring and reporting</strong><em>APP and SPP exports</em></a>
-                    <a href="#app-plan" class="planning-nav-card"><span>05</span><strong>Customer information</strong><em>APP item and department data</em></a>
-                    <a href="#budget-confirmation" class="planning-nav-card"><span>06</span><strong>Purchase information</strong><em>Budget and funding checks</em></a>
-                    <a href="#planning-documents" class="planning-nav-card"><span>07</span><strong>Tender documentation</strong><em>Evidence and approvals</em></a>
-                    <a href="#planning-documents" class="planning-nav-card"><span>08</span><strong>Documents</strong><em>Register and review status</em></a>
+                    <a href="#" data-navigate="procurement-planning-details" class="planning-nav-card active"><span>01</span><strong>Procurement details</strong><em>Overview and readiness</em></a>
+                    <a href="#" data-navigate="procurement-planning-questions" class="planning-nav-card"><span>02</span><strong>Questions and requirements</strong><em>SPP schedule and permissions</em></a>
+                    <a href="#" data-navigate="procurement-planning-complaints" class="planning-nav-card"><span>03</span><strong>Complaints</strong><em>Risks, alerts, and actions</em></a>
+                    <a href="#" data-navigate="procurement-planning-monitoring" class="planning-nav-card"><span>04</span><strong>Monitoring and reporting</strong><em>APP and SPP exports</em></a>
+                    <a href="#" data-navigate="procurement-planning-customer" class="planning-nav-card"><span>05</span><strong>Customer information</strong><em>APP item and department data</em></a>
+                    <a href="#" data-navigate="procurement-planning-purchase" class="planning-nav-card"><span>06</span><strong>Purchase information</strong><em>Budget and funding checks</em></a>
+                    <a href="#" data-navigate="procurement-planning-tender-docs" class="planning-nav-card"><span>07</span><strong>Tender documentation</strong><em>Evidence and approvals</em></a>
+                    <a href="#" data-navigate="procurement-planning-documents" class="planning-nav-card"><span>08</span><strong>Documents</strong><em>Register and review status</em></a>
                 </nav>
 
                 <section class="procurement-hero tender-planning-hero planning-command-hero" id="planning-dashboard">
                     <div>
                         <span class="section-kicker">Planning before tendering</span>
-                        <h1>Tender Planning</h1>
+                        <h1>Procurement Planning</h1>
                         <p>Manage APP and SPP records before Tender/RFQ, Evaluation, Award and Contract, Delivery, Inspection, Payment, and Closeout.</p>
                         <div class="inline-actions">
                             <button class="btn btn-primary" type="button">New APP Item</button>
@@ -97,7 +97,7 @@ function renderTenderPlanning() {
                         <div>
                             <span class="section-kicker">Search and filters</span>
                             <h2>Planning control center</h2>
-                            <p class="panel-note">APP and SPP stay in Tender Planning, then hand off to Tender/RFQ and Award and Contract.</p>
+                            <p class="panel-note">APP and SPP stay in Procurement Planning, then hand off to Tender/RFQ and Award and Contract.</p>
                         </div>
                         <div class="inline-actions">
                             <button class="btn btn-secondary btn-sm" type="button">Export Excel</button>

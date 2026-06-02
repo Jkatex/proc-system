@@ -115,7 +115,7 @@ class ProcureXApp {
             </button>
             <button class="app-menu-card app-menu-procurement" data-navigate="tender-planning">
                 <span class="app-menu-icon">${this.getAppMenuIcon('planning')}</span>
-                <span><strong>Tender Planning</strong><em>APP, SPP, budgets, approvals</em></span>
+                <span><strong>Procurement Planning</strong><em>APP, SPP, budgets, approvals</em></span>
             </button>
             <button class="app-menu-card app-menu-procurement" data-navigate="marketplace">
                 <span class="app-menu-icon">${this.getAppMenuIcon('procurement')}</span>
@@ -257,7 +257,15 @@ class ProcureXApp {
             'privacy-policy': 'Privacy Policy',
             'terms-and-conditions': 'Terms and Conditions',
             'contact': 'Contact ProcureX',
-            'tender-planning': 'Tender Planning',
+            'tender-planning': 'Procurement Planning',
+            'procurement-planning-details': 'Procurement Planning',
+            'procurement-planning-questions': 'Procurement Planning',
+            'procurement-planning-complaints': 'Procurement Planning',
+            'procurement-planning-monitoring': 'Procurement Planning',
+            'procurement-planning-customer': 'Procurement Planning',
+            'procurement-planning-purchase': 'Procurement Planning',
+            'procurement-planning-tender-docs': 'Procurement Planning',
+            'procurement-planning-documents': 'Procurement Planning',
             'supplier-journey': 'Procurement',
             'buyer-journey': 'Procurement',
             'procurement-guide': 'Procurement',
@@ -293,6 +301,14 @@ class ProcureXApp {
             'app-launcher': null,
             'workspace-dashboard': 'app-launcher',
             'procurement-dashboard': 'workspace-dashboard',
+            'procurement-planning-details': 'tender-planning',
+            'procurement-planning-questions': 'tender-planning',
+            'procurement-planning-complaints': 'tender-planning',
+            'procurement-planning-monitoring': 'tender-planning',
+            'procurement-planning-customer': 'tender-planning',
+            'procurement-planning-purchase': 'tender-planning',
+            'procurement-planning-tender-docs': 'tender-planning',
+            'procurement-planning-documents': 'tender-planning',
             'admin-dashboard': null,
             'admin-search': 'admin-dashboard',
             'admin-users': 'admin-dashboard',
@@ -361,6 +377,14 @@ class ProcureXApp {
             'privacy-policy': 'Privacy Policy',
             'terms-and-conditions': 'Terms and Conditions',
             'contact': 'Contact ProcureX',
+            'procurement-planning-details': 'Procurement Details',
+            'procurement-planning-questions': 'Questions and Requirements',
+            'procurement-planning-complaints': 'Complaints',
+            'procurement-planning-monitoring': 'Monitoring and Reporting',
+            'procurement-planning-customer': 'Customer Information',
+            'procurement-planning-purchase': 'Purchase Information',
+            'procurement-planning-tender-docs': 'Tender Documentation',
+            'procurement-planning-documents': 'Documents',
             'create-tender': 'Create Tender',
             'tender-publication': 'Tender Draft Detail',
             'tender-details': 'Tender Detail',
@@ -1880,6 +1904,14 @@ class ProcureXApp {
             'app-launcher',
             'workspace-dashboard',
             'tender-planning',
+            'procurement-planning-details',
+            'procurement-planning-questions',
+            'procurement-planning-complaints',
+            'procurement-planning-monitoring',
+            'procurement-planning-customer',
+            'procurement-planning-purchase',
+            'procurement-planning-tender-docs',
+            'procurement-planning-documents',
             'admin-dashboard',
             'admin-search',
             'admin-users',
@@ -1963,7 +1995,7 @@ class ProcureXApp {
     renderIAMVerification() { return this.getLoadingSpinner('identity verification'); }
     renderVerificationStatus() { return this.getLoadingSpinner('account profile'); }
     renderWorkspaceDashboard() { return this.getLoadingSpinner('dashboard'); }
-    renderTenderPlanning() { return this.getLoadingSpinner('tender planning'); }
+    renderTenderPlanning() { return this.getLoadingSpinner('procurement planning'); }
     renderAdminDashboard() { return this.getLoadingSpinner('admin dashboard'); }
     renderAdminSearch() { return this.getLoadingSpinner('admin search'); }
     renderAdminUsers() { return this.getLoadingSpinner('admin users'); }

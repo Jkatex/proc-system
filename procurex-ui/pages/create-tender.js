@@ -4815,7 +4815,7 @@ function renderCreateTender() {
     const isClosedTender = isCreateTenderClosedMethod(tenderMethod);
     const steps = [
         ['01', 'Basic Information', 'Tender location and contact'],
-        ['02', 'Tender Planning', 'Type, category, method, invitations'],
+        ['02', 'Procurement Planning', 'Type, category, method, invitations'],
         ['03', 'Tender Requirements', `${requirementSummary.title}, licenses`],
         ['04', 'Evaluation Criteria and Weights', 'Criteria, weights, pass marks'],
         ['05', 'Review Tender', 'All entries'],
@@ -4944,7 +4944,7 @@ function renderCreateTender() {
                                 <div class="panel-heading">
                                     <div>
                                         <span class="section-kicker">Step 2</span>
-                                        <h2>Tender Planning</h2>
+                                        <h2>Procurement Planning</h2>
                                     </div>
                                     <span class="badge badge-success">Method valid</span>
                                 </div>
