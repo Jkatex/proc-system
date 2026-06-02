@@ -29133,3 +29133,393 @@ body[data-page="tender-planning"] .tender-planning-content {
         justify-self: start;
     }
 }
+
+/* Refined Procurement Planning control center */
+.procurement-planning-control {
+    --planning-teal: var(--ink-button);
+    --planning-ink: var(--text-primary);
+    --planning-muted: var(--text-secondary);
+    --planning-line: #e3edf1;
+    --planning-soft: #f5f9fb;
+}
+
+.procurement-planning-control .tender-planning-content {
+    background:
+        linear-gradient(180deg, rgba(245, 249, 251, 0.96) 0%, rgba(255, 255, 255, 0.99) 300px),
+        var(--planning-soft);
+    padding-top: 18px;
+}
+
+.planning-tabs {
+    position: sticky;
+    top: var(--header-height);
+    z-index: 9;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 10px 0 12px;
+    margin-bottom: 12px;
+    background: rgba(245, 249, 251, 0.94);
+    backdrop-filter: blur(14px);
+}
+
+.planning-tabs a {
+    flex: 0 0 auto;
+    min-height: 38px;
+    padding: 9px 14px;
+    border: 1px solid var(--planning-line);
+    border-radius: 999px;
+    background: var(--card-bg);
+    color: var(--planning-muted);
+    font-size: 13px;
+    font-weight: 900;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.planning-tabs a:hover,
+.planning-tabs a.active,
+.planning-tabs a:focus-visible {
+    border-color: var(--planning-teal);
+    background: var(--planning-teal);
+    color: #ffffff;
+}
+
+.planning-dashboard-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+    gap: 18px;
+    align-items: stretch;
+    border: 1px solid rgba(0, 128, 128, 0.15);
+    border-radius: 8px;
+    background: var(--card-bg);
+    padding: 22px;
+    margin-bottom: 12px;
+    box-shadow: 0 14px 34px rgba(15, 35, 50, 0.07);
+}
+
+.planning-dashboard-header h1 {
+    color: var(--planning-ink);
+    font-size: clamp(32px, 4vw, 48px);
+    line-height: 1.04;
+    margin: 6px 0 8px;
+}
+
+.planning-dashboard-header p {
+    max-width: 800px;
+    color: var(--planning-muted);
+    margin-bottom: 16px;
+}
+
+.planning-readiness-summary {
+    display: grid;
+    align-content: center;
+    gap: 10px;
+    border: 1px solid var(--planning-line);
+    border-radius: 8px;
+    background: var(--surface-soft);
+    padding: 18px;
+}
+
+.planning-readiness-summary span {
+    color: var(--planning-muted);
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.planning-readiness-summary strong {
+    color: var(--planning-teal);
+    font-size: 46px;
+    line-height: 1;
+}
+
+.planning-readiness-summary em {
+    color: var(--planning-muted);
+    font-style: normal;
+}
+
+.planning-compact-workflow {
+    position: sticky;
+    top: calc(var(--header-height) + 60px);
+    z-index: 8;
+    display: grid;
+    grid-template-columns: repeat(8, minmax(86px, 1fr));
+    gap: 8px;
+    overflow-x: auto;
+    padding: 8px;
+    border: 1px solid var(--planning-line);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.94);
+    margin-bottom: 14px;
+    box-shadow: 0 8px 20px rgba(15, 35, 50, 0.05);
+}
+
+.planning-compact-workflow span {
+    display: grid;
+    place-items: center;
+    min-height: 34px;
+    border: 1px solid var(--planning-line);
+    border-radius: 8px;
+    background: var(--card-bg);
+    color: var(--planning-muted);
+    font-size: 12px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.planning-compact-workflow .complete {
+    border-color: rgba(22, 131, 74, 0.22);
+    background: #eefaf3;
+    color: var(--planning-green);
+}
+
+.planning-compact-workflow .active {
+    border-color: var(--planning-teal);
+    background: var(--planning-teal);
+    color: #ffffff;
+}
+
+.planning-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.planning-kpi-card {
+    display: grid;
+    gap: 7px;
+    min-height: 112px;
+    border: 1px solid var(--planning-line);
+    border-radius: 8px;
+    background: var(--card-bg);
+    padding: 14px;
+    box-shadow: 0 8px 22px rgba(15, 35, 50, 0.045);
+}
+
+.planning-kpi-card span,
+.planning-kpi-card em {
+    color: var(--planning-muted);
+    font-size: 12px;
+    font-style: normal;
+    line-height: 1.25;
+}
+
+.planning-kpi-card strong {
+    color: var(--planning-ink);
+    font-size: 28px;
+    line-height: 1;
+}
+
+.planning-kpi-card.success strong {
+    color: var(--planning-green);
+}
+
+.planning-kpi-card.warning strong {
+    color: var(--planning-amber);
+}
+
+.planning-control-panel,
+.planning-detail-layout,
+.procurement-planning-control .planning-two-col,
+#monitoring-reports {
+    margin-bottom: 14px;
+}
+
+.procurement-planning-control .procurement-panel {
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(15, 35, 50, 0.055);
+}
+
+.procurement-planning-control .panel-heading {
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.procurement-planning-control .panel-heading h2 {
+    font-size: clamp(22px, 2.4vw, 30px);
+    line-height: 1.12;
+}
+
+.procurement-planning-control .panel-note,
+.procurement-planning-control .panel-heading p {
+    max-width: 760px;
+    color: var(--planning-muted);
+    font-size: 14px;
+}
+
+.planning-records-table {
+    overflow-x: visible;
+}
+
+.planning-records-table table {
+    min-width: 0;
+    width: 100%;
+    table-layout: auto;
+}
+
+.planning-records-table th,
+.planning-records-table td {
+    vertical-align: top;
+}
+
+.planning-readiness-pill {
+    display: inline-grid;
+    place-items: center;
+    min-width: 48px;
+    min-height: 28px;
+    border-radius: 999px;
+    background: rgba(0, 128, 128, 0.1);
+    color: var(--planning-teal);
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.planning-table-actions,
+.planning-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.planning-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.planning-detail-grid div {
+    display: grid;
+    gap: 5px;
+    border: 1px solid var(--planning-line);
+    border-radius: 8px;
+    background: var(--surface-soft);
+    padding: 12px;
+}
+
+.planning-detail-grid span {
+    color: var(--planning-muted);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.planning-detail-grid strong {
+    color: var(--planning-ink);
+    font-size: 14px;
+}
+
+.planning-spp-cards,
+.planning-card-list {
+    display: grid;
+    gap: 10px;
+}
+
+.planning-spp-cards div,
+.planning-card-list div {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto auto;
+    gap: 10px;
+    align-items: center;
+    border: 1px solid var(--planning-line);
+    border-radius: 8px;
+    background: var(--surface-soft);
+    padding: 12px;
+    overflow: hidden;
+}
+
+.planning-spp-cards strong,
+.planning-card-list strong {
+    color: var(--planning-ink);
+}
+
+.planning-spp-cards span,
+.planning-card-list span {
+    color: var(--planning-muted);
+    font-size: 13px;
+}
+
+.planning-spp-cards i {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 3px;
+    border-radius: 0 999px 999px 0;
+    background: var(--planning-teal);
+}
+
+.planning-monitoring-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+@media (max-width: 1240px) {
+    .planning-kpi-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .planning-records-table table,
+    .planning-records-table thead,
+    .planning-records-table tbody,
+    .planning-records-table tr,
+    .planning-records-table th,
+    .planning-records-table td {
+        display: block;
+    }
+
+    .planning-records-table thead {
+        display: none;
+    }
+
+    .planning-records-table tr {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        border: 1px solid var(--planning-line);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 10px;
+        background: var(--card-bg);
+    }
+
+    .planning-records-table td {
+        border: 0;
+        padding: 0;
+    }
+}
+
+@media (max-width: 900px) {
+    .planning-dashboard-header,
+    .planning-detail-grid,
+    .planning-monitoring-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .planning-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .planning-spp-cards div,
+    .planning-card-list div {
+        grid-template-columns: 1fr;
+    }
+
+    .planning-compact-workflow {
+        top: calc(var(--header-height) + 58px);
+        grid-template-columns: repeat(8, 96px);
+    }
+}
+
+@media (max-width: 620px) {
+    .planning-dashboard-header {
+        padding: 16px;
+    }
+
+    .planning-kpi-grid,
+    .planning-records-table tr {
+        grid-template-columns: 1fr;
+    }
+}
