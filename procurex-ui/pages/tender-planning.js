@@ -31,6 +31,26 @@ function renderTenderPlanning() {
         return 'badge-info';
     };
 
+    const renderViewAction = (editLabel = 'Edit') => `
+        <div class="planning-view-action">
+            <button class="btn btn-secondary btn-sm" type="button">View</button>
+            <div class="planning-view-menu">
+                <button class="btn btn-secondary btn-sm" type="button">View details</button>
+                <button class="btn btn-secondary btn-sm" type="button">${editLabel}</button>
+            </div>
+        </div>
+    `;
+
+    const renderRecordActions = (actions) => {
+        const nextActions = actions.filter(action => !['View', 'Edit'].includes(action));
+        return `
+            <div class="planning-table-actions">
+                ${renderViewAction('Edit APP')}
+                ${nextActions.map(action => `<button class="btn ${action.includes('Create') || action.includes('Submit') ? 'btn-primary' : 'btn-secondary'} btn-sm" type="button">${action}</button>`).join('')}
+            </div>
+        `;
+    };
+
     return `
         <div class="main-layout tender-planning-page procurement-planning-control">
             <main class="main-content tender-planning-content">
@@ -111,7 +131,7 @@ function renderTenderPlanning() {
                                         <td>${method}</td>
                                         <td><span class="badge ${badgeClass(status)}">${status}</span></td>
                                         <td><span class="planning-readiness-pill">${readiness}</span></td>
-                                        <td><div class="planning-table-actions">${actions.map(action => `<button class="btn ${action.includes('Create') || action.includes('Submit') ? 'btn-primary' : 'btn-secondary'} btn-sm" type="button">${action}</button>`).join('')}</div></td>
+                                        <td>${renderRecordActions(actions)}</td>
                                     </tr>
                                 `).join('')}
                             </tbody>
@@ -135,8 +155,7 @@ function renderTenderPlanning() {
                         </div>
                         <div class="planning-card-actions">
                             <button class="btn btn-primary btn-sm" type="button">Create SPP</button>
-                            <button class="btn btn-secondary btn-sm" type="button">Edit APP</button>
-                            <button class="btn btn-secondary btn-sm" type="button">View details</button>
+                            ${renderViewAction('Edit APP')}
                         </div>
                     </article>
 

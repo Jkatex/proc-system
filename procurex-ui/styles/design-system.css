@@ -29356,12 +29356,59 @@ body[data-page="tender-planning"] .tender-planning-content {
 .planning-records-table table {
     min-width: 0;
     width: 100%;
-    table-layout: auto;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.planning-records-table th:nth-child(1),
+.planning-records-table td:nth-child(1) {
+    width: 13%;
+}
+
+.planning-records-table th:nth-child(2),
+.planning-records-table td:nth-child(2) {
+    width: 21%;
+}
+
+.planning-records-table th:nth-child(3),
+.planning-records-table td:nth-child(3) {
+    width: 13%;
+}
+
+.planning-records-table th:nth-child(4),
+.planning-records-table td:nth-child(4),
+.planning-records-table th:nth-child(5),
+.planning-records-table td:nth-child(5),
+.planning-records-table th:nth-child(6),
+.planning-records-table td:nth-child(6),
+.planning-records-table th:nth-child(7),
+.planning-records-table td:nth-child(7) {
+    width: 10%;
+}
+
+.planning-records-table th:nth-child(8),
+.planning-records-table td:nth-child(8) {
+    width: 23%;
 }
 
 .planning-records-table th,
 .planning-records-table td {
-    vertical-align: top;
+    vertical-align: middle;
+}
+
+.planning-records-table th {
+    color: var(--planning-muted);
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.planning-records-table td {
+    color: var(--planning-ink);
+}
+
+.planning-records-table td:nth-child(2) {
+    font-weight: 700;
 }
 
 .planning-readiness-pill {
@@ -29381,6 +29428,42 @@ body[data-page="tender-planning"] .tender-planning-content {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+    align-items: center;
+}
+
+.planning-table-actions .btn,
+.planning-card-actions .btn {
+    min-height: 34px;
+}
+
+.planning-view-action {
+    position: relative;
+    display: inline-flex;
+}
+
+.planning-view-menu {
+    position: absolute;
+    left: 0;
+    top: calc(100% + 6px);
+    z-index: 20;
+    display: none;
+    min-width: 142px;
+    gap: 6px;
+    border: 1px solid var(--planning-line);
+    border-radius: 8px;
+    background: var(--card-bg);
+    padding: 8px;
+    box-shadow: 0 14px 30px rgba(15, 35, 50, 0.13);
+}
+
+.planning-view-action:hover .planning-view-menu,
+.planning-view-action:focus-within .planning-view-menu {
+    display: grid;
+}
+
+.planning-view-menu .btn {
+    width: 100%;
+    justify-content: center;
 }
 
 .planning-detail-grid {
@@ -29486,8 +29569,37 @@ body[data-page="tender-planning"] .tender-planning-content {
     }
 
     .planning-records-table td {
+        display: grid;
+        gap: 4px;
         border: 0;
         padding: 0;
+    }
+
+    .planning-records-table td::before {
+        color: var(--planning-muted);
+        font-size: 11px;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .planning-records-table td:nth-child(1)::before { content: "APP Code"; }
+    .planning-records-table td:nth-child(2)::before { content: "Item"; }
+    .planning-records-table td:nth-child(3)::before { content: "Department"; }
+    .planning-records-table td:nth-child(4)::before { content: "Budget"; }
+    .planning-records-table td:nth-child(5)::before { content: "Method"; }
+    .planning-records-table td:nth-child(6)::before { content: "Status"; }
+    .planning-records-table td:nth-child(7)::before { content: "Readiness"; }
+    .planning-records-table td:nth-child(8)::before { content: "Action"; }
+
+    .planning-records-table td:nth-child(8) {
+        grid-column: 1 / -1;
+        padding-top: 6px;
+        border-top: 1px solid var(--planning-line);
+    }
+
+    .planning-view-menu {
+        left: auto;
+        right: 0;
     }
 }
 
