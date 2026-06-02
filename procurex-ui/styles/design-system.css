@@ -29846,3 +29846,241 @@ body[data-page="tender-planning"] .tender-planning-content {
         grid-template-columns: 1fr;
     }
 }
+
+/* Annual Procurement Plan form control center */
+.app-planning-control .tender-planning-content {
+    width: min(1320px, calc(100% - 32px));
+    margin: 0 auto;
+}
+
+.app-planning-hero {
+    margin-top: 8px;
+}
+
+.app-planning-kpis {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.app-planning-form {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.app-form-section,
+.app-actions-section {
+    scroll-margin-top: 132px;
+}
+
+.app-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.planning-field {
+    display: grid;
+    gap: 7px;
+    min-width: 0;
+    color: var(--planning-muted);
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.planning-field span {
+    color: var(--planning-muted);
+}
+
+.planning-field-wide {
+    grid-column: 1 / -1;
+}
+
+.planning-field .form-input {
+    min-width: 0;
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.planning-field textarea.form-input {
+    min-height: 118px;
+}
+
+.app-date-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.app-upload-panel {
+    margin-bottom: 14px;
+}
+
+.app-upload-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.planning-upload-tile {
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+    min-height: 152px;
+    border: 1px solid var(--planning-line);
+    border-radius: 8px;
+    background: var(--surface-soft);
+    padding: 14px;
+}
+
+.planning-upload-tile strong,
+.planning-upload-tile span {
+    display: block;
+    min-width: 0;
+}
+
+.planning-upload-tile strong {
+    color: var(--planning-ink);
+    line-height: 1.25;
+}
+
+.planning-upload-tile div > span {
+    margin-top: 5px;
+    color: var(--planning-muted);
+    font-size: 12px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.planning-upload-tile .badge {
+    width: fit-content;
+}
+
+.planning-upload-tile input[type="file"] {
+    width: 100%;
+    min-width: 0;
+    color: var(--planning-muted);
+    font-size: 12px;
+}
+
+.app-action-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.app-action-bar .btn {
+    min-height: 42px;
+}
+
+.app-form-status {
+    min-height: 22px;
+    margin-top: 10px;
+    color: var(--planning-muted);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.app-form-status.success {
+    color: var(--success-green);
+}
+
+.app-record-filter {
+    grid-template-columns: minmax(240px, 2fr) repeat(2, minmax(150px, 1fr)) auto;
+}
+
+.app-records-table table {
+    table-layout: fixed;
+}
+
+.app-records-table th:nth-child(1),
+.app-records-table td:nth-child(1) {
+    width: 12%;
+}
+
+.app-records-table th:nth-child(2),
+.app-records-table td:nth-child(2) {
+    width: 20%;
+}
+
+.app-records-table th:nth-child(3),
+.app-records-table td:nth-child(3),
+.app-records-table th:nth-child(4),
+.app-records-table td:nth-child(4) {
+    width: 12%;
+}
+
+.app-records-table th:nth-child(5),
+.app-records-table td:nth-child(5),
+.app-records-table th:nth-child(6),
+.app-records-table td:nth-child(6),
+.app-records-table th:nth-child(7),
+.app-records-table td:nth-child(7),
+.app-records-table th:nth-child(8),
+.app-records-table td:nth-child(8) {
+    width: 10%;
+}
+
+.app-records-table th:nth-child(9),
+.app-records-table td:nth-child(9) {
+    width: 8%;
+}
+
+@media (max-width: 1240px) {
+    .app-planning-kpis,
+    .app-upload-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .app-records-table td:nth-child(1)::before { content: "APP Code"; }
+    .app-records-table td:nth-child(2)::before { content: "Item Description"; }
+    .app-records-table td:nth-child(3)::before { content: "Department"; }
+    .app-records-table td:nth-child(4)::before { content: "Financial Year"; }
+    .app-records-table td:nth-child(5)::before { content: "Budget"; }
+    .app-records-table td:nth-child(6)::before { content: "Procurement Method"; }
+    .app-records-table td:nth-child(7)::before { content: "Status"; }
+    .app-records-table td:nth-child(8)::before { content: "Readiness"; }
+    .app-records-table td:nth-child(9)::before { content: "Action"; }
+
+    .app-records-table td:nth-child(8) {
+        grid-column: auto;
+        padding-top: 0;
+        border-top: 0;
+    }
+
+    .app-records-table td:nth-child(9) {
+        grid-column: 1 / -1;
+        padding-top: 6px;
+        border-top: 1px solid var(--planning-line);
+    }
+}
+
+@media (max-width: 900px) {
+    .app-planning-control .tender-planning-content {
+        width: min(100% - 24px, 1320px);
+    }
+
+    .app-planning-kpis,
+    .app-date-grid,
+    .app-upload-grid,
+    .app-record-filter {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .app-form-grid,
+    .app-date-grid,
+    .app-upload-grid,
+    .app-planning-kpis,
+    .app-record-filter {
+        grid-template-columns: 1fr;
+    }
+
+    .planning-field-wide {
+        grid-column: auto;
+    }
+
+    .app-action-bar .btn,
+    .app-record-filter .btn {
+        width: 100%;
+    }
+}

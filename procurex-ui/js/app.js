@@ -1251,9 +1251,22 @@ class ProcureXApp {
             case 'contact-support':
                 this.handleContactSupport(form);
                 break;
+            case 'save-app':
+                this.handlePlanningAppSave(form);
+                break;
             default:
                 console.log('Unknown action:', action);
         }
+    }
+
+    handlePlanningAppSave(form) {
+        const status = form.querySelector('[data-form-status]');
+        if (!status) return;
+
+        status.textContent = 'APP item saved in this prototype. The record is visible in the APP to SPP readiness table below.';
+        status.classList.add('success');
+
+        document.getElementById('planning-records')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     handleRegisterStep1(form) {
