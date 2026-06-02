@@ -1,103 +1,91 @@
 function renderTenderPlanning() {
+    const kpis = [
+        ['Total APP Items', '42', 'Captured demand records', 'info'],
+        ['Approved APP Items', '6', 'Ready to create SPP', 'success'],
+        ['Active SPP Schedules', '18', 'Milestones in progress', 'info'],
+        ['Budget Issues', '9', 'Finance checks pending', 'warning'],
+        ['Pending Approvals', '11', 'Board and HOP actions', 'warning'],
+        ['Missing Documents', '5', 'Evidence needs review', 'warning'],
+        ['Overall Readiness %', '73%', 'Tender handoff progress', 'success']
+    ];
+
+    const appRows = [
+        ['APP-2026-014', 'Hospital theatre equipment', 'Health Services', 'TZS 480M', 'NCT', 'Approved', '88%', ['View', 'Edit', 'Create SPP']],
+        ['APP-2026-021', 'Fleet maintenance framework', 'Operations', 'TZS 125M', 'Framework', 'Budget Review', '54%', ['View', 'Edit']],
+        ['APP-2026-027', 'Ward renovation works', 'Infrastructure', 'TZS 760M', 'NCT', 'SPP Created', '79%', ['View', 'Submit for Approval']],
+        ['APP-2026-032', 'ICT helpdesk support', 'ICT', 'TZS 94M', 'RFQ', 'Draft', '36%', ['View', 'Edit']]
+    ];
+
+    const sppMilestones = [
+        ['Specifications/TOR', 'Jun 2', 'Amina Yusuf', 'Complete', '100%'],
+        ['Budget confirmation', 'Jun 3', 'Fatma M.', 'Due today', '68%'],
+        ['Approval memo', 'Jun 5', 'Head of Procurement', 'Queued', '42%'],
+        ['Tender/RFQ preparation', 'Jun 7', 'Procurement officer', 'Planned', '18%']
+    ];
+
+    const badgeClass = (status) => {
+        const normalized = status.toLowerCase();
+        if (normalized.includes('approved') || normalized.includes('created') || normalized.includes('ready') || normalized.includes('complete')) return 'badge-success';
+        if (normalized.includes('review') || normalized.includes('pending') || normalized.includes('due') || normalized.includes('queued')) return 'badge-warning';
+        if (normalized.includes('returned')) return 'badge-error';
+        return 'badge-info';
+    };
+
     return `
-        <div class="main-layout tender-planning-page">
+        <div class="main-layout tender-planning-page procurement-planning-control">
             <main class="main-content tender-planning-content">
-                <nav class="planning-top-nav" aria-label="Tender planning sections">
-                    <a href="#planning-dashboard" class="planning-nav-card active"><span>01</span><strong>Procurement details</strong><em>Overview and readiness</em></a>
-                    <a href="#spp-plan" class="planning-nav-card"><span>02</span><strong>Questions and requirements</strong><em>SPP schedule and permissions</em></a>
-                    <a href="#budget-confirmation" class="planning-nav-card"><span>03</span><strong>Complaints</strong><em>Risks, alerts, and actions</em></a>
-                    <a href="#planning-reports" class="planning-nav-card"><span>04</span><strong>Monitoring and reporting</strong><em>APP and SPP exports</em></a>
-                    <a href="#app-plan" class="planning-nav-card"><span>05</span><strong>Customer information</strong><em>APP item and department data</em></a>
-                    <a href="#budget-confirmation" class="planning-nav-card"><span>06</span><strong>Purchase information</strong><em>Budget and funding checks</em></a>
-                    <a href="#planning-documents" class="planning-nav-card"><span>07</span><strong>Tender documentation</strong><em>Evidence and approvals</em></a>
-                    <a href="#planning-documents" class="planning-nav-card"><span>08</span><strong>Documents</strong><em>Register and review status</em></a>
+                <nav class="planning-tabs" aria-label="Tender planning workspace sections">
+                    <a href="#" data-navigate="procurement-planning-dashboard" class="active">Dashboard</a>
+                    <a href="#" data-navigate="procurement-planning-app-items">APP Items</a>
+                    <a href="#" data-navigate="procurement-planning-spp-schedule">SPP Schedule</a>
+                    <a href="#" data-navigate="procurement-planning-budget-funding">Budget &amp; Funding</a>
+                    <a href="#" data-navigate="procurement-planning-approvals">Approvals</a>
+                    <a href="#" data-navigate="procurement-planning-documents-evidence">Documents &amp; Evidence</a>
+                    <a href="#" data-navigate="procurement-planning-risks-alerts">Risks &amp; Alerts</a>
+                    <a href="#" data-navigate="procurement-planning-reports">Reports</a>
                 </nav>
 
-                <section class="procurement-hero tender-planning-hero planning-command-hero" id="planning-dashboard">
+                <section class="planning-dashboard-header" id="planning-dashboard">
                     <div>
-                        <span class="section-kicker">Planning before tendering</span>
+                        <span class="section-kicker">Procurement Planning</span>
                         <h1>Tender Planning</h1>
-                        <p>Manage APP and SPP records before Tender/RFQ, Evaluation, Award and Contract, Delivery, Inspection, Payment, and Closeout.</p>
+                        <p>Plan APP demand, convert approved items into SPP schedules, confirm funding, collect approvals, and prepare clean Tender/RFQ handoff.</p>
                         <div class="inline-actions">
                             <button class="btn btn-primary" type="button">New APP Item</button>
-                            <button class="btn btn-secondary" type="button">Upload Plan Documents</button>
+                            <button class="btn btn-secondary" type="button">Upload Documents</button>
+                            <button class="btn btn-secondary" type="button">Export Report</button>
                         </div>
                     </div>
-                    <div class="planning-command-panel">
-                        <div class="planning-command-panel-head">
-                            <span>Portfolio readiness</span>
-                            <strong>73%</strong>
-                        </div>
+                    <article class="planning-readiness-summary">
+                        <span>Readiness</span>
+                        <strong>73%</strong>
                         <div class="planning-readiness-meter" aria-hidden="true"><i style="width: 73%"></i></div>
-                        <div class="planning-command-list">
-                            <div><strong>42</strong><span>APP items captured</span></div>
-                            <div><strong>18</strong><span>SPP schedules active</span></div>
-                            <div><strong>7</strong><span>Activities need attention</span></div>
-                        </div>
-                    </div>
+                        <em>6 APP items ready for Tender/RFQ</em>
+                    </article>
                 </section>
 
-                <div class="award-info-banner tender-planning-flow">
-                    <strong>Workflow</strong>
-                    <span>APP &rarr; SPP &rarr; Budget Confirmation &rarr; Approval &rarr; Tender/RFQ &rarr; Evaluation &rarr; Award and Contract &rarr; Delivery &rarr; Inspection &rarr; Payment &rarr; Closeout</span>
+                <div class="planning-compact-workflow" aria-label="Tender planning workflow">
+                    ${['APP', 'SPP', 'Budget', 'Approval', 'Tender/RFQ', 'Evaluation', 'Award', 'Contract'].map((step, index) => `
+                        <span class="${index < 2 ? 'complete' : index === 2 ? 'active' : ''}">${step}</span>
+                    `).join('')}
                 </div>
 
-                <div class="planning-workflow-stepper" aria-label="Tender planning workflow">
-                    <span class="complete">APP</span>
-                    <span class="complete">SPP</span>
-                    <span class="active">Budget</span>
-                    <span>Approval</span>
-                    <span>Tender/RFQ</span>
-                    <span>Evaluation</span>
-                    <span>Award</span>
-                    <span>Delivery</span>
-                    <span>Inspection</span>
-                    <span>Payment</span>
-                    <span>Closeout</span>
-                </div>
-
-                <section class="awarding-summary-grid">
-                    <article class="awarding-summary-card"><span class="summary-trend">!</span><strong>9</strong><span>Budget checks</span><em>Finance confirmations awaiting action</em></article>
-                    <article class="awarding-summary-card"><span class="summary-trend">+</span><strong>6</strong><span>Approved APP</span><em>Items ready to create SPP</em></article>
-                    <article class="awarding-summary-card"><span class="summary-trend">%</span><strong>73%</strong><span>Average progress</span><em>SPP activity completion</em></article>
-                    <article class="awarding-summary-card"><span class="summary-trend">#</span><strong>24</strong><span>Documents</span><em>Plans, specs, budget notes, approvals</em></article>
+                <section class="planning-kpi-grid" aria-label="Planning KPIs">
+                    ${kpis.map(([label, value, note, tone]) => `
+                        <article class="planning-kpi-card ${tone}">
+                            <span>${label}</span>
+                            <strong>${value}</strong>
+                            <em>${note}</em>
+                        </article>
+                    `).join('')}
                 </section>
 
-                <section class="planning-executive-grid">
-                    <article class="planning-premium-card planning-readiness-card">
-                        <div>
-                            <span class="section-kicker">Executive snapshot</span>
-                            <h3>Planning readiness</h3>
-                            <p>Approved demand, confirmed budget, and SPP activities are tracking toward tender handoff.</p>
-                        </div>
-                        <div class="planning-ring" aria-hidden="true"><strong>73%</strong><span>ready</span></div>
-                    </article>
-                    <article class="planning-premium-card">
-                        <span class="section-kicker">Next milestone</span>
-                        <h3>Tender/RFQ preparation</h3>
-                        <p>6 approved APP items can be converted into SPP schedules this week.</p>
-                        <div class="planning-card-foot"><span class="badge badge-success">On track</span><strong>Jun 7</strong></div>
-                    </article>
-                    <article class="planning-premium-card">
-                        <span class="section-kicker">Risk watch</span>
-                        <h3>Budget shortfalls</h3>
-                        <p>Fleet maintenance and two works packages need finance clearance before approval.</p>
-                        <div class="planning-card-foot"><span class="badge badge-warning">3 risks</span><strong>TZS 94M</strong></div>
-                    </article>
-                    <article class="planning-premium-card">
-                        <span class="section-kicker">Handoff quality</span>
-                        <h3>Document completeness</h3>
-                        <p>Needs assessment, specifications, approval memo, and budget note coverage.</p>
-                        <div class="planning-card-foot"><span class="badge badge-info">24 files</span><strong>88%</strong></div>
-                    </article>
-                </section>
-
-                <section class="procurement-panel evaluation-panel">
+                <section class="procurement-panel evaluation-panel planning-control-panel">
                     <div class="panel-heading">
                         <div>
                             <span class="section-kicker">Search and filters</span>
-                            <h2>Planning control center</h2>
-                            <p class="panel-note">APP and SPP stay in Tender Planning, then hand off to Tender/RFQ and Award and Contract.</p>
+                            <h2>APP/SPP records</h2>
+                            <p class="panel-note">Find planning records by item, department, method, owner, status, or readiness.</p>
                         </div>
                         <div class="inline-actions">
                             <button class="btn btn-secondary btn-sm" type="button">Export Excel</button>
@@ -105,82 +93,103 @@ function renderTenderPlanning() {
                         </div>
                     </div>
                     <div class="planning-filter-bar">
-                        <label>Search <input class="form-input" placeholder="APP item, SPP code, department"></label>
-                        <label>Department <select class="form-input"><option>All departments</option><option>ICT</option><option>Health Services</option><option>Operations</option></select></label>
-                        <label>Status <select class="form-input"><option>All statuses</option><option>Draft</option><option>Budget confirmed</option><option>Approved</option><option>Delayed</option></select></label>
+                        <label>Search <input class="form-input" placeholder="APP code, item, SPP code"></label>
+                        <label>Department <select class="form-input"><option>All departments</option><option>Health Services</option><option>Operations</option><option>Infrastructure</option><option>ICT</option></select></label>
+                        <label>Status <select class="form-input"><option>All statuses</option><option>Draft</option><option>Budget Review</option><option>Approved</option><option>SPP Created</option><option>Returned</option><option>Ready for Tender</option></select></label>
                         <button class="btn btn-secondary btn-sm" type="button">Apply filters</button>
                     </div>
-                </section>
-
-                <section class="procurement-panel evaluation-panel" id="app-plan">
-                    <div class="panel-heading"><div><span class="section-kicker">Annual Procurement Plan</span><h2>APP item details</h2></div><span class="badge badge-info">Draft APP</span></div>
-                    <form class="planning-form-grid">
-                        <label>Financial year <input class="form-input" value="2026/2027"></label>
-                        <label>Department <input class="form-input" value="Health Services"></label>
-                        <label>Procurement item <input class="form-input" value="Hospital theatre equipment"></label>
-                        <label>Category <select class="form-input"><option>Goods</option><option>Works</option><option>Services</option><option>Consultancy</option></select></label>
-                        <label>Estimated budget <input class="form-input" value="TZS 480,000,000"></label>
-                        <label>Funding source <input class="form-input" value="Development budget"></label>
-                        <label>Procurement method <select class="form-input"><option>National competitive tendering</option><option>RFQ</option><option>Framework agreement</option></select></label>
-                        <label>Planned dates <input class="form-input" value="Jul 2026 - Nov 2026"></label>
-                        <label>Responsible officer <input class="form-input" value="Amina Yusuf"></label>
-                        <label>Priority <select class="form-input"><option>High</option><option>Medium</option><option>Low</option></select></label>
-                        <label>Status <select class="form-input"><option>Draft</option><option>Submitted</option><option>Approved</option><option>Returned</option></select></label>
-                        <div class="inline-actions"><button class="btn btn-primary" type="button">Save APP Item</button><button class="btn btn-secondary" type="button">Submit for Review</button></div>
-                    </form>
-                    <div class="data-table planning-table">
+                    <div class="data-table planning-records-table">
                         <table>
-                            <thead><tr><th>APP item</th><th>FY</th><th>Department</th><th>Budget</th><th>Method</th><th>Status</th><th>Action</th></tr></thead>
+                            <thead><tr><th>APP Code</th><th>Item</th><th>Department</th><th>Budget</th><th>Method</th><th>Status</th><th>Readiness</th><th>Action</th></tr></thead>
                             <tbody>
-                                <tr><td><strong>Hospital theatre equipment</strong><span>APP-2026-014</span></td><td>2026/2027</td><td>Health Services</td><td>TZS 480,000,000</td><td>NCT</td><td><span class="badge badge-success">Approved</span></td><td><button class="btn btn-primary btn-sm" type="button">Create SPP</button></td></tr>
-                                <tr><td><strong>Fleet maintenance framework</strong><span>APP-2026-021</span></td><td>2026/2027</td><td>Operations</td><td>TZS 125,000,000</td><td>Framework</td><td><span class="badge badge-warning">Budget review</span></td><td><button class="btn btn-secondary btn-sm" type="button">Review</button></td></tr>
-                                <tr><td><strong>Ward renovation works</strong><span>APP-2026-027</span></td><td>2026/2027</td><td>Infrastructure</td><td>TZS 760,000,000</td><td>NCT</td><td><span class="badge badge-success">Approved</span></td><td><button class="btn btn-primary btn-sm" type="button">Create SPP</button></td></tr>
+                                ${appRows.map(([code, item, department, budget, method, status, readiness, actions]) => `
+                                    <tr>
+                                        <td><strong>${code}</strong></td>
+                                        <td>${item}</td>
+                                        <td>${department}</td>
+                                        <td>${budget}</td>
+                                        <td>${method}</td>
+                                        <td><span class="badge ${badgeClass(status)}">${status}</span></td>
+                                        <td><span class="planning-readiness-pill">${readiness}</span></td>
+                                        <td><div class="planning-table-actions">${actions.map(action => `<button class="btn ${action.includes('Create') || action.includes('Submit') ? 'btn-primary' : 'btn-secondary'} btn-sm" type="button">${action}</button>`).join('')}</div></td>
+                                    </tr>
+                                `).join('')}
                             </tbody>
                         </table>
                     </div>
                 </section>
 
-                <section class="planning-two-col" id="spp-plan">
-                    <article class="procurement-panel evaluation-panel">
-                        <div class="panel-heading"><div><span class="section-kicker">Specific Procurement Plan</span><h2>SPP activity schedule</h2></div><span class="badge badge-info">SPP-2026-006</span></div>
-                        <div class="planning-timeline-list">
-                            ${['Specifications/TOR', 'Budget confirmation', 'Tender/RFQ preparation', 'Supplier invitation/publication', 'Bid submission', 'Evaluation', 'Award recommendation', 'Contract preparation', 'Delivery', 'Inspection', 'Payment', 'Closeout'].map((step, index) => `
-                                <div><strong>${step}</strong><span>${index < 2 ? 'In progress' : 'Planned activity'}</span><em class="badge ${index === 0 ? 'badge-success' : index === 1 ? 'badge-warning' : 'badge-info'}">${index === 0 ? 'Complete' : index === 1 ? 'Due today' : 'Planned'}</em></div>
-                            `).join('')}
+                <section class="planning-two-col planning-detail-layout">
+                    <article class="procurement-panel evaluation-panel" id="app-items">
+                        <div class="panel-heading">
+                            <div><span class="section-kicker">APP Planning</span><h2>Selected APP item details</h2></div>
+                            <span class="badge badge-success">Approved</span>
+                        </div>
+                        <div class="planning-detail-grid">
+                            <div><span>APP Code</span><strong>APP-2026-014</strong></div>
+                            <div><span>Department</span><strong>Health Services</strong></div>
+                            <div><span>Budget</span><strong>TZS 480,000,000</strong></div>
+                            <div><span>Method</span><strong>NCT</strong></div>
+                            <div><span>Priority</span><strong>High</strong></div>
+                            <div><span>Officer</span><strong>Amina Yusuf</strong></div>
+                        </div>
+                        <div class="planning-card-actions">
+                            <button class="btn btn-primary btn-sm" type="button">Create SPP</button>
+                            <button class="btn btn-secondary btn-sm" type="button">Edit APP</button>
+                            <button class="btn btn-secondary btn-sm" type="button">View details</button>
                         </div>
                     </article>
-                    <article class="procurement-panel evaluation-panel">
-                        <div class="panel-heading"><div><span class="section-kicker">Role-based access</span><h2>Planning permissions</h2></div></div>
-                        <div class="data-table planning-table">
-                            <table>
-                                <thead><tr><th>Role</th><th>Access</th><th>Approval rights</th></tr></thead>
-                                <tbody>
-                                    <tr><td>Requesting department</td><td>Create needs and specs</td><td>Submit requisition</td></tr>
-                                    <tr><td>Procurement officer</td><td>Manage APP/SPP and handoff</td><td>Recommend plan</td></tr>
-                                    <tr><td>Finance officer</td><td>Budget checks</td><td>Confirm budget</td></tr>
-                                    <tr><td>Tender board/approver</td><td>Review plans</td><td>Approve or return</td></tr>
-                                    <tr><td>Auditor</td><td>Read-only audit trail</td><td>None</td></tr>
-                                </tbody>
-                            </table>
+
+                    <article class="procurement-panel evaluation-panel" id="spp-schedule">
+                        <div class="panel-heading">
+                            <div><span class="section-kicker">SPP Planning</span><h2>Activity schedule</h2></div>
+                            <span class="badge badge-info">SPP-2026-006</span>
+                        </div>
+                        <div class="planning-spp-cards">
+                            ${sppMilestones.map(([milestone, due, owner, status, progress]) => `
+                                <div>
+                                    <strong>${milestone}</strong>
+                                    <span>${owner} / ${due}</span>
+                                    <em class="badge ${badgeClass(status)}">${status}</em>
+                                    <i style="width: ${progress}"></i>
+                                </div>
+                            `).join('')}
                         </div>
                     </article>
                 </section>
 
-                <section class="planning-two-col" id="budget-confirmation">
-                    <article class="procurement-panel evaluation-panel">
-                        <div class="panel-heading"><div><span class="section-kicker">Budget Confirmation</span><h2>Finance checks</h2></div><span class="badge badge-warning">9 pending</span></div>
-                        <div class="data-table planning-table">
-                            <table>
-                                <thead><tr><th>Plan item</th><th>Funding source</th><th>Budget</th><th>Status</th><th>Action</th></tr></thead>
-                                <tbody>
-                                    <tr><td>Hospital theatre equipment</td><td>Development budget</td><td>TZS 480,000,000</td><td><span class="badge badge-success">Confirmed</span></td><td><button class="btn btn-secondary btn-sm">View</button></td></tr>
-                                    <tr><td>Fleet maintenance framework</td><td>Operational budget</td><td>TZS 125,000,000</td><td><span class="badge badge-warning">Shortfall</span></td><td><button class="btn btn-primary btn-sm">Resolve</button></td></tr>
-                                </tbody>
-                            </table>
+                <section class="planning-two-col">
+                    <article class="procurement-panel evaluation-panel" id="budget-funding">
+                        <div class="panel-heading"><div><span class="section-kicker">Budget & Funding</span><h2>Finance checks</h2></div><span class="badge badge-warning">9 pending</span></div>
+                        <div class="planning-card-list">
+                            <div><strong>Hospital theatre equipment</strong><span>Development budget / TZS 480M</span><em class="badge badge-success">Confirmed</em><button class="btn btn-secondary btn-sm" type="button">View details</button></div>
+                            <div><strong>Fleet maintenance framework</strong><span>Operational budget / TZS 125M</span><em class="badge badge-warning">Shortfall</em><button class="btn btn-primary btn-sm" type="button">Resolve</button></div>
+                            <div><strong>Ward renovation works</strong><span>Capital projects / TZS 760M</span><em class="badge badge-info">Pending</em><button class="btn btn-secondary btn-sm" type="button">View details</button></div>
                         </div>
                     </article>
-                    <article class="procurement-panel evaluation-panel">
-                        <div class="panel-heading"><div><span class="section-kicker">Reminders and alerts</span><h2>Delayed activities</h2></div></div>
+
+                    <article class="procurement-panel evaluation-panel" id="approvals">
+                        <div class="panel-heading"><div><span class="section-kicker">Approvals</span><h2>Approval queue</h2></div><span class="badge badge-warning">11 pending</span></div>
+                        <div class="planning-card-list">
+                            <div><strong>SPP-2026-006</strong><span>Head of procurement approval required</span><em class="badge badge-warning">Queued</em><button class="btn btn-primary btn-sm" type="button">Approve</button></div>
+                            <div><strong>APP-2026-021</strong><span>Finance returned budget shortfall</span><em class="badge badge-error">Returned</em><button class="btn btn-secondary btn-sm" type="button">Review</button></div>
+                            <div><strong>SPP-2026-011</strong><span>Tender board review scheduled</span><em class="badge badge-info">Scheduled</em><button class="btn btn-secondary btn-sm" type="button">View details</button></div>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="planning-two-col">
+                    <article class="procurement-panel evaluation-panel" id="documents-evidence">
+                        <div class="panel-heading"><div><span class="section-kicker">Documents & Evidence</span><h2>Planning document register</h2></div><span class="badge badge-warning">5 pending review</span></div>
+                        <div class="planning-upload-box"><div><strong>Attach APP/SPP evidence</strong><span>Needs assessment, specifications/TOR, budget confirmation, approval memo, board minutes, and handoff notes</span></div><button class="btn btn-primary btn-sm" type="button">Upload documents</button></div>
+                        <div class="planning-card-list">
+                            <div><strong>Needs assessment</strong><span>APP-2026-014 / Requesting department</span><em class="badge badge-success">Accepted</em><button class="btn btn-secondary btn-sm" type="button">View details</button></div>
+                            <div><strong>Specifications/TOR</strong><span>SPP-2026-006 / Procurement officer</span><em class="badge badge-warning">Review</em><button class="btn btn-primary btn-sm" type="button">Approve</button></div>
+                        </div>
+                    </article>
+
+                    <article class="procurement-panel evaluation-panel" id="risks-alerts">
+                        <div class="panel-heading"><div><span class="section-kicker">Risks & Alerts</span><h2>Delayed activities</h2></div><span class="badge badge-warning">7 alerts</span></div>
                         <div class="dashboard-action-queue planning-alert-list">
                             <button class="dashboard-action-row critical" type="button"><span class="dashboard-action-count">3</span><div><strong>Budget confirmation overdue</strong><span>Finance officer action required today</span></div><em>Critical</em><b>Remind</b></button>
                             <button class="dashboard-action-row attention" type="button"><span class="dashboard-action-count">4</span><div><strong>Specifications delayed</strong><span>Requesting departments have pending uploads</span></div><em>Attention</em><b>Notify</b></button>
@@ -188,36 +197,23 @@ function renderTenderPlanning() {
                     </article>
                 </section>
 
-                <section class="planning-two-col" id="plan-approvals">
-                    <article class="procurement-panel evaluation-panel">
-                        <div class="panel-heading"><div><span class="section-kicker">Plan Approvals</span><h2>Approval queue</h2></div><span class="badge badge-warning">11 pending</span></div>
-                        <div class="status-section-list dashboard-account-compliance">
-                            <div class="status-section attention"><strong>SPP-2026-006</strong><span>Head of procurement approval required</span><button class="btn btn-primary btn-sm" type="button">Approve</button></div>
-                            <div class="status-section attention"><strong>APP-2026-021</strong><span>Finance returned budget shortfall</span><button class="btn btn-secondary btn-sm" type="button">Return</button></div>
+                <section class="procurement-panel evaluation-panel" id="monitoring-reports">
+                    <div class="panel-heading">
+                        <div>
+                            <span class="section-kicker">Monitoring & Reports</span>
+                            <h2>Planning performance and audit activity</h2>
+                            <p class="panel-note">Delayed activities, recent planning events, export reports, APP by department, and SPP progress in one workspace.</p>
                         </div>
-                    </article>
-                    <article class="procurement-panel evaluation-panel">
-                        <div class="panel-heading"><div><span class="section-kicker">Audit trail</span><h2>Recent planning events</h2></div><span class="badge badge-info">Auditor view</span></div>
-                        <div class="dashboard-activity-feed">
-                            <button class="dashboard-activity-item" type="button"><div><strong>Finance confirmed budget</strong><span>Hospital theatre equipment / Fatma M.</span></div><time>Jun 2, 2026</time></button>
-                            <button class="dashboard-activity-item" type="button"><div><strong>SPP generated from approved APP</strong><span>SPP-2026-006 / Amina Yusuf</span></div><time>Jun 1, 2026</time></button>
+                        <div class="inline-actions">
+                            <button class="btn btn-secondary btn-sm" type="button">Export Excel</button>
+                            <button class="btn btn-secondary btn-sm" type="button">Export PDF</button>
                         </div>
-                    </article>
-                </section>
-
-                <section class="planning-two-col" id="planning-documents">
-                    <article class="procurement-panel evaluation-panel">
-                        <div class="panel-heading"><div><span class="section-kicker">Documents</span><h2>Planning document register</h2></div><span class="badge badge-warning">5 pending review</span></div>
-                        <div class="planning-upload-box"><div><strong>Attach APP/SPP evidence</strong><span>Needs assessment, specifications/TOR, budget confirmation, approval memo, board minutes, and handoff notes</span></div><button class="btn btn-primary btn-sm" type="button">Upload documents</button></div>
-                        <div class="data-table planning-table"><table><thead><tr><th>Document</th><th>Linked record</th><th>Owner</th><th>Status</th></tr></thead><tbody><tr><td>Needs assessment</td><td>APP-2026-014</td><td>Requesting department</td><td><span class="badge badge-success">Accepted</span></td></tr><tr><td>Specifications/TOR</td><td>SPP-2026-006</td><td>Procurement officer</td><td><span class="badge badge-warning">Review</span></td></tr></tbody></table></div>
-                    </article>
-                    <article class="procurement-panel evaluation-panel">
-                        <div class="panel-heading"><div><span class="section-kicker">Reports</span><h2>Export planning reports</h2></div></div>
-                        <div class="planning-report-grid" id="planning-reports">
-                            <article class="analytics-card"><span>APP by department</span><strong>42 items</strong><p>Grouped by financial year, department, category, method, priority, and status.</p><button class="btn btn-secondary btn-sm" type="button">Export Excel</button></article>
-                            <article class="analytics-card"><span>SPP progress</span><strong>73%</strong><p>Activity completion, delayed activity alerts, and responsible officer workload.</p><button class="btn btn-secondary btn-sm" type="button">Export PDF</button></article>
-                        </div>
-                    </article>
+                    </div>
+                    <div class="planning-monitoring-grid">
+                        <article class="analytics-card"><span>APP by department</span><strong>42 items</strong><p>Health Services, Operations, Infrastructure, and ICT demand grouped by status.</p><button class="btn btn-secondary btn-sm" type="button">Open report</button></article>
+                        <article class="analytics-card"><span>SPP progress</span><strong>73%</strong><p>Activity completion, due dates, workload, and delayed milestone tracking.</p><button class="btn btn-secondary btn-sm" type="button">Open report</button></article>
+                        <article class="analytics-card"><span>Recent event</span><strong>Jun 2</strong><p>Finance confirmed budget for Hospital theatre equipment.</p><button class="btn btn-secondary btn-sm" type="button">View audit trail</button></article>
+                    </div>
                 </section>
             </main>
         </div>

@@ -343,7 +343,7 @@ function renderAboutProcurex() {
                             <h2>Procurement technology built for clarity, speed, and accountability.</h2>
                             <p>ProcureX is a procurement technology platform built to support organizations, businesses, and suppliers in managing procurement activities with clarity, speed, and accountability.</p>
                             <p>The platform is designed for buyers who need to create and manage tenders, and for suppliers who want to discover opportunities, submit bids, and manage awarded contracts. ProcureX brings both sides into a single digital environment where procurement activities are easier to track, easier to understand, and easier to manage.</p>
-                            <p>Unlike traditional procurement processes that depend heavily on paperwork, scattered communication, and manual evaluation, ProcureX provides a structured digital flow that guides users from tender planning to contract completion.</p>
+                            <p>Unlike traditional procurement processes that depend heavily on paperwork, scattered communication, and manual evaluation, ProcureX provides a structured digital flow that guides users from procurement planning to contract completion.</p>
                         </div>
                         <div class="about-role-stack">
                             ${workflowCards.map(([title, text], index) => `
