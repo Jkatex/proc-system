@@ -239,6 +239,120 @@ function renderProcurementPlanningPurchase() { return renderProcurementPlanningD
 function renderProcurementPlanningTenderDocs() { return renderProcurementPlanningDetailPage(procurementPlanningSections.tenderDocs); }
 function renderProcurementPlanningDocuments() { return renderProcurementPlanningDetailPage(procurementPlanningSections.documents); }
 
+const procurementPlanningTabSections = {
+    dashboard: {
+        ...procurementPlanningSections.details,
+        title: 'Planning Dashboard',
+        kicker: 'Portfolio control center',
+        summary: 'Review total APP demand, active SPP schedules, budget issues, approval blockers, document readiness, and tender handoff progress in one dashboard.',
+        tableTitle: 'Dashboard focus areas',
+        headers: ['Area', 'Current status', 'Owner', 'Readiness', 'Action'],
+        rows: [
+            ['APP capture', '42 items recorded', 'Procurement unit', '73%', 'Review records'],
+            ['Budget checks', '9 issues pending', 'Finance officer', '61%', 'Open finance queue'],
+            ['Tender handoff', '6 items ready', 'Planning officer', '88%', 'Create Tender/RFQ']
+        ],
+        checklist: ['Review readiness before tender creation.', 'Resolve overdue finance and approval actions.', 'Confirm all required evidence is linked to APP/SPP records.']
+    },
+    appItems: {
+        number: '02',
+        title: 'APP Items',
+        kicker: 'Annual Procurement Plan',
+        summary: 'Manage APP item details including department, budget, procurement method, priority, responsible officer, status, and Create SPP action.',
+        badge: '42 APP items',
+        metrics: [
+            ['Approved', '6', 'Ready to create SPP'],
+            ['Draft', '12', 'Need owner completion'],
+            ['Budget review', '9', 'Awaiting finance checks']
+        ],
+        tableTitle: 'APP item register',
+        headers: ['APP Code', 'Item', 'Department', 'Budget', 'Action'],
+        rows: [
+            ['APP-2026-014', 'Hospital theatre equipment', 'Health Services', 'TZS 480M', 'Create SPP'],
+            ['APP-2026-021', 'Fleet maintenance framework', 'Operations', 'TZS 125M', 'Edit'],
+            ['APP-2026-027', 'Ward renovation works', 'Infrastructure', 'TZS 760M', 'Submit for Approval']
+        ],
+        checklist: ['Confirm the department and responsible officer.', 'Validate procurement method and priority.', 'Create an SPP only after budget and approval readiness are clear.']
+    },
+    sppSchedule: {
+        number: '03',
+        title: 'SPP Schedule',
+        kicker: 'Specific Procurement Plan',
+        summary: 'Track SPP activities, milestones, due dates, responsible officers, and completion status from specifications to tender preparation.',
+        badge: '18 active',
+        metrics: [
+            ['Complete', '4', 'Activities finished'],
+            ['Due today', '2', 'Need action'],
+            ['Planned', '12', 'Future milestones']
+        ],
+        tableTitle: 'SPP milestone schedule',
+        headers: ['Milestone', 'Due date', 'Responsible officer', 'Status', 'Action'],
+        rows: [
+            ['Specifications/TOR', 'Jun 2', 'Amina Yusuf', 'Complete', 'View'],
+            ['Budget confirmation', 'Jun 3', 'Fatma M.', 'Due today', 'Remind'],
+            ['Tender/RFQ preparation', 'Jun 7', 'Procurement officer', 'Planned', 'Open']
+        ],
+        checklist: ['Keep milestone owners current.', 'Escalate overdue activities.', 'Confirm completion before Tender/RFQ preparation begins.']
+    },
+    budgetFunding: {
+        ...procurementPlanningSections.purchase,
+        title: 'Budget & Funding',
+        kicker: 'Finance confirmation',
+        summary: 'Review budget availability, funding sources, finance clearance, shortfalls, and purchasing method compliance before approval.',
+        tableTitle: 'Budget and funding checks'
+    },
+    approvals: {
+        number: '05',
+        title: 'Approvals',
+        kicker: 'Approval queue',
+        summary: 'Review pending plan approvals, returned APP items, board actions, approval owners, and recent approval decisions.',
+        badge: '11 pending',
+        metrics: [
+            ['Pending', '11', 'Awaiting approvers'],
+            ['Returned', '2', 'Need correction'],
+            ['Approved', '6', 'Ready for next step']
+        ],
+        tableTitle: 'Approval worklist',
+        headers: ['Record', 'Approver', 'Status', 'Due date', 'Action'],
+        rows: [
+            ['SPP-2026-006', 'Head of procurement', 'Queued', 'Jun 4', 'Approve'],
+            ['APP-2026-021', 'Finance officer', 'Returned', 'Jun 2', 'Review'],
+            ['SPP-2026-011', 'Tender board', 'Scheduled', 'Jun 6', 'View details']
+        ],
+        checklist: ['Keep approval ownership clear.', 'Resolve returned items quickly.', 'Record each approval decision for audit.']
+    },
+    documentsEvidence: {
+        ...procurementPlanningSections.tenderDocs,
+        title: 'Documents & Evidence',
+        kicker: 'Document readiness',
+        summary: 'Manage APP/SPP evidence, specifications, TOR, approval memos, board minutes, budget notes, and handoff documents.',
+        tableTitle: 'Evidence register'
+    },
+    risksAlerts: {
+        ...procurementPlanningSections.complaints,
+        title: 'Risks & Alerts',
+        kicker: 'Delayed activities and blockers',
+        summary: 'Track budget blockers, missing documents, overdue activities, complaint records, and required escalation actions.',
+        tableTitle: 'Risk and alert log'
+    },
+    reports: {
+        ...procurementPlanningSections.monitoring,
+        title: 'Reports',
+        kicker: 'Monitoring and exports',
+        summary: 'Open planning reports covering APP by department, SPP progress, budget issues, approval performance, document readiness, and audit events.',
+        tableTitle: 'Planning report library'
+    }
+};
+
+function renderProcurementPlanningDashboard() { return renderProcurementPlanningDetailPage(procurementPlanningTabSections.dashboard); }
+function renderProcurementPlanningAppItems() { return renderProcurementPlanningDetailPage(procurementPlanningTabSections.appItems); }
+function renderProcurementPlanningSppSchedule() { return renderProcurementPlanningDetailPage(procurementPlanningTabSections.sppSchedule); }
+function renderProcurementPlanningBudgetFunding() { return renderProcurementPlanningDetailPage(procurementPlanningTabSections.budgetFunding); }
+function renderProcurementPlanningApprovals() { return renderProcurementPlanningDetailPage(procurementPlanningTabSections.approvals); }
+function renderProcurementPlanningDocumentsEvidence() { return renderProcurementPlanningDetailPage(procurementPlanningTabSections.documentsEvidence); }
+function renderProcurementPlanningRisksAlerts() { return renderProcurementPlanningDetailPage(procurementPlanningTabSections.risksAlerts); }
+function renderProcurementPlanningReports() { return renderProcurementPlanningDetailPage(procurementPlanningTabSections.reports); }
+
 window.renderProcurementPlanningDetails = renderProcurementPlanningDetails;
 window.renderProcurementPlanningQuestions = renderProcurementPlanningQuestions;
 window.renderProcurementPlanningComplaints = renderProcurementPlanningComplaints;
@@ -247,3 +361,11 @@ window.renderProcurementPlanningCustomer = renderProcurementPlanningCustomer;
 window.renderProcurementPlanningPurchase = renderProcurementPlanningPurchase;
 window.renderProcurementPlanningTenderDocs = renderProcurementPlanningTenderDocs;
 window.renderProcurementPlanningDocuments = renderProcurementPlanningDocuments;
+window.renderProcurementPlanningDashboard = renderProcurementPlanningDashboard;
+window.renderProcurementPlanningAppItems = renderProcurementPlanningAppItems;
+window.renderProcurementPlanningSppSchedule = renderProcurementPlanningSppSchedule;
+window.renderProcurementPlanningBudgetFunding = renderProcurementPlanningBudgetFunding;
+window.renderProcurementPlanningApprovals = renderProcurementPlanningApprovals;
+window.renderProcurementPlanningDocumentsEvidence = renderProcurementPlanningDocumentsEvidence;
+window.renderProcurementPlanningRisksAlerts = renderProcurementPlanningRisksAlerts;
+window.renderProcurementPlanningReports = renderProcurementPlanningReports;

@@ -35,14 +35,14 @@ function renderTenderPlanning() {
         <div class="main-layout tender-planning-page procurement-planning-control">
             <main class="main-content tender-planning-content">
                 <nav class="planning-tabs" aria-label="Tender planning workspace sections">
-                    <a href="#planning-dashboard" class="active">Dashboard</a>
-                    <a href="#app-items">APP Items</a>
-                    <a href="#spp-schedule">SPP Schedule</a>
-                    <a href="#budget-funding">Budget &amp; Funding</a>
-                    <a href="#approvals">Approvals</a>
-                    <a href="#documents-evidence">Documents &amp; Evidence</a>
-                    <a href="#risks-alerts">Risks &amp; Alerts</a>
-                    <a href="#monitoring-reports">Reports</a>
+                    <a href="#" data-navigate="procurement-planning-dashboard" class="active">Dashboard</a>
+                    <a href="#" data-navigate="procurement-planning-app-items">APP Items</a>
+                    <a href="#" data-navigate="procurement-planning-spp-schedule">SPP Schedule</a>
+                    <a href="#" data-navigate="procurement-planning-budget-funding">Budget &amp; Funding</a>
+                    <a href="#" data-navigate="procurement-planning-approvals">Approvals</a>
+                    <a href="#" data-navigate="procurement-planning-documents-evidence">Documents &amp; Evidence</a>
+                    <a href="#" data-navigate="procurement-planning-risks-alerts">Risks &amp; Alerts</a>
+                    <a href="#" data-navigate="procurement-planning-reports">Reports</a>
                 </nav>
 
                 <section class="planning-dashboard-header" id="planning-dashboard">
