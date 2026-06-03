@@ -51,6 +51,7 @@ const sourceFiles = [
   'pages/bid-evaluation.js',
   'pages/awarding-contracts.js',
   'pages/award-recommendation.js',
+  'pages/award-response.js',
   'pages/contract-negotiation.js',
   'pages/post-award-tracking.js'
 ];
@@ -81,6 +82,7 @@ const pages = [
   ['evaluation', 'bid-evaluation', 'BidEvaluationProcurexPage'],
   ['awardsContracts', 'awarding-contracts', 'AwardingContractsProcurexPage'],
   ['awardsContracts', 'award-recommendation', 'AwardRecommendationProcurexPage'],
+  ['awardsContracts', 'award-response', 'AwardResponseProcurexPage'],
   ['awardsContracts', 'contract-negotiation', 'ContractNegotiationProcurexPage'],
   ['awardsContracts', 'post-award-tracking', 'PostAwardTrackingProcurexPage'],
   ['communication', 'communication-center', 'CommunicationCenterProcurexPage'],

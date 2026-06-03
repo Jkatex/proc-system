@@ -26,6 +26,7 @@ import { BiddingWorkspaceProcurexPage } from '@/features/bidding/components/proc
 import { BidEvaluationProcurexPage } from '@/features/evaluation/components/procurex/BidEvaluationProcurexPage';
 import { AwardingContractsProcurexPage } from '@/features/awardsContracts/components/procurex/AwardingContractsProcurexPage';
 import { AwardRecommendationProcurexPage } from '@/features/awardsContracts/components/procurex/AwardRecommendationProcurexPage';
+import { AwardResponseProcurexPage } from '@/features/awardsContracts/components/procurex/AwardResponseProcurexPage';
 import { ContractNegotiationProcurexPage } from '@/features/awardsContracts/components/procurex/ContractNegotiationProcurexPage';
 import { PostAwardTrackingProcurexPage } from '@/features/awardsContracts/components/procurex/PostAwardTrackingProcurexPage';
 import { CommunicationCenterProcurexPage } from '@/features/communication/components/procurex/CommunicationCenterProcurexPage';
@@ -63,6 +64,7 @@ export const procurexPageRegistry = {
   'bid-evaluation': BidEvaluationProcurexPage,
   'awarding-contracts': AwardingContractsProcurexPage,
   'award-recommendation': AwardRecommendationProcurexPage,
+  'award-response': AwardResponseProcurexPage,
   'contract-negotiation': ContractNegotiationProcurexPage,
   'post-award-tracking': PostAwardTrackingProcurexPage,
   'communication-center': CommunicationCenterProcurexPage,

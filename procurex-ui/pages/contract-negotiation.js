@@ -29,6 +29,29 @@ function renderActionRequiredMarker(count) {
     return count ? `<span class="tab-alert" aria-label="${count} action required">${count}</span>` : '';
 }
 
+function renderContractQueueNavLink(label, queue, active = false) {
+    return `<li><a href="#" data-award-guard-navigate data-navigate="awarding-contracts" data-route-search="queue=${escapeContractNegotiationHtml(queue)}" class="${active ? 'active' : ''}">${escapeContractNegotiationHtml(label)}</a></li>`;
+}
+
+function formatContractDraftStepLabel(step = '') {
+    const labels = {
+        'evaluation-result': 'Evaluation Results',
+        'award-decision': 'Award Decision',
+        approval: 'Approval',
+        'award-notification': 'Notices',
+        'standstill-period': 'Standstill & Complaints',
+        'supplier-acceptance': 'Supplier Acceptance',
+        'pre-contract-documents': 'Pre-Contract Documents',
+        'draft-contract': 'Draft Contract',
+        'terms-clauses': 'Terms & Clauses',
+        'contract-negotiation': 'Negotiation',
+        'final-agreement': 'Final Approval',
+        signature: 'Signing',
+        execution: 'Active Contract'
+    };
+    return labels[step] || step || 'Draft Contract';
+}
+
 function renderContractOverview(contract) {
     return `
         <div class="contract-overview-grid">
@@ -224,7 +247,7 @@ function renderContractSignatures(contract) {
         <div class="inline-actions">
             <button class="btn btn-secondary" type="button" data-award-save-draft data-award-step="signature">Save Draft</button>
             <button class="btn btn-secondary" type="button" data-award-save-exit data-award-step="signature">Save Draft & Exit</button>
-            <button class="btn btn-primary" type="button" data-award-save-continue data-award-next-step="execution" data-award-required-action="Track Execution" data-navigate="post-award-tracking">Activate Contract Tracking</button>
+            <button class="btn btn-primary" type="button" data-award-save-continue data-award-next-step="execution" data-award-required-action="Track Execution" data-navigate="post-award-tracking" data-route-search="mode=active&tab=milestones">Activate Contract Tracking</button>
         </div>
     `;
 }
@@ -256,12 +279,14 @@ function renderContractNegotiation() {
     return `
         <div class="main-layout procurement-layout evaluation-app-layout contract-page" data-award-contract-workspace data-award-current-step="${escapeContractNegotiationHtml(draft.currentStep || 'draft-contract')}" data-award-tender-id="${escapeContractNegotiationHtml(draft.tenderId || tender.id || '')}">
             <aside class="sidebar evaluation-sidebar">
-                <div class="evaluation-sidebar-head"><h3>Contract Workspace</h3><span>Contract #${escapeContractNegotiationHtml(contract.contractId || 'Draft')}</span></div>
+                <div class="evaluation-sidebar-head"><h3>Contracts in Progress</h3><span>Contract #${escapeContractNegotiationHtml(contract.contractId || 'Draft')}</span></div>
                 <ul class="sidebar-nav">
-                    <li><a href="#" data-award-guard-navigate data-navigate="awarding-contracts">Awarding Dashboard</a></li>
-                    <li><a href="#" data-award-guard-navigate data-navigate="award-recommendation">Award Decision</a></li>
-                    <li><a href="#" data-award-guard-navigate data-navigate="contract-negotiation" class="active">Contract Workspace</a></li>
-                    <li><a href="#" data-award-guard-navigate data-navigate="post-award-tracking">Post-Award Tracking</a></li>
+                    ${renderContractQueueNavLink('My Urgent Actions', 'my-urgent-actions')}
+                    ${renderContractQueueNavLink('Awarding in Progress', 'awarding-in-progress')}
+                    ${renderContractQueueNavLink('Awards Received', 'awards-received')}
+                    ${renderContractQueueNavLink('Contracts in Progress', 'contracts-in-progress', true)}
+                    ${renderContractQueueNavLink('Active Contracts', 'active-contracts')}
+                    ${renderContractQueueNavLink('Closed Contracts', 'closed-contracts')}
                     <li><a href="#" data-award-guard-navigate data-navigate="workspace-dashboard">Workspace Dashboard</a></li>
                     <li><a href="#" data-award-guard-navigate data-navigate="sign-in">Logout</a></li>
                 </ul>
@@ -270,7 +295,7 @@ function renderContractNegotiation() {
             <main class="main-content procurement-content contract-negotiation-workspace">
                 <section class="procurement-hero evaluation-hero-panel award-hero-panel">
                     <div>
-                        <span class="section-kicker">Contract review and negotiation</span>
+                        <span class="section-kicker">Contracts in Progress</span>
                         <h1>${escapeContractNegotiationHtml(contract.title || 'Contract finalization')}</h1>
                         <p>Negotiate selected contract terms and clauses after award acceptance and before signing. Locked tender and evaluation fields cannot be reopened.</p>
                     </div>
@@ -283,10 +308,10 @@ function renderContractNegotiation() {
 
                 <section class="procurement-panel evaluation-panel contract-workspace-panel">
                     <div class="panel-heading">
-                        <div><span class="section-kicker">Contract workspace</span><h2>Overview, terms, negotiation, versions, documents, signatures, and activity</h2></div>
+                    <div><span class="section-kicker">Draft, review, negotiation, and signing</span><h2>Prepare the contract before activation</h2></div>
                         ${renderContractNegotiationBadge(contract.poMatched && contract.budgetVerified ? 'PO and budget verified' : 'Verification pending')}
                     </div>
-                    <div class="contract-rule-banner"><strong>Draft progress</strong><span>Current step: ${escapeContractNegotiationHtml(draft.currentStep || 'draft-contract')} / Required action: ${escapeContractNegotiationHtml(draft.requiredAction || 'Review contract')}. Last saved: ${escapeContractNegotiationHtml(draft.lastEditedAt ? new Date(draft.lastEditedAt).toLocaleString() : 'Not saved')}.</span></div>
+                    <div class="contract-rule-banner"><strong>Draft progress</strong><span>Current step: ${escapeContractNegotiationHtml(formatContractDraftStepLabel(draft.currentStep || 'draft-contract'))} / Required action: ${escapeContractNegotiationHtml(draft.requiredAction || 'Review contract')}. Last saved: ${escapeContractNegotiationHtml(draft.lastEditedAt ? new Date(draft.lastEditedAt).toLocaleString() : 'Not saved')}.</span></div>
                     <div class="inline-actions">
                         <button class="btn btn-secondary" type="button" data-award-save-draft data-award-step="${escapeContractNegotiationHtml(draft.currentStep || 'draft-contract')}">Save Draft</button>
                         <button class="btn btn-secondary" type="button" data-award-save-exit data-award-step="${escapeContractNegotiationHtml(draft.currentStep || 'draft-contract')}">Save Draft & Exit</button>
@@ -318,6 +343,15 @@ function renderContractNegotiation() {
     `;
 }
 
+function initializeContractNegotiation() {
+    const targetTab = new URLSearchParams(window.location.search).get('tab');
+    if (!targetTab) return;
+    const tab = document.querySelector(`.contract-workspace-tabs .tab[data-tab="${targetTab}"]`);
+    if (tab) tab.click();
+}
+
 if (window.app) {
     window.app.renderContractNegotiation = renderContractNegotiation;
 }
+
+window.initializeContractNegotiation = initializeContractNegotiation;

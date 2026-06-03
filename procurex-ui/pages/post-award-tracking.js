@@ -17,6 +17,10 @@ function renderPostAwardTable(headers = [], rows = []) {
     `;
 }
 
+function renderPostAwardQueueNavLink(label, queue, active = false) {
+    return `<li><a href="#" data-award-guard-navigate data-navigate="awarding-contracts" data-route-search="queue=${escapePostAwardHtml(queue)}" class="${active ? 'active' : ''}">${escapePostAwardHtml(label)}</a></li>`;
+}
+
 function renderMatchStatus(matchStatus = {}) {
     const parts = [
         ['PO', matchStatus.po],
@@ -45,6 +49,61 @@ function renderStars(rating = 0, label = '') {
     `;
 }
 
+function renderClosedContractPanels(closedContracts = []) {
+    return `
+        <section class="procurement-panel evaluation-panel post-award-closed-panel" data-post-award-mode-panel="closed" style="display: none;">
+            <div class="panel-heading">
+                <div><span class="section-kicker">Closed contracts</span><h2>Read-only closure records</h2></div>
+                ${renderPostAwardBadge(`${closedContracts.length} archived`)}
+            </div>
+            <div class="data-table evaluation-table-scroll">
+                <table>
+                    <thead><tr><th>Contract</th><th>Role</th><th>Other Party</th><th>Final Value</th><th>Completion Date</th><th>Performance</th><th>Status</th><th>Action</th></tr></thead>
+                    <tbody>
+                        ${closedContracts.map((row, index) => `
+                            <tr>
+                                <td><strong>${escapePostAwardHtml(row.title)}</strong></td>
+                                <td>${renderPostAwardBadge(row.role)}</td>
+                                <td>${escapePostAwardHtml(row.otherParty)}</td>
+                                <td>${formatPostAwardMoney(row.finalValue, row.currency)}</td>
+                                <td>${escapePostAwardHtml(row.completionDate)}</td>
+                                <td>${escapePostAwardHtml(row.performanceRating)}</td>
+                                <td>${renderPostAwardBadge(row.status)}</td>
+                                <td><button class="btn btn-secondary btn-sm" type="button" data-closed-contract-jump="closed-contract-${index + 1}">View Closure</button></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+            <div class="closed-contract-detail-stack">
+                ${closedContracts.map((row, index) => `
+                    <article class="closed-contract-detail ${index === 0 ? 'active' : ''}" data-closed-contract-panel="closed-contract-${index + 1}" style="${index === 0 ? '' : 'display: none;'}">
+                        <div class="panel-heading">
+                            <div><span class="section-kicker">Closure detail</span><h3>${escapePostAwardHtml(row.title)}</h3></div>
+                            ${renderPostAwardBadge(row.status)}
+                        </div>
+                        <section class="contract-overview-grid">
+                            <article><span>Final value</span><strong>${formatPostAwardMoney(row.finalValue, row.currency)}</strong></article>
+                            <article><span>Completion date</span><strong>${escapePostAwardHtml(row.completionDate)}</strong></article>
+                            <article><span>Performance</span><strong>${escapePostAwardHtml(row.performanceRating)}</strong></article>
+                            <article><span>Record state</span><strong>Read-only archive</strong></article>
+                        </section>
+                        <div class="award-control-grid">
+                            <article><strong>Deliverables</strong><span>Completed and accepted</span></article>
+                            <article><strong>Inspections</strong><span>Final inspection recorded</span></article>
+                            <article><strong>Invoices</strong><span>Processed or reconciled</span></article>
+                            <article><strong>Disputes</strong><span>Resolved before closure</span></article>
+                            <article><strong>Performance security</strong><span>Release decision recorded</span></article>
+                            <article><strong>Supplier rating</strong><span>${escapePostAwardHtml(row.performanceRating)}</span></article>
+                        </div>
+                        <div class="evaluation-notice success">This closure record is archived. Changes require a formal reopening or amendment workflow.</div>
+                    </article>
+                `).join('')}
+            </div>
+        </section>
+    `;
+}
+
 function renderPostAwardTracking() {
     const context = typeof getAwardContractLifecycleContext === 'function' ? getAwardContractLifecycleContext() : null;
     const draft = context?.draft || {};
@@ -59,6 +118,7 @@ function renderPostAwardTracking() {
         currency: contract.currency || mockData.awardingContracts?.execution?.currency,
         status: draft.currentStep === 'execution' ? 'In Progress' : (mockData.awardingContracts?.execution?.status || 'In Progress')
     };
+    const closedContracts = mockData.awardingContracts?.closedContracts || [];
     const paid = (execution.invoices || []).filter(invoice => /paid/i.test(invoice.status || '')).reduce((sum, invoice) => sum + Number(invoice.amount || 0), 0);
     const invoiced = (execution.invoices || []).reduce((sum, invoice) => sum + Number(invoice.amount || 0), 0);
     const averagePerformance = (execution.performance || []).length
@@ -75,9 +135,13 @@ function renderPostAwardTracking() {
             <aside class="sidebar evaluation-sidebar">
                 <div class="evaluation-sidebar-head"><h3>Post-Award Tracking</h3><span>Contract #${escapePostAwardHtml(execution.contractId || 'Active')}</span></div>
                 <ul class="sidebar-nav">
-                    <li><a href="#" data-award-guard-navigate data-navigate="awarding-contracts">Awarding Dashboard</a></li>
-                    <li><a href="#" data-award-guard-navigate data-navigate="contract-negotiation">Back to Contract</a></li>
-                    <li><a href="#" data-award-guard-navigate data-navigate="post-award-tracking" class="active">Execution</a></li>
+                    ${renderPostAwardQueueNavLink('My Urgent Actions', 'my-urgent-actions')}
+                    ${renderPostAwardQueueNavLink('Awarding in Progress', 'awarding-in-progress')}
+                    ${renderPostAwardQueueNavLink('Awards Received', 'awards-received')}
+                    ${renderPostAwardQueueNavLink('Contracts in Progress', 'contracts-in-progress')}
+                    ${renderPostAwardQueueNavLink('Active Contracts', 'active-contracts', true)}
+                    ${renderPostAwardQueueNavLink('Closed Contracts', 'closed-contracts')}
+                    <li><a href="#" data-award-guard-navigate data-navigate="contract-negotiation" data-route-search="tab=signatures">Back to Contract</a></li>
                     <li><a href="#" data-award-guard-navigate data-navigate="workspace-dashboard">Workspace Dashboard</a></li>
                     <li><a href="#" data-award-guard-navigate data-navigate="sign-in">Logout</a></li>
                 </ul>
@@ -105,7 +169,7 @@ function renderPostAwardTracking() {
                     <div><span>Balance</span><strong>${formatPostAwardMoney(Number(execution.contractValue || 0) - paid, execution.currency)}</strong></div>
                 </section>
 
-                <section class="procurement-panel evaluation-panel award-draft-control-panel">
+                <section class="procurement-panel evaluation-panel award-draft-control-panel" data-post-award-mode-panel="active">
                     <div class="panel-heading">
                         <div><span class="section-kicker">Execution draft</span><h2>Leave execution tracking and return to another tender</h2></div>
                         ${renderPostAwardBadge(draft.draftSaved ? 'Draft saved' : 'Execution active')}
@@ -117,7 +181,7 @@ function renderPostAwardTracking() {
                     </div>
                 </section>
 
-                <section class="procurement-panel evaluation-panel post-award-panel">
+                <section class="procurement-panel evaluation-panel post-award-panel" data-post-award-mode-panel="active">
                     <div class="panel-heading">
                         <div><span class="section-kicker">Execution workspace</span><h2>Milestones, payments, issues, variations, closure, and performance</h2></div>
                         ${renderPostAwardBadge(`${execution.progress || 0}% complete`)}
@@ -266,11 +330,46 @@ function renderPostAwardTracking() {
                         </div>
                     </div>
                 </section>
+
+                ${renderClosedContractPanels(closedContracts)}
             </main>
         </div>
     `;
 }
 
+function initializePostAwardTracking() {
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get('mode') || 'active';
+    const tab = params.get('tab') || (mode === 'closed' ? 'closure' : 'milestones');
+    const contract = params.get('contract') || 'closed-contract-1';
+
+    document.querySelectorAll('[data-post-award-mode-panel]').forEach(panel => {
+        panel.style.display = panel.getAttribute('data-post-award-mode-panel') === mode ? '' : 'none';
+    });
+
+    const targetTab = document.querySelector(`.post-award-tabs .tab[data-tab="${tab}"]`);
+    if (targetTab) targetTab.click();
+
+    document.querySelectorAll('[data-closed-contract-panel]').forEach(panel => {
+        const isActive = panel.getAttribute('data-closed-contract-panel') === contract;
+        panel.classList.toggle('active', isActive);
+        panel.style.display = isActive ? '' : 'none';
+    });
+
+    document.querySelectorAll('[data-closed-contract-jump]').forEach(button => {
+        button.addEventListener('click', () => {
+            const target = button.getAttribute('data-closed-contract-jump') || 'closed-contract-1';
+            document.querySelectorAll('[data-closed-contract-panel]').forEach(panel => {
+                const isActive = panel.getAttribute('data-closed-contract-panel') === target;
+                panel.classList.toggle('active', isActive);
+                panel.style.display = isActive ? '' : 'none';
+            });
+        });
+    });
+}
+
 if (window.app) {
     window.app.renderPostAwardTracking = renderPostAwardTracking;
 }
+
+window.initializePostAwardTracking = initializePostAwardTracking;

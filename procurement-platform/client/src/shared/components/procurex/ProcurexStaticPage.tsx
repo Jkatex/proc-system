@@ -44,6 +44,7 @@ const pageToRoute: Record<string, string> = {
   'bid-evaluation': '/evaluation',
   'awarding-contracts': '/awards-contracts',
   'award-recommendation': '/awards-contracts/recommendation',
+  'award-response': '/awards-contracts/award-response',
   'contract-negotiation': '/awards-contracts/negotiation',
   'post-award-tracking': '/awards-contracts/post-award',
   'communication-center': '/communication',
@@ -288,6 +289,152 @@ function activateTabByName(root: HTMLElement, target: string) {
   if (tab) setActiveTab(tab);
 }
 
+function setAwardingQueueTab(tab: HTMLElement) {
+  const target = tab.getAttribute('data-tab');
+  const tabGroup = tab.closest<HTMLElement>('.awarding-contract-tabs');
+  const tabContent = tabGroup?.nextElementSibling;
+  const scope = tab.closest<HTMLElement>('.procurex-react-page');
+
+  if (!target || !tabGroup) return;
+
+  tabGroup.querySelectorAll<HTMLElement>('.supplier-detail-tab[data-tab]').forEach((item) => {
+    const isActive = item === tab;
+    item.classList.toggle('active', isActive);
+    item.setAttribute('aria-selected', String(isActive));
+  });
+
+  tabContent?.querySelectorAll<HTMLElement>('.tab-content').forEach((panel) => {
+    const isActive = panel.getAttribute('data-tab') === target;
+    panel.classList.toggle('tab-content--visible', isActive);
+      panel.classList.toggle('tab-content--hidden', !isActive);
+  });
+
+  scope?.querySelectorAll<HTMLElement>('[data-awarding-tab-jump]').forEach((item) => {
+    item.classList.toggle('active', item.getAttribute('data-awarding-tab-jump') === target);
+  });
+}
+
+function activateAwardingQueueTabByName(root: HTMLElement, target: string) {
+  const tab = root.querySelector<HTMLElement>(
+    `.awarding-contract-tabs .supplier-detail-tab[data-tab="${CSS.escape(target)}"]`
+  );
+  if (tab) setAwardingQueueTab(tab);
+}
+
+function setPostAwardMode(root: HTMLElement, mode: string) {
+  root.querySelectorAll<HTMLElement>('[data-post-award-mode-panel]').forEach((panel) => {
+    panel.style.display = panel.getAttribute('data-post-award-mode-panel') === mode ? '' : 'none';
+  });
+}
+
+function activateClosedContractPanel(root: HTMLElement, contract: string) {
+  root.querySelectorAll<HTMLElement>('[data-closed-contract-panel]').forEach((panel) => {
+    const isActive = panel.getAttribute('data-closed-contract-panel') === contract;
+    panel.classList.toggle('active', isActive);
+    panel.style.display = isActive ? '' : 'none';
+  });
+}
+
+function activateAwardResponsePanel(root: HTMLElement, awardId: string) {
+  root.querySelectorAll<HTMLElement>('[data-award-response-panel]').forEach((panel) => {
+    const isActive = panel.getAttribute('data-award-response-panel') === awardId;
+    panel.classList.toggle('active', isActive);
+    panel.style.display = isActive ? '' : 'none';
+  });
+
+  root.querySelectorAll<HTMLElement>('[data-award-response-jump]').forEach((button) => {
+    const isActive = button.getAttribute('data-award-response-jump') === awardId;
+    button.classList.toggle('active', isActive);
+    button.setAttribute('aria-selected', String(isActive));
+  });
+}
+
+function applyRouteSearchState(root: HTMLElement, pageKey: string, search: string) {
+  const params = new URLSearchParams(search);
+
+  if (pageKey === 'awarding-contracts') {
+    activateAwardingQueueTabByName(root, params.get('queue') || 'my-urgent-actions');
+  }
+
+  if (pageKey === 'contract-negotiation') {
+    activateTabByName(root, params.get('tab') || 'overview');
+  }
+
+  if (pageKey === 'post-award-tracking') {
+    const mode = params.get('mode') || 'active';
+    setPostAwardMode(root, mode);
+    activateTabByName(root, params.get('tab') || (mode === 'closed' ? 'closure' : 'milestones'));
+    activateClosedContractPanel(root, params.get('contract') || 'closed-contract-1');
+  }
+
+  if (pageKey === 'award-response') {
+    const firstAward = root.querySelector<HTMLElement>('[data-award-response-panel]')?.getAttribute('data-award-response-panel') || '';
+    activateAwardResponsePanel(root, params.get('award') || firstAward);
+  }
+}
+
+function setAwardWizardStep(wizard: HTMLElement, requestedIndex: number) {
+  const panels = Array.from(wizard.querySelectorAll<HTMLElement>('[data-award-step-panel]'));
+  const stepControls = Array.from(wizard.querySelectorAll<HTMLElement>('[data-award-step-index]'));
+  if (!panels.length) return;
+
+  const activeIndex = Math.min(Math.max(requestedIndex, 0), panels.length - 1);
+  const activePanel = panels[activeIndex];
+
+  panels.forEach((panel, index) => {
+    panel.classList.toggle('active', index === activeIndex);
+  });
+
+  stepControls.forEach((control) => {
+    const stepIndex = Number(control.dataset.awardStepIndex);
+    const active = stepIndex === activeIndex;
+    control.classList.toggle('active', active);
+    control.classList.toggle('completed', stepIndex < activeIndex);
+    control.setAttribute('aria-current', active ? 'step' : 'false');
+  });
+
+  const previousButton = wizard.querySelector<HTMLButtonElement>('[data-award-prev]');
+  const nextButton = wizard.querySelector<HTMLButtonElement>('[data-award-next]');
+  const progressOutput = wizard.querySelector<HTMLElement>('[data-award-progress]');
+  const stepTitleOutput = wizard.querySelector<HTMLElement>('[data-award-step-title]');
+  const activeTitle =
+    stepControls
+      .find((control) => Number(control.dataset.awardStepIndex) === activeIndex)
+      ?.querySelector('span')
+      ?.textContent?.trim() || '';
+
+  if (previousButton) previousButton.disabled = activeIndex === 0;
+  if (nextButton) nextButton.disabled = activeIndex === panels.length - 1;
+  if (progressOutput) progressOutput.textContent = `Step ${activeIndex + 1} of ${panels.length}`;
+  if (stepTitleOutput) stepTitleOutput.textContent = activeTitle;
+
+  wizard.dataset.awardActiveStep = String(activeIndex);
+  wizard
+    .closest<HTMLElement>('[data-award-contract-workspace]')
+    ?.setAttribute('data-award-current-step', activePanel?.getAttribute('data-award-step-id') || 'evaluation-result');
+}
+
+function syncAwardWizards(root: HTMLElement) {
+  root.querySelectorAll<HTMLElement>('[data-award-wizard]').forEach((wizard) => {
+    const explicitIndex = Number(wizard.dataset.awardActiveStep);
+    const activePanelIndex = Array.from(wizard.querySelectorAll<HTMLElement>('[data-award-step-panel]')).findIndex((panel) =>
+      panel.classList.contains('active')
+    );
+    setAwardWizardStep(wizard, Number.isFinite(explicitIndex) ? explicitIndex : Math.max(activePanelIndex, 0));
+  });
+}
+
+function handleAwardWizardControl(control: HTMLElement) {
+  const wizard = control.closest<HTMLElement>('[data-award-wizard]');
+  if (!wizard) return false;
+
+  const currentIndex = Number(wizard.dataset.awardActiveStep || '0');
+  if (control.hasAttribute('data-award-prev')) setAwardWizardStep(wizard, currentIndex - 1);
+  else if (control.hasAttribute('data-award-next')) setAwardWizardStep(wizard, currentIndex + 1);
+  else setAwardWizardStep(wizard, Number(control.dataset.awardStepIndex || '0'));
+  return true;
+}
+
 function activatePlanningAnchor(root: HTMLElement, link: HTMLAnchorElement) {
   const href = link.getAttribute('href');
   if (!href?.startsWith('#') || href.length < 2) return false;
@@ -322,16 +469,38 @@ function scrollPageToTop() {
   }
 }
 
-function initializeStaticPage(root: HTMLElement, language: string) {
+function initializeStaticPage(root: HTMLElement, language: string, pageKey: string, search: string) {
   normalizeAppDrawer(root);
   syncInitialTabs(root);
+  syncAwardWizards(root);
+  applyRouteSearchState(root, pageKey, search);
   applyStaticTranslations(root, language);
 }
 
-function resetStaticPage(root: HTMLElement, html: string, language: string) {
+function resetStaticPage(root: HTMLElement, html: string, language: string, pageKey: string, search: string) {
   root.innerHTML = html;
-  initializeStaticPage(root, language);
+  initializeStaticPage(root, language, pageKey, search);
   scrollPageToTop();
+}
+
+function normalizeRouteSearch(routeSearch: string) {
+  return routeSearch.trim().replace(/^\?/, '').replace(/^&/, '');
+}
+
+function routeWithSearch(route: string, routeSearch: string) {
+  const normalized = normalizeRouteSearch(routeSearch);
+  return normalized ? `${route}?${normalized}` : route;
+}
+
+function captureAwardContractSelection(target: HTMLElement) {
+  const tenderId = target.getAttribute('data-select-tender');
+  if (!tenderId || typeof window === 'undefined') return;
+
+  try {
+    window.localStorage.setItem('procurex.marketplace.selectedTenderId', tenderId);
+  } catch {
+    // Storage can be unavailable in jsdom/private contexts; navigation still works without persisted selection.
+  }
 }
 
 export function ProcurexStaticPage({ pageKey, html }: ProcurexStaticPageProps) {
@@ -347,25 +516,34 @@ export function ProcurexStaticPage({ pageKey, html }: ProcurexStaticPageProps) {
     const root = rootRef.current;
     if (root) {
       if (pageKey === 'bid-evaluation') clearEvaluationEntrySelection();
-      initializeStaticPage(root, i18n.language);
+      initializeStaticPage(root, i18n.language, pageKey, location.search);
       if (pageKey === 'bid-evaluation') scrollPageToTop();
     }
 
     return () => {
       delete document.body.dataset.procurexReactPage;
     };
-  }, [pageKey, html, i18n.language, location.key]);
+  }, [pageKey, html, i18n.language, location.key, location.search]);
 
   function handleClick(event: MouseEvent<HTMLDivElement>) {
     const target = event.target as HTMLElement;
     const navTarget = target.closest<HTMLElement>('[data-navigate]');
     const evaluationReset = target.closest<HTMLElement>('[data-evaluation-clear-selection]');
     const tab = target.closest<HTMLElement>('.tab[data-tab]');
+    const awardingTab = target.closest<HTMLElement>(
+      '.awarding-contract-tabs .supplier-detail-tab[data-tab]'
+    );
     const supplierTab = target.closest<HTMLElement>('[data-supplier-tab-target]');
     const supplierJump = target.closest<HTMLElement>('[data-supplier-jump-target]');
+    const awardResponseJump = target.closest<HTMLElement>('[data-award-response-jump]');
+    const awardResponseAction = target.closest<HTMLElement>('[data-award-response-action]');
+    const closedContractJump = target.closest<HTMLElement>('[data-closed-contract-jump]');
     const iamTab = target.closest<HTMLElement>('[data-iam-tab]');
     const communicationTab = target.closest<HTMLElement>('[data-communication-tab]');
     const awardingJump = target.closest<HTMLElement>('[data-awarding-tab-jump]');
+    const awardWizardControl = target.closest<HTMLElement>(
+      '[data-award-step-index], [data-award-prev], [data-award-next]'
+    );
     const menuButton = target.closest<HTMLElement>('[data-app-menu-toggle], [data-profile-menu-toggle]');
     const planningAnchor = target.closest<HTMLAnchorElement>('.planning-nav-card[href^="#"]');
 
@@ -374,27 +552,42 @@ export function ProcurexStaticPage({ pageKey, html }: ProcurexStaticPageProps) {
       return;
     }
 
+    if (awardWizardControl && handleAwardWizardControl(awardWizardControl)) {
+      event.preventDefault();
+      return;
+    }
+
     if (navTarget) {
       event.preventDefault();
       const page = navTarget.getAttribute('data-navigate') || 'welcome';
+      const routeSearch = navTarget.getAttribute('data-route-search') || '';
+      captureAwardContractSelection(navTarget);
       if (page === 'bid-evaluation') clearEvaluationEntrySelection();
       if (pageKey === 'bid-evaluation' && page === 'bid-evaluation' && rootRef.current) {
-        resetStaticPage(rootRef.current, html, i18n.language);
+        resetStaticPage(rootRef.current, html, i18n.language, pageKey, location.search);
       }
-      navigate(pageToRoute[page] || '/');
+      navigate(routeWithSearch(pageToRoute[page] || '/', routeSearch));
       return;
     }
 
     if (evaluationReset && rootRef.current) {
       event.preventDefault();
       clearEvaluationEntrySelection();
-      resetStaticPage(rootRef.current, html, i18n.language);
+      resetStaticPage(rootRef.current, html, i18n.language, pageKey, location.search);
       return;
     }
 
     if (tab) {
       event.preventDefault();
       setActiveTab(tab);
+      return;
+    }
+
+    if (awardingTab) {
+      event.preventDefault();
+      setAwardingQueueTab(awardingTab);
+      const queue = awardingTab.getAttribute('data-tab');
+      if (queue) navigate(`/awards-contracts?queue=${encodeURIComponent(queue)}`);
       return;
     }
 
@@ -410,6 +603,36 @@ export function ProcurexStaticPage({ pageKey, html }: ProcurexStaticPageProps) {
         `[data-supplier-document-section="${CSS.escape(supplierJump.getAttribute('data-supplier-jump-target') ?? '')}"]`
       );
       section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+
+    if (awardResponseJump && rootRef.current) {
+      event.preventDefault();
+      const awardId = awardResponseJump.getAttribute('data-award-response-jump') || '';
+      activateAwardResponsePanel(rootRef.current, awardId);
+      if (awardId) navigate(`/awards-contracts/award-response?award=${encodeURIComponent(awardId)}`);
+      return;
+    }
+
+    if (awardResponseAction) {
+      event.preventDefault();
+      const panel = awardResponseAction.closest<HTMLElement>('[data-award-response-panel]');
+      const action = awardResponseAction.getAttribute('data-award-response-action') || '';
+      const statusLabels: Record<string, string> = {
+        accept: 'Award Accepted',
+        clarify: 'Clarification Requested',
+        decline: 'Award Declined'
+      };
+      const statusOutput = panel?.querySelector<HTMLElement>('[data-award-response-status]');
+      if (statusOutput) statusOutput.textContent = `Current supplier response: ${statusLabels[action] || 'Response Recorded'}`;
+      return;
+    }
+
+    if (closedContractJump && rootRef.current) {
+      event.preventDefault();
+      const contract = closedContractJump.getAttribute('data-closed-contract-jump') || 'closed-contract-1';
+      activateClosedContractPanel(rootRef.current, contract);
+      navigate(`/awards-contracts/post-award?mode=closed&contract=${encodeURIComponent(contract)}&tab=closure`);
       return;
     }
 
@@ -429,7 +652,9 @@ export function ProcurexStaticPage({ pageKey, html }: ProcurexStaticPageProps) {
 
     if (awardingJump && rootRef.current) {
       event.preventDefault();
-      activateTabByName(rootRef.current, awardingJump.getAttribute('data-awarding-tab-jump') ?? '');
+      const queue = awardingJump.getAttribute('data-awarding-tab-jump') ?? '';
+      activateAwardingQueueTabByName(rootRef.current, queue);
+      if (queue) navigate(`/awards-contracts?queue=${encodeURIComponent(queue)}`);
       return;
     }
 

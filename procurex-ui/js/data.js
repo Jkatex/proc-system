@@ -4913,9 +4913,9 @@ const mockData = {
     // Awarding and Contracts lifecycle workspace
     awardingContracts: {
         summary: [
-            { label: 'Pending Awarding', value: 3, detail: 'Buyer-side tenders ready for award or contract action', tab: 'pending-awarding' },
-            { label: 'Awarded to you', value: 3, detail: 'Supplier-side awards awaiting response, review, or signature', tab: 'awarded-to-us' },
-            { label: 'Pending Action', value: 4, detail: 'Contracts needing buyer or supplier action', tab: 'pending-action' },
+            { label: 'Awarding in Progress', value: 3, detail: 'Buyer-side tenders moving from evaluation results to draft contract', tab: 'awarding-in-progress' },
+            { label: 'Awards Received', value: 3, detail: 'Supplier-side awards awaiting response, review, or signature', tab: 'awards-received' },
+            { label: 'Contracts in Progress', value: 4, detail: 'Drafting, review, negotiation, approval, and signing actions', tab: 'contracts-in-progress' },
             { label: 'Active Contracts', value: 2, detail: 'Signed contracts under delivery and payment tracking', tab: 'active-contracts' },
             { label: 'Closed Contracts', value: 2, detail: 'Completed, terminated, or archived contract records', tab: 'closed-contracts' }
         ],
@@ -4967,7 +4967,8 @@ const mockData = {
                 awardStatus: 'Awaiting Acceptance',
                 contractStatus: 'Not Started',
                 requiredAction: 'Accept Award',
-                nav: 'award-recommendation'
+                nav: 'award-response',
+                supplierResponse: { decision: '', message: '', reason: '', respondedAt: '', status: 'Awaiting Acceptance' }
             },
             {
                 tenderId: 'supplier-award-2',
@@ -4978,7 +4979,8 @@ const mockData = {
                 awardStatus: 'Award Accepted',
                 contractStatus: 'Contract Review',
                 requiredAction: 'Review Contract',
-                nav: 'contract-negotiation'
+                nav: 'award-response',
+                supplierResponse: { decision: 'accept', message: 'We accept the award and are reviewing the draft contract.', reason: '', respondedAt: '2026-07-02T09:00:00.000Z', status: 'Award Accepted' }
             },
             {
                 tenderId: 'supplier-award-3',
@@ -4989,7 +4991,8 @@ const mockData = {
                 awardStatus: 'Terms Agreed',
                 contractStatus: 'Awaiting Your Signature',
                 requiredAction: 'Sign Contract',
-                nav: 'contract-negotiation'
+                nav: 'award-response',
+                supplierResponse: { decision: 'accept', message: 'Terms agreed. Signature pending.', reason: '', respondedAt: '2026-07-02T11:30:00.000Z', status: 'Terms Agreed' }
             }
         ],
         pendingActions: [
@@ -6098,10 +6101,22 @@ function createAwardContractDraftFromTender(tender = getSelectedAwardContractTen
             approvalConfirmed: false
         },
         notification: {
+            noticeType: 'Notice of Intention to Award',
+            recipientScope: 'All bidders',
+            deliveryMethod: 'ProcureX portal and email',
             subject: `Notice of Award - ${title}`,
             message: 'Your company has been selected for award subject to acceptance and contract finalization.',
             responseDeadline: '',
-            notifyUnsuccessful: 'Yes'
+            notifyUnsuccessful: 'Yes',
+            debriefOption: 'Allow debrief requests',
+            complaintDeadline: fallback.award?.standstillEnd || ''
+        },
+        supplierResponse: {
+            decision: '',
+            message: '',
+            reason: '',
+            respondedAt: '',
+            status: tender.createdByCurrentUser === false ? 'Awaiting Acceptance' : 'Not Required'
         },
         contract: {
             contractId: fallbackContract.contractId || `CTR-${reference}`,
@@ -6150,6 +6165,7 @@ function loadAwardContractDraft(tenderId, tender = null) {
                 hasRestorableDraft: true,
                 awardDecision: { ...baseDraft.awardDecision, ...(sanitized.awardDecision || {}) },
                 notification: { ...baseDraft.notification, ...(sanitized.notification || {}) },
+                supplierResponse: { ...baseDraft.supplierResponse, ...(sanitized.supplierResponse || {}) },
                 contract: { ...baseDraft.contract, ...(sanitized.contract || {}) },
                 clauses: sanitized.clauses?.length ? sanitized.clauses : buildTypeSpecificClauses(selectedTender),
                 documents: sanitized.documents?.length ? sanitized.documents : buildRequiredDocuments(selectedTender)
@@ -6169,6 +6185,7 @@ function saveAwardContractDraft(tenderId, patch = {}) {
         ...sanitizeAwardContractDraftObject(patch),
         awardDecision: { ...(current.awardDecision || {}), ...(sanitizeAwardContractDraftObject(patch.awardDecision || {})) },
         notification: { ...(current.notification || {}), ...(sanitizeAwardContractDraftObject(patch.notification || {})) },
+        supplierResponse: { ...(current.supplierResponse || {}), ...(sanitizeAwardContractDraftObject(patch.supplierResponse || {})) },
         contract: { ...(current.contract || {}), ...(sanitizeAwardContractDraftObject(patch.contract || {})) },
         lastEditedAt: new Date().toISOString(),
         savedAt: new Date().toISOString(),
