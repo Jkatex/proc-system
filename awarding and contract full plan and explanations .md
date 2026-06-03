@@ -20,7 +20,7 @@ Each part should have a different purpose, layout, and workflow.
 ## Purpose
 
 This is the **main dashboard**. It should not contain the full award or contract process. It should only show items that need attention now.
-
+ 
 It answers:
 
 > “What should I work on today?”

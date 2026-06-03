@@ -1,7 +1,9 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
+import { Provider } from 'react-redux';
 import { MemoryRouter, useLocation } from 'react-router-dom';
+import { store } from '@/app/store';
 import '@/i18n';
 import { AwardingContractsProcurexPage } from './components/procurex/AwardingContractsProcurexPage';
 import { AwardResponseProcurexPage } from './components/procurex/AwardResponseProcurexPage';
@@ -14,10 +16,12 @@ function LocationProbe() {
 
 function renderFlow(page: ReactNode, initialEntry: string) {
   return render(
-    <MemoryRouter initialEntries={[initialEntry]}>
-      {page}
-      <LocationProbe />
-    </MemoryRouter>
+    <Provider store={store}>
+      <MemoryRouter initialEntries={[initialEntry]}>
+        {page}
+        <LocationProbe />
+      </MemoryRouter>
+    </Provider>
   );
 }
 
