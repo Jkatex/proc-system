@@ -74,8 +74,6 @@ img {
 
 @media (max-width: 720px) {
   .procurex-floating-language {
-    top: auto;
-    right: 12px;
-    bottom: 12px;
+    display: none;
   }
 }
