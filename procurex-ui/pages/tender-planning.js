@@ -373,27 +373,24 @@ function renderProcurementPlanningCreateSection(selectedYear) {
     `;
 }
 
-function renderProcurementPlanningUploadSection() {
-    return `
-        <section class="procurement-panel evaluation-panel planning-upload-section" id="planning-upload" hidden>
-            <div class="panel-heading">
-                <div>
-                    <span class="section-kicker">Upload plan</span>
-                    <h2>Import Excel plan</h2>
-                    <p class="panel-note">Upload an Excel or CSV plan using the same worksheet-style columns as the downloadable template.</p>
-                </div>
-                <span class="badge badge-info">Excel / CSV</span>
-            </div>
-            <div class="planning-upload-box procurement-plan-upload-box">
-                <div>
-                    <strong>Select annual procurement plan file</strong>
-                    <span>Expected columns include tender title, dates, category, budget, method, source of funds, completion date, status, periods, and notes.</span>
-                    <em data-plan-upload-status>No file selected.</em>
-                </div>
-                <input type="file" accept=".xls,.xlsx,.csv" data-plan-upload-input aria-label="Upload annual procurement plan Excel file">
-            </div>
-        </section>
-    `;
+function createProcurementPlanningUploadedRecord(file, financialYear, index = 0) {
+    const fileName = file?.name || 'uploaded-plan.xlsx';
+    const title = fileName.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').trim() || fileName;
+    return normalizeProcurementPlanningRecord({
+        id: `plan-upload-${Date.now()}-${index}`,
+        financialYear,
+        tenderTitle: title,
+        openingDate: '',
+        closingDate: '',
+        category: 'Goods',
+        budget: 0,
+        procurementMethod: 'Open Tender',
+        sourceOfFunds: 'Uploaded Excel plan',
+        expectedCompletionDate: '',
+        status: 'Draft planning',
+        planState: 'Uploaded from Excel',
+        notes: `Imported file: ${fileName}`
+    }, index);
 }
 
 function renderProcurementPlanDrawer(record) {
@@ -518,7 +515,7 @@ function renderTenderPlanning() {
                             <strong data-planning-current-year>${escapeProcurementPlanningHtml(selectedYear)}</strong>
                         </article>
                     </section>
-                    ${renderProcurementPlanningUploadSection()}
+                    <input type="file" accept=".xls,.xlsx,.csv" data-plan-upload-input aria-label="Upload annual procurement plan Excel file" hidden>
                     <section class="planning-kpi-grid app-planning-kpis" data-planning-summary aria-label="Procurement planning summary">
                         ${renderProcurementPlanningSummary(records, selectedYear)}
                     </section>
@@ -566,7 +563,6 @@ function initializeTenderPlanning() {
     const currentYear = root.querySelector('[data-planning-current-year]');
     const fullSlot = root.querySelector('[data-planning-full-slot]');
     const detailSlot = root.querySelector('[data-planning-detail-slot]');
-    const uploadPanel = root.querySelector('#planning-upload');
 
     const selectedYear = () => yearFilter?.value || getProcurementPlanningYears(records)[0] || '2026/2027';
 
@@ -693,8 +689,6 @@ function initializeTenderPlanning() {
         }
         if (target.closest('[data-planning-mode="upload"]')) {
             event.preventDefault();
-            if (uploadPanel) uploadPanel.hidden = false;
-            uploadPanel?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             root.querySelector('[data-plan-upload-input]')?.click();
             return;
         }
@@ -795,8 +789,12 @@ function initializeTenderPlanning() {
         }
         if (event.target.matches('[data-plan-upload-input]')) {
             const file = event.target.files?.[0];
-            const status = root.querySelector('[data-plan-upload-status]');
-            if (status) status.textContent = file ? `${file.name} selected. Import parsing can be connected to the backend or Excel parser.` : 'No file selected.';
+            if (!file) return;
+            records = [createProcurementPlanningUploadedRecord(file, selectedYear()), ...records];
+            saveProcurementPlanningRecords(records);
+            event.target.value = '';
+            refreshYearView();
+            pushPlanningRoute('full');
             return;
         }
     });

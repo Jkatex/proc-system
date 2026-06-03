@@ -1,0 +1,1312 @@
+type CommunicationAttachment = {
+  id?: string;
+  name?: string;
+  fileName?: string;
+  fileType?: string;
+  content?: string;
+  url?: string;
+  href?: string;
+  dataUrl?: string;
+};
+
+type CommunicationThreadEntry = {
+  senderType?: string;
+  senderName?: string;
+  body?: string;
+  notice?: string;
+  createdAt?: string;
+};
+
+type CommunicationItem = {
+  id: string;
+  kind: string;
+  folder: string;
+  category: string;
+  subject: string;
+  body: string;
+  senderId?: string;
+  senderType?: string;
+  senderName?: string;
+  recipientId?: string;
+  recipientType?: string;
+  recipientName?: string;
+  tenderId?: string;
+  tenderReference?: string;
+  tenderTitle?: string;
+  priority?: string;
+  status: string;
+  read?: boolean;
+  actionRequired?: boolean;
+  actionLabel?: string;
+  actionPage?: string;
+  visibility?: string;
+  attachments?: CommunicationAttachment[];
+  thread?: CommunicationThreadEntry[];
+  relatedMessageId?: string;
+  conversationId?: string;
+  contextKey?: string;
+  createdAt: string;
+  updatedAt?: string;
+  audience?: string[];
+};
+
+type CommunicationState = {
+  tab: string;
+  folder: string;
+  selectedId: string | null;
+  query: string;
+  date: string;
+  category: string;
+  composeOpen: boolean;
+  composeDraft: Record<string, string | CommunicationAttachment[] | undefined> | null;
+};
+
+const communicationCenterStorageKey = 'procurex.communicationCenter.v2.items';
+
+const communicationCategories = [
+  'General Message',
+  'Tender Clarification',
+  'System Notification',
+  'System Alert',
+  'Evaluation Update',
+  'Tender Publication',
+  'Tender Rejection',
+  'Bid Submission',
+  'Supplier Invitation',
+  'Award Notification',
+  'Deadline Reminder',
+  'Reporting Documents',
+  'Admin Announcement'
+];
+
+const replyVisibilityOptions = [
+  'Reply to this supplier only',
+  'Publish answer to all bidders for this tender',
+  'Issue addendum'
+];
+
+const communicationSeedItems: CommunicationItem[] = [
+  {
+    id: 'scenario-clarification-pending-buyer',
+    kind: 'clarification',
+    folder: 'inbox',
+    category: 'BOQ / Pricing',
+    subject: 'Clarification on BOQ wiring accessories',
+    body: 'Please confirm whether the electrical installation BOQ line includes wiring accessories, containment, and termination labels.',
+    senderId: 'business-kijiji-power-contractors-ltd',
+    senderType: 'Supplier',
+    senderName: 'Kijiji Power Contractors Ltd',
+    recipientId: 'buyer-001',
+    recipientType: 'Buyer',
+    recipientName: 'Ministry of Health',
+    tenderId: 'PX-WRK-2026-001',
+    tenderReference: 'PX-WRK-2026-001',
+    tenderTitle: 'Construction of District Maternal Health Wing',
+    priority: 'Normal',
+    status: 'Pending Buyer Response',
+    read: false,
+    visibility: 'Private',
+    attachments: [{ id: 'att-boq-question', name: 'BOQ-item-4-markup.pdf', fileType: 'application/pdf' }],
+    thread: [
+      { senderType: 'Supplier', senderName: 'Kijiji Power Contractors Ltd', body: 'Please confirm whether BOQ Item 4 includes wiring accessories.', createdAt: '2026-05-21T08:20:00' }
+    ],
+    createdAt: '2026-05-21T08:20:00',
+    updatedAt: '2026-05-21T08:20:00',
+    audience: ['buyer', 'admin', 'all']
+  },
+  {
+    id: 'scenario-general-reply-needed',
+    kind: 'message',
+    folder: 'inbox',
+    category: 'General Message',
+    subject: 'Site access coordination for Friday inspection',
+    body: 'Please confirm whether our team can access the maternal wing site this Friday at 09:00 for a pre-mobilization inspection.',
+    senderId: 'business-lake-builders-ltd',
+    senderType: 'Supplier',
+    senderName: 'Lake Builders Ltd',
+    recipientId: 'user-001',
+    recipientType: 'Business',
+    recipientName: 'Kilimanjaro Supplies Limited',
+    tenderId: 'PX-WRK-2026-001',
+    tenderReference: 'PX-WRK-2026-001',
+    tenderTitle: 'Construction of District Maternal Health Wing',
+    priority: 'Low',
+    status: 'Unread',
+    read: false,
+    visibility: 'Private',
+    createdAt: '2026-05-21T09:10:00',
+    updatedAt: '2026-05-21T09:10:00',
+    audience: ['user', 'all']
+  },
+  {
+    id: 'scenario-tender-returned',
+    kind: 'alert',
+    folder: 'inbox',
+    category: 'Tender Rejection',
+    subject: 'Tender returned for correction',
+    body: 'Your draft tender is missing the bid security validity period and one mandatory eligibility requirement. Update the tender before resubmission.',
+    senderId: 'system',
+    senderType: 'System',
+    senderName: 'ProcureX System',
+    recipientId: 'buyer-001',
+    recipientType: 'Buyer',
+    recipientName: 'Ministry of Health',
+    tenderId: 'PX-WRK-2026-002',
+    tenderReference: 'PX-WRK-2026-002',
+    tenderTitle: 'Rehabilitation of Rural Water Supply Network',
+    priority: 'High',
+    status: 'Action Required',
+    read: false,
+    actionRequired: true,
+    actionLabel: 'Edit Tender',
+    actionPage: 'create-tender',
+    visibility: 'Private',
+    createdAt: '2026-05-21T10:05:00',
+    updatedAt: '2026-05-21T10:05:00',
+    audience: ['buyer', 'admin', 'all']
+  },
+  {
+    id: 'scenario-supplier-invitation',
+    kind: 'notification',
+    folder: 'inbox',
+    category: 'Supplier Invitation',
+    subject: 'Invitation to submit catering framework bid',
+    body: 'You have been invited to participate in PX-SVC-2026-003. Review the tender and start your submission before the deadline.',
+    senderId: 'business-university-of-dodoma',
+    senderType: 'Buyer',
+    senderName: 'University of Dodoma',
+    recipientId: 'supplier-001',
+    recipientType: 'Supplier',
+    recipientName: 'ABC Construction Ltd',
+    tenderId: 'PX-SVC-2026-003',
+    tenderReference: 'PX-SVC-2026-003',
+    tenderTitle: 'Regional Student Meal Catering Services',
+    priority: 'Normal',
+    status: 'Unread',
+    read: false,
+    actionRequired: true,
+    actionLabel: 'Start Submission',
+    actionPage: 'bidding-workspace',
+    visibility: 'Invited suppliers only',
+    createdAt: '2026-05-21T12:30:00',
+    updatedAt: '2026-05-21T12:30:00',
+    audience: ['supplier', 'all']
+  },
+  {
+    id: 'scenario-bid-signature-alert',
+    kind: 'alert',
+    folder: 'inbox',
+    category: 'System Alert',
+    subject: 'Bid submission document missing signature',
+    body: 'The uploaded bid form appears unsigned. Upload a signed version before the configured closing deadline.',
+    senderId: 'system',
+    senderType: 'System',
+    senderName: 'ProcureX System',
+    recipientId: 'supplier-001',
+    recipientType: 'Supplier',
+    recipientName: 'ABC Construction Ltd',
+    tenderId: 'PX-GDS-2026-003',
+    tenderReference: 'PX-GDS-2026-003',
+    tenderTitle: 'Procurement of Medical Equipment and Supplies',
+    priority: 'Urgent',
+    status: 'Action Required',
+    read: false,
+    actionRequired: true,
+    actionLabel: 'Open Bid',
+    actionPage: 'bidding-workspace',
+    visibility: 'Private',
+    attachments: [{ id: 'att-signature-alert', name: 'Unsigned-bid-form-preview.pdf', fileType: 'application/pdf' }],
+    createdAt: '2026-05-21T13:45:00',
+    updatedAt: '2026-05-21T13:45:00',
+    audience: ['supplier', 'all']
+  },
+  {
+    id: 'scenario-sent-delivery-question',
+    kind: 'clarification',
+    folder: 'sent',
+    category: 'Tender Clarification',
+    subject: 'Clarification request on delivery schedule',
+    body: 'Please confirm whether partial delivery is acceptable for the first equipment batch.',
+    senderId: 'supplier-001',
+    senderType: 'Supplier',
+    senderName: 'ABC Construction Ltd',
+    recipientId: 'business-medical-stores-department',
+    recipientType: 'Buyer',
+    recipientName: 'Medical Stores Department',
+    tenderId: 'PX-GDS-2026-003',
+    tenderReference: 'PX-GDS-2026-003',
+    tenderTitle: 'Procurement of Medical Equipment and Supplies',
+    priority: 'Normal',
+    status: 'Pending Response',
+    read: true,
+    visibility: 'Private',
+    conversationId: 'conversation-delivery-schedule',
+    contextKey: 'conversation-delivery-schedule',
+    createdAt: '2026-05-20T14:25:00',
+    updatedAt: '2026-05-20T14:25:00',
+    audience: ['supplier', 'all']
+  },
+  {
+    id: 'scenario-delivery-answer',
+    kind: 'clarification',
+    folder: 'inbox',
+    category: 'Tender Clarification',
+    subject: 'Re: Clarification request on delivery schedule',
+    body: 'Partial delivery is acceptable only for the first batch, provided the remaining batch is delivered within 21 calendar days.',
+    senderId: 'business-medical-stores-department',
+    senderType: 'Buyer',
+    senderName: 'Medical Stores Department',
+    recipientId: 'supplier-001',
+    recipientType: 'Supplier',
+    recipientName: 'ABC Construction Ltd',
+    tenderId: 'PX-GDS-2026-003',
+    tenderReference: 'PX-GDS-2026-003',
+    tenderTitle: 'Procurement of Medical Equipment and Supplies',
+    priority: 'Normal',
+    status: 'Answered',
+    read: false,
+    actionRequired: false,
+    actionLabel: 'Ask Follow-up',
+    actionPage: 'communication-center',
+    visibility: 'Private',
+    relatedMessageId: 'scenario-sent-delivery-question',
+    conversationId: 'conversation-delivery-schedule',
+    contextKey: 'conversation-delivery-schedule',
+    thread: [
+      { senderType: 'Supplier', senderName: 'ABC Construction Ltd', body: 'Please confirm whether partial delivery is acceptable for the first equipment batch.', createdAt: '2026-05-20T14:25:00' },
+      { senderType: 'Buyer', senderName: 'Medical Stores Department', body: 'Partial delivery is acceptable only for the first batch.', createdAt: '2026-05-22T08:00:00' }
+    ],
+    createdAt: '2026-05-22T08:00:00',
+    updatedAt: '2026-05-22T08:00:00',
+    audience: ['supplier', 'all']
+  },
+  {
+    id: 'scenario-public-clarification-answer',
+    kind: 'clarification',
+    folder: 'inbox',
+    category: 'Technical Specification',
+    subject: 'Published answer on HVAC efficiency rating',
+    body: 'The minimum HVAC efficiency rating remains unchanged. All bidders should use Addendum 2 as the controlling specification.',
+    senderId: 'business-ministry-of-health',
+    senderType: 'Buyer',
+    senderName: 'Ministry of Health',
+    recipientId: 'supplier-001',
+    recipientType: 'Supplier',
+    recipientName: 'ABC Construction Ltd',
+    tenderId: 'PX-WRK-2026-001',
+    tenderReference: 'PX-WRK-2026-001',
+    tenderTitle: 'Construction of District Maternal Health Wing',
+    priority: 'Normal',
+    status: 'Published to All Bidders',
+    read: true,
+    visibility: 'Public to all bidders',
+    attachments: [{ id: 'att-addendum-2', name: 'Addendum-2-HVAC-clarification.pdf', fileType: 'application/pdf' }],
+    createdAt: '2026-05-22T09:30:00',
+    updatedAt: '2026-05-22T09:30:00',
+    audience: ['supplier', 'buyer', 'all']
+  },
+  {
+    id: 'scenario-weekly-report-week-2',
+    kind: 'message',
+    folder: 'inbox',
+    category: 'Reporting Documents',
+    subject: 'Weekly progress report Week 2',
+    body: 'Week 2 report submitted with field survey coverage, issue log, and pending buyer decisions.',
+    senderId: 'business-dart-environmental-consultants',
+    senderType: 'Consultant',
+    senderName: 'DART Environmental Consultants',
+    recipientId: 'user-001',
+    recipientType: 'Business',
+    recipientName: 'Kilimanjaro Supplies Limited',
+    tenderId: 'PX-CON-2026-002',
+    tenderReference: 'PX-CON-2026-002',
+    tenderTitle: 'Environmental and Social Impact Assessment for BRT Extension',
+    priority: 'High',
+    status: 'Unread',
+    read: false,
+    actionRequired: true,
+    actionLabel: 'Offer Feedback',
+    actionPage: 'communication-center',
+    visibility: 'Private',
+    attachments: [
+      { id: 'att-week-2', name: 'Week-2-progress-report.pdf', fileType: 'application/pdf' },
+      { id: 'att-week-2-risk', name: 'Week-2-risk-log.xlsx', fileType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
+    ],
+    conversationId: 'conversation-esia-weekly-progress',
+    contextKey: 'conversation-esia-weekly-progress',
+    createdAt: '2026-05-22T16:20:00',
+    updatedAt: '2026-05-22T16:20:00',
+    audience: ['user', 'all']
+  },
+  {
+    id: 'scenario-monthly-implementation-report',
+    kind: 'message',
+    folder: 'inbox',
+    category: 'Reporting Documents',
+    subject: 'Monthly implementation report May 2026',
+    body: 'Attached are the May implementation report, site attendance summary, and risk register update for your review.',
+    senderId: 'business-dart-environmental-consultants',
+    senderType: 'Consultant',
+    senderName: 'DART Environmental Consultants',
+    recipientId: 'user-001',
+    recipientType: 'Business',
+    recipientName: 'Kilimanjaro Supplies Limited',
+    tenderId: 'PX-CON-2026-002',
+    tenderReference: 'PX-CON-2026-002',
+    tenderTitle: 'Environmental and Social Impact Assessment for BRT Extension',
+    priority: 'Normal',
+    status: 'Unread',
+    read: false,
+    actionRequired: true,
+    actionLabel: 'Offer Feedback',
+    actionPage: 'communication-center',
+    visibility: 'Private',
+    attachments: [
+      { id: 'att-monthly-report', name: 'May-implementation-report.pdf', fileType: 'application/pdf' },
+      { id: 'att-risk-register', name: 'Risk-register-update.xlsx', fileType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
+    ],
+    conversationId: 'conversation-esia-monthly-reports',
+    contextKey: 'conversation-esia-monthly-reports',
+    createdAt: '2026-05-28T10:40:00',
+    updatedAt: '2026-05-28T10:40:00',
+    audience: ['user', 'all']
+  },
+  {
+    id: 'scenario-admin-announcement',
+    kind: 'message',
+    folder: 'inbox',
+    category: 'Admin Announcement',
+    subject: 'Portal support hours during fiscal year close',
+    body: 'Support hours are extended this week for fiscal year close activities. Reply here if your organization needs a priority support slot.',
+    senderId: 'admin-001',
+    senderType: 'Admin',
+    senderName: 'ProcureX Platform',
+    recipientId: 'user-001',
+    recipientType: 'Business',
+    recipientName: 'Kilimanjaro Supplies Limited',
+    tenderId: '',
+    tenderReference: 'Not linked',
+    tenderTitle: 'No tender linked',
+    priority: 'Normal',
+    status: 'Unread',
+    read: false,
+    visibility: 'Private',
+    createdAt: '2026-05-27T17:30:00',
+    updatedAt: '2026-05-27T17:30:00',
+    audience: ['user', 'all']
+  },
+  {
+    id: 'scenario-sent-inception-report',
+    kind: 'message',
+    folder: 'sent',
+    category: 'Reporting Documents',
+    subject: 'Submitted inception report',
+    body: 'We have submitted the consultancy inception report and supporting workplan for your review.',
+    senderId: 'user-001',
+    senderType: 'Business',
+    senderName: 'Kilimanjaro Supplies Limited',
+    recipientId: 'business-dar-rapid-transit-agency',
+    recipientType: 'Buyer',
+    recipientName: 'Dar Rapid Transit Agency',
+    tenderId: 'PX-CON-2026-002',
+    tenderReference: 'PX-CON-2026-002',
+    tenderTitle: 'Environmental and Social Impact Assessment for BRT Extension',
+    priority: 'Normal',
+    status: 'Read',
+    read: true,
+    visibility: 'Private',
+    attachments: [
+      { id: 'att-inception-report', name: 'Inception-report.pdf', fileType: 'application/pdf' },
+      { id: 'att-workplan', name: 'Workplan.xlsx', fileType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
+    ],
+    conversationId: 'conversation-esia-inception',
+    contextKey: 'conversation-esia-inception',
+    createdAt: '2026-05-24T12:20:00',
+    updatedAt: '2026-05-24T12:20:00',
+    audience: ['user', 'all']
+  },
+  {
+    id: 'scenario-archived-maintenance',
+    kind: 'message',
+    folder: 'archived',
+    category: 'Admin Announcement',
+    subject: 'Completed platform maintenance notice',
+    body: 'The scheduled maintenance window has been completed. All procurement communication services are available.',
+    senderId: 'admin-001',
+    senderType: 'Admin',
+    senderName: 'ProcureX Platform',
+    recipientId: 'user-001',
+    recipientType: 'Business',
+    recipientName: 'Kilimanjaro Supplies Limited',
+    tenderId: '',
+    tenderReference: 'Not linked',
+    tenderTitle: 'No tender linked',
+    priority: 'Low',
+    status: 'Archived',
+    read: true,
+    visibility: 'Private',
+    createdAt: '2026-05-18T17:00:00',
+    updatedAt: '2026-05-18T17:00:00',
+    audience: ['user', 'all']
+  }
+];
+
+const communicationProfiles = [
+  { id: 'user-001', role: 'user', type: 'Business', name: 'Kilimanjaro Supplies Limited' },
+  { id: 'buyer-001', role: 'buyer', type: 'Buyer', name: 'Ministry of Health' },
+  { id: 'supplier-001', role: 'supplier', type: 'Supplier', name: 'ABC Construction Ltd' },
+  { id: 'admin-001', role: 'admin', type: 'Admin', name: 'ProcureX Platform' },
+  { id: 'business-dar-rapid-transit-agency', role: 'buyer', type: 'Buyer', name: 'Dar Rapid Transit Agency' },
+  { id: 'business-dart-environmental-consultants', role: 'supplier', type: 'Consultant', name: 'DART Environmental Consultants' },
+  { id: 'business-lake-builders-ltd', role: 'supplier', type: 'Supplier', name: 'Lake Builders Ltd' },
+  { id: 'business-medical-stores-department', role: 'buyer', type: 'Buyer', name: 'Medical Stores Department' }
+];
+
+const communicationState: CommunicationState = {
+  tab: 'Inbox',
+  folder: 'Inbox',
+  selectedId: null,
+  query: '',
+  date: '',
+  category: 'All categories',
+  composeOpen: false,
+  composeDraft: null
+};
+
+function escapeCommunicationHtml(value = '') {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function getCommunicationItems() {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(communicationCenterStorageKey) || 'null') as CommunicationItem[] | null;
+    return Array.isArray(parsed) && parsed.length ? parsed : communicationSeedItems;
+  } catch {
+    return communicationSeedItems;
+  }
+}
+
+function saveCommunicationItems(items: CommunicationItem[]) {
+  window.localStorage.setItem(communicationCenterStorageKey, JSON.stringify(items));
+}
+
+function addCommunicationItem(item: Omit<CommunicationItem, 'id' | 'createdAt'> & Partial<Pick<CommunicationItem, 'id' | 'createdAt'>>) {
+  const items = getCommunicationItems();
+  const next: CommunicationItem = {
+    ...item,
+    id: item.id || `communication-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    createdAt: item.createdAt || new Date().toISOString()
+  } as CommunicationItem;
+  saveCommunicationItems([next, ...items]);
+  return next;
+}
+
+function patchCommunicationItem(id = '', patch: Partial<CommunicationItem>) {
+  saveCommunicationItems(getCommunicationItems().map((item) => (item.id === id ? { ...item, ...patch, updatedAt: new Date().toISOString() } : item)));
+}
+
+function getCurrentCommunicationUser() {
+  return {
+    id: 'user-001',
+    role: 'user',
+    type: 'Business',
+    organization: 'Kilimanjaro Supplies Limited',
+    aliases: ['user-001', 'buyer-001', 'supplier-001', 'Kilimanjaro Supplies Limited'].map((value) => value.toLowerCase())
+  };
+}
+
+function isCommunicationUserItem(item: CommunicationItem) {
+  const user = getCurrentCommunicationUser();
+  const audience = item.audience || [];
+  const candidates = [item.senderId, item.recipientId, item.senderName, item.recipientName].map((value) => String(value || '').toLowerCase());
+  return audience.includes('all') || audience.includes(user.role) || candidates.some((value) => user.aliases.includes(value));
+}
+
+function formatCommunicationDate(value = '') {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function getCommunicationBadgeClass(value = '') {
+  const raw = value.toLowerCase();
+  if (/urgent|high|required|pending|unread|rejection|alert/.test(raw)) return 'badge-warning';
+  if (/answered|resolved|published|read|completed|replied/.test(raw)) return 'badge-success';
+  return 'badge-info';
+}
+
+function getCommunicationAttachmentName(attachment: CommunicationAttachment = {}, index = 0) {
+  return attachment.name || attachment.fileName || `Attachment ${index + 1}`;
+}
+
+function renderCommunicationOptions(values: string[] = [], selected = '', firstLabel = '') {
+  const options = firstLabel ? [`<option>${escapeCommunicationHtml(firstLabel)}</option>`] : [];
+  values.forEach((value) => options.push(`<option ${value === selected ? 'selected' : ''}>${escapeCommunicationHtml(value)}</option>`));
+  return options.join('');
+}
+
+function renderCommunicationAttachmentActions(attachments: CommunicationAttachment[] = []) {
+  if (!attachments.length) return '';
+  return `
+        <div class="communication-attachments">
+            ${attachments.map((attachment, index) => `
+                <div class="communication-attachment-item">
+                    <span>${escapeCommunicationHtml(getCommunicationAttachmentName(attachment, index))}</span>
+                    <button type="button" data-communication-download-attachment="${index}">Download</button>
+                    <button type="button" data-communication-open-attachment="${index}">Open</button>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function getCommunicationAttachmentBlobUrl(attachment: CommunicationAttachment = {}) {
+  if (attachment.url || attachment.href || attachment.dataUrl) return attachment.url || attachment.href || attachment.dataUrl || '';
+  return URL.createObjectURL(new Blob([attachment.content || `ProcureX attachment placeholder for ${getCommunicationAttachmentName(attachment)}.`], { type: attachment.fileType?.includes('/') ? attachment.fileType : 'text/plain' }));
+}
+
+function openCommunicationAttachment(attachment: CommunicationAttachment = {}, index = 0) {
+  const url = getCommunicationAttachmentBlobUrl(attachment);
+  const opened = window.open(url, '_blank', 'noopener');
+  if (url.startsWith('blob:')) setTimeout(() => URL.revokeObjectURL(url), 5000);
+  if (!opened) window.alert(`Allow pop-ups to open ${getCommunicationAttachmentName(attachment, index)}.`);
+}
+
+function downloadCommunicationAttachment(attachment: CommunicationAttachment = {}, index = 0) {
+  const url = getCommunicationAttachmentBlobUrl(attachment);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = getCommunicationAttachmentName(attachment, index);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  if (url.startsWith('blob:')) setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function filterCommunicationItems(items: CommunicationItem[], state: CommunicationState) {
+  const query = state.query.trim().toLowerCase();
+  return items
+    .filter((item) => {
+      if (state.tab === 'Sent') return item.folder === 'sent';
+      if (state.tab === 'Archived') return item.folder === 'archived' || item.status === 'Archived';
+      if (state.tab === 'Trash') return item.status === 'Deleted';
+      if (state.tab === 'Unread') return !item.read;
+      return item.folder !== 'sent' && item.folder !== 'archived' && item.status !== 'Deleted';
+    })
+    .filter((item) => {
+      if (!state.date) return true;
+      return item.createdAt.slice(0, 10) === state.date;
+    })
+    .filter((item) => {
+      if (!query) return true;
+      return [
+        item.senderName,
+        item.recipientName,
+        item.tenderReference,
+        item.tenderTitle,
+        item.subject,
+        item.body,
+        item.category,
+        item.status,
+        item.priority,
+        item.visibility,
+        item.actionLabel,
+        item.createdAt,
+        formatCommunicationDate(item.createdAt),
+        ...(item.attachments || []).map((attachment) => getCommunicationAttachmentName(attachment))
+      ].some((value) => String(value || '').toLowerCase().includes(query));
+    })
+    .sort((first, second) => (Date.parse(second.createdAt) || 0) - (Date.parse(first.createdAt) || 0));
+}
+
+function renderCommunicationSidebar(state: CommunicationState, counts: Record<string, number>) {
+  const folders = [
+    ['Inbox', counts.inbox],
+    ['Sent', counts.sent],
+    ['Drafts', counts.drafts],
+    ['Archived', counts.archived],
+    ['Trash', counts.trash]
+  ];
+  return `
+        <aside class="communication-folders">
+            <div class="communication-folder-title">
+                <strong>Communication Center</strong>
+                <span>Tender inbox</span>
+            </div>
+            <div class="communication-folder-list">
+                ${folders.map(([folder, count]) => `
+                    <button type="button" class="${state.tab === folder ? 'active' : ''}" data-communication-tab="${escapeCommunicationHtml(String(folder))}">
+                        <span>${escapeCommunicationHtml(String(folder))}</span>
+                        <em>${count}</em>
+                    </button>
+                `).join('')}
+            </div>
+        </aside>
+    `;
+}
+
+function renderCommunicationRow(item: CommunicationItem, selectedId: string | null) {
+  const isSentMessage = item.folder === 'sent';
+  const displayName = isSentMessage ? item.recipientName : item.senderName;
+  const displayLabel = isSentMessage ? 'Receiver' : 'Sender';
+  return `
+        <button class="communication-row ${item.read ? '' : 'unread'} ${item.id === selectedId ? 'active' : ''}" type="button" data-communication-select="${escapeCommunicationHtml(item.id)}">
+            <span class="communication-unread-dot" aria-hidden="true"></span>
+            <div class="communication-row-main">
+                <div class="communication-row-top">
+                    <strong>${escapeCommunicationHtml(displayName)}</strong>
+                    <time>${escapeCommunicationHtml(formatCommunicationDate(item.createdAt))}</time>
+                </div>
+                <h3>${escapeCommunicationHtml(item.subject)}</h3>
+                <p>${escapeCommunicationHtml(item.body)}</p>
+                <div class="communication-row-meta">
+                    <span>${escapeCommunicationHtml(displayLabel)}</span>
+                    <span>Tender: ${escapeCommunicationHtml(item.tenderReference)}</span>
+                    <span>${escapeCommunicationHtml(item.category)}</span>
+                </div>
+            </div>
+            <div class="communication-row-badges">
+                <span class="badge ${getCommunicationBadgeClass(item.status)}">${escapeCommunicationHtml(item.status)}</span>
+            </div>
+        </button>
+    `;
+}
+
+function renderCommunicationThread(item: CommunicationItem) {
+  const thread = item.thread?.length ? item.thread : [{ senderType: item.senderType, senderName: item.senderName, body: item.body, createdAt: item.createdAt }];
+  return `
+        <div class="communication-thread">
+            ${thread.map((entry) => `
+                <article>
+                    <div>
+                        <strong>${escapeCommunicationHtml(entry.senderName || entry.senderType || 'User')}</strong>
+                        <time>${escapeCommunicationHtml(formatCommunicationDate(entry.createdAt || item.createdAt))}</time>
+                    </div>
+                    <p>${escapeCommunicationHtml(entry.body || '')}</p>
+                    ${entry.notice ? `<span class="badge badge-info">${escapeCommunicationHtml(entry.notice)}</span>` : ''}
+                </article>
+            `).join('')}
+        </div>
+    `;
+}
+
+function getCommunicationConversationItems(item: CommunicationItem, items: CommunicationItem[]) {
+  const conversationId = item.conversationId || item.contextKey || '';
+  const contextKey = item.contextKey || '';
+  const relatedIds = new Set([item.id, item.relatedMessageId].filter(Boolean));
+  return items
+    .filter((entry) => {
+      if (entry.id === item.id) return true;
+      if (conversationId && entry.conversationId === conversationId) return true;
+      if (contextKey && entry.contextKey === contextKey) return true;
+      if (relatedIds.has(entry.id) || relatedIds.has(entry.relatedMessageId)) return true;
+      return entry.relatedMessageId === item.id || item.relatedMessageId === entry.id;
+    })
+    .sort((first, second) => (Date.parse(first.createdAt) || 0) - (Date.parse(second.createdAt) || 0));
+}
+
+function renderCommunicationContinuityPanel(item: CommunicationItem, items: CommunicationItem[]) {
+  const conversationItems = getCommunicationConversationItems(item, items);
+  if (conversationItems.length < 2) return '';
+  return `
+        <section class="communication-continuity-panel">
+            <div>
+                <span class="section-kicker">Context trail</span>
+                <strong>${conversationItems.length} linked messages in this conversation</strong>
+            </div>
+            <div class="communication-continuity-list">
+                ${conversationItems.map((entry) => `
+                    <button type="button" class="${entry.id === item.id ? 'active' : ''}" data-communication-select="${escapeCommunicationHtml(entry.id)}">
+                        <span>${escapeCommunicationHtml(formatCommunicationDate(entry.createdAt))}</span>
+                        <strong>${escapeCommunicationHtml(entry.subject)}</strong>
+                        <em>${escapeCommunicationHtml(entry.folder === 'sent' ? `To ${entry.recipientName}` : `From ${entry.senderName}`)}</em>
+                    </button>
+                `).join('')}
+            </div>
+        </section>
+    `;
+}
+
+function isOpenClarificationRequest(item: CommunicationItem) {
+  const rawStatus = String(item.status || '').toLowerCase();
+  if (item.kind !== 'clarification' || item.folder === 'sent') return false;
+  if (/answered|resolved|published|closed|replied/.test(rawStatus)) return false;
+  return /pending|submitted|unread|action required/.test(rawStatus);
+}
+
+function isBidderClarificationAnswer(item: CommunicationItem) {
+  const rawStatus = String(item.status || '').toLowerCase();
+  const rawCategory = String(item.category || '').toLowerCase();
+  const rawSenderType = String(item.senderType || '').toLowerCase();
+  if (item.folder === 'sent') return false;
+  if (isOpenClarificationRequest(item)) return false;
+  if (item.kind !== 'clarification' && !rawCategory.includes('clarification')) return false;
+  if (!rawSenderType.includes('buyer') && item.actionLabel !== 'View Response' && item.actionLabel !== 'Ask Follow-up') return false;
+  return /answered|resolved|published|replied|read/.test(rawStatus) || item.actionLabel === 'View Response';
+}
+
+function isInboxCommunicationItem(item: CommunicationItem) {
+  return item.folder !== 'sent' && item.folder !== 'archived' && item.status !== 'Deleted';
+}
+
+function canReplyToCommunicationItem(item: CommunicationItem) {
+  if (!isInboxCommunicationItem(item)) return false;
+  if (item.senderId === 'system' || String(item.senderType || '').toLowerCase().includes('system')) return false;
+  if (isOpenClarificationRequest(item) || isBidderClarificationAnswer(item)) return false;
+  return !item.actionPage || item.actionPage === 'communication-center' || item.kind === 'message';
+}
+
+function isCommunicationReportMessage(item: CommunicationItem) {
+  return isInboxCommunicationItem(item) && /reporting documents|report/i.test(`${item.category || ''} ${item.subject || ''}`);
+}
+
+function getCommunicationPrimaryAction(item: CommunicationItem) {
+  if (!isInboxCommunicationItem(item) || isBidderClarificationAnswer(item)) return '';
+  if (isCommunicationReportMessage(item)) return `<button class="btn btn-primary" type="button" data-communication-report-feedback="${escapeCommunicationHtml(item.id)}">Offer Feedback</button>`;
+  if (item.actionPage && item.actionPage !== 'communication-center') return `<button class="btn btn-primary" type="button" data-navigate="${escapeCommunicationHtml(item.actionPage)}">${escapeCommunicationHtml(item.actionLabel || 'Open')}</button>`;
+  if (canReplyToCommunicationItem(item)) return `<button class="btn btn-primary" type="button" data-communication-reply-message="${escapeCommunicationHtml(item.id)}">Reply</button>`;
+  return '';
+}
+
+function getCommunicationActionText(item: CommunicationItem) {
+  if (item.kind === 'clarification') {
+    if (item.folder === 'sent') return 'Await buyer response';
+    if (isOpenClarificationRequest(item)) return 'Provide clarification answer';
+    if (isBidderClarificationAnswer(item)) return 'No action needed if satisfied';
+    return 'Clarification answered';
+  }
+  if (isCommunicationReportMessage(item)) return 'Offer feedback on this report';
+  if (canReplyToCommunicationItem(item)) return 'Reply to this message';
+  return item.actionLabel || (item.read ? 'Message reviewed' : 'Review message');
+}
+
+function renderCommunicationReplyBox(item: CommunicationItem) {
+  if (!isOpenClarificationRequest(item)) return '';
+  return `
+        <form class="communication-reply-box" data-communication-reply="${escapeCommunicationHtml(item.id)}">
+            <div>
+                <span class="section-kicker">Buyer response</span>
+                <strong>Answer this clarification request</strong>
+            </div>
+            <label>
+                <span>Reply visibility</span>
+                <select class="form-input" name="visibility">
+                    ${renderCommunicationOptions(replyVisibilityOptions, 'Reply to this supplier only')}
+                </select>
+            </label>
+            <label>
+                <span>Response message</span>
+                <textarea class="form-input" name="body" rows="4" placeholder="Write the buyer response"></textarea>
+            </label>
+            <div class="communication-reply-actions">
+                <button class="btn btn-secondary" type="button">Attach</button>
+                <button class="btn btn-primary" type="submit">Send Response</button>
+            </div>
+        </form>
+    `;
+}
+
+function renderCommunicationDetail(item: CommunicationItem | null, fullScreen = false, allItems: CommunicationItem[] = []) {
+  if (!item) {
+    return `
+            <aside class="communication-detail empty">
+                <strong>Select a message</strong>
+                <span>Open an inbox item to view its tender context, thread, attachments, and available actions.</span>
+            </aside>
+        `;
+  }
+  const isSentMessage = item.folder === 'sent';
+  const contextPartyLabel = isSentMessage ? 'Receiver' : 'Sender';
+  const contextPartyName = isSentMessage ? item.recipientName : item.senderName;
+  return `
+        <aside class="communication-detail ${fullScreen ? 'full-screen' : ''}">
+            <section class="communication-context-panel communication-context-panel-primary">
+                <div>
+                    <span class="section-kicker">Message context</span>
+                    <strong>${escapeCommunicationHtml(item.tenderTitle)}</strong>
+                </div>
+                <div class="record-summary compact">
+                    <div><span>${escapeCommunicationHtml(contextPartyLabel)}</span><strong>${escapeCommunicationHtml(contextPartyName)}</strong></div>
+                    <div><span>Date</span><strong>${escapeCommunicationHtml(formatCommunicationDate(item.createdAt))}</strong></div>
+                    <div><span>Tender reference</span><strong>${escapeCommunicationHtml(item.tenderReference)}</strong></div>
+                    <div><span>Status</span><strong>${item.kind === 'alert' ? 'Correction required' : 'Workflow active'}</strong></div>
+                    <div><span>Visibility</span><strong>${escapeCommunicationHtml(item.visibility)}</strong></div>
+                </div>
+                <div class="communication-detail-badges">
+                    <span class="badge ${getCommunicationBadgeClass(item.category)}">${escapeCommunicationHtml(item.category)}</span>
+                    <span class="badge ${getCommunicationBadgeClass(item.status)}">${escapeCommunicationHtml(item.status)}</span>
+                </div>
+            </section>
+            <section class="communication-message-body">
+                <span class="section-kicker">Message</span>
+                <h2>${escapeCommunicationHtml(item.subject)}</h2>
+                <p>${escapeCommunicationHtml(item.body)}</p>
+                ${renderCommunicationAttachmentActions(item.attachments)}
+            </section>
+            ${renderCommunicationContinuityPanel(item, allItems)}
+            ${renderCommunicationThread(item)}
+            <section class="communication-action-panel">
+                <div>
+                    <span class="section-kicker">Next action</span>
+                    <strong>${escapeCommunicationHtml(getCommunicationActionText(item))}</strong>
+                </div>
+                <div class="inline-actions">
+                    ${isBidderClarificationAnswer(item) ? `<button class="btn btn-primary" type="button" data-communication-followup="${escapeCommunicationHtml(item.id)}">Ask Further Clarification</button>` : ''}
+                    ${getCommunicationPrimaryAction(item)}
+                    <button class="btn btn-secondary" type="button" data-communication-archive="${escapeCommunicationHtml(item.id)}">Archive</button>
+                    <button class="btn btn-secondary" type="button" data-communication-back>Back</button>
+                </div>
+            </section>
+            ${renderCommunicationReplyBox(item)}
+        </aside>
+    `;
+}
+
+function getFilteredCommunicationRecipientProfiles(searchValue = '') {
+  const normalizedSearch = searchValue.trim().toLowerCase();
+  return communicationProfiles.filter((profile) => profile.id !== 'user-001' && (!normalizedSearch || [profile.name, profile.id].some((value) => value.toLowerCase().includes(normalizedSearch))));
+}
+
+function renderCommunicationRecipientOptions(selectedRecipientId = '', searchValue = '') {
+  const filteredProfiles = getFilteredCommunicationRecipientProfiles(searchValue);
+  if (!filteredProfiles.length) return '<option value="">No registered businesses match this search</option>';
+  const selectedVisible = filteredProfiles.some((profile) => profile.id === selectedRecipientId);
+  const options = selectedVisible ? [] : ['<option value="">Select business</option>'];
+  filteredProfiles.forEach((profile) => {
+    options.push(`<option value="${escapeCommunicationHtml(profile.id)}" ${profile.id === selectedRecipientId ? 'selected' : ''}>${escapeCommunicationHtml(profile.name)}</option>`);
+  });
+  return options.join('');
+}
+
+function renderCommunicationCompose(state: CommunicationState) {
+  if (!state.composeOpen) return '';
+  const draft = state.composeDraft || {};
+  const selectedCategory = String(draft.category || 'General Message');
+  const recipientSearchValue = String(draft.recipientSearch || '');
+  const selectedRecipientId = String(draft.recipientId || getFilteredCommunicationRecipientProfiles(recipientSearchValue)[0]?.id || '');
+  return `
+        <form class="communication-compose-panel ${state.composeOpen ? 'full-screen' : ''}" data-communication-compose>
+            <div class="panel-heading">
+                <div><span class="section-kicker">New message</span><h2>Send procurement communication</h2></div>
+                <button class="btn btn-secondary" type="button" data-communication-compose-close>Close</button>
+            </div>
+            <div class="communication-compose-grid">
+                <label><span>From mailbox</span><input class="form-input" value="Kilimanjaro Supplies Limited" readonly></label>
+                <label><span>Category</span><select class="form-input" name="category" data-communication-compose-field>${renderCommunicationOptions(communicationCategories, selectedCategory)}</select></label>
+                <label>
+                    <span>Recipient business</span>
+                    <input class="form-input" name="recipientSearch" value="${escapeCommunicationHtml(recipientSearchValue)}" placeholder="Search registered business name" autocomplete="off" data-communication-recipient-search>
+                    <select class="form-input" name="recipientId" data-communication-recipient-select>
+                        ${renderCommunicationRecipientOptions(selectedRecipientId, recipientSearchValue)}
+                    </select>
+                </label>
+                <label><span>Tender reference</span><input class="form-input" name="tenderReference" value="${escapeCommunicationHtml(String(draft.tenderReference || draft.tenderId || 'PX-WRK-2026-001'))}" data-communication-compose-field></label>
+                <input type="hidden" name="tenderId" value="${escapeCommunicationHtml(String(draft.tenderId || ''))}">
+                <input type="hidden" name="tenderTitle" value="${escapeCommunicationHtml(String(draft.tenderTitle || ''))}">
+                <input type="hidden" name="kind" value="${escapeCommunicationHtml(String(draft.kind || ''))}">
+                <label class="span-2"><span>Subject</span><input class="form-input" name="subject" placeholder="Subject" value="${escapeCommunicationHtml(String(draft.subject || ''))}" data-communication-compose-field></label>
+                <label class="span-2"><span>Message</span><textarea class="form-input" name="body" rows="4" placeholder="Write your message" data-communication-compose-field>${escapeCommunicationHtml(String(draft.body || ''))}</textarea></label>
+            </div>
+            <div class="inline-actions">
+                <label class="btn btn-secondary communication-file-button">
+                    Attach File
+                    <input type="file" data-communication-attachment multiple hidden>
+                </label>
+                <span class="communication-attachment-preview" data-communication-attachment-preview>${((draft.attachments as CommunicationAttachment[] | undefined) || []).map((item) => escapeCommunicationHtml(item.name)).join(', ')}</span>
+                <button class="btn btn-primary" type="submit">Send Message</button>
+            </div>
+        </form>
+    `;
+}
+
+function renderCommunicationCenterInner(shell: HTMLElement) {
+  const state = communicationState;
+  const currentUser = getCurrentCommunicationUser();
+  const allItems = getCommunicationItems().filter(isCommunicationUserItem);
+  const counts = {
+    inbox: allItems.filter((item) => item.folder !== 'sent' && item.folder !== 'archived' && item.status !== 'Deleted').length,
+    sent: allItems.filter((item) => item.folder === 'sent').length,
+    drafts: 0,
+    archived: allItems.filter((item) => item.folder === 'archived' || item.status === 'Archived').length,
+    trash: allItems.filter((item) => item.status === 'Deleted').length
+  };
+  const filtered = filterCommunicationItems(allItems, state);
+  const selected = state.selectedId ? allItems.find((item) => item.id === state.selectedId) || null : null;
+  if (state.selectedId && !selected) state.selectedId = null;
+  const unreadCount = allItems.filter((item) => !item.read).length;
+  const actionCount = allItems.filter((item) => item.actionRequired || /pending|action required/i.test(item.status)).length;
+  const messageView = Boolean(selected);
+  const composeView = state.composeOpen;
+
+  shell.innerHTML = `
+        <main class="communication-center-page">
+            ${composeView || messageView ? '' : `
+                <section class="communication-hero">
+                    <div>
+                        <span class="section-kicker">Personal mailbox</span>
+                        <h1>Communication Center</h1>
+                        <p>${escapeCommunicationHtml(currentUser.organization)} only sees messages sent to this mailbox or messages sent from it.</p>
+                    </div>
+                    <div class="communication-summary">
+                        <div><strong>${unreadCount}</strong><span>Unread</span></div>
+                        <div><strong>${actionCount}</strong><span>Action required</span></div>
+                    </div>
+                </section>
+            `}
+
+            ${composeView ? `
+                <section class="communication-compose-view">
+                    ${renderCommunicationCompose(state)}
+                </section>
+            ` : messageView ? `
+                <section class="communication-message-view">
+                    ${renderCommunicationDetail(selected, true, allItems)}
+                </section>
+            ` : `
+                <section class="communication-shell">
+                    ${renderCommunicationSidebar(state, counts)}
+                    <div class="communication-main">
+                        <div class="communication-toolbar">
+                            <input class="form-input" data-communication-search value="${escapeCommunicationHtml(state.query)}" placeholder="Search sender, receiver, tender, subject, status">
+                            <input class="form-input" type="${state.date ? 'date' : 'text'}" data-communication-date-search value="${escapeCommunicationHtml(state.date || '')}" placeholder="Search by date" aria-label="Search messages by date">
+                            ${state.query || state.date ? '<button class="btn btn-secondary" type="button" data-communication-clear-search>Clear</button>' : ''}
+                            <button class="btn btn-primary" type="button" data-communication-compose-open>New Message</button>
+                        </div>
+                        <div class="communication-tabs">
+                            ${['Inbox', 'Sent', 'Archived', 'Unread'].map((tab) => `
+                                <button type="button" class="${state.tab === tab ? 'active' : ''}" data-communication-tab="${tab}">${tab}</button>
+                            `).join('')}
+                        </div>
+                        <div class="communication-list">
+                            ${filtered.length ? filtered.map((item) => renderCommunicationRow(item, null)).join('') : '<div class="scope-empty">No communication items match this view.</div>'}
+                        </div>
+                    </div>
+                </section>
+            `}
+        </main>
+    `;
+}
+
+function updateCommunicationComposeDraftField(field: string, value: string) {
+  communicationState.composeDraft = {
+    ...(communicationState.composeDraft || {}),
+    [field]: value
+  };
+}
+
+function syncCommunicationComposeDraft(form: HTMLFormElement) {
+  const formData = new FormData(form);
+  communicationState.composeDraft = {
+    ...(communicationState.composeDraft || {}),
+    recipientId: String(formData.get('recipientId') || ''),
+    recipientSearch: String(formData.get('recipientSearch') || ''),
+    category: String(formData.get('category') || ''),
+    tenderReference: String(formData.get('tenderReference') || ''),
+    tenderId: String(formData.get('tenderId') || ''),
+    tenderTitle: String(formData.get('tenderTitle') || ''),
+    kind: String(formData.get('kind') || ''),
+    subject: String(formData.get('subject') || ''),
+    body: String(formData.get('body') || '')
+  };
+}
+
+function getProfileById(id = '') {
+  return communicationProfiles.find((profile) => profile.id === id) || communicationProfiles[0];
+}
+
+function openCommunicationReplyCompose(item: CommunicationItem, subjectPrefix = 'Re') {
+  communicationState.composeDraft = {
+    recipientId: item.senderId,
+    recipientSearch: item.senderName,
+    category: item.category || 'General Message',
+    tenderReference: item.tenderReference || '',
+    tenderId: item.tenderId || '',
+    tenderTitle: item.tenderTitle || '',
+    kind: item.kind || 'message',
+    subject: `${subjectPrefix}: ${String(item.subject || 'Message').replace(/^(Re|Feedback):\s*/i, '')}`,
+    body: '',
+    relatedMessageId: item.id
+  };
+  communicationState.composeOpen = true;
+  communicationState.selectedId = null;
+}
+
+function handleCommunicationClick(event: Event, shell: HTMLElement) {
+  const target = event.target as HTMLElement;
+  const state = communicationState;
+  const handled = () => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  if (target.matches('[data-communication-date-search]')) {
+    (target as HTMLInputElement).type = 'date';
+    return;
+  }
+
+  const selectButton = target.closest<HTMLElement>('[data-communication-select]');
+  if (selectButton) {
+    handled();
+    state.selectedId = selectButton.dataset.communicationSelect || null;
+    const selectedItem = getCommunicationItems().find((item) => item.id === state.selectedId);
+    patchCommunicationItem(state.selectedId || '', { read: true, status: /^unread$/i.test(String(selectedItem?.status || '')) ? 'Read' : selectedItem?.status });
+    renderCommunicationCenterInner(shell);
+    return;
+  }
+
+  const tabButton = target.closest<HTMLElement>('[data-communication-tab]');
+  if (tabButton) {
+    handled();
+    state.tab = tabButton.dataset.communicationTab || 'Inbox';
+    state.folder = state.tab;
+    state.selectedId = null;
+    renderCommunicationCenterInner(shell);
+    return;
+  }
+
+  if (target.closest('[data-communication-compose-open]')) {
+    handled();
+    state.composeOpen = true;
+    state.composeDraft = null;
+    state.selectedId = null;
+    renderCommunicationCenterInner(shell);
+    return;
+  }
+
+  if (target.closest('[data-communication-compose-close], [data-communication-back]')) {
+    handled();
+    state.composeOpen = false;
+    state.composeDraft = null;
+    state.selectedId = null;
+    renderCommunicationCenterInner(shell);
+    return;
+  }
+
+  if (target.closest('[data-communication-clear-search]')) {
+    handled();
+    state.query = '';
+    state.date = '';
+    renderCommunicationCenterInner(shell);
+    return;
+  }
+
+  const replyMessageButton = target.closest<HTMLElement>('[data-communication-reply-message], [data-communication-followup], [data-communication-report-feedback]');
+  if (replyMessageButton) {
+    handled();
+    const itemId = replyMessageButton.dataset.communicationReplyMessage || replyMessageButton.dataset.communicationFollowup || replyMessageButton.dataset.communicationReportFeedback || '';
+    const item = getCommunicationItems().find((entry) => entry.id === itemId);
+    if (item) openCommunicationReplyCompose(item, replyMessageButton.hasAttribute('data-communication-report-feedback') ? 'Feedback' : 'Re');
+    renderCommunicationCenterInner(shell);
+    return;
+  }
+
+  const archiveButton = target.closest<HTMLElement>('[data-communication-archive]');
+  if (archiveButton) {
+    handled();
+    patchCommunicationItem(archiveButton.dataset.communicationArchive || '', { folder: 'archived', status: 'Archived', read: true });
+    state.selectedId = null;
+    renderCommunicationCenterInner(shell);
+    return;
+  }
+
+  const downloadAttachmentButton = target.closest<HTMLElement>('[data-communication-download-attachment]');
+  if (downloadAttachmentButton) {
+    handled();
+    const item = getCommunicationItems().find((entry) => entry.id === state.selectedId);
+    const attachmentIndex = Number(downloadAttachmentButton.dataset.communicationDownloadAttachment);
+    const attachment = item?.attachments?.[attachmentIndex];
+    if (attachment) downloadCommunicationAttachment(attachment, attachmentIndex);
+    return;
+  }
+
+  const openAttachmentButton = target.closest<HTMLElement>('[data-communication-open-attachment]');
+  if (openAttachmentButton) {
+    handled();
+    const item = getCommunicationItems().find((entry) => entry.id === state.selectedId);
+    const attachmentIndex = Number(openAttachmentButton.dataset.communicationOpenAttachment);
+    const attachment = item?.attachments?.[attachmentIndex];
+    if (attachment) openCommunicationAttachment(attachment, attachmentIndex);
+  }
+}
+
+function handleCommunicationInput(event: Event, shell: HTMLElement) {
+  const target = event.target as HTMLElement;
+  const state = communicationState;
+
+  const recipientSearch = target.closest<HTMLInputElement>('[data-communication-recipient-search]');
+  if (recipientSearch) {
+    updateCommunicationComposeDraftField('recipientSearch', recipientSearch.value);
+    const select = recipientSearch.closest('form')?.querySelector<HTMLSelectElement>('[data-communication-recipient-select]');
+    if (select) {
+      const selected = getFilteredCommunicationRecipientProfiles(recipientSearch.value)[0]?.id || '';
+      select.innerHTML = renderCommunicationRecipientOptions(selected, recipientSearch.value);
+      updateCommunicationComposeDraftField('recipientId', selected);
+    }
+    return;
+  }
+
+  const composeField = target.closest<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('[data-communication-compose-field]');
+  if (composeField) {
+    updateCommunicationComposeDraftField(composeField.name, composeField.value);
+    return;
+  }
+
+  if (target.matches('[data-communication-search]')) {
+    state.query = (target as HTMLInputElement).value;
+    renderCommunicationCenterInner(shell);
+    shell.querySelector<HTMLInputElement>('[data-communication-search]')?.focus();
+    return;
+  }
+
+  if (target.matches('[data-communication-date-search]')) {
+    state.date = (target as HTMLInputElement).value;
+    renderCommunicationCenterInner(shell);
+  }
+}
+
+function handleCommunicationChange(event: Event, shell: HTMLElement) {
+  const target = event.target as HTMLElement;
+  const state = communicationState;
+
+  const recipientSelect = target.closest<HTMLSelectElement>('[data-communication-recipient-select]');
+  if (recipientSelect) {
+    updateCommunicationComposeDraftField('recipientId', recipientSelect.value);
+    return;
+  }
+
+  const attachmentInput = target.closest<HTMLInputElement>('[data-communication-attachment]');
+  if (attachmentInput) {
+    state.composeDraft = {
+      ...(state.composeDraft || {}),
+      attachments: Array.from(attachmentInput.files || []).map((file) => ({
+        id: `att-${Date.now()}-${file.name}`,
+        name: file.name,
+        fileType: file.type || 'file'
+      }))
+    };
+    renderCommunicationCenterInner(shell);
+  }
+}
+
+function handleCommunicationSubmit(event: Event, shell: HTMLElement) {
+  const form = (event.target as HTMLElement).closest<HTMLFormElement>('[data-communication-compose], [data-communication-reply]');
+  if (!form) return;
+  event.preventDefault();
+  event.stopPropagation();
+
+  const state = communicationState;
+  const replyForm = form.matches('[data-communication-reply]') ? form : null;
+  const composeForm = form.matches('[data-communication-compose]') ? form : null;
+
+  if (composeForm) {
+    syncCommunicationComposeDraft(composeForm);
+    const formData = new FormData(composeForm);
+    const recipient = getProfileById(String(formData.get('recipientId') || ''));
+    const category = String(formData.get('category') || 'General Message');
+    const kind = String(formData.get('kind') || '').trim() || (/clarification/i.test(category) ? 'clarification' : 'message');
+    const subject = String(formData.get('subject') || 'Procurement message');
+    const body = String(formData.get('body') || '');
+    const tenderReference = String(formData.get('tenderReference') || 'Not linked');
+    const relatedMessageId = String(state.composeDraft?.relatedMessageId || '');
+    const relatedMessage = relatedMessageId ? getCommunicationItems().find((entry) => entry.id === relatedMessageId) : null;
+    const conversationId = relatedMessage?.conversationId || relatedMessage?.contextKey || `conversation-${Date.now()}`;
+
+    const sentItem = addCommunicationItem({
+      kind,
+      category,
+      subject,
+      body,
+      senderId: 'user-001',
+      senderType: 'Business',
+      senderName: 'Kilimanjaro Supplies Limited',
+      recipientId: recipient.id,
+      recipientType: recipient.type,
+      recipientName: recipient.name,
+      tenderId: String(formData.get('tenderId') || tenderReference),
+      tenderReference,
+      tenderTitle: String(formData.get('tenderTitle') || tenderReference || 'Tender communication'),
+      status: kind === 'clarification' ? 'Pending Buyer Response' : 'Read',
+      priority: 'Normal',
+      folder: 'sent',
+      read: true,
+      visibility: 'Private',
+      attachments: (state.composeDraft?.attachments as CommunicationAttachment[] | undefined) || [],
+      relatedMessageId,
+      conversationId,
+      contextKey: conversationId,
+      audience: ['user', 'all']
+    });
+
+    if (relatedMessage) {
+      patchCommunicationItem(relatedMessageId, {
+        status: relatedMessage.kind === 'clarification' ? 'Answered' : 'Replied',
+        read: true,
+        conversationId,
+        contextKey: conversationId,
+        thread: [
+          ...(relatedMessage.thread || []),
+          { senderType: 'Business', senderName: 'Kilimanjaro Supplies Limited', body, createdAt: new Date().toISOString() }
+        ]
+      });
+    }
+
+    state.composeOpen = false;
+    state.composeDraft = null;
+    state.tab = 'Sent';
+    state.selectedId = sentItem.id;
+    renderCommunicationCenterInner(shell);
+    return;
+  }
+
+  if (replyForm) {
+    const itemId = replyForm.dataset.communicationReply || '';
+    const formData = new FormData(replyForm);
+    const body = String(formData.get('body') || '').trim();
+    if (!body) {
+      window.alert('Write a response before sending.');
+      return;
+    }
+    const item = getCommunicationItems().find((entry) => entry.id === itemId);
+    const visibility = String(formData.get('visibility') || 'Reply to this supplier only');
+    const conversationId = item?.conversationId || item?.contextKey || `conversation-${Date.now()}`;
+    patchCommunicationItem(itemId, {
+      status: visibility.toLowerCase().includes('all bidders') ? 'Published to All Bidders' : 'Answered',
+      read: true,
+      visibility: visibility.toLowerCase().includes('all bidders') ? 'Public to all bidders' : 'Private',
+      conversationId,
+      contextKey: conversationId,
+      thread: [
+        ...(item?.thread || []),
+        { senderType: 'Business', senderName: 'Kilimanjaro Supplies Limited', body, notice: visibility, createdAt: new Date().toISOString() }
+      ]
+    });
+    renderCommunicationCenterInner(shell);
+  }
+}
+
+export function initializeCommunicationCenterPrototype(root: HTMLElement) {
+  const shell = root.querySelector<HTMLElement>('[data-communication-center]');
+  if (!shell || shell.dataset.ready === 'true') return;
+
+  communicationState.selectedId = null;
+  communicationState.tab = 'Inbox';
+  communicationState.folder = 'Inbox';
+  communicationState.query = '';
+  communicationState.date = '';
+  communicationState.category = 'All categories';
+  communicationState.composeOpen = false;
+  communicationState.composeDraft = null;
+
+  renderCommunicationCenterInner(shell);
+
+  shell.addEventListener('click', (event) => handleCommunicationClick(event, shell));
+  shell.addEventListener('input', (event) => handleCommunicationInput(event, shell));
+  shell.addEventListener('change', (event) => handleCommunicationChange(event, shell));
+  shell.addEventListener('submit', (event) => handleCommunicationSubmit(event, shell));
+  shell.dataset.ready = 'true';
+}

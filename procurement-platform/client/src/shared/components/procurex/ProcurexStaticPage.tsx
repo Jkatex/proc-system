@@ -12,6 +12,7 @@ import { LanguageSwitcher } from '../LanguageSwitcher';
 type ProcurexStaticPageProps = {
   pageKey: string;
   html: string;
+  onInitialize?: (root: HTMLElement) => void;
 };
 
 const pageToRoute: Record<string, string> = {
@@ -812,6 +813,40 @@ function routeWithSearch(route: string, routeSearch: string) {
   return normalized ? `${route}?${normalized}` : route;
 }
 
+const dashboardNavigationTargets = new Set([
+  'workspace-dashboard',
+  'buyer-dashboard',
+  'supplier-dashboard',
+  'procurement-dashboard'
+]);
+
+const dashboardPageKeys = new Set([
+  'workspace-dashboard',
+  'buyer-dashboard',
+  'supplier-dashboard',
+  'procurement-dashboard'
+]);
+
+function hasBrowserHistoryEntry() {
+  if (typeof window === 'undefined') return true;
+  const state = window.history.state as { idx?: number } | null;
+  return typeof state?.idx !== 'number' || state.idx > 0;
+}
+
+function normalizeButtonText(target: HTMLElement) {
+  return target.textContent?.replace(/\s+/g, ' ').trim().toLowerCase() || '';
+}
+
+function shouldNavigateBack(target: HTMLElement, pageKey: string) {
+  if (target.hasAttribute('data-history-back')) return true;
+
+  const label = normalizeButtonText(target);
+  if (label === 'back' || label.startsWith('back to ')) return true;
+
+  const page = target.getAttribute('data-navigate') || '';
+  return target.classList.contains('app-brand-button') && dashboardNavigationTargets.has(page) && !dashboardPageKeys.has(pageKey);
+}
+
 function captureAwardContractSelection(target: HTMLElement) {
   const tenderId = target.getAttribute('data-select-tender');
   if (!tenderId || typeof window === 'undefined') return;
@@ -1297,7 +1332,7 @@ function handleRegisterSubmit(form: HTMLFormElement, root: HTMLElement) {
   return false;
 }
 
-export function ProcurexStaticPage({ pageKey, html }: ProcurexStaticPageProps) {
+export function ProcurexStaticPage({ pageKey, html, onInitialize }: ProcurexStaticPageProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [languageMount, setLanguageMount] = useState<HTMLElement | null>(null);
   const location = useLocation();
@@ -1324,6 +1359,21 @@ export function ProcurexStaticPage({ pageKey, html }: ProcurexStaticPageProps) {
       setLanguageMount(null);
     };
   }, [pageKey, staticHtml, i18n.language, location.key, location.search]);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || !languageMount) return;
+
+    initializeStaticPage(root, i18n.language, pageKey, location.search);
+    initializeAuthPage(root, pageKey);
+    if (pageKey === 'bid-evaluation') scrollPageToTop();
+  }, [pageKey, staticHtml, i18n.language, location.key, location.search, languageMount]);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || !onInitialize) return;
+    onInitialize(root);
+  }, [pageKey, staticHtml, i18n.language, location.key, location.search, languageMount, onInitialize]);
 
   function handleClick(event: MouseEvent<HTMLDivElement>) {
     const target = event.target as HTMLElement;
@@ -1553,13 +1603,24 @@ export function ProcurexStaticPage({ pageKey, html }: ProcurexStaticPageProps) {
       event.preventDefault();
       const page = navTarget.getAttribute('data-navigate') || 'welcome';
       const routeSearch = navTarget.getAttribute('data-route-search') || '';
+      const route = routeWithSearch(pageToRoute[page] || '/', routeSearch);
+
+      if (shouldNavigateBack(navTarget, pageKey)) {
+        if (hasBrowserHistoryEntry()) {
+          navigate(-1);
+        } else {
+          navigate(route);
+        }
+        return;
+      }
+
       captureAwardContractSelection(navTarget);
       if (page === 'bid-evaluation') clearEvaluationEntrySelection();
       if (pageKey === 'bid-evaluation' && page === 'bid-evaluation' && rootRef.current) {
         resetStaticPage(rootRef.current, staticHtml, i18n.language, pageKey, location.search);
         setLanguageMount(prepareLanguageSwitcherMount(rootRef.current));
       }
-      navigate(routeWithSearch(pageToRoute[page] || '/', routeSearch));
+      navigate(route);
       return;
     }
 
