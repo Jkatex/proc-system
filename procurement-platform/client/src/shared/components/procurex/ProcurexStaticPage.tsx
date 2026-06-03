@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, MouseEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, FormEvent, MouseEvent, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -167,6 +167,11 @@ function preserveWhitespace(original: string, translated: string) {
   return `${leading}${translated}${trailing}`;
 }
 
+function cssEscape(value: string) {
+  if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') return CSS.escape(value);
+  return value.replace(/["\\]/g, (char) => `\\${char}`);
+}
+
 function shouldTranslateNode(node: Text) {
   const parent = node.parentElement;
   if (!parent) return false;
@@ -290,14 +295,16 @@ function setNamedPanelTab(button: HTMLElement, buttonAttribute: string, panelAtt
 }
 
 function activateTabByName(root: HTMLElement, target: string) {
-  const tab = root.querySelector<HTMLElement>(`.tab[data-tab="${CSS.escape(target)}"]`);
+  const tab = root.querySelector<HTMLElement>(`.tab[data-tab="${cssEscape(target)}"]`);
   if (tab) setActiveTab(tab);
 }
 
 function setAwardingQueueTab(tab: HTMLElement) {
   const target = tab.getAttribute('data-tab');
   const tabGroup = tab.closest<HTMLElement>('.awarding-contract-tabs');
-  const tabContent = tabGroup?.nextElementSibling;
+  const tabContent =
+    tabGroup?.closest<HTMLElement>('.awarding-tabs-panel, .award-response-page, .post-award-page')?.querySelector<HTMLElement>('.awarding-tab-content') ??
+    tabGroup?.nextElementSibling;
   const scope = tab.closest<HTMLElement>('.procurex-react-page');
 
   if (!target || !tabGroup) return;
@@ -321,7 +328,7 @@ function setAwardingQueueTab(tab: HTMLElement) {
 
 function activateAwardingQueueTabByName(root: HTMLElement, target: string) {
   const tab = root.querySelector<HTMLElement>(
-    `.awarding-contract-tabs .supplier-detail-tab[data-tab="${CSS.escape(target)}"]`
+    `.awarding-contract-tabs .supplier-detail-tab[data-tab="${cssEscape(target)}"]`
   );
   if (tab) setAwardingQueueTab(tab);
 }
@@ -444,7 +451,7 @@ function activatePlanningAnchor(root: HTMLElement, link: HTMLAnchorElement) {
   const href = link.getAttribute('href');
   if (!href?.startsWith('#') || href.length < 2) return false;
 
-  const panel = root.querySelector<HTMLElement>(`#${CSS.escape(href.slice(1))}`);
+  const panel = root.querySelector<HTMLElement>(`#${cssEscape(href.slice(1))}`);
   if (!panel) return false;
 
   const tabName = panel.getAttribute('data-tab');
@@ -482,7 +489,7 @@ function openProcurementPlanDrawer(button: HTMLElement, root: HTMLElement) {
   const drawer = root.querySelector<HTMLElement>('[data-plan-drawer]');
   const content = root.querySelector<HTMLElement>('[data-plan-drawer-content]');
   const template = recordId
-    ? root.querySelector<HTMLTemplateElement>(`template[data-plan-template="${CSS.escape(recordId)}"]`)
+    ? root.querySelector<HTMLTemplateElement>(`template[data-plan-template="${cssEscape(recordId)}"]`)
     : null;
 
   if (!drawer || !content || !template) return;
@@ -502,7 +509,7 @@ function scrollProcurementPlanningTarget(button: HTMLElement, root: HTMLElement)
   const target = button.getAttribute('data-planning-scroll');
   if (!target) return;
 
-  const element = root.querySelector<HTMLElement>(`#${CSS.escape(target)}`) || root.querySelector<HTMLElement>(`[data-planning-panel="${CSS.escape(target)}"]`);
+  const element = root.querySelector<HTMLElement>(`#${cssEscape(target)}`) || root.querySelector<HTMLElement>(`[data-planning-panel="${cssEscape(target)}"]`);
   element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -1171,7 +1178,7 @@ export function ProcurexStaticPage({ pageKey, html }: ProcurexStaticPageProps) {
   const staticHtml = useMemo(() => createStaticHtmlWithLanguageMount(html), [html]);
   const staticPageInstanceKey = pageKey === 'bid-evaluation' ? `${pageKey}:${location.key}` : pageKey;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.body.dataset.page = pageKey;
     document.body.dataset.procurexReactPage = 'true';
     const root = rootRef.current;
@@ -1349,7 +1356,7 @@ export function ProcurexStaticPage({ pageKey, html }: ProcurexStaticPageProps) {
         return;
       }
       const id = last.getAttribute('data-column-id') || '';
-      rootRef.current.querySelectorAll<HTMLElement>(`[data-column-id="${CSS.escape(id)}"]`).forEach((cell) => cell.remove());
+      rootRef.current.querySelectorAll<HTMLElement>(`[data-column-id="${cssEscape(id)}"]`).forEach((cell) => cell.remove());
       rootRef.current.dataset.planningDirty = 'true';
       return;
     }
@@ -1415,7 +1422,7 @@ export function ProcurexStaticPage({ pageKey, html }: ProcurexStaticPageProps) {
     if (supplierJump && rootRef.current) {
       event.preventDefault();
       const section = rootRef.current.querySelector<HTMLElement>(
-        `[data-supplier-document-section="${CSS.escape(supplierJump.getAttribute('data-supplier-jump-target') ?? '')}"]`
+        `[data-supplier-document-section="${cssEscape(supplierJump.getAttribute('data-supplier-jump-target') ?? '')}"]`
       );
       section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;

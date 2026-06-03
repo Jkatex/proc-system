@@ -4,18 +4,25 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '@/app/store';
 import { PageHeader } from '@/shared/components';
-import { signInWithEmail } from '../slice';
+import { signInWithCredentials } from '../slice';
 
 export function SignInPage() {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('user@company.tz');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const user = await dispatch(signInWithEmail(email)).unwrap();
-    navigate(user.accountType === 'ADMIN' ? '/admin' : '/dashboard');
+    setError('');
+    try {
+      const session = await dispatch(signInWithCredentials({ email, password })).unwrap();
+      navigate(session.user.accountType === 'ADMIN' ? '/admin' : session.user.verificationStatus === 'APPROVED' ? '/dashboard' : '/identity/verification');
+    } catch {
+      setError('Sign-in failed. Check the email and password.');
+    }
   }
 
   return (
@@ -25,7 +32,8 @@ export function SignInPage() {
         <CardContent>
           <form className="px-form-grid" onSubmit={(event) => void submit(event)}>
             <TextField label="Email" value={email} onChange={(event) => setEmail(event.target.value)} />
-            <TextField label="Password" type="password" defaultValue="Procure1!" />
+            <TextField label="Password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+            {error ? <p className="form-error-new">{error}</p> : null}
             <Button type="submit" variant="contained">
               {t('actions.signIn')}
             </Button>
@@ -48,10 +56,10 @@ export function RegisterPage() {
         <Card className="px-card">
           <CardContent>
             <div className="px-form-grid">
-              <TextField label="Company name" defaultValue="Kilimanjaro Supplies Limited" />
-              <TextField label="Email" defaultValue="newuser@procurex.test" />
-              <TextField label="Phone" defaultValue="+255 712 345 678" />
-              <TextField label="Password" type="password" defaultValue="Newuser1!" />
+              <TextField label="Company name" placeholder="Enter company name" />
+              <TextField label="Email" placeholder="Enter email address" />
+              <TextField label="Phone" placeholder="Enter phone number" />
+              <TextField label="Password" type="password" placeholder="Create password" />
             </div>
             <div className="px-actions">
               <Button component={Link} to="/identity/verification" variant="contained">

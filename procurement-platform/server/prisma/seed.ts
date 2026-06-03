@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import { randomBytes, scrypt as scryptCallback } from 'node:crypto';
+import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import {
   AccountType,
@@ -33,6 +35,13 @@ const __dirname = path.dirname(__filename);
 const uiDataPath = path.resolve(__dirname, '../../../procurex-ui/js/data.js');
 
 type AnyRecord = Record<string, any>;
+const scrypt = promisify(scryptCallback);
+
+async function hashSeedPassword(password: string): Promise<string> {
+  const salt = randomBytes(16).toString('hex');
+  const derived = (await scrypt(password, salt, 64)) as Buffer;
+  return `scrypt:${salt}:${derived.toString('hex')}`;
+}
 
 function loadUiMockData(): AnyRecord {
   const source = fs.readFileSync(uiDataPath, 'utf8');
@@ -207,25 +216,41 @@ async function main() {
 
     const adminUser = await db.user.upsert({
       where: { email: 'admin@procurex.tz' },
-      update: { displayName: 'Admin User', accountType: AccountType.ADMIN, verificationStatus: VerificationStatus.APPROVED },
+      update: {
+        displayName: 'Admin User',
+        accountType: AccountType.ADMIN,
+        verificationStatus: VerificationStatus.APPROVED,
+        passwordHash: await hashSeedPassword('Admin123!'),
+        metadata: { phoneVerified: true, emailVerified: true }
+      },
       create: {
         email: 'admin@procurex.tz',
         phone: '+255 715 555 666',
         displayName: 'Admin User',
         accountType: AccountType.ADMIN,
-        verificationStatus: VerificationStatus.APPROVED
+        verificationStatus: VerificationStatus.APPROVED,
+        passwordHash: await hashSeedPassword('Admin123!'),
+        metadata: { phoneVerified: true, emailVerified: true }
       }
     });
 
     const companyUser = await db.user.upsert({
       where: { email: 'user@company.tz' },
-      update: { displayName: mockData.users?.current?.name ?? 'Kilimanjaro Supplies Limited', accountType: AccountType.USER, verificationStatus: VerificationStatus.APPROVED },
+      update: {
+        displayName: mockData.users?.current?.name ?? 'Kilimanjaro Supplies Limited',
+        accountType: AccountType.USER,
+        verificationStatus: VerificationStatus.APPROVED,
+        passwordHash: await hashSeedPassword('Procure1!'),
+        metadata: { phoneVerified: true, emailVerified: true }
+      },
       create: {
         email: 'user@company.tz',
         phone: '+255 713 111 222',
         displayName: mockData.users?.current?.name ?? 'Kilimanjaro Supplies Limited',
         accountType: AccountType.USER,
-        verificationStatus: VerificationStatus.APPROVED
+        verificationStatus: VerificationStatus.APPROVED,
+        passwordHash: await hashSeedPassword('Procure1!'),
+        metadata: { phoneVerified: true, emailVerified: true }
       }
     });
 
@@ -234,6 +259,74 @@ async function main() {
         where: { provider_providerUserId: { provider: 'password', providerUserId: user.email } },
         update: { accountType: user.accountType },
         create: { userId: user.id, provider: 'password', providerUserId: user.email, accountType: user.accountType }
+      });
+    }
+
+    const registryRecords = [
+      {
+        source: 'TRA',
+        registryNumber: '123-456-789',
+        entityType: 'individual',
+        name: 'Mariam Saidi Nyoni',
+        payload: {
+          tin: '123-456-789',
+          email: 'mariam.nyoni@example.co.tz',
+          mobileNumber: '0718 462 390',
+          physicalAddress: 'Plot 24, Mbezi Beach, Dar es Salaam',
+          postalAddress: 'P.O. Box 20418',
+          taxRegion: 'DSM',
+          registeredOn: '2022-05-18',
+          summaryRows: [
+            ['Name', 'Mariam Saidi Nyoni'],
+            ['Taxpayer Identification Number', '123-456-789'],
+            ['Status', 'CER'],
+            ['Location', 'Dar es Salaam, Tanzania']
+          ]
+        }
+      },
+      {
+        source: 'BRELA',
+        registryNumber: '123456789',
+        entityType: 'company',
+        name: 'Kilimanjaro Supplies Limited',
+        payload: {
+          registrationNumber: '123456789',
+          companyType: 'Private limited company',
+          registeredOn: '2021-02-12',
+          location: 'Arusha, Tanzania',
+          summaryRows: [
+            ['Company name', 'Kilimanjaro Supplies Limited'],
+            ['BRELA number', '123456789'],
+            ['Status', 'Active'],
+            ['Location', 'Arusha, Tanzania']
+          ]
+        }
+      },
+      {
+        source: 'BRELA',
+        registryNumber: 'BN-123456',
+        entityType: 'business',
+        name: 'Zahra Omari Business Services',
+        payload: {
+          businessNumber: 'BN-123456',
+          registrationMethod: 'BRELA business name',
+          registeredOn: '2023-09-04',
+          location: 'Dodoma, Tanzania',
+          summaryRows: [
+            ['Business name', 'Zahra Omari Business Services'],
+            ['Business number', 'BN-123456'],
+            ['Status', 'Active'],
+            ['Location', 'Dodoma, Tanzania']
+          ]
+        }
+      }
+    ];
+
+    for (const record of registryRecords) {
+      await db.registryRecord.upsert({
+        where: { source_registryNumber: { source: record.source, registryNumber: record.registryNumber } },
+        update: record,
+        create: record
       });
     }
 
@@ -570,4 +663,3 @@ main()
     await prisma.$disconnect();
     process.exit(1);
   });
-
