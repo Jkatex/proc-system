@@ -284,7 +284,7 @@ function renderProcurementPlanningRow(record) {
     `;
 }
 
-function renderProcurementPlanningTimeline(records) {
+function renderProcurementPlanTimelinePanel(records) {
     return records.map(record => `
         <article class="planning-timeline-card">
             <div class="planning-timeline-head">
@@ -306,22 +306,94 @@ function renderProcurementPlanningTimeline(records) {
     `).join('');
 }
 
-function renderProcurementPlanningDocuments(records) {
+function renderProcurementPlanDocumentsPanel(records) {
     const documents = records.flatMap(record => (record.documents || []).map(document => ({ ...document, appCode: record.appCode, item: record.itemDescription })));
-    return documents.map(document => `
-        <article class="planning-upload-tile planning-document-register-card">
-            <div>
-                <strong>${escapeProcurementPlanningHtml(document.type)}</strong>
-                <span>${escapeProcurementPlanningHtml(document.name)}</span>
-                <em>${escapeProcurementPlanningHtml(document.appCode)} / ${escapeProcurementPlanningHtml(document.item)}</em>
-            </div>
-            <span class="badge ${getProcurementPlanningBadgeClass(document.status)}">${escapeProcurementPlanningHtml(document.status)}</span>
-            <input type="file" aria-label="Attach ${escapeProcurementPlanningHtml(document.type)}">
-        </article>
-    `).join('');
+    const requiredTypes = ['APP Template', 'Needs Assessment', 'Specifications / TOR', 'Budget Confirmation', 'Market Survey', 'Approval Memo', 'Board Minutes'];
+    const acceptedCount = documents.filter(document => /accepted/i.test(document.status)).length;
+    const reviewCount = documents.filter(document => /review|pending|draft/i.test(document.status)).length;
+    const issueCount = documents.filter(document => /missing|returned|rejected/i.test(document.status)).length;
+
+    const documentCoverage = requiredTypes.map(type => {
+        const matches = documents.filter(document => document.type === type);
+        const accepted = matches.filter(document => /accepted/i.test(document.status)).length;
+        const missing = Math.max(0, records.length - matches.length);
+        const status = missing ? 'Missing' : accepted === matches.length ? 'Accepted' : 'Review';
+        return { type, count: matches.length, accepted, missing, status };
+    });
+
+    return `
+        <div class="procurement-documents-workspace">
+            <section class="procurement-documents-hero">
+                <div>
+                    <span class="section-kicker">Document readiness</span>
+                    <h3>APP evidence register</h3>
+                    <p>Upload and monitor the documents required before procurement planning can move into tender preparation.</p>
+                </div>
+                <label class="procurement-documents-upload">
+                    <span>Drop or select files</span>
+                    <strong>Upload APP documents</strong>
+                    <em>PDF, DOCX, XLSX, and scanned approvals</em>
+                    <input type="file" multiple aria-label="Upload procurement planning documents">
+                </label>
+            </section>
+
+            <section class="procurement-documents-summary" aria-label="Document summary">
+                <article><span>Total files</span><strong>${documents.length}</strong><em>Evidence linked to APP items</em></article>
+                <article class="success"><span>Accepted</span><strong>${acceptedCount}</strong><em>Cleared for planning review</em></article>
+                <article class="warning"><span>In review</span><strong>${reviewCount}</strong><em>Pending officer action</em></article>
+                <article class="error"><span>Issues</span><strong>${issueCount}</strong><em>Missing, returned, or rejected</em></article>
+            </section>
+
+            <section class="procurement-documents-layout">
+                <article class="procurement-documents-checklist">
+                    <div class="planning-timeline-head">
+                        <div>
+                            <span class="section-kicker">Required set</span>
+                            <h3>Document checklist</h3>
+                        </div>
+                    </div>
+                    <div class="procurement-document-type-list">
+                        ${documentCoverage.map(document => `
+                            <div>
+                                <span>${escapeProcurementPlanningHtml(document.type)}</span>
+                                <strong>${document.count}/${records.length} linked</strong>
+                                <em class="${getProcurementPlanningBadgeClass(document.status)}">${escapeProcurementPlanningHtml(document.status)}</em>
+                            </div>
+                        `).join('')}
+                    </div>
+                </article>
+
+                <article class="procurement-documents-register">
+                    <div class="planning-timeline-head">
+                        <div>
+                            <span class="section-kicker">File register</span>
+                            <h3>Attached documents</h3>
+                        </div>
+                        <button class="btn btn-secondary btn-sm" type="button">Export list</button>
+                    </div>
+                    <div class="procurement-document-register-list">
+                        ${documents.map(document => `
+                            <article class="procurement-document-row">
+                                <div>
+                                    <strong>${escapeProcurementPlanningHtml(document.type)}</strong>
+                                    <span>${escapeProcurementPlanningHtml(document.name)}</span>
+                                </div>
+                                <div>
+                                    <span>${escapeProcurementPlanningHtml(document.appCode)}</span>
+                                    <em>${escapeProcurementPlanningHtml(document.item)}</em>
+                                </div>
+                                <span class="badge ${getProcurementPlanningBadgeClass(document.status)}">${escapeProcurementPlanningHtml(document.status)}</span>
+                                <button class="btn btn-secondary btn-sm" type="button">Review</button>
+                            </article>
+                        `).join('')}
+                    </div>
+                </article>
+            </section>
+        </div>
+    `;
 }
 
-function renderProcurementPlanningApprovals(records) {
+function renderProcurementPlanApprovalsPanel(records) {
     return records.map(record => `
         <article class="planning-approval-card">
             <div class="planning-timeline-head">
@@ -473,22 +545,15 @@ function renderTenderPlanning() {
                     </div>
 
                     <div class="planning-view-panel" data-planning-panel="timeline">
-                        <div class="planning-timeline-list">${renderProcurementPlanningTimeline(records)}</div>
+                        <div class="planning-timeline-list">${renderProcurementPlanTimelinePanel(records)}</div>
                     </div>
 
                     <div class="planning-view-panel" data-planning-panel="documents" id="planning-documents">
-                        <div class="planning-upload-box app-upload-panel procurement-plan-upload-box">
-                            <div>
-                                <strong>Upload APP supporting documents</strong>
-                                <span>APP template, needs assessment, specifications/TOR, budget confirmation, market survey, approval memo, and board minutes.</span>
-                            </div>
-                            <input type="file" multiple aria-label="Upload procurement planning documents">
-                        </div>
-                        <div class="app-upload-grid procurement-document-grid">${renderProcurementPlanningDocuments(records)}</div>
+                        ${renderProcurementPlanDocumentsPanel(records)}
                     </div>
 
                     <div class="planning-view-panel" data-planning-panel="approvals" id="planning-approvals">
-                        <div class="planning-approval-list">${renderProcurementPlanningApprovals(records)}</div>
+                        <div class="planning-approval-list">${renderProcurementPlanApprovalsPanel(records)}</div>
                     </div>
                 </section>
 

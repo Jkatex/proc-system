@@ -30399,6 +30399,243 @@ body[data-page="tender-planning"] .tender-planning-content {
     font-style: normal;
 }
 
+.procurement-documents-workspace {
+    display: grid;
+    gap: 14px;
+}
+
+.procurement-documents-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
+    gap: 14px;
+    align-items: stretch;
+    border: 1px solid rgba(0, 128, 128, 0.18);
+    border-radius: 8px;
+    background: linear-gradient(135deg, #ffffff 0%, #f4fbfb 100%);
+    padding: 16px;
+}
+
+.procurement-documents-hero h3 {
+    margin: 4px 0 6px;
+    color: var(--planning-ink);
+    font-size: 24px;
+    line-height: 1.15;
+}
+
+.procurement-documents-hero p {
+    max-width: 720px;
+    margin: 0;
+    color: var(--planning-muted);
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.procurement-documents-upload {
+    display: grid;
+    gap: 5px;
+    align-content: center;
+    min-height: 132px;
+    border: 1px dashed rgba(0, 128, 128, 0.36);
+    border-radius: 8px;
+    background: #ffffff;
+    padding: 16px;
+    cursor: pointer;
+}
+
+.procurement-documents-upload span {
+    width: fit-content;
+    border-radius: 999px;
+    background: rgba(0, 128, 128, 0.1);
+    color: var(--planning-teal);
+    padding: 5px 9px;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.procurement-documents-upload strong {
+    color: var(--planning-ink);
+    font-size: 18px;
+}
+
+.procurement-documents-upload em {
+    color: var(--planning-muted);
+    font-size: 13px;
+    font-style: normal;
+}
+
+.procurement-documents-upload input {
+    width: 100%;
+    min-width: 0;
+    margin-top: 8px;
+    color: var(--planning-muted);
+    font-size: 12px;
+}
+
+.procurement-documents-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.procurement-documents-summary article {
+    display: grid;
+    gap: 6px;
+    min-height: 104px;
+    border: 1px solid var(--planning-line);
+    border-radius: 8px;
+    background: var(--card-bg);
+    padding: 14px;
+}
+
+.procurement-documents-summary span,
+.procurement-documents-summary em {
+    color: var(--planning-muted);
+    font-size: 12px;
+    font-style: normal;
+}
+
+.procurement-documents-summary strong {
+    color: var(--planning-ink);
+    font-size: 28px;
+    line-height: 1;
+}
+
+.procurement-documents-summary .success strong {
+    color: var(--success-green);
+}
+
+.procurement-documents-summary .warning strong {
+    color: var(--warning-amber);
+}
+
+.procurement-documents-summary .error strong {
+    color: var(--error-red);
+}
+
+.procurement-documents-layout {
+    display: grid;
+    grid-template-columns: minmax(240px, 0.34fr) minmax(0, 0.66fr);
+    gap: 14px;
+    align-items: start;
+}
+
+.procurement-documents-checklist,
+.procurement-documents-register {
+    min-width: 0;
+    border: 1px solid var(--planning-line);
+    border-radius: 8px;
+    background: var(--card-bg);
+    padding: 16px;
+}
+
+.procurement-documents-checklist .planning-timeline-head,
+.procurement-documents-register .planning-timeline-head {
+    margin-bottom: 12px;
+}
+
+.procurement-document-type-list,
+.procurement-document-register-list {
+    display: grid;
+    gap: 8px;
+}
+
+.procurement-document-type-list div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 10px;
+    align-items: center;
+    border: 1px solid var(--planning-line);
+    border-radius: 8px;
+    background: var(--surface-soft);
+    padding: 10px;
+}
+
+.procurement-document-type-list span {
+    color: var(--planning-ink);
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.procurement-document-type-list strong {
+    color: var(--planning-muted);
+    font-size: 12px;
+}
+
+.procurement-document-type-list em {
+    grid-column: 1 / -1;
+    width: fit-content;
+    border-radius: 999px;
+    background: rgba(7, 19, 26, 0.08);
+    color: var(--planning-muted);
+    padding: 4px 8px;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 900;
+}
+
+.procurement-document-type-list em.badge-success {
+    background: rgba(22, 131, 74, 0.1);
+    color: var(--success-green);
+}
+
+.procurement-document-type-list em.badge-warning {
+    background: rgba(183, 121, 31, 0.12);
+    color: var(--warning-amber);
+}
+
+.procurement-document-type-list em.badge-error {
+    background: rgba(176, 0, 32, 0.1);
+    color: var(--error-red);
+}
+
+.procurement-document-row {
+    display: grid;
+    grid-template-columns: minmax(220px, 1.1fr) minmax(180px, 0.9fr) auto auto;
+    gap: 12px;
+    align-items: center;
+    border: 1px solid var(--planning-line);
+    border-radius: 8px;
+    background: var(--surface-soft);
+    padding: 12px;
+}
+
+.procurement-document-row div {
+    min-width: 0;
+}
+
+.procurement-document-row strong,
+.procurement-document-row span,
+.procurement-document-row em {
+    display: block;
+    min-width: 0;
+}
+
+.procurement-document-row strong {
+    color: var(--planning-ink);
+    font-size: 14px;
+    line-height: 1.25;
+}
+
+.procurement-document-row span {
+    color: var(--planning-muted);
+    font-size: 12px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.procurement-document-row div:nth-child(2) span {
+    color: var(--planning-ink);
+    font-weight: 900;
+}
+
+.procurement-document-row em {
+    color: var(--planning-muted);
+    font-size: 12px;
+    font-style: normal;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
 .procurement-plan-date-grid {
     margin-top: 14px;
 }
@@ -30578,6 +30815,19 @@ body[data-page="tender-planning"] .tender-planning-content {
         padding-top: 8px;
         border-top: 1px solid var(--planning-line);
     }
+
+    .procurement-documents-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .procurement-document-row {
+        grid-template-columns: minmax(220px, 1fr) minmax(180px, 0.8fr) auto;
+    }
+
+    .procurement-document-row .btn {
+        grid-column: 1 / -1;
+        width: fit-content;
+    }
 }
 
 @media (max-width: 900px) {
@@ -30599,8 +30849,19 @@ body[data-page="tender-planning"] .tender-planning-content {
     .planning-milestone-grid,
     .planning-approval-steps,
     .procurement-plan-detail-grid,
-    .procurement-plan-upload-box {
+    .procurement-plan-upload-box,
+    .procurement-documents-hero,
+    .procurement-documents-summary {
         grid-template-columns: 1fr;
+    }
+
+    .procurement-document-row {
+        grid-template-columns: 1fr auto;
+    }
+
+    .procurement-document-row div:nth-child(2),
+    .procurement-document-row .btn {
+        grid-column: 1 / -1;
     }
 }
 
@@ -30611,5 +30872,20 @@ body[data-page="tender-planning"] .tender-planning-content {
 
     .procurement-plan-drawer-panel {
         padding: 18px;
+    }
+
+    .procurement-documents-hero,
+    .procurement-documents-checklist,
+    .procurement-documents-register {
+        padding: 14px;
+    }
+
+    .procurement-document-row {
+        grid-template-columns: 1fr;
+    }
+
+    .procurement-document-row .badge,
+    .procurement-document-row .btn {
+        width: fit-content;
     }
 }
