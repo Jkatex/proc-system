@@ -1422,13 +1422,13 @@ function renderGoodsOpeningRegister(tender = {}, bids = [], goodsDraft = {}) {
                 <div>
                     <span class="section-kicker">Bid opening register</span>
                     <h2>Open submitted goods bids</h2>
-                    <p>Record bid opening status and read-out information. Bid opening does not decide responsiveness.</p>
+                    <p>Record bid opening read-out information. Bid opening does not decide responsiveness.</p>
                 </div>
                 ${renderEvaluationStatusBadge('Manual buyer record')}
             </div>
             <div class="evaluation-table-scroll">
                 <table class="goods-evaluation-table">
-                    <thead><tr><th>Supplier</th><th>Submission time</th><th>Receipt no.</th><th>Bid value</th><th>Currency</th><th>Status</th><th>Opening remark</th></tr></thead>
+                    <thead><tr><th>Supplier</th><th>Submission time</th><th>Receipt no.</th><th>Bid value</th><th>Opening remark</th></tr></thead>
                     <tbody>
                         ${bids.map((bid, index) => {
                             const supplier = getGoodsEvaluationSupplierKey(bid, index);
@@ -1439,8 +1439,6 @@ function renderGoodsOpeningRegister(tender = {}, bids = [], goodsDraft = {}) {
                                     <td>${escapeEvaluationHtml(bid.submissionTime || '-')}</td>
                                     <td>${escapeEvaluationHtml(bid.integrityHash || bid.submittedBid?.receiptHash || '-')}</td>
                                     <td>${formatEvaluationMoney(getGoodsEvaluationFinancialAmount(bid), bid.financial?.currency || 'TZS')}</td>
-                                    <td>${escapeEvaluationHtml(bid.financial?.currency || 'TZS')}</td>
-                                    <td><select class="form-input" data-goods-opening-status>${['Sealed', 'Opened', 'Late Submission', 'Withdrawn', 'Accepted for Evaluation', 'Rejected at Opening'].map(option => `<option ${String(saved.status || 'Opened') === option ? 'selected' : ''}>${option}</option>`).join('')}</select></td>
                                     <td><input class="form-input" data-goods-opening-remark value="${escapeEvaluationHtml(saved.remark || 'Submitted on time')}"></td>
                                 </tr>
                             `;
@@ -2180,13 +2178,13 @@ function renderWorksOpeningRegister(tender = {}, bids = [], worksDraft = {}) {
                 <div>
                     <span class="section-kicker">Bid opening register</span>
                     <h2>Open submitted works bids</h2>
-                    <p>Record read-out price, bid security, completion period, and opening status. This stage does not decide responsiveness.</p>
+                    <p>Record read-out price, bid security, completion period, and opening remarks. This stage does not decide responsiveness.</p>
                 </div>
                 ${renderEvaluationStatusBadge('Manual buyer record')}
             </div>
             <div class="evaluation-table-scroll">
                 <table class="works-evaluation-table goods-evaluation-table">
-                    <thead><tr><th>Contractor</th><th>Submission time</th><th>Receipt no.</th><th>Read-out price</th><th>Bid security</th><th>Completion period</th><th>Status</th><th>Opening remark</th></tr></thead>
+                    <thead><tr><th>Contractor</th><th>Submission time</th><th>Receipt no.</th><th>Read-out price</th><th>Bid security</th><th>Completion period</th><th>Opening remark</th></tr></thead>
                     <tbody>
                         ${bids.map((bid, index) => {
                             const contractor = getWorksEvaluationContractorKey(bid, index);
@@ -2199,7 +2197,6 @@ function renderWorksOpeningRegister(tender = {}, bids = [], worksDraft = {}) {
                                     <td>${formatEvaluationMoney(getWorksEvaluationFinancialAmount(bid), bid.financial?.currency || 'TZS')}</td>
                                     <td><select class="form-input" data-works-opening-bid-security>${['', 'Submitted', 'Missing', 'Not Applicable', 'Clarification Required'].map(option => `<option value="${escapeEvaluationHtml(option)}" ${String(saved.bidSecurityStatus || 'Submitted') === option ? 'selected' : ''}>${escapeEvaluationHtml(option || 'Select status')}</option>`).join('')}</select></td>
                                     <td><input class="form-input" data-works-opening-completion value="${escapeEvaluationHtml(saved.completionPeriodOffered || '')}" placeholder="e.g. 10 months"></td>
-                                    <td><select class="form-input" data-works-opening-status>${['Sealed', 'Opened', 'Late Submission', 'Withdrawn', 'Rejected at Opening', 'Accepted for Evaluation'].map(option => `<option ${String(saved.status || 'Opened') === option ? 'selected' : ''}>${option}</option>`).join('')}</select></td>
                                     <td><input class="form-input" data-works-opening-remark value="${escapeEvaluationHtml(saved.remark || 'Opening record captured')}"></td>
                                 </tr>
                             `;
@@ -4424,8 +4421,9 @@ function collectEvaluationDraftFromDom(reference = '', status = 'Saved as draft'
         document.querySelectorAll('[data-goods-opening-row]').forEach(row => {
             const supplier = row.getAttribute('data-supplier') || '';
             if (!supplier) return;
+            const existingOpening = goods.opening[supplier] || {};
             goods.opening[supplier] = {
-                status: row.querySelector('[data-goods-opening-status]')?.value || '',
+                status: row.querySelector('[data-goods-opening-status]')?.value || existingOpening.status || 'Opened',
                 remark: row.querySelector('[data-goods-opening-remark]')?.value || '',
                 updatedAt: new Date().toISOString()
             };
@@ -4530,8 +4528,9 @@ function collectEvaluationDraftFromDom(reference = '', status = 'Saved as draft'
         document.querySelectorAll('[data-works-opening-row]').forEach(row => {
             const contractor = row.getAttribute('data-contractor') || '';
             if (!contractor) return;
+            const existingOpening = works.opening[contractor] || {};
             works.opening[contractor] = {
-                status: row.querySelector('[data-works-opening-status]')?.value || '',
+                status: row.querySelector('[data-works-opening-status]')?.value || existingOpening.status || 'Opened',
                 bidSecurityStatus: row.querySelector('[data-works-opening-bid-security]')?.value || '',
                 completionPeriodOffered: row.querySelector('[data-works-opening-completion]')?.value || '',
                 remark: row.querySelector('[data-works-opening-remark]')?.value || '',
