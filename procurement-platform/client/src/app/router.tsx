@@ -43,6 +43,7 @@ export const router = createBrowserRouter([
   { path: '/evaluation', element: protectedPage('bid-evaluation') },
   { path: '/awards-contracts', element: protectedPage('awarding-contracts') },
   { path: '/awards-contracts/recommendation', element: protectedPage('award-recommendation') },
+  { path: '/awards-contracts/award-response', element: protectedPage('award-response') },
   { path: '/awards-contracts/negotiation', element: protectedPage('contract-negotiation') },
   { path: '/awards-contracts/post-award', element: protectedPage('post-award-tracking') },
   { path: '/communication', element: protectedPage('communication-center') },

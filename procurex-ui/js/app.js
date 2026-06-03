@@ -60,7 +60,8 @@ class ProcureXApp {
                     window.selectProcurexTender(tenderId);
                 }
                 const page = link.getAttribute('data-navigate');
-                this.navigateTo(page);
+                const routeSearch = link.getAttribute('data-route-search') || '';
+                this.navigateTo(page, true, { routeSearch });
             }
         });
 
@@ -93,11 +94,16 @@ class ProcureXApp {
         }
         const previousPage = this.currentPage;
         this.currentPage = page;
-        if (updateHistory && page !== previousPage) {
-            const url = `?page=${page}`;
+        const routeSearch = this.normalizeRouteSearch(options.routeSearch || '');
+        if (updateHistory && (page !== previousPage || routeSearch)) {
+            const url = `?page=${page}${routeSearch ? `&${routeSearch}` : ''}`;
             history.pushState({ page }, '', url);
         }
         this.renderPage();
+    }
+
+    normalizeRouteSearch(routeSearch = '') {
+        return String(routeSearch || '').replace(/^\?/, '').replace(/^&/, '');
     }
 
     clearEvaluationEntrySelection() {
@@ -309,6 +315,7 @@ class ProcureXApp {
             'bid-evaluation': 'Evaluation',
             'awarding-contracts': 'Awarding and Contract',
             'award-recommendation': 'Awarding and Contract',
+            'award-response': 'Awarding and Contract',
             'contract-negotiation': 'Awarding and Contract',
             'post-award-tracking': 'Awarding and Contract'
         };
@@ -373,6 +380,7 @@ class ProcureXApp {
             'bid-evaluation': 'workspace-dashboard',
             'awarding-contracts': 'workspace-dashboard',
             'award-recommendation': 'awarding-contracts',
+            'award-response': 'awarding-contracts',
             'contract-negotiation': 'awarding-contracts',
             'post-award-tracking': 'contract-negotiation'
         };
@@ -436,6 +444,7 @@ class ProcureXApp {
             'bid-evaluation': 'Bid Evaluation',
             'awarding-contracts': 'Awarding and Contracts',
             'award-recommendation': 'Award Recommendation',
+            'award-response': 'Awards Received',
             'contract-negotiation': 'Contract Negotiation',
             'post-award-tracking': 'Post-Award Tracking'
         };
@@ -499,6 +508,15 @@ class ProcureXApp {
         }
         if (typeof window.initializeAwardRecommendation === 'function') {
             window.initializeAwardRecommendation();
+        }
+        if (typeof window.initializeAwardResponse === 'function') {
+            window.initializeAwardResponse();
+        }
+        if (typeof window.initializeContractNegotiation === 'function') {
+            window.initializeContractNegotiation();
+        }
+        if (typeof window.initializePostAwardTracking === 'function') {
+            window.initializePostAwardTracking();
         }
         if (typeof window.initializeAwardContractDraftControls === 'function') {
             window.initializeAwardContractDraftControls();
@@ -2032,6 +2050,7 @@ class ProcureXApp {
             'bid-evaluation',
             'awarding-contracts',
             'award-recommendation',
+            'award-response',
             'contract-negotiation',
             'post-award-tracking'
         ];

@@ -249,8 +249,8 @@ function getEvaluationProfileId(tender = {}) {
         return getCreateTenderTypeId(tender.procurementTypeId || tender.type || tender.category || tender.id || 'works');
     }
     const raw = String(tender.procurementTypeId || tender.type || tender.category || '').toLowerCase();
+    if (/non[-\s]?consultancy|service/.test(raw)) return 'services';
     if (/consult/.test(raw)) return 'consultancy';
-    if (/service/.test(raw)) return 'services';
     if (/goods|supply|equipment|laboratory/.test(raw)) return 'goods';
     return 'works';
 }
@@ -2220,6 +2220,7 @@ function renderGoodsBidEvaluationWorkspace(tender = {}) {
                 <div class="inline-actions">
                     <button class="btn btn-secondary" type="button" data-evaluation-save-draft="${escapeEvaluationHtml(tender.reference)}">Save Draft</button>
                     <button class="btn btn-secondary" type="button" data-evaluation-view-report="${escapeEvaluationHtml(tender.reference)}">Preview Report</button>
+                    <button class="btn btn-secondary" type="button" data-evaluation-download-report="${escapeEvaluationHtml(tender.reference)}">Download Report</button>
                     <button class="btn btn-primary" type="button" data-evaluation-complete="${escapeEvaluationHtml(tender.reference)}" ${completion.canComplete ? '' : 'disabled'}>Complete Evaluation</button>
                 </div>
             </div>
@@ -2988,6 +2989,7 @@ function renderWorksBidEvaluationWorkspace(tender = {}) {
                 <div class="inline-actions">
                     <button class="btn btn-secondary" type="button" data-evaluation-save-draft="${escapeEvaluationHtml(tender.reference)}">Save Draft</button>
                     <button class="btn btn-secondary" type="button" data-evaluation-view-report="${escapeEvaluationHtml(tender.reference)}">Preview Report</button>
+                    <button class="btn btn-secondary" type="button" data-evaluation-download-report="${escapeEvaluationHtml(tender.reference)}">Download Report</button>
                     <button class="btn btn-primary" type="button" data-evaluation-complete="${escapeEvaluationHtml(tender.reference)}" ${completion.canComplete ? '' : 'disabled'}>Complete Evaluation</button>
                 </div>
             </div>
@@ -3022,7 +3024,7 @@ function getServiceFinancialAmount(bid = {}) {
 
 function getServiceCategory(tender = {}) {
     const source = tender.sourceTender || tender;
-    return source.requirements?.fields?.serviceCategory || source.category || source.type || 'Services';
+    return source.requirements?.fields?.serviceCategory || source.category || source.type || 'Non Consultancy';
 }
 
 function getServicePricingRows(tender = {}, bid = {}) {
@@ -3781,6 +3783,7 @@ function renderServiceBidEvaluationWorkspace(tender = {}) {
                 <div class="inline-actions">
                     <button class="btn btn-secondary" type="button" data-evaluation-save-draft="${escapeEvaluationHtml(tender.reference)}">Save Draft</button>
                     <button class="btn btn-secondary" type="button" data-evaluation-view-report="${escapeEvaluationHtml(tender.reference)}">Preview Report</button>
+                    <button class="btn btn-secondary" type="button" data-evaluation-download-report="${escapeEvaluationHtml(tender.reference)}">Download Report</button>
                     <button class="btn btn-primary" type="button" data-evaluation-complete="${escapeEvaluationHtml(tender.reference)}" ${completion.canComplete ? '' : 'disabled'}>Complete Evaluation</button>
                 </div>
             </div>
@@ -4574,6 +4577,7 @@ function renderConsultancyBidEvaluationWorkspace(tender = {}) {
                 <div class="inline-actions">
                     <button class="btn btn-secondary" type="button" data-evaluation-save-draft="${escapeEvaluationHtml(tender.reference)}">Save Draft</button>
                     <button class="btn btn-secondary" type="button" data-evaluation-view-report="${escapeEvaluationHtml(tender.reference)}">Preview Report</button>
+                    <button class="btn btn-secondary" type="button" data-evaluation-download-report="${escapeEvaluationHtml(tender.reference)}">Download Report</button>
                     <button class="btn btn-primary" type="button" data-evaluation-complete="${escapeEvaluationHtml(tender.reference)}" ${completion.canComplete ? '' : 'disabled'}>Complete Evaluation</button>
                 </div>
             </div>

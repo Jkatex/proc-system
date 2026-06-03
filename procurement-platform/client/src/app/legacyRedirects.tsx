@@ -32,6 +32,7 @@ const pageRouteAliases: Record<string, string> = {
   'bid-evaluation': '/evaluation',
   'awarding-contracts': '/awards-contracts',
   'award-recommendation': '/awards-contracts/recommendation',
+  'award-response': '/awards-contracts/award-response',
   'contract-negotiation': '/awards-contracts/negotiation',
   'post-award-tracking': '/awards-contracts/post-award',
   'communication-center': '/communication',

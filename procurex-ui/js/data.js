@@ -1267,7 +1267,7 @@ const mockData = {
         {
             id: 'PX-SVC-2026-001',
             title: 'Managed Cybersecurity Monitoring Service',
-            type: 'Service',
+            type: 'Non Consultancy',
             procurementTypeId: 'services',
             status: 'Open',
             budget: 1480000000,
@@ -1378,7 +1378,7 @@ const mockData = {
         {
             id: 'PX-SVC-2026-002',
             title: 'Hospital Cleaning, Laundry, and Waste Handling Services',
-            type: 'Service',
+            type: 'Non Consultancy',
             procurementTypeId: 'services',
             status: 'Open',
             budget: 920000000,
@@ -1489,7 +1489,7 @@ const mockData = {
         {
             id: 'PX-SVC-2026-003',
             title: 'Regional Student Meal Catering Services',
-            type: 'Service',
+            type: 'Non Consultancy',
             procurementTypeId: 'services',
             status: 'Open',
             budget: 1560000000,
@@ -1606,7 +1606,7 @@ const mockData = {
         {
             id: 'PX-SVC-2026-004',
             title: 'Fleet Maintenance and Breakdown Recovery Services',
-            type: 'Service',
+            type: 'Non Consultancy',
             procurementTypeId: 'services',
             status: 'Open',
             budget: 760000000,
@@ -2653,7 +2653,7 @@ const mockData = {
         {
             id: 'PX-SRV-2026-003',
             title: 'Office Cleaning and Maintenance Services',
-            type: 'Service',
+            type: 'Non Consultancy',
             procurementTypeId: 'services',
             status: 'Open',
             budget: 72000000,
@@ -2719,7 +2719,7 @@ const mockData = {
         {
             id: 'PX-SRV-2026-004',
             title: 'Vehicle Maintenance and Repair Services',
-            type: 'Service',
+            type: 'Non Consultancy',
             procurementTypeId: 'services',
             status: 'Open',
             budget: 95000000,
@@ -2783,7 +2783,7 @@ const mockData = {
         {
             id: 'PX-SRV-2026-005',
             title: 'Security Guarding Services for Government Building',
-            type: 'Service',
+            type: 'Non Consultancy',
             procurementTypeId: 'services',
             status: 'Open',
             budget: 148000000,
@@ -2854,7 +2854,7 @@ const mockData = {
         {
             id: 'PX-SRV-2026-006',
             title: 'Transport and Courier Service',
-            type: 'Service',
+            type: 'Non Consultancy',
             procurementTypeId: 'services',
             status: 'Open',
             budget: 65000000,
@@ -3210,7 +3210,7 @@ const mockData = {
         {
             id: 'PX-SRV-2026-007',
             title: 'Waste Management and Garbage Collection Service',
-            type: 'Service',
+            type: 'Non Consultancy',
             procurementTypeId: 'services',
             status: 'Open',
             budget: 58000000,
@@ -3272,7 +3272,7 @@ const mockData = {
         {
             id: 'PX-SRV-2026-008',
             title: 'Office Catering and Food Service',
-            type: 'Service',
+            type: 'Non Consultancy',
             procurementTypeId: 'services',
             status: 'Open',
             budget: 42000000,
@@ -3879,7 +3879,7 @@ const mockData = {
         {
             id: 'PX-SRV-2026-009',
             title: 'Office Messenger Service - 6 Months',
-            type: 'Service',
+            type: 'Non Consultancy',
             procurementTypeId: 'services',
             status: 'Open',
             budget: 3000000,
@@ -3926,7 +3926,7 @@ const mockData = {
         {
             id: 'PX-SRV-2026-010',
             title: 'Gardening and Lawn Maintenance - Monthly',
-            type: 'Service',
+            type: 'Non Consultancy',
             procurementTypeId: 'services',
             status: 'Open',
             budget: 4500000,
@@ -3973,7 +3973,7 @@ const mockData = {
         {
             id: 'PX-SRV-2026-011',
             title: 'Watchman Service - 3 Months',
-            type: 'Service',
+            type: 'Non Consultancy',
             procurementTypeId: 'services',
             status: 'Open',
             budget: 4200000,
@@ -4020,7 +4020,7 @@ const mockData = {
         {
             id: 'PX-SRV-2026-012',
             title: 'Computer Technical Support - Per Month',
-            type: 'Service',
+            type: 'Non Consultancy',
             procurementTypeId: 'services',
             status: 'Open',
             budget: 5400000,
@@ -4067,7 +4067,7 @@ const mockData = {
         {
             id: 'PX-SRV-2026-013',
             title: 'Car Wash Service - Weekly',
-            type: 'Service',
+            type: 'Non Consultancy',
             procurementTypeId: 'services',
             status: 'Open',
             budget: 2880000,
@@ -4422,7 +4422,7 @@ const mockData = {
             },
             {
                 id: 'services',
-                label: 'Service',
+                label: 'Non Consultancy',
                 description: 'Operational services where advisory expertise is not the main component.',
                 categories: [
                     'Auction Services',
@@ -4913,9 +4913,9 @@ const mockData = {
     // Awarding and Contracts lifecycle workspace
     awardingContracts: {
         summary: [
-            { label: 'Pending Awarding', value: 3, detail: 'Buyer-side tenders ready for award or contract action', tab: 'pending-awarding' },
-            { label: 'Awarded to you', value: 3, detail: 'Supplier-side awards awaiting response, review, or signature', tab: 'awarded-to-us' },
-            { label: 'Pending Action', value: 4, detail: 'Contracts needing buyer or supplier action', tab: 'pending-action' },
+            { label: 'Awarding in Progress', value: 3, detail: 'Buyer-side tenders moving from evaluation results to draft contract', tab: 'awarding-in-progress' },
+            { label: 'Awards Received', value: 3, detail: 'Supplier-side awards awaiting response, review, or signature', tab: 'awards-received' },
+            { label: 'Contracts in Progress', value: 4, detail: 'Drafting, review, negotiation, approval, and signing actions', tab: 'contracts-in-progress' },
             { label: 'Active Contracts', value: 2, detail: 'Signed contracts under delivery and payment tracking', tab: 'active-contracts' },
             { label: 'Closed Contracts', value: 2, detail: 'Completed, terminated, or archived contract records', tab: 'closed-contracts' }
         ],
@@ -4948,7 +4948,7 @@ const mockData = {
                 tenderId: 'PX-SVC-2026-003',
                 title: 'Cleaning Services Framework',
                 reference: 'PX-TND-2026-033',
-                procurementType: 'Services',
+                procurementType: 'Non Consultancy',
                 evaluationStatus: 'Ready',
                 recommendedSupplier: 'Usafi Pro Services',
                 awardStatus: 'Notice Drafted',
@@ -4967,7 +4967,8 @@ const mockData = {
                 awardStatus: 'Awaiting Acceptance',
                 contractStatus: 'Not Started',
                 requiredAction: 'Accept Award',
-                nav: 'award-recommendation'
+                nav: 'award-response',
+                supplierResponse: { decision: '', message: '', reason: '', respondedAt: '', status: 'Awaiting Acceptance' }
             },
             {
                 tenderId: 'supplier-award-2',
@@ -4978,7 +4979,8 @@ const mockData = {
                 awardStatus: 'Award Accepted',
                 contractStatus: 'Contract Review',
                 requiredAction: 'Review Contract',
-                nav: 'contract-negotiation'
+                nav: 'award-response',
+                supplierResponse: { decision: 'accept', message: 'We accept the award and are reviewing the draft contract.', reason: '', respondedAt: '2026-07-02T09:00:00.000Z', status: 'Award Accepted' }
             },
             {
                 tenderId: 'supplier-award-3',
@@ -4989,7 +4991,8 @@ const mockData = {
                 awardStatus: 'Terms Agreed',
                 contractStatus: 'Awaiting Your Signature',
                 requiredAction: 'Sign Contract',
-                nav: 'contract-negotiation'
+                nav: 'award-response',
+                supplierResponse: { decision: 'accept', message: 'Terms agreed. Signature pending.', reason: '', respondedAt: '2026-07-02T11:30:00.000Z', status: 'Terms Agreed' }
             }
         ],
         pendingActions: [
@@ -5924,13 +5927,13 @@ function sanitizeAwardContractDraftObject(value) {
 function normalizeAwardContractType(tender = {}) {
     const raw = String(tender.procurementTypeId || tender.type || tender.procurementType || tender.category || 'works').toLowerCase();
     if (raw.includes('good')) return 'goods';
+    if (raw.includes('non consultancy') || raw.includes('non-consultancy') || raw.includes('service')) return 'services';
     if (raw.includes('consult')) return 'consultancy';
-    if (raw.includes('service')) return 'services';
     return 'works';
 }
 
 function getAwardContractTypeLabel(typeId) {
-    return ({ goods: 'Goods', works: 'Works', services: 'Services', consultancy: 'Consultancy' })[typeId] || 'Works';
+    return ({ goods: 'Goods', works: 'Works', services: 'Non Consultancy', consultancy: 'Consultancy' })[typeId] || 'Works';
 }
 
 function getSelectedAwardContractTender() {
@@ -5943,7 +5946,7 @@ function getSelectedAwardContractTender() {
                 id: selectedId,
                 reference: selectedId,
                 title: row.title,
-                type: row.procurementType || 'Services',
+                type: row.procurementType || 'Non Consultancy',
                 procurementTypeId: normalizeAwardContractType(row),
                 organization: row.buyer,
                 createdByCurrentUser: false,
@@ -6098,10 +6101,22 @@ function createAwardContractDraftFromTender(tender = getSelectedAwardContractTen
             approvalConfirmed: false
         },
         notification: {
+            noticeType: 'Notice of Intention to Award',
+            recipientScope: 'All bidders',
+            deliveryMethod: 'ProcureX portal and email',
             subject: `Notice of Award - ${title}`,
             message: 'Your company has been selected for award subject to acceptance and contract finalization.',
             responseDeadline: '',
-            notifyUnsuccessful: 'Yes'
+            notifyUnsuccessful: 'Yes',
+            debriefOption: 'Allow debrief requests',
+            complaintDeadline: fallback.award?.standstillEnd || ''
+        },
+        supplierResponse: {
+            decision: '',
+            message: '',
+            reason: '',
+            respondedAt: '',
+            status: tender.createdByCurrentUser === false ? 'Awaiting Acceptance' : 'Not Required'
         },
         contract: {
             contractId: fallbackContract.contractId || `CTR-${reference}`,
@@ -6150,6 +6165,7 @@ function loadAwardContractDraft(tenderId, tender = null) {
                 hasRestorableDraft: true,
                 awardDecision: { ...baseDraft.awardDecision, ...(sanitized.awardDecision || {}) },
                 notification: { ...baseDraft.notification, ...(sanitized.notification || {}) },
+                supplierResponse: { ...baseDraft.supplierResponse, ...(sanitized.supplierResponse || {}) },
                 contract: { ...baseDraft.contract, ...(sanitized.contract || {}) },
                 clauses: sanitized.clauses?.length ? sanitized.clauses : buildTypeSpecificClauses(selectedTender),
                 documents: sanitized.documents?.length ? sanitized.documents : buildRequiredDocuments(selectedTender)
@@ -6169,6 +6185,7 @@ function saveAwardContractDraft(tenderId, patch = {}) {
         ...sanitizeAwardContractDraftObject(patch),
         awardDecision: { ...(current.awardDecision || {}), ...(sanitizeAwardContractDraftObject(patch.awardDecision || {})) },
         notification: { ...(current.notification || {}), ...(sanitizeAwardContractDraftObject(patch.notification || {})) },
+        supplierResponse: { ...(current.supplierResponse || {}), ...(sanitizeAwardContractDraftObject(patch.supplierResponse || {})) },
         contract: { ...(current.contract || {}), ...(sanitizeAwardContractDraftObject(patch.contract || {})) },
         lastEditedAt: new Date().toISOString(),
         savedAt: new Date().toISOString(),
