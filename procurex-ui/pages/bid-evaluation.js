@@ -5289,7 +5289,11 @@ if (typeof document !== 'undefined' && !window.procurexEvaluationRedesignListene
             return;
         }
 
-        if (window.app?.navigateTo) window.app.navigateTo('bid-evaluation');
+        if (window.app?.navigateTo) {
+            window.app.navigateTo('bid-evaluation', true, {
+                preserveEvaluationSelection: Boolean(getSelectedEvaluationTenderReference() || getSelectedEvaluationReportReference())
+            });
+        }
     });
 
     document.addEventListener('input', (event) => {

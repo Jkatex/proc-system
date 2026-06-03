@@ -75,7 +75,7 @@ class ProcureXApp {
         });
     }
 
-    navigateTo(page, updateHistory = true) {
+    navigateTo(page, updateHistory = true, options = {}) {
         const pageAliases = {
             'buyer-dashboard': 'workspace-dashboard',
             'supplier-dashboard': 'workspace-dashboard',
@@ -88,7 +88,7 @@ class ProcureXApp {
             'verification-status': 'account-profile'
         };
         page = pageAliases[page] || page;
-        if (page === 'bid-evaluation') {
+        if (page === 'bid-evaluation' && !options.preserveEvaluationSelection) {
             this.clearEvaluationEntrySelection();
         }
         const previousPage = this.currentPage;
@@ -1372,7 +1372,30 @@ class ProcureXApp {
             isAuthenticated: true,
             isNewUser: !account.ekycCompleted,
             email,
-            accountType: account.accountType || 'user'
+            accountType: account.accountType || 'user',
+            userId: account.userId || '',
+            entityType: account.entityType || 'company',
+            displayName: account.displayName || account.organization || email,
+            organization: account.organization || account.displayName || email,
+            canCreateTender: account.canCreateTender !== false && account.entityType !== 'individual'
+        };
+        mockData.users.current = {
+            ...(mockData.users.current || {}),
+            name: account.displayName || account.organization || email,
+            organization: account.organization || account.displayName || email,
+            trustTier: account.ekycCompleted ? 'Verified' : 'Pending',
+            riskScore: account.riskScore || mockData.users.current?.riskScore || 82,
+            bidLimit: account.bidLimit || mockData.users.current?.bidLimit || 5000000000
+        };
+        mockData.users.supplier = {
+            ...(mockData.users.supplier || {}),
+            name: account.displayName || account.organization || email,
+            organization: account.organization || account.displayName || email
+        };
+        mockData.users.buyer = {
+            ...(mockData.users.buyer || {}),
+            name: account.displayName || account.organization || email,
+            organization: account.organization || account.displayName || email
         };
 
         if (account.accountType === 'admin' || account.role === 'admin') {
@@ -1813,10 +1836,14 @@ class ProcureXApp {
         const index = accounts.findIndex(item => item.email.toLowerCase() === account.email.toLowerCase());
         const nextAccount = {
             displayName: account.displayName || account.email,
+            organization: account.organization || account.displayName || account.email,
             phone: account.phone || '',
             password: account.password,
+            userId: account.userId || (account.email ? `usr-${String(account.email).replace(/[^a-z0-9]/gi, '-').toLowerCase()}` : ''),
             role: account.role || null,
             accountType: account.accountType || (account.role === 'admin' ? 'admin' : account.ekycCompleted ? 'existing user' : 'new user'),
+            entityType: account.entityType || 'individual',
+            canCreateTender: account.canCreateTender !== false && account.entityType !== 'individual',
             isNewUser: account.isNewUser ?? !account.ekycCompleted,
             ekycCompleted: Boolean(account.ekycCompleted),
             email: account.email

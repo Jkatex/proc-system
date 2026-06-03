@@ -32,6 +32,232 @@ function createMockProductSpecificationTemplate(customColumns = [], rows = [], o
     };
 }
 
+const procurexSeedOwnerProfiles = {
+    company: {
+        userId: 'usr-company-kilimanjaro',
+        email: 'company@procurex.test',
+        displayName: 'Kilimanjaro Supplies Limited',
+        organization: 'Kilimanjaro Supplies Limited',
+        entityType: 'company',
+        canCreateTender: true
+    },
+    business: {
+        userId: 'usr-business-zahra',
+        email: 'business@procurex.test',
+        displayName: 'Zahra Omari Business Services',
+        organization: 'Zahra Omari Business Services',
+        entityType: 'business',
+        canCreateTender: true
+    },
+    individual: {
+        userId: 'usr-individual-asha',
+        email: 'individual@procurex.test',
+        displayName: 'Asha Mwinyi',
+        organization: 'Asha Mwinyi',
+        entityType: 'individual',
+        canCreateTender: false
+    },
+    legacyCompany: {
+        userId: 'usr-company-legacy',
+        email: 'user@company.tz',
+        displayName: 'Kilimanjaro Supplies Limited',
+        organization: 'Kilimanjaro Supplies Limited',
+        entityType: 'company',
+        canCreateTender: true
+    }
+};
+
+const procurexSeedTenderOwnerMap = {
+    'PX-WRK-2026-001': procurexSeedOwnerProfiles.company,
+    'PX-WRK-2026-002': procurexSeedOwnerProfiles.company,
+    'PX-GDS-2026-002': procurexSeedOwnerProfiles.business,
+    'PX-SVC-2026-003': procurexSeedOwnerProfiles.business,
+    'PX-CNS-2026-001': procurexSeedOwnerProfiles.legacyCompany
+};
+
+function getProcurexCurrentAccount() {
+    const email = String(mockData.session?.email || mockData.pendingAccount?.email || '').toLowerCase();
+    const account = (mockData.mockAuth?.accounts || []).find(item => String(item.email || '').toLowerCase() === email)
+        || mockData.pendingAccount
+        || (mockData.mockAuth?.accounts || []).find(item => item.accountType !== 'admin' && item.ekycCompleted)
+        || {};
+    return {
+        ...account,
+        userId: account.userId || (account.email ? `usr-${String(account.email).replace(/[^a-z0-9]/gi, '-').toLowerCase()}` : ''),
+        entityType: account.entityType || 'company',
+        organization: account.organization || account.displayName || account.email || '',
+        canCreateTender: account.canCreateTender !== false && account.entityType !== 'individual'
+    };
+}
+
+function getProcurexCurrentOwnerId() {
+    const account = getProcurexCurrentAccount();
+    return account.userId || account.email || '';
+}
+
+function getProcurexOwnerProfileForTender(tender = {}) {
+    const key = tender.id || tender.reference || '';
+    return tender.ownerId || tender.ownerEmail
+        ? {
+            userId: tender.ownerId || '',
+            email: tender.ownerEmail || '',
+            displayName: tender.ownerName || tender.organization || '',
+            organization: tender.ownerOrganization || tender.organization || '',
+            entityType: tender.ownerEntityType || ''
+        }
+        : (procurexSeedTenderOwnerMap[key] || null);
+}
+
+function stampProcurexOwnership(target = {}, owner = getProcurexCurrentAccount(), prefix = 'owner') {
+    return {
+        ...target,
+        [`${prefix}Id`]: owner.userId || owner.email || '',
+        [`${prefix}Email`]: owner.email || '',
+        [`${prefix}Name`]: owner.displayName || owner.organization || owner.email || '',
+        [`${prefix}Organization`]: owner.organization || owner.displayName || owner.email || '',
+        [`${prefix}EntityType`]: owner.entityType || 'company'
+    };
+}
+
+function normalizeProcurexTenderOwnership(tender = {}) {
+    const seedOwner = getProcurexOwnerProfileForTender(tender);
+    const ownerId = tender.ownerId || seedOwner?.userId || '';
+    const ownerEmail = tender.ownerEmail || seedOwner?.email || '';
+    const ownerName = tender.ownerName || seedOwner?.displayName || tender.organization || '';
+    const ownerOrganization = tender.ownerOrganization || seedOwner?.organization || tender.organization || '';
+    return {
+        ...tender,
+        ownerId,
+        ownerEmail,
+        ownerName,
+        ownerOrganization,
+        ownerEntityType: tender.ownerEntityType || seedOwner?.entityType || '',
+        createdByCurrentUser: Boolean(
+            ownerId && ownerId === getProcurexCurrentOwnerId()
+            || ownerEmail && ownerEmail.toLowerCase() === String(getProcurexCurrentAccount().email || '').toLowerCase()
+            || tender.createdByCurrentUser === true && !ownerId && !ownerEmail
+        )
+    };
+}
+
+function isProcurexTenderOwnedByCurrentUser(tender = {}) {
+    return normalizeProcurexTenderOwnership(tender).createdByCurrentUser === true;
+}
+
+function isProcurexBidOwnedByCurrentUser(bid = {}) {
+    const account = getProcurexCurrentAccount();
+    const ownerId = bid.supplierOwnerId || bid.ownerId || bid.userId || '';
+    const ownerEmail = String(bid.supplierEmail || bid.ownerEmail || bid.email || '').toLowerCase();
+    if (ownerId) return ownerId === getProcurexCurrentOwnerId();
+    if (ownerEmail) return ownerEmail === String(account.email || '').toLowerCase();
+    const supplier = String(bid.supplier || bid.draft?.supplier || bid.draft?.supplierName || '').toLowerCase();
+    return Boolean(supplier && [account.organization, account.displayName, mockData.users?.supplier?.organization].filter(Boolean).map(value => String(value).toLowerCase()).includes(supplier));
+}
+
+function readProcurexStoredObject(key, fallback = null) {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(key) || 'null');
+        return parsed === null ? fallback : parsed;
+    } catch (error) {
+        return fallback;
+    }
+}
+
+function getProcurexMyTenderRows() {
+    const tenders = (typeof getProcurexAllTenders === 'function' ? getProcurexAllTenders() : (mockData.tenders || []))
+        .map(normalizeProcurexTenderOwnership)
+        .filter(isProcurexTenderOwnedByCurrentUser);
+    const draft = readProcurexStoredObject('procurex.createTender.v2.savedDraft', null);
+    const draftOwnerId = draft?.ownerId || '';
+    const draftOwnerEmail = String(draft?.ownerEmail || '').toLowerCase();
+    const currentEmail = String(getProcurexCurrentAccount().email || '').toLowerCase();
+    const rows = tenders.map(tender => ({
+        id: tender.id || tender.reference,
+        tender,
+        title: tender.title || 'Tender',
+        type: tender.type || tender.procurementTypeId || 'Tender',
+        status: tender.status || 'Published',
+        section: /closed|completed|cancelled|awarded/i.test(tender.status || '') ? 'completed' : 'posted',
+        lastActivity: tender.publishedAt || tender.createdAt || tender.closingDate || '',
+        actionLabel: 'View My Tender',
+        nav: 'tender-details'
+    }));
+    if (draft && Object.keys(draft).length && (!draftOwnerId && !draftOwnerEmail || draftOwnerId === getProcurexCurrentOwnerId() || draftOwnerEmail === currentEmail)) {
+        rows.unshift({
+            id: 'current-tender-draft',
+            tender: draft,
+            title: draft.title || draft.mainDetails?.title || 'Tender creation draft',
+            type: draft.type || draft.procurementTypeId || 'Tender draft',
+            status: draft.status || 'Saved as draft',
+            section: 'draft',
+            lastActivity: draft.savedAt || '',
+            actionLabel: 'Continue Draft',
+            nav: 'create-tender'
+        });
+    }
+    return rows.sort((a, b) => Date.parse(b.lastActivity || 0) - Date.parse(a.lastActivity || 0));
+}
+
+function getProcurexMyBidRows() {
+    const tenders = typeof getProcurexAllTenders === 'function' ? getProcurexAllTenders() : (mockData.tenders || []);
+    const rows = [];
+    const draftPrefix = 'procurex.supplierBidDraft.v1.';
+    for (let index = 0; index < localStorage.length; index += 1) {
+        const key = localStorage.key(index);
+        if (!key || !key.startsWith(draftPrefix)) continue;
+        const draft = readProcurexStoredObject(key, null);
+        if (!draft || !Object.keys(draft).length || !isProcurexBidOwnedByCurrentUser(draft)) continue;
+        const tenderId = key.slice(draftPrefix.length);
+        const tender = tenders.find(item => String(item.id || item.reference) === String(tenderId)) || {};
+        rows.push({
+            id: `bid-draft-${tenderId}`,
+            tenderId,
+            tender,
+            bid: draft,
+            title: tender.title || draft.title || 'Bid draft',
+            status: 'Draft',
+            section: 'draft',
+            lastActivity: draft.savedAt || '',
+            amount: draft.total || '',
+            actionLabel: 'Continue Bid',
+            nav: 'bidding-workspace'
+        });
+    }
+    ['procurex.bidWorkspaceSubmitted.v1', 'procurex.supplierSubmittedBids.v1'].forEach(key => {
+        const submitted = readProcurexStoredObject(key, []);
+        (Array.isArray(submitted) ? submitted : []).forEach((bid, index) => {
+            if (!isProcurexBidOwnedByCurrentUser(bid)) return;
+            const tender = tenders.find(item => String(item.id || item.reference) === String(bid.tenderId || '')) || {};
+            rows.push({
+                id: `submitted-bid-${bid.tenderId || index}`,
+                tenderId: bid.tenderId,
+                tender,
+                bid,
+                title: tender.title || bid.tenderTitle || bid.tenderId || 'Submitted bid',
+                status: 'Submitted',
+                section: 'submitted',
+                lastActivity: bid.submittedAt || '',
+                amount: bid.draft?.total || bid.total || '',
+                receiptHash: bid.receiptHash || '',
+                actionLabel: 'View Receipt',
+                nav: 'bidding-workspace'
+            });
+        });
+    });
+    return rows.sort((a, b) => Date.parse(b.lastActivity || 0) - Date.parse(a.lastActivity || 0));
+}
+
+if (typeof window !== 'undefined') {
+    window.getProcurexCurrentAccount = getProcurexCurrentAccount;
+    window.getProcurexCurrentOwnerId = getProcurexCurrentOwnerId;
+    window.stampProcurexOwnership = stampProcurexOwnership;
+    window.normalizeProcurexTenderOwnership = normalizeProcurexTenderOwnership;
+    window.isProcurexTenderOwnedByCurrentUser = isProcurexTenderOwnedByCurrentUser;
+    window.isProcurexBidOwnedByCurrentUser = isProcurexBidOwnedByCurrentUser;
+    window.getProcurexMyTenderRows = getProcurexMyTenderRows;
+    window.getProcurexMyBidRows = getProcurexMyBidRows;
+}
+
 const mockData = {
     // One company account can create tenders, bid, evaluate its tenders, and award. Admin is a separate platform compliance account.
     accountTypes: ['user', 'admin'],
@@ -62,30 +288,82 @@ const mockData = {
                 email: 'newuser@procurex.test',
                 phone: '+255 712 345 678',
                 password: 'Newuser1!',
+                userId: 'usr-new-demo',
                 role: null,
                 accountType: 'new user',
+                entityType: 'individual',
                 isNewUser: true,
                 ekycCompleted: false,
+                canCreateTender: false,
                 displayName: 'New User Account'
+            },
+            {
+                email: 'company@procurex.test',
+                phone: '+255 713 111 222',
+                password: 'Procure1!',
+                userId: 'usr-company-kilimanjaro',
+                role: null,
+                accountType: 'user',
+                entityType: 'company',
+                isNewUser: false,
+                ekycCompleted: true,
+                canCreateTender: true,
+                displayName: 'Kilimanjaro Supplies Limited',
+                organization: 'Kilimanjaro Supplies Limited'
+            },
+            {
+                email: 'business@procurex.test',
+                phone: '+255 714 222 333',
+                password: 'Procure1!',
+                userId: 'usr-business-zahra',
+                role: null,
+                accountType: 'user',
+                entityType: 'business',
+                isNewUser: false,
+                ekycCompleted: true,
+                canCreateTender: true,
+                displayName: 'Zahra Omari Business Services',
+                organization: 'Zahra Omari Business Services'
+            },
+            {
+                email: 'individual@procurex.test',
+                phone: '+255 714 333 444',
+                password: 'Procure1!',
+                userId: 'usr-individual-asha',
+                role: null,
+                accountType: 'user',
+                entityType: 'individual',
+                isNewUser: false,
+                ekycCompleted: true,
+                canCreateTender: false,
+                displayName: 'Asha Mwinyi',
+                organization: 'Asha Mwinyi'
             },
             {
                 email: 'user@company.tz',
                 phone: '+255 713 111 222',
                 password: 'Procure1!',
+                userId: 'usr-company-legacy',
                 role: null,
                 accountType: 'user',
+                entityType: 'company',
                 isNewUser: false,
                 ekycCompleted: true,
-                displayName: 'Kilimanjaro Supplies Limited'
+                canCreateTender: true,
+                displayName: 'Kilimanjaro Supplies Limited',
+                organization: 'Kilimanjaro Supplies Limited'
             },
             {
                 email: 'admin@procurex.tz',
                 phone: '+255 715 555 666',
                 password: 'Admin123!',
+                userId: 'usr-admin-platform',
                 role: 'admin',
                 accountType: 'admin',
+                entityType: 'admin',
                 isNewUser: false,
                 ekycCompleted: true,
+                canCreateTender: false,
                 displayName: 'Admin User'
             }
         ]

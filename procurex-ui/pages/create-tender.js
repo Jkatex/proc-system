@@ -3636,7 +3636,9 @@ function mergeProcurexTenders(baseTenders = mockData.tenders || []) {
     return [
         ...published,
         ...baseTenders.filter(tender => !publishedIds.has(tender.id))
-    ];
+    ].map(tender => typeof normalizeProcurexTenderOwnership === 'function'
+        ? normalizeProcurexTenderOwnership(tender)
+        : tender);
 }
 
 function isProcurexTenderPast(tender) {
@@ -3646,7 +3648,7 @@ function isProcurexTenderPast(tender) {
 
 function isProcurexTenderVisibleToCurrentUser(tender) {
     if (tender.visibility !== 'Invited suppliers only') return true;
-    if (tender.createdByCurrentUser) return true;
+    if (typeof isProcurexTenderOwnedByCurrentUser === 'function' ? isProcurexTenderOwnedByCurrentUser(tender) : tender.createdByCurrentUser) return true;
 
     const supplier = mockData.users?.supplier || {};
     const currentSupplierNames = new Set([supplier.name, supplier.organization].filter(Boolean).map(value => value.toLowerCase()));
@@ -3669,7 +3671,7 @@ function getProcurexAllTenders() {
 }
 
 function getProcurexBuyerActiveTenders() {
-    return mergeProcurexTenders().filter(tender => tender.createdByCurrentUser && !['Awarded', 'Cancelled'].includes(tender.status) && !isProcurexTenderPast(tender));
+    return mergeProcurexTenders().filter(tender => (typeof isProcurexTenderOwnedByCurrentUser === 'function' ? isProcurexTenderOwnedByCurrentUser(tender) : tender.createdByCurrentUser) && !['Awarded', 'Cancelled'].includes(tender.status) && !isProcurexTenderPast(tender));
 }
 
 function getProcurexTenderHistoryRecords() {
@@ -3726,6 +3728,7 @@ function publishCreateTenderToMarketplace(wizard) {
     const documents = profile.documentLabels || [];
     const now = new Date();
     const tenderId = `TP-${now.getFullYear()}-${String(now.getTime()).slice(-6)}`;
+    const owner = typeof getProcurexCurrentAccount === 'function' ? getProcurexCurrentAccount() : {};
     const publishedTender = {
         id: tenderId,
         title,
@@ -3735,7 +3738,7 @@ function publishCreateTenderToMarketplace(wizard) {
         complianceStatus: 'Awaiting publication review',
         budget,
         closingDate,
-        organization: mockData.users?.buyer?.organization || 'Buyer organization',
+        organization: owner.organization || mockData.users?.buyer?.organization || 'Buyer organization',
         description: requirementSummary.filledControls
             ? `${requirementSummary.filledControls} structured requirement fields configured.`
             : 'Structured tender requirements pending.',
@@ -3758,6 +3761,11 @@ function publishCreateTenderToMarketplace(wizard) {
         contactPhone: contact.phone,
         contactEmail: contact.email,
         createdByCurrentUser: true,
+        ownerId: owner.userId || owner.email || '',
+        ownerEmail: owner.email || '',
+        ownerName: owner.displayName || owner.organization || '',
+        ownerOrganization: owner.organization || owner.displayName || '',
+        ownerEntityType: owner.entityType || 'company',
         publishedAt: now.toISOString(),
         boqItems,
         commercialItems: boqItems,
@@ -3778,7 +3786,7 @@ function publishCreateTenderToMarketplace(wizard) {
     localStorage.removeItem(createTenderDraftStorageKey);
     delete ensureCreateTenderDraft().mainDetails;
     selectProcurexTender(publishedTender.id);
-    return publishedTender;
+    return typeof normalizeProcurexTenderOwnership === 'function' ? normalizeProcurexTenderOwnership(publishedTender) : publishedTender;
 }
 
 function buildCreateTenderDocumentPreview(wizard) {
@@ -3799,6 +3807,7 @@ function buildCreateTenderDocumentPreview(wizard) {
     const profile = getCreateTenderTypeProfile(selectedType);
     const requirementSummary = getCreateTenderRequirementSummary(profile, getCreateTenderMainDraft());
     const boqItems = getCreateTenderBoqItems(profile);
+    const owner = typeof getProcurexCurrentAccount === 'function' ? getProcurexCurrentAccount() : {};
 
     return {
         id: 'DRAFT-TENDER',
@@ -3808,7 +3817,7 @@ function buildCreateTenderDocumentPreview(wizard) {
         status: 'Draft',
         budget: getCreateTenderBoqTotal(boqItems),
         closingDate,
-        organization: mockData.users?.buyer?.organization || 'Buyer organization',
+        organization: owner.organization || mockData.users?.buyer?.organization || 'Buyer organization',
         description: requirementSummary.filledControls
             ? `${requirementSummary.filledControls} structured requirement fields configured.`
             : 'Structured tender requirements pending.',
@@ -3831,6 +3840,11 @@ function buildCreateTenderDocumentPreview(wizard) {
         contactPhone: contact.phone,
         contactEmail: contact.email,
         createdByCurrentUser: true,
+        ownerId: owner.userId || owner.email || '',
+        ownerEmail: owner.email || '',
+        ownerName: owner.displayName || owner.organization || '',
+        ownerOrganization: owner.organization || owner.displayName || '',
+        ownerEntityType: owner.entityType || 'company',
         publishedAt: '',
         boqItems,
         commercialItems: boqItems,
@@ -3852,6 +3866,7 @@ function saveCreateTenderDraftFromWizard(wizard) {
     const profile = getCreateTenderTypeProfile(selectedType);
     const title = wizard.querySelector('[data-tender-title]')?.value.trim() || '';
     const currentDraft = getCreateTenderMainDraft();
+    const owner = typeof getProcurexCurrentAccount === 'function' ? getProcurexCurrentAccount() : {};
     const details = saveCreateTenderMainDraft({
         title,
         scope: currentDraft.scope || defaultCreateTenderMainDraft.scope,
@@ -3869,7 +3884,12 @@ function saveCreateTenderDraftFromWizard(wizard) {
         deliverableCount: getCreateTenderDeliverables(profile).length,
         licenseCount: getCreateTenderRegulatoryLicenses(profile).length,
         budget: getCreateTenderBoqTotal(getCreateTenderBoqItems(profile)),
-        commercialModel: profile.commercialName
+        commercialModel: profile.commercialName,
+        ownerId: owner.userId || owner.email || '',
+        ownerEmail: owner.email || '',
+        ownerName: owner.displayName || owner.organization || '',
+        ownerOrganization: owner.organization || owner.displayName || '',
+        ownerEntityType: owner.entityType || 'company'
     });
     return details;
 }

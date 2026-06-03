@@ -489,8 +489,14 @@ function getBidWorkspaceDraft(tenderId = 'selected') {
 }
 
 function saveBidWorkspaceDraft(tenderId = 'selected', draft = {}) {
+    const account = typeof getProcurexCurrentAccount === 'function' ? getProcurexCurrentAccount() : {};
     const payload = {
         ...draft,
+        supplierOwnerId: draft.supplierOwnerId || account.userId || account.email || '',
+        supplierEmail: draft.supplierEmail || account.email || '',
+        supplierName: draft.supplierName || account.displayName || account.organization || mockData.users?.supplier?.organization || '',
+        supplierOrganization: draft.supplierOrganization || account.organization || account.displayName || mockData.users?.supplier?.organization || '',
+        supplierEntityType: draft.supplierEntityType || account.entityType || 'company',
         savedAt: new Date().toISOString()
     };
     try {
@@ -7105,11 +7111,17 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
         const procurementType = profile.id || getBidWorkspaceTypeId(tender);
         const consultancySelectionMethod = String(tender.requirements?.fields?.consultancySelectionMethod || tender.selectionMethod || '').trim();
         const sealedFinancialEnvelope = procurementType === 'consultancy' && (/qcbs|quality|technical/i.test(consultancySelectionMethod) || !consultancySelectionMethod);
+        const account = typeof getProcurexCurrentAccount === 'function' ? getProcurexCurrentAccount() : {};
         const bid = {
             tenderId,
             submittedAt,
             receiptHash: hash,
-            supplier: mockData.users?.supplier?.organization || 'Supplier organization',
+            supplier: account.organization || account.displayName || mockData.users?.supplier?.organization || 'Supplier organization',
+            supplierOwnerId: account.userId || account.email || '',
+            supplierEmail: account.email || '',
+            supplierName: account.displayName || account.organization || '',
+            supplierOrganization: account.organization || account.displayName || '',
+            supplierEntityType: account.entityType || 'company',
             procurementType,
             steps: ['Administrative Compliance', 'Technical Response', 'Financial Offer', 'Declarations', 'Annex Evidence Manifest'],
             envelopeControl: {
@@ -7118,6 +7130,11 @@ td small { display: block; margin-top: 4px; color: #64748b; font-size: 12px; lin
             },
             draft: {
                 ...draftSnapshot,
+                supplierOwnerId: account.userId || account.email || '',
+                supplierEmail: account.email || '',
+                supplierName: account.displayName || account.organization || '',
+                supplierOrganization: account.organization || account.displayName || '',
+                supplierEntityType: account.entityType || 'company',
                 uploadedFiles: compactUploads,
                 fileManifest: getBidFileManifest()
             }
