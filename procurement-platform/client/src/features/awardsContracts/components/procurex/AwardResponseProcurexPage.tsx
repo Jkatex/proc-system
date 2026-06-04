@@ -18,7 +18,7 @@ const responseLabels = {
 } as const;
 
 function getAwardId(search: string) {
-  return new URLSearchParams(search).get('award') || supplierAwards[0].id;
+  return new URLSearchParams(search).get('award') || supplierAwards[0]?.id || '';
 }
 
 export function AwardResponseProcurexPage() {
@@ -26,7 +26,7 @@ export function AwardResponseProcurexPage() {
   const navigate = useNavigate();
   const selectedAwardId = useMemo(() => getAwardId(location.search), [location.search]);
   const [responses, setResponses] = useState<Record<string, string>>({});
-  const activeAward = supplierAwards.find((award) => award.id === selectedAwardId) ?? supplierAwards[0];
+  const activeAward = supplierAwards.find((award) => award.id === selectedAwardId) ?? supplierAwards[0] ?? null;
 
   function selectAward(awardId: string) {
     navigate(`/awards-contracts/award-response?award=${awardId}`);
@@ -48,20 +48,22 @@ export function AwardResponseProcurexPage() {
             copy="Review award notices, accept or decline awards, request clarification, and prepare required pre-contract documents."
             stats={[
               { value: supplierAwards.length, label: 'Awards received' },
-              { value: activeAward.awardStatus, label: 'Selected award status' },
-              { value: activeAward.contractStatus, label: 'Contract status' }
+              { value: activeAward?.awardStatus ?? 'None', label: 'Selected award status' },
+              { value: activeAward?.contractStatus ?? 'None', label: 'Contract status' }
             ]}
           />
 
-          <TopSummary
-            items={[
-              { label: 'Selected Award', value: activeAward.title },
-              { label: 'Buyer', value: activeAward.buyer },
-              { label: 'Award Value', value: formatMoney(activeAward.awardValue, activeAward.currency) },
-              { label: 'Award Status', value: <StatusBadge value={activeAward.awardStatus} /> },
-              { label: 'Contract Status', value: <StatusBadge value={activeAward.contractStatus} /> }
-            ]}
-          />
+          {activeAward ? (
+            <TopSummary
+              items={[
+                { label: 'Selected Award', value: activeAward.title },
+                { label: 'Buyer', value: activeAward.buyer },
+                { label: 'Award Value', value: formatMoney(activeAward.awardValue, activeAward.currency) },
+                { label: 'Award Status', value: <StatusBadge value={activeAward.awardStatus} /> },
+                { label: 'Contract Status', value: <StatusBadge value={activeAward.contractStatus} /> }
+              ]}
+            />
+          ) : null}
 
           <section className="procurement-panel evaluation-panel awarding-tabs-panel">
             <div className="panel-heading">
@@ -71,6 +73,7 @@ export function AwardResponseProcurexPage() {
               </div>
             </div>
             <div className="supplier-detail-tabs awarding-contract-tabs" role="tablist" aria-label="Supplier awards received">
+              {supplierAwards.length === 0 ? <div className="scope-empty">No supplier awards have been received yet.</div> : null}
               {supplierAwards.map((award) => (
                 <button
                   className={`supplier-detail-tab${award.id === activeAward.id ? ' active' : ''}`}
@@ -86,6 +89,16 @@ export function AwardResponseProcurexPage() {
               ))}
             </div>
           </section>
+
+          {supplierAwards.length === 0 ? (
+            <section className="procurement-panel evaluation-panel">
+              <div className="panel-heading">
+                <div><span className="section-kicker">Award detail</span><h2>No award selected</h2></div>
+                <StatusBadge value="No records" />
+              </div>
+              <div className="scope-empty">Award response details will appear here after your organization receives an award.</div>
+            </section>
+          ) : null}
 
           {supplierAwards.map((award) => {
             const isActive = award.id === activeAward.id;

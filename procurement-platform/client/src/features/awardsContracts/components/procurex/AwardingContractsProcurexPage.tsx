@@ -23,6 +23,16 @@ import {
 
 const queueIds = Object.keys(awardQueueLabels) as AwardQueueId[];
 
+function EmptyRows({ colSpan, message }: { colSpan: number; message: string }) {
+  return (
+    <tr>
+      <td colSpan={colSpan}>
+        <div className="scope-empty">{message}</div>
+      </td>
+    </tr>
+  );
+}
+
 function getQueueFromSearch(search: string): AwardQueueId {
   const queue = new URLSearchParams(search).get('queue') as AwardQueueId | null;
   return queue && queueIds.includes(queue) ? queue : 'my-urgent-actions';
@@ -107,6 +117,7 @@ export function AwardingContractsProcurexPage() {
               <div className={`tab-content ${activeQueue === 'my-urgent-actions' ? 'tab-content--visible' : 'tab-content--hidden'}`} data-tab="my-urgent-actions">
                 <p className="awarding-tab-note">This queue aggregates buyer and supplier work that needs attention across awards, contracts, invoices, variations, and closure.</p>
                 <SimpleTable headers={['Priority', 'Action', 'Related Tender/Contract', 'Due / Impact', 'Owner', 'Status', 'Button']} className="awarding-contracts-table">
+                  {urgentActions.length === 0 ? <EmptyRows colSpan={7} message="No urgent award or contract actions yet." /> : null}
                   {urgentActions.map((row) => (
                     <tr key={row.id}>
                       <td><StatusBadge value={row.priority} /></td>
@@ -134,9 +145,10 @@ export function AwardingContractsProcurexPage() {
               <div className={`tab-content ${activeQueue === 'awarding-in-progress' ? 'tab-content--visible' : 'tab-content--hidden'}`} data-tab="awarding-in-progress">
                 <div className="queue-toolbar">
                   <label>Search <input className="form-input" placeholder="Tender name or reference" aria-label="Search pending awarding tenders" /></label>
-                  <span>Showing 1-{pendingAwards.length} of {pendingAwards.length} - 10 per page</span>
+                  <span>Showing {pendingAwards.length} of {pendingAwards.length}</span>
                 </div>
                 <SimpleTable headers={['Tender Title', 'Role', 'Type', 'Evaluation Results', 'Recommended Supplier', 'Award Status', 'Contract Status', 'Progress', 'Action']} className="awarding-contracts-table">
+                  {pendingAwards.length === 0 ? <EmptyRows colSpan={9} message="No buyer-side awards are in progress yet." /> : null}
                   {pendingAwards.map((row) => (
                     <tr key={row.id}>
                       <td><strong>{row.title}</strong><span>{row.reference}</span></td>
@@ -160,6 +172,7 @@ export function AwardingContractsProcurexPage() {
 
               <div className={`tab-content ${activeQueue === 'awards-received' ? 'tab-content--visible' : 'tab-content--hidden'}`} data-tab="awards-received">
                 <SimpleTable headers={['Tender Title', 'Role', 'Buyer', 'Type', 'Award Value', 'Award Status', 'Contract Status', 'Progress', 'Required Action']} className="awarding-contracts-table">
+                  {supplierAwards.length === 0 ? <EmptyRows colSpan={9} message="No supplier awards have been received yet." /> : null}
                   {supplierAwards.map((row) => (
                     <tr key={row.id}>
                       <td><strong>{row.title}</strong></td>
@@ -188,6 +201,7 @@ export function AwardingContractsProcurexPage() {
 
               <div className={`tab-content ${activeQueue === 'contracts-in-progress' ? 'tab-content--visible' : 'tab-content--hidden'}`} data-tab="contracts-in-progress">
                 <SimpleTable headers={['Contract', 'Your Role', 'Other Party', 'Current Status', 'Required Action', 'Due Date']} className="awarding-contracts-table">
+                  {contractActions.length === 0 ? <EmptyRows colSpan={6} message="No contracts are in progress yet." /> : null}
                   {contractActions.map((row) => (
                     <tr key={row.id}>
                       <td><strong>{row.contract}</strong></td>
@@ -203,6 +217,7 @@ export function AwardingContractsProcurexPage() {
 
               <div className={`tab-content ${activeQueue === 'active-contracts' ? 'tab-content--visible' : 'tab-content--hidden'}`} data-tab="active-contracts">
                 <SimpleTable headers={['Contract', 'Your Role', 'Other Party', 'Progress', 'Next Milestone', 'Payment Status', 'Action']} className="awarding-contracts-table">
+                  {activeContracts.length === 0 ? <EmptyRows colSpan={7} message="No active contracts are available yet." /> : null}
                   {activeContracts.map((row) => (
                     <tr key={row.id}>
                       <td><strong>{row.title}</strong></td>
@@ -219,6 +234,7 @@ export function AwardingContractsProcurexPage() {
 
               <div className={`tab-content ${activeQueue === 'closed-contracts' ? 'tab-content--visible' : 'tab-content--hidden'}`} data-tab="closed-contracts">
                 <SimpleTable headers={['Contract', 'Your Role', 'Other Party', 'Final Value', 'Completion Date', 'Performance', 'Status', 'Action']} className="awarding-contracts-table">
+                  {closedContracts.length === 0 ? <EmptyRows colSpan={8} message="No closed contracts are archived yet." /> : null}
                   {closedContracts.map((row) => (
                     <tr key={row.id}>
                       <td><strong>{row.title}</strong></td>
