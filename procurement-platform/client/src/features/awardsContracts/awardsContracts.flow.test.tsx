@@ -5,6 +5,7 @@ import { Provider } from 'react-redux';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { store } from '@/app/store';
 import '@/i18n';
+import { summaryCards, urgentActions } from './fixtures';
 import { AwardingContractsProcurexPage } from './components/procurex/AwardingContractsProcurexPage';
 import { AwardResponseProcurexPage } from './components/procurex/AwardResponseProcurexPage';
 import { PostAwardTrackingProcurexPage } from './components/procurex/PostAwardTrackingProcurexPage';
@@ -121,5 +122,59 @@ describe('awards and contracts lifecycle flow', () => {
     await waitFor(() => expect(closedMode).not.toHaveStyle({ display: 'none' }));
     expect(activeClosedContract).toHaveClass('active');
     expect(within(activeClosedContract!).getByText('Network Cabling Works')).toBeInTheDocument();
+  });
+
+  it('renders dashboard summary counts from typed fixtures', async () => {
+    renderFlow(<AwardingContractsProcurexPage />, '/awards-contracts');
+
+    for (const card of summaryCards) {
+      const summary = screen.getByRole('button', { name: `Go to ${card.label} tab` });
+      expect(within(summary).getByText(String(card.value))).toBeInTheDocument();
+    }
+  });
+
+  it('shows buyer and supplier role badges in urgent actions', async () => {
+    const { container } = renderFlow(<AwardingContractsProcurexPage />, '/awards-contracts?queue=my-urgent-actions');
+    const panel = container.querySelector<HTMLElement>('[data-tab="my-urgent-actions"].tab-content--visible');
+
+    await waitFor(() => expect(panel).toBeInTheDocument());
+    expect(within(panel!).getAllByText('Buyer').length).toBeGreaterThan(0);
+    expect(within(panel!).getAllByText('Supplier').length).toBeGreaterThan(0);
+    expect(within(panel!).getAllByRole('row').length).toBe(urgentActions.length + 1);
+  });
+
+  it('updates supplier award response status locally', async () => {
+    const user = userEvent.setup();
+    const { container } = renderFlow(
+      <AwardResponseProcurexPage />,
+      '/awards-contracts/award-response?award=supplier-award-1'
+    );
+    const activePanel = container.querySelector<HTMLElement>('[data-award-response-panel="supplier-award-1"]');
+
+    await waitFor(() => expect(activePanel).toHaveClass('active'));
+    await user.click(within(activePanel!).getByRole('button', { name: 'Request Clarification' }));
+    expect(within(activePanel!).getByText('Current supplier response: Clarification Requested')).toBeInTheDocument();
+  });
+
+  it('renders post-award active and closed modes from URL parameters', async () => {
+    const activeRender = renderFlow(
+      <PostAwardTrackingProcurexPage />,
+      '/awards-contracts/post-award?mode=active&tab=payments'
+    );
+
+    const activeMode = activeRender.container.querySelector<HTMLElement>('[data-post-award-mode-panel="active"]');
+    await waitFor(() => expect(activeMode).not.toHaveStyle({ display: 'none' }));
+    expect(screen.getByText('Invoices & Payments')).toHaveClass('active');
+
+    activeRender.unmount();
+
+    const closedRender = renderFlow(
+      <PostAwardTrackingProcurexPage />,
+      '/awards-contracts/post-award?mode=closed&contract=closed-contract-1&tab=closure'
+    );
+
+    const closedMode = closedRender.container.querySelector<HTMLElement>('[data-post-award-mode-panel="closed"]');
+    await waitFor(() => expect(closedMode).not.toHaveStyle({ display: 'none' }));
+    expect(closedRender.container.querySelector<HTMLElement>('[data-closed-contract-panel="closed-contract-1"]')).toHaveClass('active');
   });
 });
