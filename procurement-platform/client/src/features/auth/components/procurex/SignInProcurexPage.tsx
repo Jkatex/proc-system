@@ -1,9 +1,135 @@
-/* This file is generated from the ProcureX design prototype. Do not edit by hand. */
+import { FormEvent, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useAppDispatch, useAppSelector } from '@/app/store';
+import { signInWithCredentials } from '@/features/auth/slice';
+import { apiErrorMessage } from '@/shared/api/errors';
+import { useBodyPageMetadata } from '@/shared/hooks/useBodyPageMetadata';
 
-import { ProcurexStaticPage } from '@/shared/components/procurex/ProcurexStaticPage';
+type LocationState = {
+  from?: {
+    pathname?: string;
+  };
+};
 
-const html = "\n        <div class=\"register-page-new auth-page\">\n            <header class=\"register-header-new\">\n                <div class=\"register-header-inner-new\">\n                    <div class=\"brand-new\" data-navigate=\"welcome\">\n                        \n        <span class=\"platform-logo\">\n            <img class=\"platform-logo-image\" src=\"/assets/logo.svg\" alt=\"ProcureX\">\n        </span>\n    \n                        <span class=\"brand-text-new\">ProcureX</span>\n                    </div>\n                    <a href=\"#\" data-navigate=\"register\" class=\"login-link-new\">Create an account</a>\n                </div>\n            </header>\n\n            <div class=\"register-container-new\">\n                <div class=\"register-card-new auth-card\">\n                    <div class=\"screens-container-new\">\n                        <div class=\"screen-header-new\">\n                            <h2>Welcome Back</h2>\n                            <p>Sign in</p>\n                        </div>\n\n                        <form class=\"screen-form-new\" data-action=\"sign-in\">\n                            <div class=\"form-group-new\">\n                                <label class=\"form-label-new\">Email Address *</label>\n                                <input type=\"email\" class=\"form-input-new\" name=\"email\" value=\"\" placeholder=\"you@company.com\" required>\n                                <span class=\"form-error-new\"></span>\n                            </div>\n\n                            <div class=\"form-group-new\">\n                                <label class=\"form-label-new\">Password *</label>\n                                <div class=\"password-input-wrapper-new\">\n                                    <input type=\"password\" class=\"form-input-new\" name=\"password\" placeholder=\"Enter your password\" required>\n                                    <button type=\"button\" class=\"password-toggle-new\" aria-label=\"Show password\">\n                                        <svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\">\n                                            <path d=\"M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z\"/>\n                                            <circle cx=\"12\" cy=\"12\" r=\"3\"/>\n                                        </svg>\n                                    </button>\n                                </div>\n                                <span class=\"form-error-new\"></span>\n                            </div>\n\n                            <div class=\"auth-row\">\n                                <label class=\"auth-check\">\n                                    <input type=\"checkbox\" name=\"remember\">\n                                    <span>Remember me</span>\n                                </label>\n                                <a href=\"#\" class=\"link-new\">Forgot password?</a>\n                            </div>\n\n                            <button type=\"submit\" class=\"btn-continue-new\">\n                                Sign In\n                                <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\">\n                                    <path d=\"M5 12h14M12 5l7 7-7 7\"/>\n                                </svg>\n                            </button>\n                        </form>\n\n                        <div class=\"auth-note\">\n                            New users continue to identity verification. Existing users enter the platform. Admin opens the admin dashboard.\n                        </div>\n\n                        <div class=\"demo-credentials\">\n                            <h3>Mock sign-in data</h3>\n                            \n                                <button type=\"button\" class=\"demo-account\" data-demo-email=\"newuser@procurex.test\" data-demo-password=\"Newuser1!\">\n                                    <span>\n                                        <strong>New User Account</strong>\n                                        <small>new user</small>\n                                    </span>\n                                    <code>newuser@procurex.test</code>\n                                </button>\n                            \n                                <button type=\"button\" class=\"demo-account\" data-demo-email=\"company@procurex.test\" data-demo-password=\"Procure1!\">\n                                    <span>\n                                        <strong>Kilimanjaro Supplies Limited</strong>\n                                        <small>existing user</small>\n                                    </span>\n                                    <code>company@procurex.test</code>\n                                </button>\n                            \n                                <button type=\"button\" class=\"demo-account\" data-demo-email=\"business@procurex.test\" data-demo-password=\"Procure1!\">\n                                    <span>\n                                        <strong>Zahra Omari Business Services</strong>\n                                        <small>existing user</small>\n                                    </span>\n                                    <code>business@procurex.test</code>\n                                </button>\n                            \n                                <button type=\"button\" class=\"demo-account\" data-demo-email=\"individual@procurex.test\" data-demo-password=\"Procure1!\">\n                                    <span>\n                                        <strong>Asha Mwinyi</strong>\n                                        <small>existing user</small>\n                                    </span>\n                                    <code>individual@procurex.test</code>\n                                </button>\n                            \n                                <button type=\"button\" class=\"demo-account\" data-demo-email=\"user@company.tz\" data-demo-password=\"Procure1!\">\n                                    <span>\n                                        <strong>Kilimanjaro Supplies Limited</strong>\n                                        <small>existing user</small>\n                                    </span>\n                                    <code>user@company.tz</code>\n                                </button>\n                            \n                                <button type=\"button\" class=\"demo-account\" data-demo-email=\"admin@procurex.tz\" data-demo-password=\"Admin123!\">\n                                    <span>\n                                        <strong>Admin User</strong>\n                                        <small>admin</small>\n                                    </span>\n                                    <code>admin@procurex.tz</code>\n                                </button>\n                            \n                        </div>\n                    </div>\n                </div>\n                <div class=\"auth-image-panel\" aria-hidden=\"true\">\n                    \n        <dotlottie-player class=\"procurex-lottie auth-image-lottie\" src=\"/assets/ProcureX.json\" background=\"transparent\" speed=\"1\" loop autoplay aria-label=\"ProcureX auth animation\"></dotlottie-player>\n    \n                </div>\n            </div>\n        </div>\n    ";
+function destinationFor(user: { accountType: string; verificationStatus: string }, intendedPath?: string) {
+  if (user.accountType === 'ADMIN') return '/admin';
+  if (user.verificationStatus !== 'APPROVED') return '/identity/verification';
+  return intendedPath && intendedPath !== '/sign-in' ? intendedPath : '/apps';
+}
 
 export function SignInProcurexPage() {
-  return <ProcurexStaticPage pageKey="sign-in" html={html} />;
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const authStatus = useAppSelector((state) => state.auth.status);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const loading = authStatus === 'loading';
+  const locationState = location.state as LocationState | null;
+
+  useBodyPageMetadata('sign-in');
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError('');
+
+    try {
+      const session = await dispatch(signInWithCredentials({ email, password })).unwrap();
+      const intendedPath = locationState?.from?.pathname;
+      navigate(destinationFor(session.user, intendedPath), { replace: true });
+    } catch (caughtError) {
+      setError(apiErrorMessage(caughtError, 'Sign-in failed. Check the email and password.'));
+    }
+  }
+
+  return (
+    <div className="register-page-new auth-page">
+      <header className="register-header-new">
+        <div className="register-header-inner-new">
+          <button className="brand-new" type="button" onClick={() => navigate('/')}>
+            <span className="platform-logo">
+              <img className="platform-logo-image" src="/assets/logo.svg" alt="ProcureX" />
+            </span>
+            <span className="brand-text-new">ProcureX</span>
+          </button>
+          <button className="login-link-new" type="button" onClick={() => navigate('/register')}>
+            Create an account
+          </button>
+        </div>
+      </header>
+
+      <div className="register-container-new">
+        <div className="register-card-new auth-card">
+          <div className="screens-container-new">
+            <div className="screen-header-new">
+              <h2>Welcome Back</h2>
+              <p>Sign in</p>
+            </div>
+
+            <form className="screen-form-new" onSubmit={(event) => void submit(event)}>
+              <div className="form-group-new">
+                <label className="form-label-new">Email Address *</label>
+                <input
+                  className="form-input-new"
+                  type="email"
+                  value={email}
+                  placeholder="you@company.com"
+                  onChange={(event) => setEmail(event.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group-new">
+                <label className="form-label-new">Password *</label>
+                <div className="password-input-wrapper-new">
+                  <input
+                    className="form-input-new"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    placeholder="Enter your password"
+                    onChange={(event) => setPassword(event.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle-new"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    onClick={() => setShowPassword((value) => !value)}
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="auth-row">
+                <label className="auth-check">
+                  <input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} />
+                  <span>Remember me</span>
+                </label>
+                <button className="link-new" type="button" onClick={() => navigate('/forgot-password')}>
+                  Forgot password?
+                </button>
+              </div>
+
+              {error ? <p className="form-error-new">{error}</p> : null}
+
+              <button type="submit" className="btn-continue-new" disabled={loading}>
+                {loading ? 'Signing in...' : 'Sign In'}
+              </button>
+            </form>
+
+            <div className="auth-note">
+              Your account opens the workspace allowed by its verification status.
+            </div>
+          </div>
+        </div>
+        <div className="auth-image-panel" aria-hidden="true">
+          <dotlottie-player className="procurex-lottie auth-image-lottie" src="/assets/ProcureX.json" background="transparent" speed="1" loop autoplay />
+        </div>
+      </div>
+    </div>
+  );
 }

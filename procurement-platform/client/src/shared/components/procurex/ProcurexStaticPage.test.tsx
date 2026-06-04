@@ -1,5 +1,8 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
+import { Provider } from 'react-redux';
+import { store } from '@/app/store';
 import i18n, { persistLanguage } from '@/i18n';
 import { ProcurexStaticPage } from './ProcurexStaticPage';
 
@@ -23,10 +26,39 @@ function LocationProbe() {
   return <span data-testid="location">{location.pathname}</span>;
 }
 
+async function waitForI18nReady() {
+  if (i18n.isInitialized) return;
+
+  await new Promise<void>((resolve) => {
+    const handleInitialized = () => {
+      i18n.off('initialized', handleInitialized);
+      resolve();
+    };
+    i18n.on('initialized', handleInitialized);
+  });
+}
+
+type RenderStaticPageOptions = {
+  extraContent?: ReactNode;
+  initialEntries?: string[];
+};
+
+function renderStaticPage(pageKey: string, html: string, options: RenderStaticPageOptions = {}) {
+  return render(
+    <Provider store={store}>
+      <MemoryRouter initialEntries={options.initialEntries}>
+        {options.extraContent}
+        <ProcurexStaticPage pageKey={pageKey} html={html} />
+      </MemoryRouter>
+    </Provider>
+  );
+}
+
 describe('ProcurexStaticPage localization', () => {
   afterEach(async () => {
     window.localStorage.removeItem(selectedEvaluationTenderKey);
     window.localStorage.removeItem(selectedEvaluationReportKey);
+    await waitForI18nReady();
     await act(async () => {
       await i18n.changeLanguage('en');
       persistLanguage('en');
@@ -34,18 +66,12 @@ describe('ProcurexStaticPage localization', () => {
   });
 
   it('translates generated static page text and attributes to Swahili', async () => {
+    await waitForI18nReady();
     await act(async () => {
       await i18n.changeLanguage('sw');
     });
 
-    render(
-      <MemoryRouter>
-        <ProcurexStaticPage
-          pageKey="welcome"
-          html='<main><button aria-label="Open apps">Create Tender</button><input placeholder="Search" /></main>'
-        />
-      </MemoryRouter>
-    );
+    renderStaticPage('welcome', '<main><button aria-label="Open apps">Create Tender</button><input placeholder="Search" /></main>');
 
     expect(await screen.findByText('Tengeneza Zabuni')).toBeInTheDocument();
     await waitFor(() => expect(screen.getByLabelText('Fungua programu')).toBeInTheDocument());
@@ -55,11 +81,7 @@ describe('ProcurexStaticPage localization', () => {
     window.localStorage.setItem(selectedEvaluationTenderKey, 'PX-WRK-2026-001');
     window.localStorage.setItem(selectedEvaluationReportKey, 'PX-WRK-2026-001');
 
-    render(
-      <MemoryRouter>
-        <ProcurexStaticPage pageKey="bid-evaluation" html="<main><h1>Tenders for Evaluation</h1></main>" />
-      </MemoryRouter>
-    );
+    renderStaticPage('bid-evaluation', '<main><h1>Tenders for Evaluation</h1></main>');
 
     expect(window.localStorage.getItem(selectedEvaluationTenderKey)).toBeNull();
     expect(window.localStorage.getItem(selectedEvaluationReportKey)).toBeNull();
@@ -70,14 +92,7 @@ describe('ProcurexStaticPage localization', () => {
     window.localStorage.setItem(selectedEvaluationTenderKey, 'PX-WRK-2026-001');
     window.localStorage.setItem(selectedEvaluationReportKey, 'PX-WRK-2026-001');
 
-    render(
-      <MemoryRouter>
-        <ProcurexStaticPage
-          pageKey="workspace-dashboard"
-          html='<main><button type="button" data-navigate="bid-evaluation">Evaluation</button></main>'
-        />
-      </MemoryRouter>
-    );
+    renderStaticPage('workspace-dashboard', '<main><button type="button" data-navigate="bid-evaluation">Evaluation</button></main>');
 
     fireEvent.click(screen.getByText('Evaluation'));
 
@@ -86,11 +101,7 @@ describe('ProcurexStaticPage localization', () => {
   });
 
   it('shows marketplace work sections from route-backed pages', async () => {
-    render(
-      <MemoryRouter initialEntries={['/procurement/my-tenders']}>
-        <ProcurexStaticPage pageKey="marketplace" html={marketplaceHtml} />
-      </MemoryRouter>
-    );
+    renderStaticPage('marketplace', marketplaceHtml, { initialEntries: ['/procurement/my-tenders'] });
 
     const panel = screen.getByText('Tender page').closest<HTMLElement>('[data-marketplace-tab-panel]');
     await waitFor(() => expect(panel).toHaveStyle({ display: 'grid' }));
@@ -98,12 +109,10 @@ describe('ProcurexStaticPage localization', () => {
   });
 
   it('navigates marketplace work tabs to in-app pages', async () => {
-    render(
-      <MemoryRouter initialEntries={['/procurement/marketplace']}>
-        <LocationProbe />
-        <ProcurexStaticPage pageKey="marketplace" html={marketplaceHtml} />
-      </MemoryRouter>
-    );
+    renderStaticPage('marketplace', marketplaceHtml, {
+      extraContent: <LocationProbe />,
+      initialEntries: ['/procurement/marketplace']
+    });
 
     fireEvent.click(screen.getByRole('tab', { name: 'My Bids' }));
 

@@ -1,9 +1,428 @@
-/* This file is generated from the ProcureX design prototype. Do not edit by hand. */
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAppDispatch, useAppSelector } from '@/app/store';
+import { adminApi, type AdminVerification } from '@/features/admin/api';
+import { signOut } from '@/features/auth/slice';
+import { apiErrorMessage } from '@/shared/api/errors';
+import { useBodyPageMetadata } from '@/shared/hooks/useBodyPageMetadata';
+import type { SessionUser } from '@/shared/types/domain';
 
-import { ProcurexStaticPage } from '@/shared/components/procurex/ProcurexStaticPage';
+type StatusFilter = '' | SessionUser['verificationStatus'];
 
-const html = "\n            <header class=\"app-topbar\">\n                <div class=\"app-topbar-left\">\n                    <button class=\"app-brand-button\" type=\"button\" data-navigate=\"workspace-dashboard\">\n                        \n        <span class=\"platform-logo\">\n            <img class=\"platform-logo-image\" src=\"/assets/logo.svg\" alt=\"ProcureX\">\n        </span>\n    \n                        <span>Admin User Management</span>\n                    </button>\n                </div>\n\n                <div class=\"app-topbar-actions\">\n                      <button class=\"icon-menu-btn\" type=\"button\" data-app-menu-toggle aria-label=\"Open apps\" aria-expanded=\"false\">\n                        <span></span><span></span><span></span>\n                        <span></span><span></span><span></span>\n                        <span></span><span></span><span></span>\n                    </button>\n                    <div class=\"profile-menu-wrap\">\n                        <button class=\"profile-button\" type=\"button\" data-profile-menu-toggle aria-label=\"Open profile menu\" aria-expanded=\"false\">\n                            <span>AU</span>\n                        </button>\n                    </div>\n                </div>\n\n                <div class=\"app-drawer-menu\" data-app-menu>\n                    <div class=\"app-menu-header\">\n                        <div class=\"app-menu-brand\">\n                            \n        <span class=\"platform-logo platform-logo-sm\">\n            <img class=\"platform-logo-image\" src=\"/assets/logo.svg\" alt=\"ProcureX\">\n        </span>\n    \n                            <strong>ProcureX Apps</strong>\n                        </div>\n                        <span>Company account tools</span>\n                    </div>\n                    \n            <button class=\"app-menu-card app-menu-iam\" data-navigate=\"account-profile\">\n                <span class=\"app-menu-icon\">\n            <svg class=\"app-menu-svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">\n                <path d=\"M20 21a8 8 0 0 0-16 0\"/><circle cx=\"12\" cy=\"7\" r=\"4\"/><path d=\"M16 11l2 2 4-4\"/>\n            </svg>\n        </span>\n                <span><strong>Registration and Verification</strong><em>Account and identity verification</em></span>\n            </button>\n            <button class=\"app-menu-card app-menu-procurement\" data-navigate=\"tender-planning\">\n                <span class=\"app-menu-icon\">\n            <svg class=\"app-menu-svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">\n                <path d=\"M4 4h16v16H4z\"/><path d=\"M8 8h8\"/><path d=\"M8 12h8\"/><path d=\"M8 16h5\"/>\n            </svg>\n        </span>\n                <span><strong>Procurement Planning</strong><em>APP, SPP, budgets, approvals</em></span>\n            </button>\n            <button class=\"app-menu-card app-menu-procurement\" data-navigate=\"marketplace\">\n                <span class=\"app-menu-icon\">\n            <svg class=\"app-menu-svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">\n                <path d=\"M3 9h18l-2-5H5z\"/><path d=\"M5 9v11h14V9\"/><path d=\"M9 13h6\"/><path d=\"M9 17h4\"/>\n            </svg>\n        </span>\n                <span><strong>Procurement</strong><em>Marketplace, create tender, bid</em></span>\n            </button>\n            <button class=\"app-menu-card app-menu-communication\" data-navigate=\"communication-center\">\n                <span class=\"app-menu-icon\">\n            <svg class=\"app-menu-svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">\n                <path d=\"M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z\"/><path d=\"M8 9h8\"/><path d=\"M8 13h5\"/>\n            </svg>\n        </span>\n                <span><strong>Communication Center</strong><em>Messages, clarifications, alerts</em></span>\n            </button>\n            <button class=\"app-menu-card app-menu-evaluation\" data-navigate=\"bid-evaluation\">\n                <span class=\"app-menu-icon\">\n            <svg class=\"app-menu-svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">\n                <path d=\"M9 11l2 2 4-4\"/><path d=\"M8 4h8\"/><path d=\"M8 20h8\"/><path d=\"M5 7h14v10H5z\"/>\n            </svg>\n        </span>\n                <span><strong>Evaluation</strong><em>Evaluate bids on your tenders</em></span>\n            </button>\n            <button class=\"app-menu-card app-menu-awarding\" data-navigate=\"awarding-contracts\">\n                <span class=\"app-menu-icon\">\n            <svg class=\"app-menu-svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">\n                <circle cx=\"12\" cy=\"8\" r=\"4\"/><path d=\"M8.5 11.5L7 21l5-3 5 3-1.5-9.5\"/><path d=\"M10.5 8l1 1 2-2\"/>\n            </svg>\n        </span>\n                <span><strong>Awarding and Contract</strong><em>Awards, negotiations, signatures</em></span>\n            </button>\n            <button class=\"app-menu-card app-menu-contracts\" data-navigate=\"records-history\">\n                <span class=\"app-menu-icon\">\n            <svg class=\"app-menu-svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">\n                <path d=\"M8 3h8l3 3v15H5V3z\"/><path d=\"M15 3v4h4\"/><path d=\"M8 12h8\"/><path d=\"M8 16h6\"/>\n            </svg>\n        </span>\n                <span><strong>Records and History</strong><em>Past tenders, bids, awards</em></span>\n            </button>\n        \n                </div>\n\n                <div class=\"profile-menu\" data-profile-menu>\n                    <button type=\"button\" data-navigate=\"account-profile\">Profile</button>\n                    <button type=\"button\" data-navigate=\"communication-center\">Messages</button>\n                    <button type=\"button\">Help</button>\n                    <button type=\"button\">Language</button>\n                    <button type=\"button\" data-navigate=\"sign-in\">Logout</button>\n                </div>\n            </header>\n        \n            <div class=\"main-layout admin-page admin-users-page\">\n                \n            <aside class=\"sidebar admin-sidebar\" aria-label=\"Platform admin navigation\">\n                <div class=\"sidebar-heading\">\n                    <h3>Platform Admin</h3>\n                    <div>System oversight</div>\n                </div>\n                <ul class=\"sidebar-nav\">\n                    \n                        <li><a href=\"#\" data-navigate=\"admin-dashboard\" class=\"\">Command Center</a></li>\n                    \n                        <li><a href=\"#\" data-navigate=\"admin-search\" class=\"\">Deep Search</a></li>\n                    \n                        <li><a href=\"#\" data-navigate=\"admin-users\" class=\"active\">User Management</a></li>\n                    \n                        <li><a href=\"#\" data-navigate=\"admin-compliance\" class=\"\">Compliance Rules</a></li>\n                    \n                        <li><a href=\"#\" data-navigate=\"admin-analytics\" class=\"\">Platform Analytics</a></li>\n                    \n                        <li><a href=\"#\" data-navigate=\"admin-audit\" class=\"\">Full Audit Trail</a></li>\n                    \n                </ul>\n                <div class=\"admin-sidebar-divider\"></div>\n                <ul class=\"sidebar-nav\">\n                    <li><a href=\"#\" data-navigate=\"communication-center\">Communication Center</a></li><li><a href=\"#\" data-navigate=\"account-profile\">Admin Profile</a></li>\n                </ul>\n            </aside>\n        \n                <main class=\"main-content\">\n                    <div class=\"journey-page\">\n                        <section class=\"journey-hero compact admin-hero\">\n                            <div>\n                                <span class=\"badge badge-info\">Identity and access</span>\n                                <h1>User Management</h1>\n                                <p>Review registered accounts, verification status, role boundaries, submitted account evidence, and account-level audit history. Admins can inspect and route account issues without creating operational procurement actions.</p>\n                            </div>\n                            <div class=\"hero-action-stack\">\n                                <button class=\"btn btn-secondary\" type=\"button\">Invite Account</button>\n                                <button class=\"btn btn-primary\" type=\"button\">Export Accounts</button>\n                            </div>\n                        </section>\n\n                        <section class=\"admin-kpi-grid four-col\">\n                            <article class=\"admin-kpi-card\"><span>Total Accounts</span><strong>10</strong><em>Platform users</em></article>\n                            <article class=\"admin-kpi-card\"><span>Verified</span><strong>9</strong><em>eKYC complete</em></article>\n                            <article class=\"admin-kpi-card\"><span>Pending Verification</span><strong>1</strong><em>Awaiting review</em></article>\n                            <article class=\"admin-kpi-card\"><span>Suspended</span><strong>0</strong><em>Prototype state</em></article>\n                        </section>\n\n                        <section class=\"journey-panel\">\n                            <div class=\"panel-heading\">\n                                <div>\n                                    <span class=\"section-kicker\">Search and filters</span>\n                                    <h2>Registered accounts</h2>\n                                </div>\n                                <span class=\"badge badge-info\">Read-only oversight</span>\n                            </div>\n                            <div class=\"admin-filter-bar\">\n                                <input class=\"form-input\" type=\"search\" placeholder=\"Search name, email, phone, or organization\">\n                                <select class=\"form-input\"><option>All roles</option><option>Buyer</option><option>Supplier</option><option>Admin</option></select>\n                                <select class=\"form-input\"><option>All verification statuses</option><option>eKYC Complete</option><option>Pending Verification</option><option>Suspended</option></select>\n                            </div>\n                        </section>\n\n                        <section class=\"admin-split-with-drawer\">\n                            <div class=\"journey-panel\">\n                                \n            <div class=\"data-table evaluation-table-scroll admin-data-table admin-users-table\">\n                <table>\n                    <thead><tr><th>Avatar</th><th>Name</th><th>Email / Phone</th><th>Organization</th><th>Role</th><th>Verification</th><th>Joined</th><th>Actions</th></tr></thead>\n                    <tbody>\n            <tr>\n                <td><span class=\"admin-avatar\">NU</span></td>\n                <td><strong>New User Account</strong></td>\n                <td><span>newuser@procurex.test</span><em>+255 712 345 678</em></td>\n                <td>New User Account</td>\n                <td><span class=\"badge badge-info \" aria-label=\"Status: Buyer/Supplier\">Buyer/Supplier</span></td>\n                <td><span class=\"badge badge-warning \" aria-label=\"Status: Pending Verification\">Pending Verification</span></td>\n                <td>May 4, 2026</td>\n                <td class=\"admin-table-actions\">\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">View</button>\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">Suspend</button>\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">Reset</button>\n                </td>\n            </tr>\n        \n            <tr>\n                <td><span class=\"admin-avatar\">KS</span></td>\n                <td><strong>Kilimanjaro Supplies Limited</strong></td>\n                <td><span>company@procurex.test</span><em>+255 713 111 222</em></td>\n                <td>Kilimanjaro Supplies Limited</td>\n                <td><span class=\"badge badge-info \" aria-label=\"Status: Buyer/Supplier\">Buyer/Supplier</span></td>\n                <td><span class=\"badge badge-success \" aria-label=\"Status: eKYC Complete\">eKYC Complete</span></td>\n                <td>Apr 18, 2026</td>\n                <td class=\"admin-table-actions\">\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">View</button>\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">Suspend</button>\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">Reset</button>\n                </td>\n            </tr>\n        \n            <tr>\n                <td><span class=\"admin-avatar\">ZO</span></td>\n                <td><strong>Zahra Omari Business Services</strong></td>\n                <td><span>business@procurex.test</span><em>+255 714 222 333</em></td>\n                <td>Zahra Omari Business Services</td>\n                <td><span class=\"badge badge-info \" aria-label=\"Status: Buyer/Supplier\">Buyer/Supplier</span></td>\n                <td><span class=\"badge badge-success \" aria-label=\"Status: eKYC Complete\">eKYC Complete</span></td>\n                <td>May 4, 2026</td>\n                <td class=\"admin-table-actions\">\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">View</button>\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">Suspend</button>\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">Reset</button>\n                </td>\n            </tr>\n        \n            <tr>\n                <td><span class=\"admin-avatar\">AM</span></td>\n                <td><strong>Asha Mwinyi</strong></td>\n                <td><span>individual@procurex.test</span><em>+255 714 333 444</em></td>\n                <td>Asha Mwinyi</td>\n                <td><span class=\"badge badge-info \" aria-label=\"Status: Buyer/Supplier\">Buyer/Supplier</span></td>\n                <td><span class=\"badge badge-success \" aria-label=\"Status: eKYC Complete\">eKYC Complete</span></td>\n                <td>Apr 18, 2026</td>\n                <td class=\"admin-table-actions\">\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">View</button>\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">Suspend</button>\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">Reset</button>\n                </td>\n            </tr>\n        \n            <tr>\n                <td><span class=\"admin-avatar\">KS</span></td>\n                <td><strong>Kilimanjaro Supplies Limited</strong></td>\n                <td><span>user@company.tz</span><em>+255 713 111 222</em></td>\n                <td>Kilimanjaro Supplies Limited</td>\n                <td><span class=\"badge badge-info \" aria-label=\"Status: Buyer/Supplier\">Buyer/Supplier</span></td>\n                <td><span class=\"badge badge-success \" aria-label=\"Status: eKYC Complete\">eKYC Complete</span></td>\n                <td>May 4, 2026</td>\n                <td class=\"admin-table-actions\">\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">View</button>\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">Suspend</button>\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">Reset</button>\n                </td>\n            </tr>\n        \n            <tr>\n                <td><span class=\"admin-avatar\">AU</span></td>\n                <td><strong>Admin User</strong></td>\n                <td><span>admin@procurex.tz</span><em>+255 715 555 666</em></td>\n                <td>Admin User</td>\n                <td><span class=\"badge badge-info \" aria-label=\"Status: Admin\">Admin</span></td>\n                <td><span class=\"badge badge-success \" aria-label=\"Status: eKYC Complete\">eKYC Complete</span></td>\n                <td>Apr 18, 2026</td>\n                <td class=\"admin-table-actions\">\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">View</button>\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">Suspend</button>\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">Reset</button>\n                </td>\n            </tr>\n        \n            <tr>\n                <td><span class=\"admin-avatar\">JD</span></td>\n                <td><strong>John Doe</strong></td>\n                <td><span>buyer@procurex.local</span><em>+255 700 000 000</em></td>\n                <td>Ministry of Health</td>\n                <td><span class=\"badge badge-info \" aria-label=\"Status: Buyer\">Buyer</span></td>\n                <td><span class=\"badge badge-success \" aria-label=\"Status: Verified\">Verified</span></td>\n                <td>Mar 12, 2026</td>\n                <td class=\"admin-table-actions\">\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">View</button>\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">Suspend</button>\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">Reset</button>\n                </td>\n            </tr>\n        \n            <tr>\n                <td><span class=\"admin-avatar\">KS</span></td>\n                <td><strong>Kilimanjaro Supplies Limited</strong></td>\n                <td><span>current@procurex.local</span><em>+255 700 000 000</em></td>\n                <td>Kilimanjaro Supplies Limited</td>\n                <td><span class=\"badge badge-info \" aria-label=\"Status: Supplier\">Supplier</span></td>\n                <td><span class=\"badge badge-success \" aria-label=\"Status: eKYC Complete\">eKYC Complete</span></td>\n                <td>Feb 21, 2026</td>\n                <td class=\"admin-table-actions\">\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">View</button>\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">Suspend</button>\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">Reset</button>\n                </td>\n            </tr>\n        \n            <tr>\n                <td><span class=\"admin-avatar\">AC</span></td>\n                <td><strong>ABC Construction Ltd</strong></td>\n                <td><span>supplier@procurex.local</span><em>+255 700 000 000</em></td>\n                <td>ABC Construction Ltd</td>\n                <td><span class=\"badge badge-info \" aria-label=\"Status: Supplier\">Supplier</span></td>\n                <td><span class=\"badge badge-success \" aria-label=\"Status: Verified\">Verified</span></td>\n                <td>Mar 12, 2026</td>\n                <td class=\"admin-table-actions\">\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">View</button>\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">Suspend</button>\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">Reset</button>\n                </td>\n            </tr>\n        \n            <tr>\n                <td><span class=\"admin-avatar\">PA</span></td>\n                <td><strong>Platform Admin</strong></td>\n                <td><span>admin@procurex.local</span><em>+255 700 000 000</em></td>\n                <td>ProcureX Platform</td>\n                <td><span class=\"badge badge-info \" aria-label=\"Status: Admin\">Admin</span></td>\n                <td><span class=\"badge badge-success \" aria-label=\"Status: Verified\">Verified</span></td>\n                <td>Feb 21, 2026</td>\n                <td class=\"admin-table-actions\">\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">View</button>\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">Suspend</button>\n                    <button class=\"btn btn-secondary btn-sm\" type=\"button\">Reset</button>\n                </td>\n            </tr>\n        </tbody>\n                </table>\n            </div>\n        \n                            </div>\n                            <aside class=\"admin-drawer admin-drawer-open\" aria-label=\"Account detail preview\">\n                                <div class=\"panel-heading\">\n                                    <div>\n                                        <span class=\"section-kicker\">Detail drawer</span>\n                                        <h2>New User Account</h2>\n                                    </div>\n                                    <span class=\"badge badge-warning \" aria-label=\"Status: Pending Verification\">Pending Verification</span>\n                                </div>\n                                <div class=\"admin-drawer-profile\">\n                                    <span class=\"admin-avatar large\">NU</span>\n                                    <div>\n                                        <strong>New User Account</strong>\n                                        <span>newuser@procurex.test</span>\n                                    </div>\n                                </div>\n                                <dl class=\"admin-detail-list\">\n                                    <dt>Role</dt><dd>Buyer/Supplier</dd>\n                                    <dt>Phone</dt><dd>+255 712 345 678</dd>\n                                    <dt>Documents</dt><dd>Business registration, tax certificate, identity verification</dd>\n                                    <dt>Permissions</dt><dd>workspace:access, procurement:view</dd>\n                                </dl>\n                                <div class=\"admin-timeline compact\">\n                                    <div><strong>Account reviewed</strong><span>Verification evidence available for inspection.</span></div>\n                                    <div><strong>Role boundary checked</strong><span>No operational tender or bid creation granted to admin view.</span></div>\n                                </div>\n                            </aside>\n                        </section>\n                    </div>\n                </main>\n            </div>\n        ";
+const statusOptions: Array<{ value: StatusFilter; label: string }> = [
+  { value: '', label: 'All statuses' },
+  { value: 'PENDING', label: 'Pending review' },
+  { value: 'APPROVED', label: 'Approved' },
+  { value: 'REJECTED', label: 'Rejected' },
+  { value: 'DRAFT', label: 'Draft' },
+  { value: 'NOT_STARTED', label: 'Not started' }
+];
+
+function objectValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+function stringValue(value: unknown, fallback = '') {
+  return typeof value === 'string' ? value : fallback;
+}
+
+function initials(name?: string) {
+  return (name || 'User')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
+}
+
+function statusBadge(status: SessionUser['verificationStatus']) {
+  if (status === 'APPROVED') return 'badge badge-success';
+  if (status === 'REJECTED' || status === 'EXPIRED') return 'badge badge-error';
+  if (status === 'PENDING') return 'badge badge-warning';
+  return 'badge badge-info';
+}
+
+function statusLabel(status: string) {
+  return status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function adminNavClass(path: string, currentPath = '/admin/users') {
+  return path === currentPath ? 'active' : '';
+}
 
 export function AdminUsersProcurexPage() {
-  return <ProcurexStaticPage pageKey="admin-users" html={html} />;
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const user = useAppSelector((state) => state.auth.user);
+  const [verifications, setVerifications] = useState<AdminVerification[]>([]);
+  const [selectedId, setSelectedId] = useState('');
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('PENDING');
+  const [decisionNote, setDecisionNote] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+
+  useBodyPageMetadata('admin-users');
+
+  const filteredVerifications = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    return verifications.filter((verification) => {
+      const matchesStatus = statusFilter ? verification.status === statusFilter : true;
+      const registryRecord = objectValue(verification.payload.registryRecord);
+      const haystack = [
+        verification.user.displayName,
+        verification.user.email,
+        verification.user.organization,
+        verification.registrySource,
+        verification.registryNumber,
+        registryRecord.name
+      ]
+        .join(' ')
+        .toLowerCase();
+      return matchesStatus && (!normalizedSearch || haystack.includes(normalizedSearch));
+    });
+  }, [search, statusFilter, verifications]);
+
+  const selected = filteredVerifications.find((verification) => verification.id === selectedId) ?? filteredVerifications[0] ?? null;
+  const counts = useMemo(
+    () => ({
+      total: verifications.length,
+      pending: verifications.filter((verification) => verification.status === 'PENDING').length,
+      approved: verifications.filter((verification) => verification.status === 'APPROVED').length,
+      rejected: verifications.filter((verification) => verification.status === 'REJECTED').length
+    }),
+    [verifications]
+  );
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadQueue() {
+      setLoading(true);
+      setMessage('');
+
+      try {
+        const response = await adminApi.listVerifications();
+        if (!active) return;
+        setVerifications(response);
+        setSelectedId((current) => current || response[0]?.id || '');
+      } catch (error) {
+        if (active) setMessage(apiErrorMessage(error, 'Could not load verification queue.'));
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    void loadQueue();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function decide(verification: AdminVerification, decision: 'approve' | 'reject') {
+    setLoading(true);
+    setMessage('');
+
+    try {
+      const updated = await adminApi.decideVerification(verification.id, {
+        decision,
+        note: decisionNote.trim() || undefined
+      });
+      setVerifications((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      setSelectedId(updated.id);
+      setDecisionNote('');
+      setMessage(`Verification ${decision === 'approve' ? 'approved' : 'rejected'} for ${updated.user.displayName}.`);
+    } catch (error) {
+      setMessage(apiErrorMessage(error, `Could not ${decision} verification.`));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function navigateAdmin(path: string) {
+    navigate(path);
+  }
+
+  const selectedPayload = objectValue(selected?.payload);
+  const selectedRegistry = objectValue(selectedPayload.registryRecord);
+
+  return (
+    <>
+      <header className="app-topbar">
+        <div className="app-topbar-left">
+          <button className="app-brand-button" type="button" onClick={() => navigate('/admin')}>
+            <span className="platform-logo">
+              <img className="platform-logo-image" src="/assets/logo.svg" alt="ProcureX" />
+            </span>
+            <span>Admin User Management</span>
+          </button>
+        </div>
+
+        <div className="app-topbar-actions">
+          <button className="btn btn-secondary" type="button" onClick={() => navigate('/admin')}>
+            Command Center
+          </button>
+          <button
+            className="profile-button"
+            type="button"
+            aria-label="Sign out"
+            onClick={() => {
+              dispatch(signOut());
+              navigate('/sign-in');
+            }}
+          >
+            <span>{initials(user?.displayName)}</span>
+          </button>
+        </div>
+      </header>
+
+      <div className="main-layout admin-page admin-users-page">
+        <aside className="sidebar admin-sidebar" aria-label="Platform admin navigation">
+          <div className="sidebar-heading">
+            <h3>Platform Admin</h3>
+            <div>System oversight</div>
+          </div>
+          <ul className="sidebar-nav">
+            {[
+              ['/admin', 'Command Center'],
+              ['/admin/search', 'Deep Search'],
+              ['/admin/users', 'User Management'],
+              ['/admin/compliance', 'Compliance Rules'],
+              ['/admin/analytics', 'Platform Analytics'],
+              ['/admin/audit', 'Full Audit Trail']
+            ].map(([path, label]) => (
+              <li key={path}>
+                <a
+                  href={path}
+                  className={adminNavClass(path)}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    navigateAdmin(path);
+                  }}
+                >
+                  {label}
+                </a>
+              </li>
+            ))}
+          </ul>
+          <div className="admin-sidebar-divider"></div>
+          <ul className="sidebar-nav">
+            <li>
+              <a
+                href="/identity/profile"
+                onClick={(event) => {
+                  event.preventDefault();
+                  navigate('/identity/profile');
+                }}
+              >
+                Admin Profile
+              </a>
+            </li>
+          </ul>
+        </aside>
+
+        <main className="main-content">
+          <div className="journey-page">
+            <section className="journey-hero compact admin-hero">
+              <div>
+                <span className="badge badge-info">Identity and access</span>
+                <h1>User Verification Management</h1>
+                <p>Review submitted registration records, inspect registry evidence, and approve or reject accounts before they access operational ProcureX modules.</p>
+              </div>
+              <div className="hero-action-stack">
+                <button className="btn btn-secondary" type="button" disabled={loading} onClick={() => void adminApi.listVerifications().then(setVerifications)}>
+                  Refresh Queue
+                </button>
+                <button className="btn btn-primary" type="button" onClick={() => setStatusFilter('PENDING')}>
+                  Pending Only
+                </button>
+              </div>
+            </section>
+
+            <section className="admin-kpi-grid four-col">
+              <article className="admin-kpi-card">
+                <span>Total Profiles</span>
+                <strong>{counts.total}</strong>
+                <em>Submitted verification records</em>
+              </article>
+              <article className="admin-kpi-card">
+                <span>Pending</span>
+                <strong>{counts.pending}</strong>
+                <em>Awaiting admin decision</em>
+              </article>
+              <article className="admin-kpi-card">
+                <span>Approved</span>
+                <strong>{counts.approved}</strong>
+                <em>App access enabled</em>
+              </article>
+              <article className="admin-kpi-card">
+                <span>Rejected</span>
+                <strong>{counts.rejected}</strong>
+                <em>Returned for correction</em>
+              </article>
+            </section>
+
+            <section className="journey-panel">
+              <div className="panel-heading">
+                <div>
+                  <span className="section-kicker">Search and filters</span>
+                  <h2>Registered verification profiles</h2>
+                </div>
+                <span className="badge badge-info">{loading ? 'Loading' : `${filteredVerifications.length} visible`}</span>
+              </div>
+              <div className="admin-filter-bar">
+                <input
+                  className="form-input"
+                  type="search"
+                  placeholder="Search name, email, organization, or registry number"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                />
+                <select className="form-input" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}>
+                  {statusOptions.map((option) => (
+                    <option value={option.value} key={option.value || 'all'}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {message ? <p className="auth-note">{message}</p> : null}
+            </section>
+
+            <section className="admin-split-with-drawer">
+              <div className="journey-panel">
+                <div className="data-table evaluation-table-scroll admin-data-table admin-users-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Avatar</th>
+                        <th>Name</th>
+                        <th>Email / Organization</th>
+                        <th>Registry</th>
+                        <th>Verification</th>
+                        <th>Updated</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredVerifications.map((verification) => (
+                        <tr key={verification.id}>
+                          <td>
+                            <span className="admin-avatar">{initials(verification.user.displayName)}</span>
+                          </td>
+                          <td>
+                            <strong>{verification.user.displayName}</strong>
+                            <em>{verification.user.accountType}</em>
+                          </td>
+                          <td>
+                            <span>{verification.user.email}</span>
+                            <em>{verification.user.organization || 'No organization assigned'}</em>
+                          </td>
+                          <td>
+                            <span>{verification.registrySource ?? 'Pending'}</span>
+                            <em>{verification.registryNumber ?? 'No registry number'}</em>
+                          </td>
+                          <td>
+                            <span className={statusBadge(verification.status)}>{statusLabel(verification.status)}</span>
+                          </td>
+                          <td>{new Date(verification.updatedAt).toLocaleDateString()}</td>
+                          <td className="admin-table-actions">
+                            <button className="btn btn-secondary btn-sm" type="button" onClick={() => setSelectedId(verification.id)}>
+                              View
+                            </button>
+                            <button className="btn btn-secondary btn-sm" type="button" disabled={loading || verification.status !== 'PENDING'} onClick={() => void decide(verification, 'reject')}>
+                              Reject
+                            </button>
+                            <button className="btn btn-primary btn-sm" type="button" disabled={loading || verification.status === 'APPROVED'} onClick={() => void decide(verification, 'approve')}>
+                              Approve
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {!filteredVerifications.length ? (
+                        <tr>
+                          <td colSpan={7}>No verification profiles match the current filters.</td>
+                        </tr>
+                      ) : null}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <aside className="admin-drawer admin-drawer-open" aria-label="Account detail preview">
+                {selected ? (
+                  <>
+                    <div className="panel-heading">
+                      <div>
+                        <span className="section-kicker">Detail drawer</span>
+                        <h2>{selected.user.displayName}</h2>
+                      </div>
+                      <span className={statusBadge(selected.status)}>{statusLabel(selected.status)}</span>
+                    </div>
+                    <div className="admin-drawer-profile">
+                      <span className="admin-avatar large">{initials(selected.user.displayName)}</span>
+                      <div>
+                        <strong>{selected.user.displayName}</strong>
+                        <span>{selected.user.email}</span>
+                      </div>
+                    </div>
+                    <dl className="admin-detail-list">
+                      <dt>Source</dt>
+                      <dd>{selected.registrySource ?? stringValue(selectedRegistry.source, 'Pending')}</dd>
+                      <dt>Number</dt>
+                      <dd>{selected.registryNumber ?? stringValue(selectedRegistry.registryNumber, 'Pending')}</dd>
+                      <dt>Registry name</dt>
+                      <dd>{stringValue(selectedRegistry.name, stringValue(selectedPayload.verifiedName, 'Pending'))}</dd>
+                      <dt>Entity type</dt>
+                      <dd>{stringValue(selectedPayload.entityType, 'Pending')}</dd>
+                      <dt>Signature</dt>
+                      <dd>{stringValue(selectedPayload.signatureName, 'Pending')}</dd>
+                      <dt>Capabilities</dt>
+                      <dd>{selected.user.capabilities.length ? selected.user.capabilities.join(', ') : 'Assigned after approval'}</dd>
+                    </dl>
+                    {selected.reviewReasons.length ? (
+                      <div className="admin-timeline compact">
+                        {selected.reviewReasons.map((reason) => (
+                          <div key={reason}>
+                            <strong>Review reason</strong>
+                            <span>{reason}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="admin-timeline compact">
+                        <div>
+                          <strong>No review blockers</strong>
+                          <span>The deterministic checks did not record additional reasons.</span>
+                        </div>
+                      </div>
+                    )}
+                    <label className="form-group">
+                      <span className="form-label">Admin note</span>
+                      <textarea className="form-input" rows={4} value={decisionNote} onChange={(event) => setDecisionNote(event.target.value)} />
+                    </label>
+                    <div className="admin-table-actions">
+                      <button className="btn btn-secondary" type="button" disabled={loading || selected.status !== 'PENDING'} onClick={() => void decide(selected, 'reject')}>
+                        Reject
+                      </button>
+                      <button className="btn btn-primary" type="button" disabled={loading || selected.status === 'APPROVED'} onClick={() => void decide(selected, 'approve')}>
+                        Approve
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="panel-heading">
+                    <div>
+                      <span className="section-kicker">Detail drawer</span>
+                      <h2>No profile selected</h2>
+                    </div>
+                  </div>
+                )}
+              </aside>
+            </section>
+          </div>
+        </main>
+      </div>
+    </>
+  );
 }

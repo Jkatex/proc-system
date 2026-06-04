@@ -316,6 +316,7 @@ model User {
   accounts             Account[]
   sessions             Session[]
   mfaFactors           MfaFactor[]
+  identityChallenges   IdentityChallenge[]
   memberships          OrganizationMember[]
   verificationProfiles VerificationProfile[]
   uploadedDocuments    DocumentObject[]        @relation("DocumentUploader")
@@ -374,6 +375,26 @@ model MfaFactor {
 
   @@index([userId])
   @@map("mfa_factors")
+  @@schema("identity")
+}
+
+model IdentityChallenge {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String?   @map("user_id") @db.Uuid
+  purpose    String
+  target     String
+  codeHash   String    @map("code_hash")
+  status     String    @default("PENDING")
+  attempts   Int       @default(0)
+  expiresAt  DateTime  @map("expires_at")
+  consumedAt DateTime? @map("consumed_at")
+  metadata   Json      @default("{}")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  user       User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose, status])
+  @@index([target, purpose, status])
+  @@map("identity_challenges")
   @@schema("identity")
 }
 
@@ -1145,6 +1166,24 @@ model ExternalSystem {
 
   @@index([ownerOrgId, systemType])
   @@map("external_systems")
+  @@schema("integration")
+}
+
+model RegistryRecord {
+  id             String   @id @default(uuid()) @db.Uuid
+  source         String
+  registryNumber String   @map("registry_number")
+  entityType     String   @map("entity_type")
+  name           String
+  status         String   @default("MATCHED")
+  confidence     Int      @default(95)
+  payload        Json     @default("{}")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@unique([source, registryNumber])
+  @@index([source, entityType])
+  @@map("registry_records")
   @@schema("integration")
 }
 
