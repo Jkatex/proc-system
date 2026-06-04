@@ -54,6 +54,58 @@ const tabs: Array<{ key: ProfileTab; label: string }> = [
 const tenderCategories = ['Goods', 'Works', 'Non Consultancy', 'Consultancy', 'Medical Supplies', 'ICT Equipment', 'Construction Works', 'Office Supplies'];
 const regions = ['Dar es Salaam', 'Arusha', 'Dodoma', 'Mwanza', 'Mbeya', 'Morogoro', 'Tanga', 'Zanzibar', 'Nationwide'];
 
+const appDrawerItems = [
+  {
+    className: 'app-menu-iam',
+    label: 'Registration and Verification',
+    description: 'Account and identity verification',
+    route: '/identity/profile',
+    icon: 'user'
+  },
+  {
+    className: 'app-menu-procurement',
+    label: 'Procurement Planning',
+    description: 'APP, SPP, budgets, approvals',
+    route: '/tender-planning',
+    icon: 'plan'
+  },
+  {
+    className: 'app-menu-procurement',
+    label: 'Procurement',
+    description: 'Marketplace, create tender, bid',
+    route: '/procurement/marketplace',
+    icon: 'market'
+  },
+  {
+    className: 'app-menu-communication',
+    label: 'Communication Center',
+    description: 'Messages, clarifications, alerts',
+    route: '/communication',
+    icon: 'message'
+  },
+  {
+    className: 'app-menu-evaluation',
+    label: 'Evaluation',
+    description: 'Evaluate bids on your tenders',
+    route: '/evaluation',
+    icon: 'check'
+  },
+  {
+    className: 'app-menu-awarding',
+    label: 'Awarding and Contract',
+    description: 'Awards, negotiations, signatures',
+    route: '/awards-contracts',
+    icon: 'award'
+  },
+  {
+    className: 'app-menu-contracts',
+    label: 'Records and History',
+    description: 'Past tenders, bids, awards',
+    route: '/records',
+    icon: 'record'
+  }
+] as const;
+
 const defaultProfile: ProfileForm = {
   fullName: '',
   emailAddress: '',
@@ -118,6 +170,74 @@ function initials(name?: string) {
     .join('');
 }
 
+function appDrawerIcon(icon: (typeof appDrawerItems)[number]['icon']) {
+  if (icon === 'plan') {
+    return (
+      <>
+        <path d="M4 4h16v16H4z" />
+        <path d="M8 8h8" />
+        <path d="M8 12h8" />
+        <path d="M8 16h5" />
+      </>
+    );
+  }
+  if (icon === 'market') {
+    return (
+      <>
+        <path d="M3 9h18l-2-5H5z" />
+        <path d="M5 9v11h14V9" />
+        <path d="M9 13h6" />
+        <path d="M9 17h4" />
+      </>
+    );
+  }
+  if (icon === 'message') {
+    return (
+      <>
+        <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+        <path d="M8 9h8" />
+        <path d="M8 13h5" />
+      </>
+    );
+  }
+  if (icon === 'check') {
+    return (
+      <>
+        <path d="M9 11l2 2 4-4" />
+        <path d="M8 4h8" />
+        <path d="M8 20h8" />
+        <path d="M5 7h14v10H5z" />
+      </>
+    );
+  }
+  if (icon === 'award') {
+    return (
+      <>
+        <circle cx="12" cy="8" r="4" />
+        <path d="M8.5 11.5L7 21l5-3 5 3-1.5-9.5" />
+        <path d="M10.5 8l1 1 2-2" />
+      </>
+    );
+  }
+  if (icon === 'record') {
+    return (
+      <>
+        <path d="M8 3h8l3 3v15H5V3z" />
+        <path d="M15 3v4h4" />
+        <path d="M8 12h8" />
+        <path d="M8 16h6" />
+      </>
+    );
+  }
+  return (
+    <>
+      <path d="M20 21a8 8 0 0 0-16 0" />
+      <circle cx="12" cy="7" r="4" />
+      <path d="M16 11l2 2 4-4" />
+    </>
+  );
+}
+
 function reviewReasons(profile: VerificationProfile | null) {
   const reasons = objectValue(profile?.payload).reviewReasons;
   return Array.isArray(reasons) ? reasons.map(String) : [];
@@ -133,6 +253,7 @@ export function AccountProfileProcurexPage() {
   const [documents, setDocuments] = useState<DocumentForm>(defaultDocuments);
   const [statusMessage, setStatusMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [appMenuOpen, setAppMenuOpen] = useState(false);
 
   useBodyPageMetadata('verification-status');
 
@@ -270,8 +391,22 @@ export function AccountProfileProcurexPage() {
         </div>
 
         <div className="app-topbar-actions">
-          <button className="btn btn-secondary" type="button" onClick={() => navigate('/identity/verification')}>
-            Update Verification
+          <button
+            className="icon-menu-btn"
+            type="button"
+            aria-label="Open apps"
+            aria-expanded={appMenuOpen}
+            onClick={() => setAppMenuOpen((open) => !open)}
+          >
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
           </button>
           <button
             className="profile-button"
@@ -284,6 +419,40 @@ export function AccountProfileProcurexPage() {
           >
             <span>{initials(user?.displayName)}</span>
           </button>
+        </div>
+
+        <div className={`app-drawer-menu ${appMenuOpen ? 'open' : ''}`}>
+          <div className="app-menu-header">
+            <div className="app-menu-brand">
+              <span className="platform-logo platform-logo-sm">
+                <img className="platform-logo-image" src="/assets/logo.svg" alt="ProcureX" />
+              </span>
+              <strong>ProcureX Apps</strong>
+            </div>
+            <span>Company account tools</span>
+          </div>
+
+          {appDrawerItems.map((item) => (
+            <button
+              className={`app-menu-card ${item.className}`}
+              type="button"
+              key={item.label}
+              onClick={() => {
+                setAppMenuOpen(false);
+                navigate(item.route);
+              }}
+            >
+              <span className="app-menu-icon">
+                <svg className="app-menu-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  {appDrawerIcon(item.icon)}
+                </svg>
+              </span>
+              <span>
+                <strong>{item.label}</strong>
+                <em>{item.description}</em>
+              </span>
+            </button>
+          ))}
         </div>
       </header>
 

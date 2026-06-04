@@ -1,5 +1,6 @@
 import { apiClient } from '@/shared/api/http';
 import type { SessionUser } from '@/shared/types/domain';
+import { clearDemoSession, getDemoUser, isDemoAuthToken } from '../demoAuth';
 
 export type AuthSessionResponse = {
   token: string;
@@ -56,10 +57,20 @@ export const authApi = {
     return response.data;
   },
   async getSession() {
+    if (isDemoAuthToken()) {
+      return {
+        user: getDemoUser(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      };
+    }
     const response = await apiClient.get<SessionResponse>('/api/identity/session');
     return response.data;
   },
   async signOut() {
+    if (isDemoAuthToken()) {
+      clearDemoSession();
+      return { ok: true };
+    }
     const response = await apiClient.post<{ ok: boolean }>('/api/identity/auth/sign-out');
     return response.data;
   }

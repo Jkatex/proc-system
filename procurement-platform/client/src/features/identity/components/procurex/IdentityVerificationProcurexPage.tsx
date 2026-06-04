@@ -484,8 +484,8 @@ export function IdentityVerificationProcurexPage() {
                 <button type="button" className="btn btn-secondary" onClick={() => navigate('/identity/profile')}>
                   Open profile
                 </button>
-                <button type="button" className="btn btn-primary" disabled={result?.user.verificationStatus !== 'APPROVED'} onClick={() => navigate('/apps')}>
-                  Open apps
+                <button type="button" className="btn btn-primary" disabled={result?.user.verificationStatus !== 'APPROVED'} onClick={() => navigate('/dashboard')}>
+                  Open dashboard
                 </button>
               </div>
             </section>

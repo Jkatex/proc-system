@@ -1,7 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/app/store';
-import { signInWithCredentials } from '@/features/auth/slice';
+import { signInWithCredentials, startDashboardDemoSession } from '@/features/auth/slice';
 import { apiErrorMessage } from '@/shared/api/errors';
 import { useBodyPageMetadata } from '@/shared/hooks/useBodyPageMetadata';
 
@@ -43,6 +43,11 @@ export function SignInProcurexPage() {
     } catch (caughtError) {
       setError(apiErrorMessage(caughtError, 'Sign-in failed. Check the email and password.'));
     }
+  }
+
+  function useDashboardDemoAccount() {
+    dispatch(startDashboardDemoSession());
+    navigate('/dashboard');
   }
 
   return (
@@ -119,10 +124,14 @@ export function SignInProcurexPage() {
               <button type="submit" className="btn-continue-new" disabled={loading}>
                 {loading ? 'Signing in...' : 'Sign In'}
               </button>
+
+              <button type="button" className="btn btn-secondary" onClick={useDashboardDemoAccount}>
+                Enter dashboard demo
+              </button>
             </form>
 
             <div className="auth-note">
-              Your account opens the workspace allowed by its verification status.
+              Your account opens the workspace allowed by its verification status. Use a demo account when the local backend is offline.
             </div>
           </div>
         </div>

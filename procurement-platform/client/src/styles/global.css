@@ -27,6 +27,26 @@ select {
   font: inherit;
 }
 
+.register-header-new .brand-new,
+.register-header-new .login-link-new,
+button.link-new {
+  appearance: none;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.register-header-new .brand-new,
+button.link-new {
+  padding: 0;
+}
+
+.register-header-new .brand-new,
+.register-header-new .login-link-new,
+button.link-new {
+  cursor: pointer;
+}
+
 a {
   color: inherit;
   text-decoration: none;
