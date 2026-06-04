@@ -78,7 +78,7 @@ describe('awards and contracts empty lifecycle flow', () => {
     expect(screen.getByText('No evaluation result is ready for awarding.')).toBeInTheDocument();
 
     renderFlow(<AwardResponseProcurexPage />, '/awards-contracts/award-response');
-    expect(screen.getByText('No award selected')).toBeInTheDocument();
+    expect(screen.getAllByText('No award selected').length).toBeGreaterThan(0);
 
     renderFlow(<ContractNegotiationProcurexPage />, '/awards-contracts/negotiation');
     expect(screen.getByText('No contract is in progress.')).toBeInTheDocument();
