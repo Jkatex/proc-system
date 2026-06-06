@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import i18n from '@/i18n';
 import { authApi } from '@/features/auth/api';
 import { ForgotPasswordProcurexPage } from './ForgotPasswordProcurexPage';
 
@@ -35,7 +37,9 @@ function renderForgotPassword(initialEntry = '/forgot-password') {
 }
 
 describe('ForgotPasswordProcurexPage', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    window.localStorage.clear();
+    await i18n.changeLanguage('en');
     mockedAuthApi.forgotPassword.mockReset();
     mockedAuthApi.resendResetCode.mockReset();
     mockedAuthApi.resetPassword.mockReset();
@@ -113,6 +117,25 @@ describe('ForgotPasswordProcurexPage', () => {
 
     expect(await screen.findByText('Complete the security check before continuing.')).toBeInTheDocument();
     expect(mockedAuthApi.forgotPassword).not.toHaveBeenCalled();
+  });
+
+  it('shows the language switcher and translates reset request copy to Swahili', async () => {
+    const user = userEvent.setup();
+    renderForgotPassword();
+
+    const actionGroup = document.querySelector('.auth-header-actions-new');
+    const languageSwitcher = screen.getByRole('combobox', { name: 'Language' });
+    const backButton = screen.getByRole('button', { name: 'Back to sign in' });
+    expect(actionGroup).toContainElement(languageSwitcher);
+    expect(actionGroup).toContainElement(backButton);
+    expect(Boolean(languageSwitcher.compareDocumentPosition(backButton) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+
+    await user.click(screen.getByRole('combobox', { name: 'Language' }));
+    await user.click(screen.getByRole('option', { name: 'Swahili' }));
+
+    expect(screen.getByRole('heading', { name: 'Weka Upya Nenosiri' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Barua Pepe *')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tuma Maelekezo ya Kuweka Upya' })).toBeInTheDocument();
   });
 
   it('shows an incorrect reset code alert', async () => {

@@ -1,7 +1,9 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import i18n from '@/i18n';
 import { authApi } from '@/features/auth/api';
 import { signOut } from '@/features/auth/slice';
 import { store } from '@/app/store';
@@ -35,6 +37,7 @@ function renderSignIn() {
           <Route path="/sign-in" element={<SignInProcurexPage />} />
           <Route path="/identity/verification" element={<div>Identity verification</div>} />
           <Route path="/apps" element={<div>Apps</div>} />
+          <Route path="/dashboard" element={<div>User dashboard</div>} />
           <Route path="/admin" element={<div>Admin</div>} />
         </Routes>
       </MemoryRouter>
@@ -43,7 +46,10 @@ function renderSignIn() {
 }
 
 describe('SignInProcurexPage', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    vi.unstubAllEnvs();
+    window.localStorage.clear();
+    await i18n.changeLanguage('en');
     store.dispatch(signOut());
     mockedAuthApi.signIn.mockReset();
   });
@@ -100,6 +106,75 @@ describe('SignInProcurexPage', () => {
 
     expect(await screen.findByText('Complete the security check before signing in.')).toBeInTheDocument();
     expect(mockedAuthApi.signIn).not.toHaveBeenCalled();
+  });
+
+  it('hides the demo account placeholder when it is disabled outside local development', () => {
+    vi.stubEnv('MODE', 'production');
+    vi.stubEnv('VITE_DEMO_SIGN_IN_ENABLED', 'false');
+
+    renderSignIn();
+
+    expect(screen.queryByRole('button', { name: /Sign in as demo user/i })).not.toBeInTheDocument();
+  });
+
+  it('shows the local demo account icon button when enabled and keeps it blocked until Turnstile is complete', () => {
+    vi.stubEnv('VITE_DEMO_SIGN_IN_ENABLED', 'true');
+
+    renderSignIn();
+
+    const demoButton = screen.getByRole('button', { name: /Sign in as demo user/i });
+    expect(demoButton).toBeDisabled();
+    expect(demoButton.querySelector('svg')).toBeInTheDocument();
+    expect(mockedAuthApi.signIn).not.toHaveBeenCalled();
+  });
+
+  it('signs in the local demo account through real credentials after Turnstile and routes to the dashboard', async () => {
+    vi.stubEnv('VITE_DEMO_SIGN_IN_ENABLED', 'true');
+    mockedAuthApi.signIn.mockResolvedValueOnce({
+      token: 'demo-token',
+      expiresAt: '2026-06-13T00:00:00.000Z',
+      user: {
+        id: 'demo-user',
+        email: 'demo@procurex.tz',
+        phone: '+255713333444',
+        displayName: 'Demo Verified User',
+        accountType: 'USER',
+        organization: 'Kilimanjaro Supplies Limited',
+        verificationStatus: 'APPROVED',
+        capabilities: ['BUYER', 'SUPPLIER']
+      }
+    });
+
+    renderSignIn();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Complete security check' }));
+    fireEvent.click(screen.getByRole('button', { name: /Sign in as demo user/i }));
+
+    await screen.findByText('User dashboard');
+    expect(mockedAuthApi.signIn).toHaveBeenCalledWith({
+      email: 'demo@procurex.tz',
+      password: 'Demo123!',
+      turnstileToken: 'turnstile-token'
+    });
+  });
+
+  it('shows the language switcher and translates sign-in copy to Swahili', async () => {
+    const user = userEvent.setup();
+    renderSignIn();
+
+    const actionGroup = document.querySelector('.auth-header-actions-new');
+    const languageSwitcher = screen.getByRole('combobox', { name: 'Language' });
+    const createAccountButton = screen.getByRole('button', { name: 'Create an account' });
+    expect(actionGroup).toContainElement(languageSwitcher);
+    expect(actionGroup).toContainElement(createAccountButton);
+    expect(Boolean(languageSwitcher.compareDocumentPosition(createAccountButton) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+
+    await user.click(screen.getByRole('combobox', { name: 'Language' }));
+    await user.click(screen.getByRole('option', { name: 'Swahili' }));
+
+    expect(screen.getByRole('heading', { name: 'Karibu Tena' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Barua Pepe *')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ingia' })).toBeInTheDocument();
   });
 
   it('shows an accessible alert for invalid credentials', async () => {

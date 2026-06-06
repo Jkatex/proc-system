@@ -6,10 +6,11 @@ import {
   VerificationStatus,
   type Prisma
 } from '@prisma/client';
-import { randomBytes, scrypt as scryptCallback, timingSafeEqual, createHash } from 'node:crypto';
+import { randomBytes, scrypt as scryptCallback, timingSafeEqual, createHash, createHmac } from 'node:crypto';
 import { promisify } from 'node:util';
 import { ModuleRepository, type SessionWithUser, type UserWithDefaultOrg, type VerificationWithUser } from './repository.js';
 import { ProductionIdentityNotifications, type DeliveryReceipt, type IdentityNotificationProvider } from './notifications.js';
+import { ProductionRegistryProvider, isRegistryProviderFailure, type RegistryProvider } from './registryProviders.js';
 import {
   moduleDefinition,
   type AdminVerificationDto,
@@ -56,6 +57,8 @@ type VerificationPayloadInput = {
   signatureName?: string;
   signatureTitle?: string;
   signatureConsent?: boolean;
+  signatureConsentVersion?: string;
+  signatureConsentTitle?: string;
   profile?: Record<string, unknown>;
   documents?: Record<string, unknown>[];
 };
@@ -163,6 +166,25 @@ function inputJson(value: Record<string, unknown>): Prisma.InputJsonObject {
   return value as Prisma.InputJsonObject;
 }
 
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map((item) => canonicalJson(item)).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, item]) => `${JSON.stringify(key)}:${canonicalJson(item)}`)
+      .join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function hashWithSecret(value: string, secret: string) {
+  return createHmac('sha256', secret).update(value).digest('hex');
+}
+
+function signatureHashSecret() {
+  return process.env.SIGNATURE_HASH_SECRET || (process.env.NODE_ENV === 'test' ? 'vitest-signature-secret' : 'local-development-signature-secret');
+}
+
 function deliveryMetadata(receipt: DeliveryReceipt) {
   return {
     provider: receipt.provider,
@@ -253,7 +275,8 @@ function registryPayload(record: {
 export class ModuleService {
   constructor(
     private readonly repository = new ModuleRepository(),
-    private readonly notifications: IdentityNotificationProvider = new ProductionIdentityNotifications()
+    private readonly notifications: IdentityNotificationProvider = new ProductionIdentityNotifications(),
+    private readonly registryProvider: RegistryProvider = new ProductionRegistryProvider()
   ) {}
 
   async status(): Promise<ModuleStatus> {
@@ -883,14 +906,66 @@ export class ModuleService {
     return session;
   }
 
-  async registryLookup(input: RegistryLookupInput) {
+  async registryLookup(input: RegistryLookupInput, audit?: AuthAuditContext) {
     const source = registrySourceFor(input);
     const registryNumber = input.registryNumber.trim();
-    const record = await this.repository.findRegistryRecord(source, registryNumber);
+    let record;
+
+    try {
+      const provided = await this.registryProvider.lookup({
+        source: source as 'TRA' | 'BRELA',
+        entityType: input.entityType,
+        businessRegistrationSource: input.businessRegistrationSource,
+        registryNumber
+      });
+      if (provided) {
+        record = await this.repository.upsertRegistryRecord({
+          source: provided.source,
+          registryNumber: provided.registryNumber,
+          entityType: provided.entityType,
+          name: provided.name,
+          status: provided.status,
+          confidence: provided.confidence,
+          payload: inputJson({
+            ...provided.payload,
+            fetchedAt: new Date().toISOString(),
+            provider: provided.source
+          })
+        });
+      }
+    } catch (error) {
+      await this.recordAuthEvent('identity.verification.registry_lookup_failed', {
+        ...audit,
+        severity: AuditSeverity.WARNING,
+        target: registryNumber,
+        details: { source, reason: 'provider_failure' }
+      });
+      if (isRegistryProviderFailure(error)) {
+        throw requestError(`${source} registry lookup is not available right now.`, 502);
+      }
+      throw error;
+    }
+
+    if (!record && process.env.NODE_ENV !== 'production' && process.env.APP_ENV !== 'production') {
+      record = await this.repository.findRegistryRecord(source, registryNumber);
+    }
 
     if (!record || record.entityType !== input.entityType) {
+      await this.recordAuthEvent('identity.verification.registry_lookup_failed', {
+        ...audit,
+        severity: AuditSeverity.WARNING,
+        target: registryNumber,
+        details: { source, reason: 'not_found' }
+      });
       throw requestError('No matching registry record was found.', 404);
     }
+
+    await this.recordAuthEvent('identity.verification.registry_lookup_succeeded', {
+      ...audit,
+      target: registryNumber,
+      entityRef: record.id,
+      details: { source, confidence: record.confidence }
+    });
 
     return registryPayload(record);
   }
@@ -904,7 +979,7 @@ export class ModuleService {
     };
   }
 
-  async saveVerificationDraft(token: string | undefined, input: VerificationPayloadInput) {
+  async saveVerificationDraft(token: string | undefined, input: VerificationPayloadInput, audit?: AuthAuditContext) {
     const { user } = await this.requireSession(token);
     const existing = await this.repository.latestVerificationProfile(user.id);
     const payload = inputJson({
@@ -923,6 +998,22 @@ export class ModuleService {
     });
 
     await this.repository.updateUser(user.id, { verificationStatus: VerificationStatus.DRAFT });
+    await this.repository.createVerificationHistory({
+      verificationProfileId: profile.id,
+      userId: user.id,
+      organizationId: user.organizationId,
+      status: VerificationStatus.DRAFT,
+      registrySource: profile.registrySource,
+      registryNumber: profile.registryNumber,
+      event: 'draft_saved',
+      payload
+    });
+    await this.recordAuthEvent('identity.verification.draft_saved', {
+      ...audit,
+      userId: user.id,
+      ownerOrgId: user.organizationId,
+      entityRef: profile.id
+    });
     return toProfileDto(profile);
   }
 
@@ -944,10 +1035,30 @@ export class ModuleService {
       payload
     });
 
+    await this.repository.createVerificationHistory({
+      verificationProfileId: profile.id,
+      userId: user.id,
+      organizationId: user.organizationId,
+      status: profile.status,
+      registrySource: profile.registrySource,
+      registryNumber: profile.registryNumber,
+      event: 'profile_updated',
+      payload
+    });
+    await this.recordAuthEvent('identity.verification.profile_updated', {
+      userId: user.id,
+      ownerOrgId: user.organizationId,
+      entityRef: profile.id
+    });
+
     return toProfileDto(profile);
   }
 
-  async submitVerification(token: string | undefined, input: Required<Pick<VerificationPayloadInput, 'entityType' | 'registrySource' | 'registryNumber' | 'registryVerified' | 'registryRecordId' | 'signatureName' | 'signatureConsent'>> & VerificationPayloadInput) {
+  async submitVerification(
+    token: string | undefined,
+    input: Required<Pick<VerificationPayloadInput, 'entityType' | 'registrySource' | 'registryNumber' | 'registryVerified' | 'registryRecordId' | 'signatureName' | 'signatureConsent'>> & VerificationPayloadInput,
+    audit?: AuthAuditContext
+  ) {
     const { user } = await this.requireSession(token);
     const fullUser = await this.repository.findUserById(user.id);
     if (!fullUser) throw requestError('Current user was not found.', 404);
@@ -984,21 +1095,87 @@ export class ModuleService {
         })
       : null;
 
-    const payload = inputJson({
+    const basePayload = {
       ...input,
       registryRecord: registryPayload(registry),
       verifiedName: registry.name,
       reviewReasons,
       autoApproved,
       submittedAt: new Date().toISOString()
-    });
+    };
 
-    const profile = await this.repository.upsertVerificationProfile({
+    let profile = await this.repository.upsertVerificationProfile({
       userId: fullUser.id,
       organizationId: organization?.id ?? user.organizationId,
       status,
       registrySource: registry.source,
       registryNumber: registry.registryNumber,
+      payload: inputJson(basePayload)
+    });
+
+    const signedPayload = {
+      verificationProfileId: profile.id,
+      userId: fullUser.id,
+      registrySource: registry.source,
+      registryNumber: registry.registryNumber,
+      registryRecordId: registry.id,
+      entityType: input.entityType,
+      signerName: input.signatureName.trim(),
+      signerTitle: input.signatureTitle?.trim() ?? '',
+      consentVersion: input.signatureConsentVersion ?? '2026.06.06',
+      consentTitle: input.signatureConsentTitle ?? 'ProcureX identity verification signature consent',
+      signedAt: new Date().toISOString()
+    };
+    const canonicalPayload = canonicalJson(signedPayload);
+    const canonicalPayloadHash = sha256(canonicalPayload);
+    const signature = await this.repository.createDigitalSignature({
+      verificationProfileId: profile.id,
+      userId: fullUser.id,
+      organizationId: organization?.id ?? user.organizationId,
+      signerName: signedPayload.signerName,
+      signerTitle: signedPayload.signerTitle || null,
+      consentVersion: signedPayload.consentVersion,
+      consentTitle: signedPayload.consentTitle,
+      canonicalPayloadHash,
+      signatureHash: hashWithSecret(`${canonicalPayloadHash}:${fullUser.id}:${profile.id}`, signatureHashSecret()),
+      metadata: inputJson({
+        ...(audit?.ipAddress ? { ipHash: sha256(audit.ipAddress) } : {}),
+        ...(audit?.userAgent ? { userAgentHash: sha256(audit.userAgent) } : {})
+      }),
+      providerMetadata: inputJson({ provider: 'procurex-secure-hash-v1' }),
+      blockchainMetadata: inputJson({ anchorStatus: 'PENDING_IMPLEMENTATION' })
+    });
+
+    const payload = inputJson({
+      ...basePayload,
+      digitalSignature: {
+        id: signature.id,
+        status: signature.status,
+        signedAt: signature.signedAt.toISOString(),
+        canonicalPayloadHash: signature.canonicalPayloadHash,
+        consentVersion: signature.consentVersion,
+        consentTitle: signature.consentTitle,
+        blockchainAnchorStatus: 'PENDING_IMPLEMENTATION'
+      }
+    });
+
+    profile = await this.repository.upsertVerificationProfile({
+      userId: fullUser.id,
+      organizationId: organization?.id ?? user.organizationId,
+      status,
+      registrySource: registry.source,
+      registryNumber: registry.registryNumber,
+      payload
+    });
+
+    await this.repository.createVerificationHistory({
+      verificationProfileId: profile.id,
+      userId: fullUser.id,
+      organizationId: organization?.id ?? user.organizationId,
+      status,
+      registrySource: registry.source,
+      registryNumber: registry.registryNumber,
+      event: 'verification_submitted',
       payload
     });
 
@@ -1021,7 +1198,17 @@ export class ModuleService {
       entityType: 'verification_profile',
       entityRef: profile.id,
       severity: autoApproved ? AuditSeverity.INFO : AuditSeverity.WARNING,
-      payload: { reviewReasons, autoApproved }
+      payload: { reviewReasons, autoApproved, signatureId: signature.id }
+    });
+
+    await this.repository.createAuditEvent({
+      actorUserId: fullUser.id,
+      ownerOrgId: organization?.id ?? user.organizationId,
+      event: 'identity.verification.signature_created',
+      entityType: 'digital_signature',
+      entityRef: signature.id,
+      severity: AuditSeverity.INFO,
+      payload: { verificationProfileId: profile.id, canonicalPayloadHash }
     });
 
     if (autoApproved) {
@@ -1080,6 +1267,16 @@ export class ModuleService {
       adminDecisionBy: admin.user.id
     });
     await this.repository.updateVerificationStatus(profile.id, nextStatus, updatedPayload, organizationId ?? null);
+    await this.repository.createVerificationHistory({
+      verificationProfileId: profile.id,
+      userId: profile.userId,
+      organizationId: organizationId ?? null,
+      status: nextStatus,
+      registrySource: profile.registrySource,
+      registryNumber: profile.registryNumber,
+      event: `admin_${decision}`,
+      payload: updatedPayload
+    });
 
     await this.repository.updateUser(profile.userId, {
       verificationStatus: nextStatus,

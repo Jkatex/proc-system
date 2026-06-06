@@ -76,6 +76,8 @@ export const verificationDraftSchema = z.object({
   signatureName: z.string().optional(),
   signatureTitle: z.string().optional(),
   signatureConsent: z.boolean().optional(),
+  signatureConsentVersion: z.string().max(64).optional(),
+  signatureConsentTitle: z.string().max(200).optional(),
   profile: z.record(z.unknown()).optional(),
   documents: z.array(z.record(z.unknown())).optional()
 });

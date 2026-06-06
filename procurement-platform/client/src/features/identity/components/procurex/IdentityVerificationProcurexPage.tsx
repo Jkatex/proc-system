@@ -31,6 +31,9 @@ const applicantCards: Array<{
   }
 ];
 
+const signatureConsentVersion = '2026.06.06';
+const signatureConsentTitle = 'ProcureX identity verification signature consent';
+
 function sourceFor(entityType: EntityType, businessRegistrationSource: BusinessRegistrationSource) {
   if (entityType === 'company') return 'BRELA';
   if (entityType === 'business' && businessRegistrationSource === 'brela') return 'BRELA';
@@ -55,6 +58,21 @@ function stringValue(value: unknown) {
   if (Array.isArray(value)) return value.join(', ');
   if (typeof value === 'object' && value !== null) return JSON.stringify(value);
   return String(value);
+}
+
+function friendlyIdentityMessage(error: unknown, fallback: string) {
+  const axiosError = error as { response?: { status?: number; data?: { message?: string } }; message?: string };
+  const status = axiosError.response?.status;
+  const serverMessage = axiosError.response?.data?.message || axiosError.message || '';
+
+  if (status === 404) return 'No matching official registry record was found. Check the number and applicant type, then try again.';
+  if (status === 409 && /duplicate|already uses/i.test(serverMessage)) {
+    return 'This registry number is already linked to an approved ProcureX account. The verification will need admin review.';
+  }
+  if (status === 409) return serverMessage || 'The registry record must be fetched and confirmed before submitting.';
+  if (status === 502) return 'The registry service is not available right now. Please try again later.';
+
+  return apiErrorMessage(error, fallback);
 }
 
 export function IdentityVerificationProcurexPage() {
@@ -144,7 +162,9 @@ export function IdentityVerificationProcurexPage() {
         registryRecordId: registryRecord?.id,
         signatureName,
         signatureTitle,
-        signatureConsent
+        signatureConsent,
+        signatureConsentVersion,
+        signatureConsentTitle
       });
       if (authUser && authUser.verificationStatus === 'NOT_STARTED') {
         dispatch(setSessionUser({ ...authUser, verificationStatus: 'DRAFT' }));
@@ -174,7 +194,7 @@ export function IdentityVerificationProcurexPage() {
       setSignatureName((current) => current || record.name);
       setMessage(`${record.source} record fetched. Review and confirm the details.`);
     } catch (error) {
-      setMessage(apiErrorMessage(error, 'No matching registry record was found.'));
+      setMessage(friendlyIdentityMessage(error, 'No matching registry record was found.'));
     } finally {
       setLoading(false);
     }
@@ -202,6 +222,8 @@ export function IdentityVerificationProcurexPage() {
         signatureName: signatureName.trim(),
         signatureTitle: signatureTitle.trim(),
         signatureConsent: true,
+        signatureConsentVersion,
+        signatureConsentTitle,
         profile: {
           displayName: registryRecord.name,
           country: 'Tanzania',
@@ -220,7 +242,7 @@ export function IdentityVerificationProcurexPage() {
       setResult(submitted);
       setStep(4);
     } catch (error) {
-      setMessage(apiErrorMessage(error, 'Could not submit verification.'));
+      setMessage(friendlyIdentityMessage(error, 'Could not submit verification.'));
     } finally {
       setLoading(false);
     }
@@ -245,7 +267,7 @@ export function IdentityVerificationProcurexPage() {
               {authUser?.verificationStatus === 'APPROVED' ? 'Identity verified' : 'Identity verification required'}
             </span>
             <h2>Verify the account before dashboard access.</h2>
-            <p>Choose applicant type, verify TRA or BRELA registry information, and create a digital signature for the account.</p>
+            <p>Choose applicant type, verify TRA or BRELA registry information, and create a secure digital signature record for the account.</p>
           </div>
 
           <ol className="ekyc-steps">
@@ -266,7 +288,7 @@ export function IdentityVerificationProcurexPage() {
             <div>
               <span className="section-kicker">Account registration</span>
               <h1>Identity verification flow</h1>
-              <p>Registry and signature data are saved to the verification profile and decide whether the account can access ProcureX apps immediately.</p>
+              <p>Registry data, consent, and signature hashes are saved to the verification profile and decide whether the account can access ProcureX apps immediately.</p>
             </div>
             <span className="badge badge-info">{authUser?.displayName ?? 'Current account'}</span>
           </div>
@@ -408,7 +430,7 @@ export function IdentityVerificationProcurexPage() {
                 <span className="ekyc-step-badge">3</span>
                 <div>
                   <h2>Create digital signature</h2>
-                  <p>This typed signature represents the verified account owner for ProcureX actions.</p>
+                  <p>The signer name and consent are sealed into a server-generated signature hash with audit metadata for ProcureX actions.</p>
                 </div>
               </div>
 
@@ -431,6 +453,7 @@ export function IdentityVerificationProcurexPage() {
                   <input className="confirm-action-input" type="checkbox" checked={signatureConsent} onChange={(event) => setSignatureConsent(event.target.checked)} />
                   <span>Confirm digital signature consent</span>
                 </label>
+                <p className="form-hint-new">{signatureConsentTitle} v{signatureConsentVersion}</p>
               </div>
 
               <div className="ekyc-step-actions split">
@@ -471,6 +494,14 @@ export function IdentityVerificationProcurexPage() {
                     <span>Status</span>
                     <strong>{result?.user.verificationStatus ?? authUser?.verificationStatus ?? 'DRAFT'}</strong>
                   </div>
+                  {result?.verification.payload.digitalSignature &&
+                  typeof result.verification.payload.digitalSignature === 'object' &&
+                  'status' in result.verification.payload.digitalSignature ? (
+                    <div>
+                      <span>Digital signature</span>
+                      <strong>{String(result.verification.payload.digitalSignature.status)}</strong>
+                    </div>
+                  ) : null}
                 </div>
 
                 {result?.reviewReasons.length ? (

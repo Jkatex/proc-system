@@ -1,6 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import i18n from '@/i18n';
 import { apiClient } from '@/shared/api/http';
 import { WelcomeProcurexPage } from './WelcomeProcurexPage';
 
@@ -21,7 +23,9 @@ function renderWelcome() {
 }
 
 describe('WelcomeProcurexPage', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    window.localStorage.clear();
+    await i18n.changeLanguage('en');
     apiGet.mockReset();
   });
 
@@ -76,5 +80,21 @@ describe('WelcomeProcurexPage', () => {
     expect(screen.getByText('PX-OPEN-2026')).toBeInTheDocument();
     expect(screen.getByText('12 open tenders visible now.')).toBeInTheDocument();
     expect(screen.getByText('98.4% Completion Rate')).toBeInTheDocument();
+  });
+
+  it('lets public visitors switch the welcome page to Swahili', async () => {
+    const user = userEvent.setup();
+    apiGet.mockRejectedValueOnce(new Error('network unavailable'));
+
+    renderWelcome();
+
+    expect(document.querySelector('.procurex-language-inline--welcome')).toContainElement(screen.getByRole('combobox', { name: 'Language' }));
+
+    await user.click(screen.getByRole('combobox', { name: 'Language' }));
+    await user.click(screen.getByRole('option', { name: 'Swahili' }));
+
+    expect(await screen.findByRole('heading', { name: 'Nunua. Toa Huduma. Unganika. Kua.' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Anza Sasa' }).length).toBeGreaterThan(0);
+    expect(screen.getByRole('combobox', { name: 'Lugha' })).toBeInTheDocument();
   });
 });

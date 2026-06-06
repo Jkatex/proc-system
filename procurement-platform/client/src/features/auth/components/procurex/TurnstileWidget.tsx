@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AuthAlert, authAlert } from './AuthAlert';
 
 type TurnstileWidgetProps = {
@@ -41,6 +42,7 @@ function ensureTurnstileScript() {
 }
 
 export function TurnstileWidget({ action, resetKey, onVerify, onExpire }: TurnstileWidgetProps) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const widgetIdRef = useRef<string | null>(null);
   const onVerifyRef = useRef(onVerify);
@@ -89,8 +91,8 @@ export function TurnstileWidget({ action, resetKey, onVerify, onExpire }: Turnst
   }, [action, ready, resetKey, siteKey]);
 
   if (!siteKey) {
-    return <AuthAlert message={authAlert('Security check is not configured.', 'error')} />;
+    return <AuthAlert message={authAlert('auth.security.notConfigured', 'error')} />;
   }
 
-  return <div className="turnstile-widget-new" ref={containerRef} aria-label="Security check" />;
+  return <div className="turnstile-widget-new" ref={containerRef} aria-label={t('auth.security.ariaLabel')} />;
 }

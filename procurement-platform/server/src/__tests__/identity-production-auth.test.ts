@@ -1,6 +1,7 @@
 import { AccountType, PublicPageKey, PublicPageStatus, VerificationStatus } from '@prisma/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ModuleService } from '../modules/identity/service.js';
+import type { RegistryLookupRequest, RegistryProvider, RegistryProviderRecord } from '../modules/identity/registryProviders.js';
 
 class FakeIdentityRepository {
   users = new Map<string, any>();
@@ -12,6 +13,8 @@ class FakeIdentityRepository {
   acceptances: any[] = [];
   auditEvents: any[] = [];
   profiles: any[] = [];
+  history: any[] = [];
+  signatures: any[] = [];
   id = 0;
 
   nextId(prefix: string) {
@@ -188,6 +191,37 @@ class FakeIdentityRepository {
     return Promise.resolve(this.registry.get(`${source}:${registryNumber}`) ?? null);
   }
 
+  upsertRegistryRecord(input: {
+    source: string;
+    registryNumber: string;
+    entityType: string;
+    name: string;
+    status: string;
+    confidence: number;
+    payload?: Record<string, unknown>;
+  }) {
+    const key = `${input.source}:${input.registryNumber}`;
+    const record =
+      this.registry.get(key) ??
+      {
+        id: this.nextId('registry'),
+        createdAt: new Date()
+      };
+
+    Object.assign(record, {
+      source: input.source,
+      registryNumber: input.registryNumber,
+      entityType: input.entityType,
+      name: input.name,
+      status: input.status,
+      confidence: input.confidence,
+      payload: input.payload ?? {},
+      updatedAt: new Date()
+    });
+    this.registry.set(key, record);
+    return Promise.resolve(record);
+  }
+
   upsertDevRegistryRecord(input: { source: string; registryNumber: string; entityType: string; name: string; payload?: Record<string, unknown> }) {
     const key = `${input.source}:${input.registryNumber}`;
     const existing = this.registry.get(key);
@@ -258,6 +292,47 @@ class FakeIdentityRepository {
     return Promise.resolve(profile);
   }
 
+  createVerificationHistory(input: Record<string, unknown>) {
+    const history = { id: this.nextId('history'), ...input, createdAt: new Date() };
+    this.history.push(history);
+    return Promise.resolve(history);
+  }
+
+  createDigitalSignature(input: Record<string, unknown>) {
+    const signature = {
+      id: this.nextId('signature'),
+      status: 'SIGNED',
+      signedAt: new Date(),
+      createdAt: new Date(),
+      ...input
+    };
+    this.signatures.push(signature);
+    return Promise.resolve(signature);
+  }
+
+  findVerificationProfileById(id: string) {
+    const profile = this.profiles.find((item) => item.id === id);
+    if (!profile) return Promise.resolve(null);
+    return Promise.resolve({
+      ...profile,
+      user: this.users.get(profile.userId)
+    });
+  }
+
+  updateVerificationStatus(id: string, status: VerificationStatus, payload: Record<string, unknown>, organizationId?: string | null) {
+    const profile = this.profiles.find((item) => item.id === id);
+    Object.assign(profile, {
+      status,
+      payload,
+      ...(organizationId !== undefined ? { organizationId } : {}),
+      updatedAt: new Date()
+    });
+    return Promise.resolve({
+      ...profile,
+      user: this.users.get(profile.userId)
+    });
+  }
+
   createAuditEvent(input: Record<string, unknown>) {
     const event = { id: this.nextId('audit'), ...input, createdAt: new Date() };
     this.auditEvents.push(event);
@@ -300,11 +375,28 @@ class FakeIdentityNotifications {
   }
 }
 
-function makeService(repository = new FakeIdentityRepository(), notifications = new FakeIdentityNotifications()) {
+class FakeRegistryProvider implements RegistryProvider {
+  records = new Map<string, RegistryProviderRecord>();
+  failNext = false;
+
+  lookup(input: RegistryLookupRequest) {
+    if (this.failNext) {
+      this.failNext = false;
+      const error = new Error('provider unavailable') as Error & { providerFailure?: true };
+      error.providerFailure = true;
+      return Promise.reject(error);
+    }
+
+    return Promise.resolve(this.records.get(`${input.source}:${input.registryNumber}`) ?? null);
+  }
+}
+
+function makeService(repository = new FakeIdentityRepository(), notifications = new FakeIdentityNotifications(), registryProvider?: RegistryProvider) {
   return {
     repository,
     notifications,
-    service: new ModuleService(repository as any, notifications)
+    registryProvider,
+    service: new ModuleService(repository as any, notifications, registryProvider)
   };
 }
 
@@ -518,6 +610,50 @@ describe('identity production auth', () => {
     await expect(service.verifyOtp(challenge.id, '123456')).rejects.toMatchObject({ status: 410 });
   });
 
+  it('looks up registry records through a provider and persists normalized results', async () => {
+    const repository = new FakeIdentityRepository();
+    const registryProvider = new FakeRegistryProvider();
+    registryProvider.records.set('TRA:TIN-100', {
+      source: 'TRA',
+      registryNumber: 'TIN-100',
+      entityType: 'business',
+      name: 'Provider Business',
+      status: 'MATCHED',
+      confidence: 97,
+      payload: { region: 'Dar es Salaam' }
+    });
+    const { service } = makeService(repository, new FakeIdentityNotifications(), registryProvider);
+
+    const record = await service.registryLookup({
+      entityType: 'business',
+      businessRegistrationSource: 'tin',
+      registryNumber: 'TIN-100'
+    });
+
+    expect(record).toMatchObject({
+      source: 'TRA',
+      registryNumber: 'TIN-100',
+      entityType: 'business',
+      name: 'Provider Business',
+      confidence: 97
+    });
+    expect(repository.registry.get('TRA:TIN-100')).toMatchObject({ name: 'Provider Business', payload: { region: 'Dar es Salaam' } });
+    expect(repository.auditEvents.some((event) => event.event === 'identity.verification.registry_lookup_succeeded')).toBe(true);
+  });
+
+  it('returns a delivery-style provider error when registry lookup is unavailable', async () => {
+    const registryProvider = new FakeRegistryProvider();
+    registryProvider.failNext = true;
+    const { service } = makeService(new FakeIdentityRepository(), new FakeIdentityNotifications(), registryProvider);
+
+    await expect(
+      service.registryLookup({
+        entityType: 'company',
+        registryNumber: 'BRELA-500'
+      })
+    ).rejects.toMatchObject({ status: 502 });
+  });
+
   it('auto-approves eKYC when a matching production registry record passes deterministic checks', async () => {
     const { repository, notifications, service } = makeService();
     repository.registry.set('TRA:TIN-001', {
@@ -555,5 +691,111 @@ describe('identity production auth', () => {
     expect(registry.status).toBe('MATCHED');
     expect(result.autoApproved).toBe(true);
     expect(result.user.verificationStatus).toBe(VerificationStatus.APPROVED);
+    expect(repository.signatures).toHaveLength(1);
+    expect(repository.signatures[0]).toMatchObject({
+      verificationProfileId: result.verification.id,
+      signerName: 'Walkthrough Owner',
+      status: 'SIGNED'
+    });
+    expect(repository.signatures[0].canonicalPayloadHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(repository.signatures[0].signatureHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(repository.history.some((entry) => entry.event === 'verification_submitted')).toBe(true);
+    expect(repository.auditEvents.some((event) => event.event === 'identity.verification.signature_created')).toBe(true);
+    expect(JSON.stringify(repository.signatures)).not.toContain(session.token);
+  });
+
+  it('routes duplicate approved registry numbers to admin review', async () => {
+    const { repository, notifications, service } = makeService();
+    repository.registry.set('TRA:TIN-200', {
+      id: 'registry-duplicate',
+      source: 'TRA',
+      registryNumber: 'TIN-200',
+      entityType: 'business',
+      name: 'Duplicate Business',
+      status: 'MATCHED',
+      confidence: 100,
+      payload: {}
+    });
+
+    const first = await service.startRegistration({ email: 'duplicate-one@example.test', phone: '+255700000021' });
+    const firstOtp = await service.verifyOtp(first.challengeId, notifications.phoneOtps.at(-1)!.code);
+    await service.activateEmail(firstOtp.activationChallengeId, notifications.activations.at(-1)!.code);
+    await service.setPassword('duplicate-one@example.test', 'Strong123!', legalAcceptance());
+    const firstSession = await service.signIn('duplicate-one@example.test', 'Strong123!');
+    const firstRegistry = await service.registryLookup({ entityType: 'business', businessRegistrationSource: 'tin', registryNumber: 'TIN-200' });
+    await service.submitVerification(firstSession.token, {
+      entityType: 'business',
+      businessRegistrationSource: 'tin',
+      registrySource: firstRegistry.source,
+      registryNumber: firstRegistry.registryNumber,
+      registryVerified: true,
+      registryRecordId: firstRegistry.id,
+      signatureName: 'First Owner',
+      signatureConsent: true
+    });
+
+    const second = await service.startRegistration({ email: 'duplicate-two@example.test', phone: '+255700000022' });
+    const secondOtp = await service.verifyOtp(second.challengeId, notifications.phoneOtps.at(-1)!.code);
+    await service.activateEmail(secondOtp.activationChallengeId, notifications.activations.at(-1)!.code);
+    await service.setPassword('duplicate-two@example.test', 'Strong123!', legalAcceptance());
+    const secondSession = await service.signIn('duplicate-two@example.test', 'Strong123!');
+    const secondRegistry = await service.registryLookup({ entityType: 'business', businessRegistrationSource: 'tin', registryNumber: 'TIN-200' });
+    const result = await service.submitVerification(secondSession.token, {
+      entityType: 'business',
+      businessRegistrationSource: 'tin',
+      registrySource: secondRegistry.source,
+      registryNumber: secondRegistry.registryNumber,
+      registryVerified: true,
+      registryRecordId: secondRegistry.id,
+      signatureName: 'Second Owner',
+      signatureConsent: true
+    });
+
+    expect(result.autoApproved).toBe(false);
+    expect(result.user.verificationStatus).toBe(VerificationStatus.PENDING);
+    expect(result.reviewReasons).toContain('Another approved account already uses this registry number.');
+  });
+
+  it('records verification history for admin approval decisions', async () => {
+    const { repository, notifications, service } = makeService();
+    repository.registry.set('TRA:TIN-300', {
+      id: 'registry-pending',
+      source: 'TRA',
+      registryNumber: 'TIN-300',
+      entityType: 'business',
+      name: 'Pending Business',
+      status: 'MATCHED',
+      confidence: 80,
+      payload: {}
+    });
+    const registration = await service.startRegistration({ email: 'pending@example.test', phone: '+255700000023' });
+    const otp = await service.verifyOtp(registration.challengeId, notifications.phoneOtps[0].code);
+    await service.activateEmail(otp.activationChallengeId, notifications.activations[0].code);
+    await service.setPassword('pending@example.test', 'Strong123!', legalAcceptance());
+    const session = await service.signIn('pending@example.test', 'Strong123!');
+    const registry = await service.registryLookup({ entityType: 'business', businessRegistrationSource: 'tin', registryNumber: 'TIN-300' });
+    const submitted = await service.submitVerification(session.token, {
+      entityType: 'business',
+      businessRegistrationSource: 'tin',
+      registrySource: registry.source,
+      registryNumber: registry.registryNumber,
+      registryVerified: true,
+      registryRecordId: registry.id,
+      signatureName: 'Pending Owner',
+      signatureConsent: true
+    });
+
+    const admin = await service.startRegistration({ email: 'admin@example.test', phone: '+255700000024' });
+    const adminOtp = await service.verifyOtp(admin.challengeId, notifications.phoneOtps.at(-1)!.code);
+    await service.activateEmail(adminOtp.activationChallengeId, notifications.activations.at(-1)!.code);
+    await service.setPassword('admin@example.test', 'Strong123!', legalAcceptance());
+    const adminUser = repository.usersByEmail.get('admin@example.test');
+    adminUser.accountType = AccountType.ADMIN;
+    const adminSession = await service.signIn('admin@example.test', 'Strong123!');
+
+    await service.decideAdminVerification(adminSession.token, submitted.verification.id, 'approve', 'Registry confidence manually reviewed.');
+
+    expect(repository.history.some((entry) => entry.event === 'admin_approve' && entry.verificationProfileId === submitted.verification.id)).toBe(true);
+    expect(repository.auditEvents.some((event) => event.event === 'identity.verification.admin_approve')).toBe(true);
   });
 });

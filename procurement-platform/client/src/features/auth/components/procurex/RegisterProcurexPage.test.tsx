@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import i18n from '@/i18n';
 import { authApi } from '@/features/auth/api';
 import { useCurrentLegalVersions } from '@/features/public/hooks';
 import { RegisterProcurexPage } from './RegisterProcurexPage';
@@ -43,7 +45,9 @@ function fillVisibleInput(type: string, value: string, index = 0) {
 }
 
 describe('RegisterProcurexPage', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    window.localStorage.clear();
+    await i18n.changeLanguage('en');
     mockedAuthApi.startRegistration.mockReset();
     mockedAuthApi.verifyOtp.mockReset();
     mockedAuthApi.resendOtp.mockReset();
@@ -146,6 +150,29 @@ describe('RegisterProcurexPage', () => {
 
     expect(document.querySelector('.mock-fill-btn')).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Join Us' })).toBeInTheDocument();
+  });
+
+  it('shows the language switcher and translates registration copy to Swahili', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <RegisterProcurexPage />
+      </MemoryRouter>
+    );
+
+    const actionGroup = document.querySelector('.auth-header-actions-new');
+    const languageSwitcher = screen.getByRole('combobox', { name: 'Language' });
+    const signInButton = screen.getByRole('button', { name: 'Already have an account? Sign in' });
+    expect(actionGroup).toContainElement(languageSwitcher);
+    expect(actionGroup).toContainElement(signInButton);
+    expect(Boolean(languageSwitcher.compareDocumentPosition(signInButton) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+
+    await user.click(screen.getByRole('combobox', { name: 'Language' }));
+    await user.click(screen.getByRole('option', { name: 'Swahili' }));
+
+    expect(screen.getByRole('heading', { name: 'Jiunge Nasi' })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('wewe@kampuni.co.tz')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Lugha' })).toBeInTheDocument();
   });
 
   it('blocks registration submit until the security check is complete', async () => {

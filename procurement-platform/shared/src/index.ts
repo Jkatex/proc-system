@@ -4,3 +4,6 @@ export const organizationCapabilities = ['BUYER', 'SUPPLIER'] as const;
 export type AccountType = (typeof accountTypes)[number];
 export type OrganizationCapability = (typeof organizationCapabilities)[number];
 
+
+
+

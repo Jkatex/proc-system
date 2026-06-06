@@ -1,6 +1,8 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { authApi } from '@/features/auth/api';
+import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 import { useBodyPageMetadata } from '@/shared/hooks/useBodyPageMetadata';
 import { AuthAlert, authAlert, authAlertFromError, type AuthAlertMessage } from './AuthAlert';
 import { TurnstileWidget } from './TurnstileWidget';
@@ -28,6 +30,7 @@ function formatCountdown(seconds: number) {
 }
 
 export function ForgotPasswordProcurexPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialChallengeId = searchParams.get('challengeId') ?? '';
@@ -47,6 +50,7 @@ export function ForgotPasswordProcurexPage() {
   const checks = useMemo(() => passwordChecks(password), [password]);
   const passwordReady = Object.values(checks).every(Boolean) && password === confirmPassword;
   const resendSeconds = secondsUntil(resendAvailableAt, now);
+  const passwordRequirements = t('auth.register.password.requirements', { returnObjects: true }) as string[];
 
   useBodyPageMetadata('forgot-password');
 
@@ -62,7 +66,7 @@ export function ForgotPasswordProcurexPage() {
 
   function requireSecurityCheck() {
     if (turnstileToken) return true;
-    setMessage(authAlert('Complete the security check before continuing.', 'error'));
+    setMessage(authAlert('auth.security.missing', 'error'));
     return false;
   }
 
@@ -74,7 +78,7 @@ export function ForgotPasswordProcurexPage() {
 
     try {
       const response = await authApi.forgotPassword({ email: email.trim(), turnstileToken });
-      setMessage(authAlert(response.message, 'info'));
+      setMessage(authAlert('auth.forgotPassword.messages.resetRequested', 'info'));
       if (response.challengeId) {
         setChallengeId(response.challengeId);
         setResendAvailableAt(response.resendAvailableAt ?? '');
@@ -101,7 +105,7 @@ export function ForgotPasswordProcurexPage() {
         setResendAvailableAt(response.resendAvailableAt ?? '');
       }
       setCode('');
-      setMessage(authAlert(response.message, 'info'));
+      setMessage(authAlert('auth.forgotPassword.messages.resetResent', 'info'));
     } catch (error) {
       setMessage(authAlertFromError(error, 'resend-reset'));
     } finally {
@@ -113,11 +117,11 @@ export function ForgotPasswordProcurexPage() {
   async function submitReset(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!challengeId || !code.trim()) {
-      setMessage(authAlert('Open the reset link from your email or enter the reset code provided to you.', 'error'));
+      setMessage(authAlert('auth.forgotPassword.messages.missingCode', 'error'));
       return;
     }
     if (!passwordReady) {
-      setMessage(authAlert('Complete all password requirements and confirm both passwords match.', 'error'));
+      setMessage(authAlert('auth.forgotPassword.messages.passwordRequirements', 'error'));
       return;
     }
     if (!requireSecurityCheck()) return;
@@ -128,7 +132,7 @@ export function ForgotPasswordProcurexPage() {
     try {
       await authApi.resetPassword({ challengeId, code: code.trim(), password, turnstileToken });
       setStep('complete');
-      setMessage(authAlert('Your password has been updated.', 'success'));
+      setMessage(authAlert('auth.forgotPassword.messages.updated', 'success'));
     } catch (error) {
       setMessage(authAlertFromError(error, 'reset-password'));
     } finally {
@@ -147,9 +151,14 @@ export function ForgotPasswordProcurexPage() {
             </span>
             <span className="brand-text-new">ProcureX</span>
           </button>
-          <button className="login-link-new" type="button" onClick={() => navigate('/sign-in')}>
-            Back to sign in
-          </button>
+          <div className="auth-header-actions-new">
+            <span className="procurex-language-inline procurex-language-inline--auth">
+              <LanguageSwitcher />
+            </span>
+            <button className="login-link-new" type="button" onClick={() => navigate('/sign-in')}>
+              {t('auth.forgotPassword.headerBack')}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -159,17 +168,17 @@ export function ForgotPasswordProcurexPage() {
             {step === 'request' ? (
               <div className="register-screen-new active">
                 <div className="screen-header-new">
-                  <h2>Reset Password</h2>
-                  <p>Enter your account email to receive reset instructions.</p>
+                  <h2>{t('auth.forgotPassword.request.title')}</h2>
+                  <p>{t('auth.forgotPassword.request.subtitle')}</p>
                 </div>
                 <form className="screen-form-new" onSubmit={(event) => void requestReset(event)}>
                   <div className="form-group-new">
-                    <label className="form-label-new" htmlFor="forgot-email">Email Address *</label>
+                    <label className="form-label-new" htmlFor="forgot-email">{t('auth.forgotPassword.request.email')}</label>
                     <input id="forgot-email" className="form-input-new" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
                   </div>
                   <TurnstileWidget action="forgot_password" resetKey={turnstileResetKey} onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
                   <button className="btn-continue-new" type="submit" disabled={loading || !turnstileToken}>
-                    {loading ? 'Sending...' : 'Send Reset Instructions'}
+                    {loading ? t('auth.forgotPassword.request.submitting') : t('auth.forgotPassword.request.submit')}
                   </button>
                 </form>
               </div>
@@ -178,39 +187,39 @@ export function ForgotPasswordProcurexPage() {
             {step === 'reset' ? (
               <div className="register-screen-new active">
                 <div className="screen-header-new">
-                  <h2>Create New Password</h2>
-                  <p>Enter the reset code from your email and choose a new password.</p>
+                  <h2>{t('auth.forgotPassword.reset.title')}</h2>
+                  <p>{t('auth.forgotPassword.reset.subtitle')}</p>
                 </div>
                 <form className="screen-form-new" onSubmit={(event) => void submitReset(event)}>
                   <div className="form-group-new">
-                    <label className="form-label-new" htmlFor="reset-code">Reset Code *</label>
+                    <label className="form-label-new" htmlFor="reset-code">{t('auth.forgotPassword.reset.code')}</label>
                     <input id="reset-code" className="form-input-new" value={code} onChange={(event) => setCode(event.target.value)} required />
                     {resendAvailableAt ? (
                       <span className="form-hint-new">
-                        {resendSeconds > 0 ? `Resend available in ${formatCountdown(resendSeconds)}.` : 'Resend is available.'}
+                        {resendSeconds > 0 ? t('auth.forgotPassword.reset.resendIn', { time: formatCountdown(resendSeconds) }) : t('auth.forgotPassword.reset.resendAvailable')}
                       </span>
                     ) : null}
                   </div>
                   <div className="form-group-new">
-                    <label className="form-label-new" htmlFor="reset-password">New Password *</label>
+                    <label className="form-label-new" htmlFor="reset-password">{t('auth.forgotPassword.reset.password')}</label>
                     <input id="reset-password" className="form-input-new password-input-new" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
                     <ul className="password-requirements-new">
-                      <li className={checks.length ? 'met' : ''}>8 or more characters</li>
-                      <li className={checks.uppercase ? 'met' : ''}>Uppercase letter</li>
-                      <li className={checks.number ? 'met' : ''}>Number</li>
-                      <li className={checks.special ? 'met' : ''}>Special character</li>
+                      <li className={checks.length ? 'met' : ''}>{passwordRequirements[0]}</li>
+                      <li className={checks.uppercase ? 'met' : ''}>{passwordRequirements[1]}</li>
+                      <li className={checks.number ? 'met' : ''}>{passwordRequirements[2]}</li>
+                      <li className={checks.special ? 'met' : ''}>{passwordRequirements[3]}</li>
                     </ul>
                   </div>
                   <div className="form-group-new">
-                    <label className="form-label-new" htmlFor="reset-confirm-password">Confirm New Password *</label>
+                    <label className="form-label-new" htmlFor="reset-confirm-password">{t('auth.forgotPassword.reset.confirmPassword')}</label>
                     <input id="reset-confirm-password" className="form-input-new" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required />
                   </div>
                   <TurnstileWidget action="reset_password" resetKey={turnstileResetKey} onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
                   <button className="btn-continue-new" type="submit" disabled={loading || !passwordReady || !turnstileToken}>
-                    {loading ? 'Updating...' : 'Update Password'}
+                    {loading ? t('auth.forgotPassword.reset.submitting') : t('auth.forgotPassword.reset.submit')}
                   </button>
                   <button className="btn-resend-new" type="button" disabled={loading || resendSeconds > 0 || !turnstileToken} onClick={() => void resendResetCode()}>
-                    Resend Reset Code
+                    {t('auth.forgotPassword.reset.resend')}
                   </button>
                 </form>
               </div>
@@ -219,12 +228,12 @@ export function ForgotPasswordProcurexPage() {
             {step === 'complete' ? (
               <div className="register-screen-new active">
                 <div className="screen-header-new">
-                  <div className="success-icon-new success-large">Done</div>
-                  <h2>Password Updated</h2>
-                  <p>You can now sign in with your new password.</p>
+                  <div className="success-icon-new success-large">{t('auth.register.done')}</div>
+                  <h2>{t('auth.forgotPassword.complete.title')}</h2>
+                  <p>{t('auth.forgotPassword.complete.body')}</p>
                 </div>
                 <button className="btn-continue-new btn-dashboard-new" type="button" onClick={() => navigate('/sign-in')}>
-                  Sign In
+                  {t('actions.signIn')}
                 </button>
               </div>
             ) : null}

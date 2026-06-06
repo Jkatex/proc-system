@@ -89,7 +89,16 @@ img {
 }
 
 .procurex-language-inline--auth {
+  margin-left: 0;
+}
+
+.auth-header-actions-new {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
   margin-left: auto;
+  min-width: 0;
 }
 
 .procurex-language-fallback {
@@ -133,12 +142,32 @@ img {
   box-shadow: none;
 }
 
+.procurex-language-inline--welcome .MuiInputBase-root {
+  width: 78px;
+  min-height: 36px;
+  background: #ffffff !important;
+  color: #10202f !important;
+  border-radius: 999px !important;
+  box-shadow: 0 6px 18px rgba(13, 31, 46, 0.10);
+}
+
+.procurex-language-inline--welcome .MuiSelect-select {
+  color: #10202f !important;
+}
+
+.procurex-language-inline--welcome .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(13, 31, 46, 0.22) !important;
+}
+
+.procurex-language-inline--welcome .MuiSvgIcon-root {
+  color: #10202f !important;
+}
+
 @media (max-width: 720px) {
   .procurex-floating-language {
     display: none;
   }
 
-  .register-header-inner-new,
   .app-topbar-actions,
   .welcome-nav-actions-v2,
   .about-nav-actions,
@@ -149,21 +178,47 @@ img {
     flex-wrap: wrap;
   }
 
+  .register-header-inner-new {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    justify-items: stretch;
+    gap: 12px;
+    text-align: left;
+  }
+
+  .auth-header-actions-new {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    margin-left: 0;
+  }
+
   .procurex-language-inline {
     margin-left: 0;
   }
 
   .procurex-language-inline--auth {
     margin-left: 0;
-    order: 2;
-  }
-
-  .register-header-inner-new .login-link-new {
-    order: 3;
   }
 
   .procurex-language-fallback {
     justify-content: flex-start;
     padding: 8px 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-header-actions-new {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .register-header-inner-new .login-link-new {
+    width: auto;
+    max-width: calc(100% - 88px);
+    text-align: right;
+    white-space: normal;
   }
 }

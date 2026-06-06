@@ -1,7 +1,9 @@
 import { Fragment, FormEvent, useEffect, useMemo, useRef, useState, type ClipboardEvent, type KeyboardEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '@/features/auth/api';
 import { useCurrentLegalVersions } from '@/features/public/hooks';
+import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 import { useBodyPageMetadata } from '@/shared/hooks/useBodyPageMetadata';
 import { AuthAlert, authAlert, authAlertFromError, type AuthAlertMessage } from './AuthAlert';
 import { TurnstileWidget } from './TurnstileWidget';
@@ -29,6 +31,7 @@ function formatCountdown(seconds: number) {
 }
 
 export function RegisterProcurexPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   useBodyPageMetadata('register');
   const [step, setStep] = useState<RegisterStep>(1);
@@ -61,7 +64,9 @@ export function RegisterProcurexPage() {
   const resendSeconds = secondsUntil(resendAvailableAt, now);
   const activationSeconds = secondsUntil(activationExpiresAt, now);
   const strengthScore = Object.values(checks).filter(Boolean).length;
-  const strengthLabel = strengthScore >= 4 ? 'Strong' : strengthScore >= 3 ? 'Good' : strengthScore >= 2 ? 'Fair' : 'Weak';
+  const strengthKey = strengthScore >= 4 ? 'strong' : strengthScore >= 3 ? 'good' : strengthScore >= 2 ? 'fair' : 'weak';
+  const progressSteps = t('auth.register.progress', { returnObjects: true }) as string[];
+  const passwordRequirements = t('auth.register.password.requirements', { returnObjects: true }) as string[];
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -111,7 +116,7 @@ export function RegisterProcurexPage() {
 
   function requireSecurityCheck() {
     if (turnstileToken) return true;
-    setStatus(authAlert('Complete the security check before continuing.', 'error'));
+    setStatus(authAlert('auth.security.missing', 'error'));
     return false;
   }
 
@@ -164,7 +169,7 @@ export function RegisterProcurexPage() {
       setChallengeExpiresAt(result.expiresAt);
       setResendAvailableAt(result.resendAvailableAt ?? '');
       setOtp('');
-      setStatus(authAlert('A new verification code has been sent.', 'success'));
+      setStatus(authAlert('auth.register.messages.otpResent', 'success'));
     } catch (error) {
       setStatus(authAlertFromError(error, 'resend-otp'));
     } finally {
@@ -198,7 +203,7 @@ export function RegisterProcurexPage() {
       setActivationExpiresAt(result.expiresAt);
       setResendAvailableAt(result.resendAvailableAt ?? '');
       setActivationCode('');
-      setStatus(authAlert('A new activation email has been sent.', 'success'));
+      setStatus(authAlert('auth.register.messages.activationResent', 'success'));
     } catch (error) {
       setStatus(authAlertFromError(error, 'resend-activation'));
     } finally {
@@ -210,7 +215,7 @@ export function RegisterProcurexPage() {
   async function submitPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!passwordReady) {
-      setStatus(authAlert('Complete all password requirements and confirm agreement.', 'error'));
+      setStatus(authAlert('auth.register.messages.passwordRequirements', 'error'));
       return;
     }
     setLoading(true);
@@ -242,9 +247,14 @@ export function RegisterProcurexPage() {
             </span>
             <span className="brand-text-new">ProcureX</span>
           </button>
-          <button className="login-link-new" type="button" onClick={() => navigate('/sign-in')}>
-            Already have an account? Sign in
-          </button>
+          <div className="auth-header-actions-new">
+            <span className="procurex-language-inline procurex-language-inline--auth">
+              <LanguageSwitcher />
+            </span>
+            <button className="login-link-new" type="button" onClick={() => navigate('/sign-in')}>
+              {t('auth.register.headerSignIn')}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -252,12 +262,12 @@ export function RegisterProcurexPage() {
         <div className="register-card-new">
           <div className="progress-section-new">
             <div className="progress-steps-new">
-              {['Account Info', 'Verify Contact', 'Activate', 'Password'].map((label, index) => {
+              {progressSteps.map((label, index) => {
                 const itemStep = index + 1;
                 return (
                   <Fragment key={label}>
                     <div className={`progress-step-new ${step === itemStep ? 'active' : ''} ${step > itemStep ? 'completed' : ''}`} data-step={itemStep} key={label}>
-                      <div className="progress-circle-new">{step > itemStep ? 'OK' : itemStep}</div>
+                      <div className="progress-circle-new">{step > itemStep ? t('auth.register.ok') : itemStep}</div>
                       <span className="progress-label-new">{label}</span>
                     </div>
                     {itemStep < 4 ? <div className="progress-line-new" aria-hidden="true" /> : null}
@@ -271,23 +281,23 @@ export function RegisterProcurexPage() {
             {step === 1 ? (
               <div className="register-screen-new active">
                 <div className="screen-header-new">
-                  <h2>Join Us</h2>
-                  <p>Create an account</p>
+                  <h2>{t('auth.register.account.title')}</h2>
+                  <p>{t('auth.register.account.subtitle')}</p>
                 </div>
                 <form className="screen-form-new" onSubmit={submitAccountInfo}>
                   <div className="form-group-new">
-                    <label className="form-label-new">Email Address *</label>
-                    <input className="form-input-new" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.com" required />
-                    <span className="form-hint-new">Your sign-in email and activation address.</span>
+                    <label className="form-label-new">{t('auth.register.account.email')}</label>
+                    <input className="form-input-new" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder={t('auth.register.account.emailPlaceholder')} required />
+                    <span className="form-hint-new">{t('auth.register.account.emailHint')}</span>
                   </div>
                   <div className="form-group-new">
-                    <label className="form-label-new">Mobile Number *</label>
-                    <input className="form-input-new" type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+255 XXX XXX XXX" required />
-                    <span className="form-hint-new">Used for one-time verification codes.</span>
+                    <label className="form-label-new">{t('auth.register.account.phone')}</label>
+                    <input className="form-input-new" type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder={t('auth.register.account.phonePlaceholder')} required />
+                    <span className="form-hint-new">{t('auth.register.account.phoneHint')}</span>
                   </div>
                   <TurnstileWidget action="registration_start" resetKey={turnstileResetKey} onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
                   <button className="btn-continue-new" type="submit" disabled={loading || !turnstileToken}>
-                    Continue
+                    {t('actions.continue')}
                   </button>
                 </form>
               </div>
@@ -296,16 +306,16 @@ export function RegisterProcurexPage() {
             {step === 2 ? (
               <div className="register-screen-new active">
                 <div className="screen-header-new">
-                  <h2>Verify Your Number</h2>
-                  <p>Enter the 6-digit code sent to <strong>{phone}</strong></p>
+                  <h2>{t('auth.register.otp.title')}</h2>
+                  <p>{t('auth.register.otp.subtitle')} <strong>{phone}</strong></p>
                 </div>
                 <form className="screen-form-new" onSubmit={submitOtp} noValidate>
                   <div className="form-group-new">
-                    <label className="form-label-new">Verification Code *</label>
+                    <label className="form-label-new">{t('auth.register.otp.label')}</label>
                     <div className="otp-container-new">
                       {otpDigits.map((digit, index) => (
                         <input
-                          aria-label={`Verification code digit ${index + 1}`}
+                          aria-label={t('auth.register.otp.digitAria', { index: index + 1 })}
                           className="otp-input-new"
                           inputMode="numeric"
                           key={index}
@@ -326,18 +336,28 @@ export function RegisterProcurexPage() {
                   </div>
                   <div className="otp-timer-new">
                     <span>
-                      {challengeSeconds > 0 ? <>Code expires in <strong>{formatCountdown(challengeSeconds)}</strong></> : 'Code expired'}
+                      {challengeSeconds > 0 ? (
+                        <>{t('auth.register.otp.expiresIn')} <strong>{formatCountdown(challengeSeconds)}</strong></>
+                      ) : (
+                        t('auth.register.otp.expired')
+                      )}
                     </span>
                     {resendAvailableAt ? (
-                      <span>{resendSeconds > 0 ? <>Resend available in <strong>{formatCountdown(resendSeconds)}</strong></> : 'Resend is available'}</span>
+                      <span>
+                        {resendSeconds > 0 ? (
+                          <>{t('auth.register.otp.resendIn')} <strong>{formatCountdown(resendSeconds)}</strong></>
+                        ) : (
+                          t('auth.register.otp.resendAvailable')
+                        )}
+                      </span>
                     ) : null}
                   </div>
                   <TurnstileWidget action="registration_resend_otp" resetKey={turnstileResetKey} onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
                   <button className="btn-resend-new" type="button" disabled={loading || resendSeconds > 0 || !turnstileToken} onClick={() => void resendOtp()}>
-                    Resend Code
+                    {t('auth.register.otp.resend')}
                   </button>
                   <button className="btn-continue-new" type="submit" disabled={loading || !otpReady}>
-                    Verify
+                    {t('auth.register.otp.verify')}
                   </button>
                 </form>
               </div>
@@ -346,34 +366,34 @@ export function RegisterProcurexPage() {
             {step === 3 ? (
               <div className="register-screen-new active">
                 <div className="screen-header-new">
-                  <div className="success-icon-new">OK</div>
-                  <h2>Activate Your Email</h2>
-                  <p>An activation code was sent to <strong>{email}</strong></p>
+                  <div className="success-icon-new">{t('auth.register.ok')}</div>
+                  <h2>{t('auth.register.activation.title')}</h2>
+                  <p>{t('auth.register.activation.subtitle')} <strong>{email}</strong></p>
                 </div>
                 <div className="activation-card-new">
                   <svg className="card-icon-new" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M20 6L9 17l-5-5" />
                   </svg>
-                  <h3>Email Sent Successfully</h3>
-                  <p>Your account is activated after email confirmation, then you can create your password.</p>
+                  <h3>{t('auth.register.activation.sentTitle')}</h3>
+                  <p>{t('auth.register.activation.sentBody')}</p>
                 </div>
                 <form className="screen-form-new" onSubmit={submitActivation}>
                   <div className="form-group-new">
-                    <label className="form-label-new">Activation Code *</label>
+                    <label className="form-label-new">{t('auth.register.activation.label')}</label>
                     <input className="form-input-new" value={activationCode} onChange={(event) => setActivationCode(event.target.value)} required />
-                    {activationExpiresAt ? <span className="form-hint-new">Activation expires in {formatCountdown(activationSeconds)}.</span> : null}
+                    {activationExpiresAt ? <span className="form-hint-new">{t('auth.register.activation.expiresIn', { time: formatCountdown(activationSeconds) })}</span> : null}
                   </div>
                   <div className="activation-actions-new">
                     <a className="btn-open-email-new" href="mailto:">
-                      Open Email App
+                      {t('auth.register.activation.openEmail')}
                     </a>
                     <button className="btn-resend-link-new" type="button" disabled={loading || resendSeconds > 0 || !turnstileToken} onClick={() => void resendActivation()}>
-                      Resend activation email
+                      {t('auth.register.activation.resend')}
                     </button>
                   </div>
                   <TurnstileWidget action="registration_resend_activation" resetKey={turnstileResetKey} onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
                   <button className="btn-continue-new btn-continue-to-password-new" type="submit" disabled={loading || activationCode.trim().length < 8}>
-                    Continue to Password Setup
+                    {t('auth.register.activation.continue')}
                   </button>
                 </form>
               </div>
@@ -382,15 +402,15 @@ export function RegisterProcurexPage() {
             {step === 4 ? (
               <div className="register-screen-new active">
                 <div className="screen-header-new">
-                  <h2>Create Your Password</h2>
-                  <p>This password is required on the sign-in screen.</p>
+                  <h2>{t('auth.register.password.title')}</h2>
+                  <p>{t('auth.register.password.subtitle')}</p>
                 </div>
                 <form className="screen-form-new" onSubmit={submitPassword}>
                   <div className="form-group-new">
-                    <label className="form-label-new">Password *</label>
+                    <label className="form-label-new">{t('auth.register.password.label')}</label>
                     <div className="password-input-wrapper-new">
-                      <input className="form-input-new password-input-new" type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter strong password" required />
-                      <button className="password-toggle-new" type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword((value) => !value)}>
+                      <input className="form-input-new password-input-new" type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={t('auth.register.password.placeholder')} required />
+                      <button className="password-toggle-new" type="button" aria-label={showPassword ? t('auth.register.password.hide') : t('auth.register.password.show')} onClick={() => setShowPassword((value) => !value)}>
                         <svg className="icon-eye-new" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                           <circle cx="12" cy="12" r="3" />
@@ -401,20 +421,20 @@ export function RegisterProcurexPage() {
                       <div className="strength-meter-new">
                         <div className="strength-fill-new" style={{ width: `${strengthScore * 25}%` }} />
                       </div>
-                      <span className="strength-text-new">Strength: <strong>{strengthLabel}</strong></span>
+                      <span className="strength-text-new">{t('auth.register.password.strength')} <strong>{t(`auth.register.password.strengthLabels.${strengthKey}`)}</strong></span>
                     </div>
                     <ul className="password-requirements-new">
-                      <li className={checks.length ? 'met' : ''}><span className="requirement-icon-new">{checks.length ? 'OK' : 'o'}</span>8 or more characters</li>
-                      <li className={checks.uppercase ? 'met' : ''}><span className="requirement-icon-new">{checks.uppercase ? 'OK' : 'o'}</span>Uppercase letter</li>
-                      <li className={checks.number ? 'met' : ''}><span className="requirement-icon-new">{checks.number ? 'OK' : 'o'}</span>Number</li>
-                      <li className={checks.special ? 'met' : ''}><span className="requirement-icon-new">{checks.special ? 'OK' : 'o'}</span>Special character</li>
+                      <li className={checks.length ? 'met' : ''}><span className="requirement-icon-new">{checks.length ? t('auth.register.ok') : 'o'}</span>{passwordRequirements[0]}</li>
+                      <li className={checks.uppercase ? 'met' : ''}><span className="requirement-icon-new">{checks.uppercase ? t('auth.register.ok') : 'o'}</span>{passwordRequirements[1]}</li>
+                      <li className={checks.number ? 'met' : ''}><span className="requirement-icon-new">{checks.number ? t('auth.register.ok') : 'o'}</span>{passwordRequirements[2]}</li>
+                      <li className={checks.special ? 'met' : ''}><span className="requirement-icon-new">{checks.special ? t('auth.register.ok') : 'o'}</span>{passwordRequirements[3]}</li>
                     </ul>
                   </div>
                   <div className="form-group-new">
-                    <label className="form-label-new">Confirm Password *</label>
+                    <label className="form-label-new">{t('auth.register.password.confirmLabel')}</label>
                     <div className="password-input-wrapper-new">
-                      <input className="form-input-new confirm-password-new" type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Re-enter your password" required />
-                      <button className="password-toggle-new" type="button" aria-label={showConfirmPassword ? 'Hide password confirmation' : 'Show password confirmation'} onClick={() => setShowConfirmPassword((value) => !value)}>
+                      <input className="form-input-new confirm-password-new" type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder={t('auth.register.password.confirmPlaceholder')} required />
+                      <button className="password-toggle-new" type="button" aria-label={showConfirmPassword ? t('auth.register.password.hideConfirm') : t('auth.register.password.showConfirm')} onClick={() => setShowConfirmPassword((value) => !value)}>
                         <svg className="icon-eye-new" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                           <circle cx="12" cy="12" r="3" />
@@ -428,14 +448,15 @@ export function RegisterProcurexPage() {
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d="M20 6L9 17l-5-5" />
                       </svg>
-                      <span>Confirm agreement</span>
+                      <span>{t('auth.register.password.confirmAgreement')}</span>
                     </button>
                     <p className="confirm-action-note">
-                      Confirm that you accept the <Link className="link-new" to="/terms">Terms and Conditions</Link> and <Link className="link-new" to="/privacy">Privacy Policy</Link>.
+                      {t('auth.register.password.agreementNoteStart')} <Link className="link-new" to="/terms">{t('auth.register.password.terms')}</Link> {t('auth.register.password.agreementAnd')}{' '}
+                      <Link className="link-new" to="/privacy">{t('auth.register.password.privacy')}</Link>.
                     </p>
                   </div>
                   <button className="btn-continue-new btn-create-new" type="submit" disabled={loading || !passwordReady}>
-                    Create Account
+                    {t('auth.register.password.create')}
                   </button>
                 </form>
               </div>
@@ -444,18 +465,18 @@ export function RegisterProcurexPage() {
             {step === 5 ? (
               <div className="register-screen-new active">
                 <div className="screen-header-new">
-                  <div className="success-icon-new success-large">Done</div>
-                  <h2>Account Created</h2>
-                  <p>Your login credentials are ready. Sign in to continue with identity verification.</p>
+                  <div className="success-icon-new success-large">{t('auth.register.done')}</div>
+                  <h2>{t('auth.register.success.title')}</h2>
+                  <p>{t('auth.register.success.body')}</p>
                 </div>
                 <div className="success-card-new">
                   <div className="success-detail">
-                    <strong>Next step: Sign in</strong>
-                    <p>After sign-in, new users complete identity verification before entering the platform.</p>
+                    <strong>{t('auth.register.success.nextTitle')}</strong>
+                    <p>{t('auth.register.success.nextBody')}</p>
                   </div>
                 </div>
                 <button className="btn-continue-new btn-dashboard-new" type="button" onClick={() => navigate('/sign-in')}>
-                  Sign In
+                  {t('actions.signIn')}
                 </button>
               </div>
             ) : null}

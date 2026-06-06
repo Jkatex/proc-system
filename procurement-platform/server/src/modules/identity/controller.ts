@@ -212,7 +212,7 @@ export class ModuleController {
   registryLookup: RequestHandler = async (req, res, next) => {
     try {
       await this.service.requireSession(bearerToken(req));
-      res.json(await this.service.registryLookup(registryLookupSchema.parse(req.body)));
+      res.json(await this.service.registryLookup(registryLookupSchema.parse(req.body), this.auditContext(req)));
     } catch (error) {
       next(error);
     }
@@ -228,7 +228,7 @@ export class ModuleController {
 
   saveVerificationDraft: RequestHandler = async (req, res, next) => {
     try {
-      res.json(await this.service.saveVerificationDraft(bearerToken(req), verificationDraftSchema.parse(req.body)));
+      res.json(await this.service.saveVerificationDraft(bearerToken(req), verificationDraftSchema.parse(req.body), this.auditContext(req)));
     } catch (error) {
       next(error);
     }
@@ -236,7 +236,7 @@ export class ModuleController {
 
   submitVerification: RequestHandler = async (req, res, next) => {
     try {
-      res.json(await this.service.submitVerification(bearerToken(req), verificationSubmitSchema.parse(req.body)));
+      res.json(await this.service.submitVerification(bearerToken(req), verificationSubmitSchema.parse(req.body), this.auditContext(req)));
     } catch (error) {
       next(error);
     }

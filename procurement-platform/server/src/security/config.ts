@@ -46,11 +46,15 @@ export function validateProductionSecurityConfig() {
     ['TWILIO_AUTH_TOKEN', Boolean(process.env.TWILIO_AUTH_TOKEN)],
     ['TWILIO_MESSAGING_SERVICE_SID or TWILIO_FROM_NUMBER', Boolean(process.env.TWILIO_MESSAGING_SERVICE_SID || process.env.TWILIO_FROM_NUMBER)],
     ['SMTP_HOST', Boolean(process.env.SMTP_HOST)],
-    ['SMTP_FROM', Boolean(process.env.SMTP_FROM)]
+    ['SMTP_FROM', Boolean(process.env.SMTP_FROM)],
+    ['TRA_REGISTRY_BASE_URL', Boolean(process.env.TRA_REGISTRY_BASE_URL)],
+    ['TRA_REGISTRY_API_KEY', Boolean(process.env.TRA_REGISTRY_API_KEY)],
+    ['BRELA_REGISTRY_BASE_URL', Boolean(process.env.BRELA_REGISTRY_BASE_URL)],
+    ['BRELA_REGISTRY_API_KEY', Boolean(process.env.BRELA_REGISTRY_API_KEY)],
+    ['SIGNATURE_HASH_SECRET', Boolean(process.env.SIGNATURE_HASH_SECRET)]
   ].filter(([, configured]) => !configured);
 
   if (missing.length > 0) {
     throw new Error(`Production security configuration is incomplete: ${missing.map(([name]) => name).join(', ')}.`);
   }
 }
-

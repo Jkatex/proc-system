@@ -279,6 +279,33 @@ export class ModuleRepository {
     });
   }
 
+  upsertRegistryRecord(input: {
+    source: string;
+    registryNumber: string;
+    entityType: string;
+    name: string;
+    status: string;
+    confidence: number;
+    payload: Prisma.InputJsonObject;
+  }) {
+    return this.db.registryRecord.upsert({
+      where: {
+        source_registryNumber: {
+          source: input.source,
+          registryNumber: input.registryNumber
+        }
+      },
+      update: {
+        entityType: input.entityType,
+        name: input.name,
+        status: input.status,
+        confidence: input.confidence,
+        payload: input.payload
+      },
+      create: input
+    });
+  }
+
   latestVerificationProfile(userId: string) {
     return this.db.verificationProfile.findFirst({
       where: { userId },
@@ -323,6 +350,44 @@ export class ModuleRepository {
           payload: input.payload
         }
       });
+    });
+  }
+
+  createVerificationHistory(input: {
+    verificationProfileId: string;
+    userId: string;
+    organizationId?: string | null;
+    status: VerificationStatus;
+    registrySource?: string | null;
+    registryNumber?: string | null;
+    event: string;
+    payload: Prisma.InputJsonObject;
+  }) {
+    return this.db.verificationProfileHistory.create({
+      data: input
+    });
+  }
+
+  createDigitalSignature(input: {
+    verificationProfileId: string;
+    userId: string;
+    organizationId?: string | null;
+    signerName: string;
+    signerTitle?: string | null;
+    consentVersion: string;
+    consentTitle: string;
+    canonicalPayloadHash: string;
+    signatureHash: string;
+    metadata: Prisma.InputJsonObject;
+    providerMetadata?: Prisma.InputJsonObject;
+    blockchainMetadata?: Prisma.InputJsonObject;
+  }) {
+    return this.db.digitalSignature.create({
+      data: {
+        ...input,
+        providerMetadata: input.providerMetadata ?? {},
+        blockchainMetadata: input.blockchainMetadata ?? {}
+      }
     });
   }
 

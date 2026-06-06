@@ -1419,9 +1419,33 @@ textarea.form-input {
     border-top: 1px solid var(--border);
 }
 
+.demo-credentials--auth {
+    justify-items: center;
+    padding: 14px;
+    border: 1px dashed #bfdbfe;
+    border-radius: 8px;
+    background: #f8fbff;
+    text-align: center;
+}
+
+.demo-credentials--icon-only {
+    width: fit-content;
+    margin: 12px auto 0;
+    padding: 6px;
+    border-style: solid;
+    background: #ffffff;
+}
+
 .demo-credentials h3 {
     margin: 0;
     font-size: 14px;
+}
+
+.demo-credentials p {
+    margin: 4px 0 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.45;
 }
 
 .demo-account {
@@ -1443,6 +1467,16 @@ textarea.form-input {
     background: var(--primary-blue-light);
 }
 
+.demo-account:disabled {
+    cursor: not-allowed;
+    opacity: 0.62;
+}
+
+.demo-account:disabled:hover {
+    border-color: var(--border);
+    background: white;
+}
+
 .demo-account span,
 .demo-account small {
     display: block;
@@ -1457,6 +1491,45 @@ textarea.form-input {
     color: var(--primary-blue);
     font-size: 12px;
     white-space: nowrap;
+}
+
+.demo-account--compact {
+    width: auto;
+    min-height: 40px;
+    padding: 9px 12px;
+    background: #0f766e;
+    border-color: #0f766e;
+    color: #ffffff;
+    justify-content: center;
+}
+
+.demo-account--compact:hover {
+    background: #115e59;
+    border-color: #115e59;
+}
+
+.demo-account--compact small,
+.demo-account--compact code {
+    color: rgba(255, 255, 255, 0.78);
+}
+
+.demo-account--compact:disabled:hover {
+    border-color: #0f766e;
+    background: #0f766e;
+}
+
+.demo-account--icon-only {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0;
+    border-radius: 8px;
+}
+
+.demo-account--icon-only svg {
+    width: 18px;
+    height: 18px;
 }
 
 .mock-fill-btn {

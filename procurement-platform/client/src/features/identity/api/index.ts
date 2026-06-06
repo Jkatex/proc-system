@@ -18,6 +18,8 @@ export type VerificationDraftInput = {
   signatureName?: string;
   signatureTitle?: string;
   signatureConsent?: boolean;
+  signatureConsentVersion?: string;
+  signatureConsentTitle?: string;
   profile?: Record<string, unknown>;
   documents?: Record<string, unknown>[];
 };
