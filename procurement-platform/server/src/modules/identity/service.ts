@@ -2,6 +2,7 @@ import {
   AccountType,
   AdminActionType,
   AuditSeverity,
+  PublicPageKey,
   VerificationStatus,
   type Prisma
 } from '@prisma/client';
@@ -29,6 +30,16 @@ const sessionDays = 7;
 type RegistrationStartInput = {
   email: string;
   phone: string;
+};
+
+type LegalAcceptanceInput = {
+  termsAccepted: true;
+  privacyAccepted: true;
+  termsVersionId?: string;
+  privacyVersionId?: string;
+  source: string;
+  ipAddress?: string;
+  userAgent?: string;
 };
 
 type VerificationPayloadInput = {
@@ -317,7 +328,7 @@ export class ModuleService {
     return { user: toSessionUser(updated) };
   }
 
-  async setPassword(emailInput: string, password: string) {
+  async setPassword(emailInput: string, password: string, legalAcceptance?: LegalAcceptanceInput) {
     const email = normalizeEmail(emailInput);
     const user = await this.repository.findUserByEmail(email);
     if (!user) throw requestError('Account was not found.', 404);
@@ -330,8 +341,45 @@ export class ModuleService {
     const passwordHash = await hashPassword(password);
     const updated = await this.repository.updateUser(user.id, { passwordHash });
     await this.repository.upsertPasswordAccount(updated.id, updated.email);
+    if (legalAcceptance) await this.recordLegalAcceptance(updated.id, legalAcceptance);
 
     return { user: toSessionUser(updated) };
+  }
+
+  private async recordLegalAcceptance(userId: string, input: LegalAcceptanceInput) {
+    if (!input.termsAccepted || !input.privacyAccepted) {
+      throw requestError('Terms and privacy acceptance is required.', 400);
+    }
+
+    const [termsVersion, privacyVersion] = await Promise.all([
+      input.termsVersionId
+        ? this.repository.findPublicPageVersionById(input.termsVersionId)
+        : this.repository.findCurrentPublicPageVersion(PublicPageKey.TERMS_AND_CONDITIONS),
+      input.privacyVersionId
+        ? this.repository.findPublicPageVersionById(input.privacyVersionId)
+        : this.repository.findCurrentPublicPageVersion(PublicPageKey.PRIVACY_POLICY)
+    ]);
+
+    if (!termsVersion || termsVersion.pageKey !== PublicPageKey.TERMS_AND_CONDITIONS) {
+      throw requestError('Current Terms and Conditions version was not found.', 409);
+    }
+    if (!privacyVersion || privacyVersion.pageKey !== PublicPageKey.PRIVACY_POLICY) {
+      throw requestError('Current Privacy Policy version was not found.', 409);
+    }
+
+    await this.repository.createUserPolicyAcceptance({
+      userId,
+      termsVersionId: termsVersion.id,
+      privacyVersionId: privacyVersion.id,
+      source: input.source,
+      ipAddress: input.ipAddress,
+      userAgent: input.userAgent,
+      payload: inputJson({
+        termsVersion: termsVersion.version,
+        privacyVersion: privacyVersion.version,
+        acceptedAt: new Date().toISOString()
+      })
+    });
   }
 
   async signIn(emailInput: string, password: string): Promise<AuthSessionDto> {

@@ -65,7 +65,17 @@ export class ModuleController {
   setPassword: RequestHandler = async (req, res, next) => {
     try {
       const input = setPasswordSchema.parse(req.body);
-      res.json(await this.service.setPassword(input.email, input.password));
+      res.json(
+        await this.service.setPassword(input.email, input.password, {
+          termsAccepted: input.termsAccepted,
+          privacyAccepted: input.privacyAccepted,
+          termsVersionId: input.termsVersionId,
+          privacyVersionId: input.privacyVersionId,
+          source: 'registration',
+          ipAddress: req.ip,
+          userAgent: req.header('user-agent') ?? undefined
+        })
+      );
     } catch (error) {
       next(error);
     }

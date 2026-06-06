@@ -1,6 +1,7 @@
 import { FormEvent, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '@/features/auth/api';
+import { useCurrentLegalVersions } from '@/features/public/hooks';
 import { apiErrorMessage } from '@/shared/api/errors';
 import { useBodyPageMetadata } from '@/shared/hooks/useBodyPageMetadata';
 
@@ -34,6 +35,7 @@ export function RegisterProcurexPage() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
+  const legalVersions = useCurrentLegalVersions();
   const checks = useMemo(() => passwordChecks(password), [password]);
   const passwordReady = Object.values(checks).every(Boolean) && password === confirmPassword && termsAccepted;
 
@@ -92,7 +94,14 @@ export function RegisterProcurexPage() {
     setLoading(true);
     setStatus('');
     try {
-      await authApi.setPassword({ email, password });
+      await authApi.setPassword({
+        email,
+        password,
+        termsAccepted: true,
+        privacyAccepted: true,
+        termsVersionId: legalVersions.data?.terms.id,
+        privacyVersionId: legalVersions.data?.privacy.id
+      });
       setStep(5);
     } catch (error) {
       setStatus(apiErrorMessage(error, 'Could not create account.'));
@@ -216,7 +225,9 @@ export function RegisterProcurexPage() {
                   </div>
                   <label className="confirm-action confirmed">
                     <input className="confirm-action-input" type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} />
-                    <span>Confirm that you accept the Terms and Privacy Policy.</span>
+                    <span>
+                      Confirm that you accept the <Link to="/terms">Terms and Conditions</Link> and <Link to="/privacy">Privacy Policy</Link>.
+                    </span>
                   </label>
                   <button className="btn-continue-new btn-create-new" type="submit" disabled={loading || !passwordReady}>
                     Create Account

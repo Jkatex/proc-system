@@ -27,7 +27,11 @@ export const activateEmailSchema = z.object({
 
 export const setPasswordSchema = z.object({
   email: z.string().email(),
-  password: passwordSchema
+  password: passwordSchema,
+  termsAccepted: z.literal(true),
+  privacyAccepted: z.literal(true),
+  termsVersionId: z.string().uuid().optional(),
+  privacyVersionId: z.string().uuid().optional()
 });
 
 export const signInSchema = z.object({

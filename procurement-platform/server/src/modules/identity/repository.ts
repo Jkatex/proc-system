@@ -4,6 +4,8 @@ import {
   AuditSeverity,
   OrganizationCapabilityName,
   OrganizationKind,
+  PublicPageKey,
+  PublicPageStatus,
   VerificationStatus,
   type Prisma,
   type PrismaClient
@@ -154,6 +156,47 @@ export class ModuleRepository {
         provider: 'password',
         providerUserId: email.toLowerCase(),
         accountType: AccountType.USER
+      }
+    });
+  }
+
+  findCurrentPublicPageVersion(pageKey: PublicPageKey) {
+    return this.db.publicPageVersion.findFirst({
+      where: {
+        pageKey,
+        status: PublicPageStatus.PUBLISHED,
+        effectiveAt: {
+          lte: new Date()
+        }
+      },
+      orderBy: [{ effectiveAt: 'desc' }, { publishedAt: 'desc' }, { createdAt: 'desc' }]
+    });
+  }
+
+  findPublicPageVersionById(id: string) {
+    return this.db.publicPageVersion.findUnique({
+      where: { id }
+    });
+  }
+
+  createUserPolicyAcceptance(input: {
+    userId: string;
+    termsVersionId: string;
+    privacyVersionId: string;
+    source: string;
+    ipAddress?: string;
+    userAgent?: string;
+    payload?: Prisma.InputJsonObject;
+  }) {
+    return this.db.userPolicyAcceptance.create({
+      data: {
+        userId: input.userId,
+        termsVersionId: input.termsVersionId,
+        privacyVersionId: input.privacyVersionId,
+        source: input.source,
+        ipAddress: input.ipAddress,
+        userAgent: input.userAgent,
+        payload: input.payload ?? {}
       }
     });
   }

@@ -96,6 +96,10 @@ const pages = [
 ];
 
 const handAuthoredPages = new Set([
+  'welcome',
+  'about-procurex',
+  'privacy-policy',
+  'terms-and-conditions',
   'awarding-contracts',
   'award-recommendation',
   'award-response',

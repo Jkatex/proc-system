@@ -1,6 +1,6 @@
 import type { RequestHandler } from 'express';
 import { ModuleService } from './service.js';
-import { moduleStatusQuerySchema, publicWelcomeQuerySchema } from './validators.js';
+import { moduleStatusQuerySchema, publicPageParamsSchema } from './validators.js';
 
 export class ModuleController {
   constructor(private readonly service = new ModuleService()) {}
@@ -14,10 +14,18 @@ export class ModuleController {
     }
   };
 
-  publicWelcome: RequestHandler = async (req, res, next) => {
+  getPage: RequestHandler = async (req, res, next) => {
     try {
-      publicWelcomeQuerySchema.parse(req.query);
-      res.json(await this.service.publicWelcome());
+      const params = publicPageParamsSchema.parse(req.params);
+      res.json(await this.service.getPage(params.pageKey));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  currentLegalVersions: RequestHandler = async (_req, res, next) => {
+    try {
+      res.json(await this.service.currentLegalVersions());
     } catch (error) {
       next(error);
     }

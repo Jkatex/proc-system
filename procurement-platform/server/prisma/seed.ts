@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
-import { randomBytes, scrypt as scryptCallback } from 'node:crypto';
+import { createHash, randomBytes, scrypt as scryptCallback } from 'node:crypto';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import {
@@ -20,6 +20,8 @@ import {
   OrganizationCapabilityName,
   OrganizationKind,
   ProcurementMethod,
+  PublicPageKey,
+  PublicPageStatus,
   RecommendationStatus,
   TenderStatus,
   TenderType,
@@ -33,6 +35,7 @@ import { withDbContext } from '../src/db/context.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const uiDataPath = path.resolve(__dirname, '../../../procurex-ui/js/data.js');
+const clientPublicPagesPath = path.resolve(__dirname, '../../client/src/features/public/components/procurex');
 
 type AnyRecord = Record<string, any>;
 const scrypt = promisify(scryptCallback);
@@ -49,6 +52,56 @@ function loadUiMockData(): AnyRecord {
   vm.createContext(sandbox);
   vm.runInContext(source, sandbox, { filename: uiDataPath });
   return sandbox.window.mockData;
+}
+
+function sha256Seed(value: string): string {
+  return createHash('sha256').update(value).digest('hex');
+}
+
+function extractClientPageHtml(fileName: string): string {
+  const source = fs.readFileSync(path.join(clientPublicPagesPath, fileName), 'utf8');
+  const match = source.match(/const html = ("(?:\\.|[^"\\])*");/);
+  if (!match) throw new Error(`Could not find generated HTML in ${fileName}`);
+  return JSON.parse(match[1]);
+}
+
+function publicPageSeedData() {
+  const effectiveAt = new Date('2026-06-06T00:00:00.000Z');
+  const pages = [
+    {
+      pageKey: PublicPageKey.ABOUT_PROCUREX,
+      fileName: 'AboutProcurexPage.tsx',
+      title: 'About ProcureX',
+      summary: 'ProcureX is a digital procurement platform for tendering, bidding, evaluation, awards, contracts, and records.'
+    },
+    {
+      pageKey: PublicPageKey.PRIVACY_POLICY,
+      fileName: 'PrivacyPolicyProcurexPage.tsx',
+      title: 'Privacy Policy',
+      summary: 'How ProcureX collects, uses, stores, protects, and shares procurement platform information.'
+    },
+    {
+      pageKey: PublicPageKey.TERMS_AND_CONDITIONS,
+      fileName: 'TermsAndConditionsProcurexPage.tsx',
+      title: 'Terms and Conditions',
+      summary: 'Rules, responsibilities, rights, and limitations for using the ProcureX procurement platform.'
+    }
+  ];
+
+  return pages.map((page) => {
+    const html = extractClientPageHtml(page.fileName);
+    return {
+      pageKey: page.pageKey,
+      version: '2026.06.06',
+      status: PublicPageStatus.PUBLISHED,
+      title: page.title,
+      summary: page.summary,
+      content: { html },
+      contentHash: sha256Seed(html),
+      effectiveAt,
+      publishedAt: effectiveAt
+    };
+  });
 }
 
 function parseDate(value?: string | Date | null): Date | undefined {
@@ -643,11 +696,19 @@ async function main() {
       }
     });
 
-    for (const module of ['identity', 'organization', 'procurement', 'bidding', 'evaluation', 'award-contract', 'financial', 'compliance-admin', 'communication', 'records', 'intelligence', 'integration', 'documents']) {
+    for (const module of ['public', 'identity', 'organization', 'procurement', 'bidding', 'evaluation', 'award-contract', 'financial', 'compliance-admin', 'communication', 'records', 'intelligence', 'integration', 'documents']) {
       await db.moduleRegistry.upsert({
         where: { name: module },
         update: { status: 'Available', version: '0.1.0', payload: { seeded: true } },
         create: { name: module, status: 'Available', version: '0.1.0', payload: { seeded: true } }
+      });
+    }
+
+    for (const page of publicPageSeedData()) {
+      await db.publicPageVersion.upsert({
+        where: { pageKey_version: { pageKey: page.pageKey, version: page.version } },
+        update: page,
+        create: page
       });
     }
   }, prisma);

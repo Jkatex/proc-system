@@ -40,7 +40,14 @@ export const authApi = {
     const response = await apiClient.post<{ user: SessionUser }>('/api/identity/registration/activate-email', input);
     return response.data;
   },
-  async setPassword(input: { email: string; password: string }) {
+  async setPassword(input: {
+    email: string;
+    password: string;
+    termsAccepted: true;
+    privacyAccepted: true;
+    termsVersionId?: string;
+    privacyVersionId?: string;
+  }) {
     const response = await apiClient.post<{ user: SessionUser }>('/api/identity/registration/set-password', input);
     return response.data;
   },

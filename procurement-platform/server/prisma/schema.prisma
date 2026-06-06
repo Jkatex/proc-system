@@ -5,7 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["identity", "organization", "procurement", "bidding", "evaluation", "contract", "financial", "compliance", "communication", "documents", "records", "intelligence", "integration"]
+  schemas  = ["identity", "organization", "procurement", "bidding", "evaluation", "contract", "financial", "compliance", "communication", "documents", "records", "intelligence", "integration", "content"]
 }
 
 enum AccountType {
@@ -32,6 +32,22 @@ enum SessionStatus {
   EXPIRED
 
   @@schema("identity")
+}
+
+enum PublicPageKey {
+  ABOUT_PROCUREX
+  PRIVACY_POLICY
+  TERMS_AND_CONDITIONS
+
+  @@schema("content")
+}
+
+enum PublicPageStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+
+  @@schema("content")
 }
 
 enum OrganizationKind {
@@ -315,6 +331,7 @@ model User {
   updatedAt            DateTime                @updatedAt @map("updated_at")
   accounts             Account[]
   sessions             Session[]
+  policyAcceptances    UserPolicyAcceptance[]
   mfaFactors           MfaFactor[]
   identityChallenges   IdentityChallenge[]
   memberships          OrganizationMember[]
@@ -344,6 +361,27 @@ model Account {
   @@unique([provider, providerUserId])
   @@index([userId])
   @@map("accounts")
+  @@schema("identity")
+}
+
+model UserPolicyAcceptance {
+  id               String            @id @default(uuid()) @db.Uuid
+  userId           String            @map("user_id") @db.Uuid
+  termsVersionId   String            @map("terms_version_id") @db.Uuid
+  privacyVersionId String            @map("privacy_version_id") @db.Uuid
+  acceptedAt       DateTime          @default(now()) @map("accepted_at")
+  source           String            @default("registration")
+  ipAddress        String?           @map("ip_address")
+  userAgent        String?           @map("user_agent")
+  payload          Json              @default("{}")
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  termsVersion     PublicPageVersion @relation("TermsPolicyAcceptances", fields: [termsVersionId], references: [id], onDelete: Restrict)
+  privacyVersion   PublicPageVersion @relation("PrivacyPolicyAcceptances", fields: [privacyVersionId], references: [id], onDelete: Restrict)
+
+  @@index([userId, acceptedAt])
+  @@index([termsVersionId])
+  @@index([privacyVersionId])
+  @@map("user_policy_acceptances")
   @@schema("identity")
 }
 
@@ -1152,6 +1190,28 @@ model ModuleRegistry {
 
   @@map("module_registry")
   @@schema("intelligence")
+}
+
+model PublicPageVersion {
+  id                 String                 @id @default(uuid()) @db.Uuid
+  pageKey            PublicPageKey          @map("page_key")
+  version            String
+  status             PublicPageStatus       @default(DRAFT)
+  title              String
+  summary            String?
+  content            Json                   @default("{}")
+  contentHash        String                 @map("content_hash")
+  effectiveAt        DateTime               @map("effective_at")
+  publishedAt        DateTime?              @map("published_at")
+  createdAt          DateTime               @default(now()) @map("created_at")
+  updatedAt          DateTime               @updatedAt @map("updated_at")
+  termsAcceptances   UserPolicyAcceptance[] @relation("TermsPolicyAcceptances")
+  privacyAcceptances UserPolicyAcceptance[] @relation("PrivacyPolicyAcceptances")
+
+  @@unique([pageKey, version])
+  @@index([pageKey, status, effectiveAt])
+  @@map("public_page_versions")
+  @@schema("content")
 }
 
 model ExternalSystem {

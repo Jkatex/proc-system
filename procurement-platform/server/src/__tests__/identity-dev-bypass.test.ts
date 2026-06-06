@@ -1,4 +1,4 @@
-import { AccountType, VerificationStatus } from '@prisma/client';
+import { AccountType, PublicPageKey, PublicPageStatus, VerificationStatus } from '@prisma/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ModuleService } from '../modules/identity/service.js';
 
@@ -8,6 +8,8 @@ class FakeIdentityRepository {
   challenges = new Map<string, any>();
   registry = new Map<string, any>();
   sessions = new Map<string, any>();
+  publicPages = new Map<string, any>();
+  acceptances: any[] = [];
   profiles: any[] = [];
   id = 0;
 
@@ -95,6 +97,27 @@ class FakeIdentityRepository {
 
   upsertPasswordAccount() {
     return Promise.resolve({});
+  }
+
+  findCurrentPublicPageVersion(pageKey: PublicPageKey) {
+    return Promise.resolve(
+      this.publicPages.get(pageKey) ?? {
+        id: `${pageKey}-version`,
+        pageKey,
+        version: '2026.06.06',
+        status: PublicPageStatus.PUBLISHED
+      }
+    );
+  }
+
+  findPublicPageVersionById(id: string) {
+    return Promise.resolve(Array.from(this.publicPages.values()).find((page) => page.id === id) ?? null);
+  }
+
+  createUserPolicyAcceptance(input: Record<string, unknown>) {
+    const acceptance = { id: this.nextId('acceptance'), ...input, acceptedAt: new Date() };
+    this.acceptances.push(acceptance);
+    return Promise.resolve(acceptance);
   }
 
   createSession(input: { userId: string; organizationId?: string; tokenHash: string; expiresAt: Date }) {
@@ -238,6 +261,52 @@ describe('identity dev bypass', () => {
 
     expect(session.user.email).toBe('walkthrough@example.test');
     expect(session.user.verificationStatus).toBe(VerificationStatus.NOT_STARTED);
+  });
+
+  it('records accepted terms and privacy versions when setting a password', async () => {
+    process.env.IDENTITY_DEV_BYPASS = 'true';
+    const repository = new FakeIdentityRepository();
+    const service = new ModuleService(repository as any);
+    const termsPage = {
+      id: 'terms-version-2026-06-06',
+      pageKey: PublicPageKey.TERMS_AND_CONDITIONS,
+      version: '2026.06.06',
+      status: PublicPageStatus.PUBLISHED
+    };
+    const privacyPage = {
+      id: 'privacy-version-2026-06-06',
+      pageKey: PublicPageKey.PRIVACY_POLICY,
+      version: '2026.06.06',
+      status: PublicPageStatus.PUBLISHED
+    };
+    repository.publicPages.set(PublicPageKey.TERMS_AND_CONDITIONS, termsPage);
+    repository.publicPages.set(PublicPageKey.PRIVACY_POLICY, privacyPage);
+    const registration = await service.startRegistration({ email: 'legal@example.test', phone: '+255 700 000 004' });
+
+    const otp = await service.verifyOtp(registration.challengeId, '000000');
+    await service.activateEmail(otp.activationChallengeId, '00000000');
+    await service.setPassword('legal@example.test', 'Strong123!', {
+      termsAccepted: true,
+      privacyAccepted: true,
+      termsVersionId: termsPage.id,
+      privacyVersionId: privacyPage.id,
+      source: 'registration',
+      ipAddress: '127.0.0.1',
+      userAgent: 'vitest'
+    });
+
+    expect(repository.acceptances).toHaveLength(1);
+    expect(repository.acceptances[0]).toMatchObject({
+      termsVersionId: termsPage.id,
+      privacyVersionId: privacyPage.id,
+      source: 'registration',
+      ipAddress: '127.0.0.1',
+      userAgent: 'vitest',
+      payload: {
+        termsVersion: termsPage.version,
+        privacyVersion: privacyPage.version
+      }
+    });
   });
 
   it('creates a dev registry record and auto-approves eKYC when the user confirms the details', async () => {
