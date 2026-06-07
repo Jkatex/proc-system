@@ -1,166 +1,335 @@
 <div align="center">
-  <img src="procurex-ui/assets/logo.svg" alt="ProcureX logo" width="96">
+  <img src="procurex-ui/assets/logo.svg" alt="ProcureX logo" width="104">
 
   # ProcureX
 
-  **A modern procurement intelligence and governance prototype for buyers, suppliers, evaluators, and administrators.**
+  **A production-grade procurement platform foundation for transparent tendering, supplier trust, bid evaluation, contract awards, and auditable public-sector workflows.**
 
-  ProcureX connects identity verification, tender creation, supplier discovery, bid preparation, evaluation, award recommendation, contract negotiation, and post-award tracking in one static front-end experience.
+  ProcureX brings the original static procurement prototype into a full implementation workspace with a React client, TypeScript API, Prisma data model, shared contracts, local infrastructure, UI parity tooling, and an organization-aware security model.
 
-  ![Status](https://img.shields.io/badge/status-active%20prototype-008080)
-  ![Frontend](https://img.shields.io/badge/frontend-HTML%20%7C%20CSS%20%7C%20JavaScript-1d1d1f)
-  ![Build](https://img.shields.io/badge/build-none%20required-2f855a)
-  ![Focus](https://img.shields.io/badge/focus-procurement%20governance-008080)
+  <br>
+
+  ![Status](https://img.shields.io/badge/status-active%20implementation-008080)
+  ![Client](https://img.shields.io/badge/client-React%2019%20%7C%20Vite%20%7C%20TypeScript-1d1d1f)
+  ![Server](https://img.shields.io/badge/server-Express%20%7C%20Prisma%20%7C%20PostgreSQL-2f855a)
+  ![Infra](https://img.shields.io/badge/infra-Postgres%20%7C%20Redis%20%7C%20Elasticsearch%20%7C%20MinIO-5b5fc7)
+  ![License](https://img.shields.io/badge/license-all%20rights%20reserved-lightgrey)
 </div>
 
 ---
 
+## Table Of Contents
+
+- [Preview](#preview)
+- [What ProcureX Is](#what-procurex-is)
+- [Implementation Snapshot](#implementation-snapshot)
+- [Architecture Overview](#architecture-overview)
+- [Product Workflows](#product-workflows)
+- [Tech Stack](#tech-stack)
+- [Quick Start](#quick-start)
+- [Environment Setup](#environment-setup)
+- [Development Commands](#development-commands)
+- [Repository Map](#repository-map)
+- [Testing And Verification](#testing-and-verification)
+- [Documentation Map](#documentation-map)
+- [Current Status And Roadmap](#current-status-and-roadmap)
+- [License](#license)
+
 ## Preview
+
+The production React client is built to preserve visual and workflow parity with the original `procurex-ui` prototype while gaining routing, state, localization, API adapters, tests, and guarded workspace surfaces.
 
 | Welcome | Workspace Dashboard | Create Tender |
 | --- | --- | --- |
-| ![ProcureX welcome page](procurex-ui/assets/readme/welcome.png) | ![ProcureX workspace dashboard](procurex-ui/assets/readme/workspace-dashboard.png) | ![ProcureX create tender wizard](procurex-ui/assets/readme/create-tender.png) |
+| ![ProcureX welcome screen](procurement-platform/docs/ui-parity/screenshots/desktop/target/welcome.png) | ![ProcureX workspace dashboard](procurement-platform/docs/ui-parity/screenshots/desktop/target/workspace-dashboard.png) | ![ProcureX create tender workflow](procurement-platform/docs/ui-parity/screenshots/desktop/target/create-tender.png) |
 
 | Supplier Marketplace | Bid Evaluation | Award Recommendation |
 | --- | --- | --- |
-| ![ProcureX supplier marketplace](procurex-ui/assets/readme/supplier-marketplace.png) | ![ProcureX bid evaluation workspace](procurex-ui/assets/readme/bid-evaluation.png) | ![ProcureX award recommendation workspace](procurex-ui/assets/readme/award-recommendation.png) |
+| ![ProcureX supplier marketplace](procurement-platform/docs/ui-parity/screenshots/desktop/target/supplier-marketplace.png) | ![ProcureX bid evaluation workspace](procurement-platform/docs/ui-parity/screenshots/desktop/target/bid-evaluation.png) | ![ProcureX award recommendation workspace](procurement-platform/docs/ui-parity/screenshots/desktop/target/award-recommendation.png) |
 
-## Why ProcureX
+## What ProcureX Is
 
-Procurement work often moves across scattered emails, informal supplier records, manual eligibility checks, paper tender documents, and disconnected approval decisions. ProcureX models a more structured operating system for procurement teams: one place to verify participants, design tenders, publish opportunities, compare bids, award contracts, and preserve an auditable record.
+ProcureX models a complete procurement operating environment for buyers, suppliers, evaluators, approvers, and platform administrators. It replaces scattered tender documents, manual eligibility checks, informal supplier records, disconnected evaluation spreadsheets, and fragile approval trails with one structured lifecycle.
 
-This repository is currently a browser-based prototype. It demonstrates the user experience, product logic, and workflow coverage using static HTML, CSS, JavaScript, mock data, local browser storage, and CDN-powered helper libraries.
+The repository now contains two important layers:
 
-## Product Capabilities
-
-| Area | What the prototype demonstrates |
+| Layer | Purpose |
 | --- | --- |
-| Identity and trust | Registration, sign-in, IAM profile workspace, eKYC state, account type handling, and verification status screens. |
-| Buyer workspace | Tender planning, procurement type selection, regulatory requirements, evaluation setup, review, and publication flows. |
-| Supplier workspace | Marketplace browsing, tender detail review, eligibility visibility, bid drafting, and submission workspace. |
-| Evaluation | Bid opening, scoring views, review states, award recommendation, and committee-oriented screens. |
-| Contracting | Contract negotiation, award handoff, post-award tracking, records, and history views. |
-| Governance logic | Architecture and requirement documents for trust tiers, auditability, anti-collusion, market transparency, risk, and ecosystem expansion. |
+| `procurement-platform/` | Canonical production implementation workspace: React client, Express backend, Prisma schema, shared contracts, local infrastructure, tests, scripts, and docs. |
+| `procurex-ui/` | Static HTML/CSS/JavaScript prototype used as the visual, wording, and workflow reference for the production client. |
 
-## Core Workflow
+The production platform is the source of truth for implementation. The static prototype remains a valuable design reference, not the deployed application architecture.
+
+## Implementation Snapshot
+
+| Area | Current implementation |
+| --- | --- |
+| Client | React 19, Vite, TypeScript, React Router, Redux Toolkit, MUI, i18next, Axios adapters, Recharts, Vitest, Testing Library. |
+| Server | TypeScript Express API with module boundaries, controllers, services, repositories, validators, Prisma, Zod, Helmet, CORS, and Vitest. |
+| Database | Prisma schema and migrations for identity, organizations, tenders, bids, evaluation, awards, contracts, records, communication, compliance, documents, intelligence, and integrations. |
+| Local infrastructure | Docker Compose for PostgreSQL 16, Redis 7, Elasticsearch 8, and MinIO object storage. |
+| Shared contracts | Workspace package for account types and organization capability contracts shared by client and server. |
+| UI parity | Screenshot capture and route mapping compare the original static prototype against the production React target. |
+| Future expansion | `ml-service/` is reserved for future Python/FastAPI intelligence workloads such as risk, matching, benchmarking, and anomaly detection. |
+
+Core product rules already captured by the implementation:
+
+- Login account type is only `USER` or `ADMIN`.
+- Buyer and supplier behavior is an organization capability, not a login role.
+- A normal user belongs to a company through organization membership.
+- A company can operate as buyer, supplier, or both.
+- Evaluator, approver, auditor, and observer behavior is represented through workflow context and assignments.
+- Database row-level security foundations are maintained separately from broad UI route checks.
+
+## Architecture Overview
+
+```mermaid
+flowchart LR
+  Prototype["procurex-ui static prototype"]
+  Client["React client<br>Vite + MUI + Redux"]
+  Server["Express API<br>modules + services"]
+  Shared["shared contracts"]
+  Prisma["Prisma schema<br>migrations + seed"]
+  Data["PostgreSQL<br>Redis<br>Elasticsearch<br>MinIO"]
+  Docs["docs + UI parity screenshots"]
+
+  Prototype -->|"visual and wording reference"| Client
+  Client -->|"typed API adapters"| Server
+  Client --> Shared
+  Server --> Shared
+  Server --> Prisma
+  Prisma --> Data
+  Prototype --> Docs
+  Client --> Docs
+```
+
+The backend follows a consistent module pattern:
 
 ```text
-Register or sign in
-  -> complete IAM and eKYC steps
-  -> open the role-aware workspace
-  -> create or discover a tender
-  -> prepare requirements and evaluation criteria
-  -> publish, bid, evaluate, award, and track the contract
-  -> preserve records for audit and future intelligence
+routes.ts -> controller.ts -> service.ts -> repository.ts -> validators.ts -> types.ts
 ```
+
+Registered API module boundaries include identity, organization, procurement, bidding, evaluation, award-contract, financial, compliance-admin, communication, records, intelligence, integration, and documents.
+
+## Product Workflows
+
+| Workflow | What ProcureX covers |
+| --- | --- |
+| Public discovery | Welcome, about, contact, policy pages, and guest marketplace entry points. |
+| Identity and trust | Registration, OTP/email activation, sign-in, session lookup, profile update, verification draft/submission, and admin verification review. |
+| Procurement | Tender creation, publication, tender details, documents, requirements, milestones, commercial items, and supplier-facing tender views. |
+| Bidding | Supplier bid workspace, bid versions, bid documents, responses, receipts, and organization-scoped ownership. |
+| Evaluation | Evaluation workspaces, criteria, scores, workflow assignments, stages, and award recommendation handoff. |
+| Awards and contracts | Award recommendation, approval steps, contract versioning, negotiation, purchase order tracking, invoices, and post-award tracking. |
+| Communication and records | Structured communication, attachments, timeline-style records, audit events, and searchable operational history. |
+| Administration | Platform dashboard, user and organization review, compliance cases, global search, analytics, audit review, and verification decisions. |
 
 ## Tech Stack
 
-| Layer | Current implementation |
+| Layer | Tools |
 | --- | --- |
-| Frontend | HTML, CSS, vanilla JavaScript |
-| App model | Static single-page application |
-| State | Mock data plus browser `localStorage` |
-| Charts | Chart.js from CDN |
-| PDF export | html2pdf.js from CDN |
-| Animation | dotLottie web component from CDN |
-| Build step | None |
-| Backend | Not included in this prototype |
+| Frontend | React 19, Vite, TypeScript, React Router, Redux Toolkit, MUI, Emotion, i18next, Recharts, Axios |
+| Backend | Node.js, Express, TypeScript, Prisma, Zod, Helmet, CORS, dotenv, Nodemailer, Twilio, AWS S3 SDK |
+| Data and infra | PostgreSQL 16, Redis 7, Elasticsearch 8, MinIO, Docker Compose |
+| Testing | Vitest, React Testing Library, Supertest, Playwright screenshot capture |
+| Shared package | TypeScript contracts consumed by client and server workspaces |
+| Prototype reference | Static HTML, CSS, JavaScript, Chart.js, html2pdf.js, dotLottie |
 
-## Run Locally
+## Quick Start
 
-Open the static app directly:
+Requirements:
 
-```text
-procurex-ui/index.html
-```
+- Node.js `>=20.11`
+- npm with workspace support
+- Docker Desktop or compatible Docker Engine
+- PowerShell on Windows, or an equivalent shell with adjusted copy commands
 
-For the most reliable browser behavior, serve the UI folder locally:
+From the repository root:
 
 ```powershell
-cd procurex-ui
-python -m http.server 8000
+cd procurement-platform
+npm install
+Copy-Item server/.env.example server/.env
+Copy-Item client/.env.example client/.env
+npm run infra:up
+npm run db:migrate
+npm run db:seed
 ```
 
-Then open:
+Start the backend in one terminal:
+
+```powershell
+npm run dev
+```
+
+Start the frontend in a second terminal:
+
+```powershell
+npm run dev:client
+```
+
+Open the app:
 
 ```text
-http://localhost:8000
+http://localhost:5173
 ```
 
-Useful routes:
+Check the API:
 
-| Page | URL |
+```powershell
+Invoke-RestMethod http://localhost:4000/health
+```
+
+## Environment Setup
+
+The example environment files are designed for local Docker services.
+
+Server defaults:
+
+```env
+DATABASE_URL="postgresql://procurex:procurex@localhost:5432/procurex"
+DIRECT_URL="postgresql://procurex:procurex@localhost:5432/procurex"
+REDIS_URL="redis://localhost:6379"
+ELASTICSEARCH_URL="http://localhost:9200"
+S3_ENDPOINT="http://localhost:9000"
+S3_DOCUMENT_BUCKET="procurex-documents"
+PORT="4000"
+```
+
+Client defaults:
+
+```env
+VITE_API_BASE_URL="http://localhost:4000"
+VITE_DEMO_SIGN_IN_ENABLED="false"
+```
+
+Local services started by `npm run infra:up`:
+
+| Service | URL / port |
 | --- | --- |
-| Welcome | `http://localhost:8000/?page=welcome` |
-| Workspace dashboard | `http://localhost:8000/?page=workspace-dashboard` |
-| Create tender | `http://localhost:8000/?page=create-tender` |
-| Marketplace | `http://localhost:8000/?page=marketplace` |
-| Admin compliance dashboard | `http://localhost:8000/?page=admin-dashboard` |
-| Bid evaluation | `http://localhost:8000/?page=bid-evaluation` |
-| Award recommendation | `http://localhost:8000/?page=award-recommendation` |
+| PostgreSQL | `localhost:5432` |
+| Redis | `localhost:6379` |
+| Elasticsearch | `http://localhost:9200` |
+| MinIO API | `http://localhost:9000` |
+| MinIO Console | `http://localhost:9001` |
 
-## Repository Structure
+## Development Commands
+
+Run these from `procurement-platform/`.
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start the Express backend in watch mode. |
+| `npm run dev:client` | Start the Vite React client. |
+| `npm run build` | Build shared contracts, server, and client. |
+| `npm run build:client` | Build shared contracts and the client only. |
+| `npm test` | Run server and client tests. |
+| `npm run test:client` | Run client tests only. |
+| `npm run lint:client` | Run client ESLint checks. |
+| `npm run infra:up` | Start local Docker services. |
+| `npm run infra:down` | Stop local Docker services. |
+| `npm run db:validate` | Validate the Prisma schema. |
+| `npm run db:migrate` | Run local Prisma migrations. |
+| `npm run db:deploy` | Deploy migrations in a non-dev flow. |
+| `npm run db:seed` | Seed local data once. |
+| `npm run db:seed:twice` | Verify seed idempotency. |
+| `npm --workspace server run verify:rls` | Verify database row-level security behavior. |
+| `npm --workspace client run ui:parity:screenshots` | Capture reference and React target screenshots. |
+
+## Repository Map
 
 ```text
 .
+|-- procurement-platform/
+|   |-- client/              # React/Vite production frontend
+|   |-- server/              # Express API, Prisma schema, tests
+|   |-- shared/              # Shared TypeScript contracts
+|   |-- ml-service/          # Future intelligence service boundary
+|   |-- docker/              # Local infrastructure notes
+|   |-- docs/                # Architecture, database, UI parity docs
+|   |-- scripts/             # Page generation and screenshot tooling
+|   |-- docker-compose.yml   # Postgres, Redis, Elasticsearch, MinIO
+|   `-- package.json         # npm workspace scripts
 |-- procurex-ui/
-|   |-- index.html
-|   |-- assets/
-|   |   |-- logo.svg
-|   |   |-- ProcureX.json
-|   |   `-- readme/
-|   |-- js/
-|   |   |-- app.js
-|   |   |-- charts.js
-|   |   `-- data.js
-|   |-- pages/
-|   |   |-- workspace-dashboard.js
-|   |   |-- create-tender.js
-|   |   |-- supplier-marketplace.js
-|   |   |-- bid-evaluation.js
-|   |   `-- ...
-|   |-- styles/
-|   |   `-- design-system.css
+|   |-- index.html           # Static prototype entrypoint
+|   |-- assets/              # Logo, page visuals, README screenshots
+|   |-- js/                  # Prototype data and app logic
+|   |-- pages/               # Prototype screen modules
+|   |-- styles/              # Prototype design system
 |   `-- README.md
-|-- FACTS/
-|   |-- Functional Requirements.md
-|   |-- Non-Functional Requirements.md
-|   |-- Architecture Design.md
-|   |-- ERD Diagram.md
-|   |-- logics/
-|   |   `-- unified
-|   `-- ...
-|-- DESIGN.md
-`-- README.md
+|-- DESIGN.md                # Visual system and design direction
+|-- implementation path.md   # Historical implementation planning notes
+|-- readme1.md               # Older local setup notes now folded here
+`-- README.md                # Canonical project README
+```
+
+## Testing And Verification
+
+Recommended local checks:
+
+```powershell
+cd procurement-platform
+npm run db:validate
+npm test
+npm run lint:client
+npm run build
+```
+
+Database security verification:
+
+```powershell
+npm run infra:up
+npm run db:migrate
+npm run db:seed:twice
+npm --workspace server run verify:rls
+```
+
+UI parity screenshots:
+
+```powershell
+npm run dev:client
+npm --workspace client run ui:parity:screenshots
+```
+
+The screenshot workflow captures both:
+
+- reference pages from `procurex-ui/index.html?page=...`
+- production React target routes such as `/procurement/marketplace`, `/dashboard`, and `/admin`
+
+Output is saved under:
+
+```text
+procurement-platform/docs/ui-parity/screenshots/
 ```
 
 ## Documentation Map
 
 | Document | Purpose |
 | --- | --- |
-| [`procurex-ui/README.md`](procurex-ui/README.md) | Static UI setup, route list, and maintenance notes. |
-| [`DESIGN.md`](DESIGN.md) | Visual system and design direction. |
-| [`FACTS/Functional Requirements.md`](FACTS/Functional%20Requirements.md) | Platform capability requirements. |
-| [`FACTS/Non-Functional Requirements.md`](FACTS/Non-Functional%20Requirements.md) | Performance, security, availability, compliance, and maintainability requirements. |
-| [`FACTS/Architecture Design.md`](FACTS/Architecture%20Design.md) | Proposed production architecture and technology stack. |
-| [`FACTS/ERD Diagram.md`](FACTS/ERD%20Diagram.md) | Entity relationship model. |
-| [`FACTS/User Experience Flowcharts.md`](FACTS/User%20Experience%20Flowcharts.md) | User journey and UX flow documentation. |
-| [`FACTS/logics/unified`](FACTS/logics/unified) | Unified procurement intelligence and governance logic blueprint. |
+| [`procurement-platform/README.md`](procurement-platform/README.md) | Canonical monorepo development workspace notes. |
+| [`procurement-platform/client/README.md`](procurement-platform/client/README.md) | Production React client stack, commands, layout, and product model. |
+| [`procurement-platform/server/README.md`](procurement-platform/server/README.md) | Express server commands and database access model. |
+| [`procurement-platform/docs/architecture.md`](procurement-platform/docs/architecture.md) | End-to-end implementation guide and architecture walkthrough. |
+| [`procurement-platform/docs/database.md`](procurement-platform/docs/database.md) | Prisma model decisions, migrations, and RLS verification. |
+| [`procurement-platform/docs/ui-parity/README.md`](procurement-platform/docs/ui-parity/README.md) | Static-prototype-to-React parity workflow and screenshot capture. |
+| [`procurement-platform/docker/README.md`](procurement-platform/docker/README.md) | Local infrastructure and Docker notes. |
+| [`procurement-platform/scripts/README.md`](procurement-platform/scripts/README.md) | Operational scripts and page generation notes. |
+| [`procurex-ui/README.md`](procurex-ui/README.md) | Static prototype route list and maintenance notes. |
+| [`DESIGN.md`](DESIGN.md) | ProcureX visual direction and design-system reference. |
 
-## Prototype Status
+## Current Status And Roadmap
 
-ProcureX is an active static prototype. It is suitable for product demonstrations, workflow validation, requirements review, UI iteration, and backend planning. It does not yet include production authentication, persistent database storage, server APIs, real document upload storage, payment systems, or production-grade compliance enforcement.
+ProcureX is an active production foundation. It has a real monorepo shape, client and server workspaces, database schema, migrations, tests, local infrastructure, and a parity process for carrying the prototype into React. Some module endpoints are intentionally foundational while deeper production workflows continue to mature.
 
-## Roadmap
+Near-term roadmap:
 
-- Backend API and persistent database integration.
-- Real authentication, MFA, roles, and permission enforcement.
-- Supplier verification, document validation, and trust tier services.
-- Secure bid submission storage and sealed bid opening.
-- Evaluation committee workflows, audit logs, and reporting.
-- ERP, registry, tax, digital signature, and notification integrations.
-- Production deployment, observability, and CI/CD.
+- Replace remaining mock client adapters with full backend module endpoints.
+- Expand identity hardening, MFA, verification providers, and notification delivery.
+- Complete document upload storage, hashing, signature, and audit workflows.
+- Deepen sealed bid submission, evaluation committee, and approval controls.
+- Add richer reporting, risk signals, supplier intelligence, and search indexing.
+- Prepare deployment infrastructure, observability, CI/CD, backups, and production runbooks.
+- Grow the future intelligence service boundary when enough platform data exists to support reliable models.
 
 ## License
 
