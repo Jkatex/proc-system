@@ -1,11 +1,17 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { messages } from '@/shared/data/fixtures';
+import type { MessageItem } from '@/shared/types/domain';
+
+type CommunicationState = {
+  messages: MessageItem[];
+};
+
+const initialState: CommunicationState = {
+  messages: []
+};
 
 const communicationSlice = createSlice({
   name: 'communication',
-  initialState: {
-    messages
-  },
+  initialState,
   reducers: {
     markAllRead(state) {
       state.messages = state.messages.map((message) => ({ ...message, status: 'Read' }));

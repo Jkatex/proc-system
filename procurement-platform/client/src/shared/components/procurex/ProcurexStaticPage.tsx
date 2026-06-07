@@ -669,12 +669,10 @@ function addProcurementPlanningRow(root: HTMLElement) {
 function filterProcurementPlanningYear(select: HTMLSelectElement, root: HTMLElement) {
   const selectedYear = select.value;
   const rows = root.querySelectorAll<HTMLTableRowElement>('[data-financial-year]');
-  let visibleCount = 0;
 
   rows.forEach((row) => {
     const isVisible = row.getAttribute('data-financial-year') === selectedYear;
     row.hidden = !isVisible;
-    if (isVisible) visibleCount += 1;
   });
 
   const currentYear = root.querySelector<HTMLElement>('[data-planning-current-year]');

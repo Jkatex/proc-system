@@ -41,12 +41,12 @@ export function CreateTenderWizardShell() {
               <StatusBadge value="Draft" />
             </div>
             <div className="form-grid">
-              <TextField label="Tender title" defaultValue="Facilities Maintenance Services Framework" />
-              <TextField label="Procurement type" defaultValue="Services" />
-              <TextField label="Budget" defaultValue="820000000" />
-              <TextField label="Closing date" type="date" defaultValue="2026-07-15" />
-              <TextField label="Scope summary" multiline minRows={5} defaultValue="Multi-region building maintenance, response SLA, reporting, and quality assurance framework." />
-              <TextField label="Required documents" multiline minRows={5} defaultValue="Tax clearance, company profile, technical proposal, financial proposal, signed declarations." />
+              <TextField label="Tender title" placeholder="Enter the procurement title" />
+              <TextField label="Procurement type" placeholder="Goods, works, services, or consultancy" />
+              <TextField label="Budget" placeholder="Enter estimated budget" />
+              <TextField label="Closing date" type="date" InputLabelProps={{ shrink: true }} />
+              <TextField label="Scope summary" multiline minRows={5} placeholder="Describe the goods, works, services, or consultancy required." />
+              <TextField label="Required documents" multiline minRows={5} placeholder="List eligibility, technical, financial, and declaration documents bidders must provide." />
             </div>
           </article>
         </main>

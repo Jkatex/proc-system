@@ -1,11 +1,17 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { records } from '@/shared/data/fixtures';
+import type { ProcurementRecord } from './types';
+
+type RecordsState = {
+  records: ProcurementRecord[];
+};
+
+const initialState: RecordsState = {
+  records: []
+};
 
 const recordsSlice = createSlice({
   name: 'records',
-  initialState: {
-    records
-  },
+  initialState,
   reducers: {}
 });
 

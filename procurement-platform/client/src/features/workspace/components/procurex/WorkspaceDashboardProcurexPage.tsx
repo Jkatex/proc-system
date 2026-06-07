@@ -38,6 +38,45 @@ const startActions = [
   }
 ] as const;
 
+const otherAppActions = [
+  {
+    page: 'tender-planning',
+    icon: 'planning',
+    title: 'Create plan',
+    description: 'Build or upload procurement plan lines.'
+  },
+  {
+    page: 'communication-center',
+    icon: 'communication',
+    title: 'Create message',
+    description: 'Open communication, clarifications, and notices.'
+  },
+  {
+    page: 'create-tender',
+    icon: 'procurement',
+    title: 'Create tender',
+    description: 'Prepare a new buyer procurement workspace.'
+  },
+  {
+    page: 'marketplace',
+    icon: 'procurement',
+    title: 'View marketplace',
+    description: 'Browse published procurement opportunities.'
+  },
+  {
+    page: 'bid-evaluation',
+    icon: 'evaluation',
+    title: 'Evaluate bids',
+    description: 'Review supplier submissions and scoring.'
+  },
+  {
+    page: 'records-history',
+    icon: 'records',
+    title: 'Records and history',
+    description: 'Open procurement records and past activity.'
+  }
+] as const;
+
 export function WorkspaceDashboardProcurexPage() {
   const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
@@ -90,11 +129,11 @@ export function WorkspaceDashboardProcurexPage() {
                   starts using ProcureX.
                 </p>
                 <div className="inline-actions dashboard-welcome-actions">
-                  <button className="btn btn-primary" type="button" onClick={() => navigateToPage('tender-planning')}>
-                    Start Planning
+                  <button className="btn btn-primary" type="button" onClick={() => navigateToPage('marketplace')}>
+                    View marketplace
                   </button>
-                  <button className="btn btn-secondary" type="button" onClick={() => navigateToPage('communication-center')}>
-                    Open Messages
+                  <button className="btn btn-secondary" type="button" onClick={() => navigateToPage('create-tender')}>
+                    Create tender
                   </button>
                 </div>
               </div>
@@ -191,27 +230,20 @@ export function WorkspaceDashboardProcurexPage() {
             <section className="dashboard-panel">
               <div className="panel-heading">
                 <div>
-                  <span className="section-kicker">My Active Work</span>
-                  <h2>Continue where you left off</h2>
+                  <span className="section-kicker">More ProcureX apps</span>
+                  <h2>Try other apps</h2>
                 </div>
               </div>
-              <div className="procurex-empty-guidance dashboard-active-empty">
-                <div>
-                  <span className="section-kicker">No active work yet</span>
-                  <h2>Your work queue is ready for real activity.</h2>
-                  <p>
-                    When you create a plan, submit a tender, receive a message, or move into evaluation, the next action
-                    will appear here instead of demo records.
-                  </p>
-                </div>
-                <div className="procurex-empty-actions">
-                  <button className="btn btn-primary" type="button" onClick={() => navigateToPage('tender-planning')}>
-                    Create Plan
+              <div className="dashboard-first-run-actions">
+                {otherAppActions.map((action) => (
+                  <button className="dashboard-first-run-action" type="button" key={action.page} onClick={() => navigateToPage(action.page)}>
+                    <AppMenuIcon kind={action.icon} />
+                    <span>
+                      <strong>{action.title}</strong>
+                      <em>{action.description}</em>
+                    </span>
                   </button>
-                  <button className="btn btn-secondary" type="button" onClick={() => navigateToPage('communication-center')}>
-                    Create Message
-                  </button>
-                </div>
+                ))}
               </div>
             </section>
           </div>

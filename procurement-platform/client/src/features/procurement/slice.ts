@@ -1,12 +1,19 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { tenders } from '@/shared/data/fixtures';
+import type { ProcurementTender } from './types';
+
+type ProcurementState = {
+  tenders: ProcurementTender[];
+  selectedTenderId: string | null;
+};
+
+const initialState: ProcurementState = {
+  tenders: [],
+  selectedTenderId: null
+};
 
 const procurementSlice = createSlice({
   name: 'procurement',
-  initialState: {
-    tenders,
-    selectedTenderId: tenders[0]?.id ?? null
-  },
+  initialState,
   reducers: {
     selectTender(state, action: { payload: string }) {
       state.selectedTenderId = action.payload;

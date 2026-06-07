@@ -1,11 +1,17 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { workItems } from '@/shared/data/fixtures';
+import type { WorkspaceItem } from './types';
+
+type WorkspaceState = {
+  workItems: WorkspaceItem[];
+};
+
+const initialState: WorkspaceState = {
+  workItems: []
+};
 
 const workspaceSlice = createSlice({
   name: 'workspace',
-  initialState: {
-    workItems
-  },
+  initialState,
   reducers: {}
 });
 

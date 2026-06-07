@@ -1,13 +1,21 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { adminMetrics, records, tenders } from '@/shared/data/fixtures';
+import type { AdminMetric, RecordItem, Tender } from '@/shared/types/domain';
+
+type AdminState = {
+  metrics: AdminMetric[];
+  tenders: Tender[];
+  auditRows: RecordItem[];
+};
+
+const initialState: AdminState = {
+  metrics: [],
+  tenders: [],
+  auditRows: []
+};
 
 const adminSlice = createSlice({
   name: 'admin',
-  initialState: {
-    metrics: adminMetrics,
-    tenders,
-    auditRows: records
-  },
+  initialState,
   reducers: {}
 });
 

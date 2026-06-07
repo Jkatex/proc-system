@@ -1,13 +1,21 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { bids } from '@/shared/data/fixtures';
+import type { BidPackage } from '@/features/bidding/types';
+
+type EvaluationState = {
+  bids: BidPackage[];
+  currentStage: 'not-started' | 'technical' | 'recommendation';
+  progress: number;
+};
+
+const initialState: EvaluationState = {
+  bids: [],
+  currentStage: 'not-started',
+  progress: 0
+};
 
 const evaluationSlice = createSlice({
   name: 'evaluation',
-  initialState: {
-    bids,
-    currentStage: 'technical',
-    progress: 58
-  },
+  initialState,
   reducers: {
     lockEvaluation(state) {
       state.currentStage = 'recommendation';

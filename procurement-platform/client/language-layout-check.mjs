@@ -6,12 +6,6 @@ const viewports = [
   { name: 'mobile', width: 360, height: 800 }
 ];
 
-function intersects(a, b) {
-  const x = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left));
-  const y = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
-  return x * y > 1;
-}
-
 async function signIn(page) {
   await page.goto('http://localhost:5173/sign-in');
   await page.locator("button[data-demo-email='user@company.tz']").click();

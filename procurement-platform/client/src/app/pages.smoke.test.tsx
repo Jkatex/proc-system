@@ -29,11 +29,11 @@ describe('page smoke tests', () => {
 
   it('renders marketplace data', () => {
     renderPage(<MarketplacePage />);
-    expect(screen.getByText('PX-WRK-2026-001')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'No published tenders yet.' })).toBeInTheDocument();
   });
 
   it('renders the admin dashboard', () => {
     renderPage(<AdminDashboardPage />);
-    expect(screen.getByText('Active Tenders')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'No platform activity has been indexed yet.' })).toBeInTheDocument();
   });
 });

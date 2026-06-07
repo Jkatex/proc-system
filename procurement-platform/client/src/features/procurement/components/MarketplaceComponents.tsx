@@ -109,7 +109,7 @@ export function MarketplaceCategoryGrid({ tenders, onSelectType }: { tenders: Te
 }
 
 export function MarketplaceSummary({ tenders }: { tenders: Tender[] }) {
-  const draftBids = 3;
+  const draftBids = 0;
   const openCount = tenders.filter((tender) => tender.status === 'OPEN').length;
   const closingSoon = tenders.filter((tender) => getDaysRemaining(tender) <= 14).length;
   const totalBudget = tenders.reduce((sum, tender) => sum + tender.budget, 0);
@@ -135,7 +135,11 @@ export function TenderListPanel({ tenders }: { tenders: Tender[] }) {
         <span className="badge badge-success">{tenders.length} matching</span>
       </div>
       <div className="procurement-tender-list market-list">
-        {tenders.map((tender) => <TenderRowCard key={tender.id} tender={tender} />)}
+        {tenders.length ? (
+          tenders.map((tender) => <TenderRowCard key={tender.id} tender={tender} />)
+        ) : (
+          <div className="scope-empty">No published tenders yet. Create and publish a tender to start marketplace activity.</div>
+        )}
       </div>
     </section>
   );

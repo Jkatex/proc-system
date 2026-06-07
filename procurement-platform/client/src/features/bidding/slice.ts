@@ -1,12 +1,19 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { bids } from '@/shared/data/fixtures';
+import type { BidPackage } from './types';
+
+type BiddingState = {
+  bids: BidPackage[];
+  draftSaved: boolean;
+};
+
+const initialState: BiddingState = {
+  bids: [],
+  draftSaved: false
+};
 
 const biddingSlice = createSlice({
   name: 'bidding',
-  initialState: {
-    bids,
-    draftSaved: false
-  },
+  initialState,
   reducers: {
     saveBidDraft(state) {
       state.draftSaved = true;

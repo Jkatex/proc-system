@@ -1,6 +1,5 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { mockApi } from '@/shared/api/mockApi';
-import { demoUsers } from '@/shared/data/fixtures';
 import type { SessionUser } from '@/shared/types/domain';
 
 type AuthState = {

@@ -18,13 +18,21 @@ export function DataTable<T>({ columns, rows, getRowKey }: DataTableProps<T>) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr key={getRowKey(row)}>
-              {columns.map((column) => (
-                <td key={column.key}>{column.render(row)}</td>
-              ))}
+          {rows.length ? (
+            rows.map((row) => (
+              <tr key={getRowKey(row)}>
+                {columns.map((column) => (
+                  <td key={column.key}>{column.render(row)}</td>
+                ))}
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan={columns.length}>
+                <div className="scope-empty">No records yet. Real activity will appear here after users start working.</div>
+              </td>
             </tr>
-          ))}
+          )}
         </tbody>
       </table>
     </div>
