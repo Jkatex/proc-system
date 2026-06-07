@@ -23,6 +23,18 @@ function requestError(message: string, status = 429) {
   return error;
 }
 
+function incrementMemoryRateLimit(key: string, windowSeconds: number) {
+  const now = Date.now();
+  const existing = memoryStore.get(key);
+  if (!existing || existing.resetAt <= now) {
+    memoryStore.set(key, { count: 1, resetAt: now + windowSeconds * 1000 });
+    return 1;
+  }
+
+  existing.count += 1;
+  return existing.count;
+}
+
 function redis() {
   const { redisUrl } = securityConfig();
   if (!redisUrl) {
@@ -32,10 +44,15 @@ function redis() {
     return null;
   }
 
-  redisClient ??= new Redis(redisUrl, {
-    lazyConnect: true,
-    maxRetriesPerRequest: 1
-  });
+  if (!redisClient) {
+    redisClient = new Redis(redisUrl, {
+      lazyConnect: true,
+      maxRetriesPerRequest: 1
+    });
+    redisClient.on('error', () => {
+      // Local development can run without Redis; the request path falls back to memory.
+    });
+  }
   return redisClient;
 }
 
@@ -78,19 +95,16 @@ export function createAuthRateLimit(name: string): RequestHandler {
       const client = redis();
 
       if (client) {
-        if (client.status === 'wait') await client.connect();
-        count = await client.incr(key);
-        if (count === 1) await client.expire(key, windowSeconds);
-      } else {
-        const now = Date.now();
-        const existing = memoryStore.get(key);
-        if (!existing || existing.resetAt <= now) {
-          memoryStore.set(key, { count: 1, resetAt: now + windowSeconds * 1000 });
-          count = 1;
-        } else {
-          existing.count += 1;
-          count = existing.count;
+        try {
+          if (client.status === 'wait') await client.connect();
+          count = await client.incr(key);
+          if (count === 1) await client.expire(key, windowSeconds);
+        } catch (error) {
+          if (isProductionRuntime()) throw error;
+          count = incrementMemoryRateLimit(key, windowSeconds);
         }
+      } else {
+        count = incrementMemoryRateLimit(key, windowSeconds);
       }
 
       if (count > config.authRateLimitMax) {

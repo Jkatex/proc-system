@@ -128,22 +128,8 @@ describe('SignInProcurexPage', () => {
     expect(mockedAuthApi.signIn).not.toHaveBeenCalled();
   });
 
-  it('signs in the local demo account through real credentials after Turnstile and routes to the dashboard', async () => {
+  it('signs in the local demo account without the backend after Turnstile and routes to the dashboard', async () => {
     vi.stubEnv('VITE_DEMO_SIGN_IN_ENABLED', 'true');
-    mockedAuthApi.signIn.mockResolvedValueOnce({
-      token: 'demo-token',
-      expiresAt: '2026-06-13T00:00:00.000Z',
-      user: {
-        id: 'demo-user',
-        email: 'demo@procurex.tz',
-        phone: '+255713333444',
-        displayName: 'Demo Verified User',
-        accountType: 'USER',
-        organization: 'Kilimanjaro Supplies Limited',
-        verificationStatus: 'APPROVED',
-        capabilities: ['BUYER', 'SUPPLIER']
-      }
-    });
 
     renderSignIn();
 
@@ -151,11 +137,21 @@ describe('SignInProcurexPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Sign in as demo user/i }));
 
     await screen.findByText('User dashboard');
-    expect(mockedAuthApi.signIn).toHaveBeenCalledWith({
-      email: 'demo@procurex.tz',
-      password: 'Demo123!',
-      turnstileToken: 'turnstile-token'
-    });
+    expect(mockedAuthApi.signIn).not.toHaveBeenCalled();
+  });
+
+  it('accepts typed demo credentials without the backend when local demo sign-in is enabled', async () => {
+    vi.stubEnv('VITE_DEMO_SIGN_IN_ENABLED', 'true');
+
+    renderSignIn();
+
+    fireEvent.change(screen.getByLabelText('Email Address *'), { target: { value: 'demo@procurex.tz' } });
+    fireEvent.change(screen.getByLabelText('Password *'), { target: { value: 'Demo123!' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Complete security check' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sign In' }));
+
+    await screen.findByText('Apps');
+    expect(mockedAuthApi.signIn).not.toHaveBeenCalled();
   });
 
   it('shows the language switcher and translates sign-in copy to Swahili', async () => {

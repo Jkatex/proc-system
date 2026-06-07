@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import LoginRoundedIcon from '@mui/icons-material/LoginRounded';
 import { useAppDispatch, useAppSelector } from '@/app/store';
-import { signInWithCredentials } from '@/features/auth/slice';
+import { assumeUser, signInWithCredentials } from '@/features/auth/slice';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
+import { demoUsers } from '@/shared/data/fixtures';
 import { useBodyPageMetadata } from '@/shared/hooks/useBodyPageMetadata';
 import { AuthAlert, authAlert, authAlertFromError, type AuthAlertMessage } from './AuthAlert';
 import { TurnstileWidget } from './TurnstileWidget';
@@ -47,11 +48,25 @@ export function SignInProcurexPage() {
 
   useBodyPageMetadata('sign-in');
 
+  function isDemoCredentialAttempt(emailValue: string, passwordValue: string) {
+    return (
+      demoSignIn.enabled &&
+      emailValue.trim().toLowerCase() === demoSignIn.email.toLowerCase() &&
+      passwordValue === demoSignIn.password
+    );
+  }
+
   async function signIn(emailValue: string, passwordValue: string, destinationOverride?: string) {
     if (loading) return;
     setAlert(null);
     if (!turnstileToken) {
       setAlert(authAlert('auth.security.missingSignIn', 'error'));
+      return;
+    }
+
+    if (isDemoCredentialAttempt(emailValue, passwordValue)) {
+      dispatch(assumeUser(demoUsers.user));
+      navigate(destinationOverride ?? destinationFor(demoUsers.user, locationState?.from?.pathname), { replace: true });
       return;
     }
 
