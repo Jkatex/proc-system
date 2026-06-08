@@ -1,5 +1,5 @@
-import { FirstRunAppPage } from '@/features/workspace/components/procurex/FirstRunAppPage';
+import { BidEvaluationProcurexPage } from '@/features/evaluation/components/procurex/BidEvaluationProcurexPage';
 
 export function BidEvaluationPage() {
-  return <FirstRunAppPage page="bid-evaluation" />;
+  return <BidEvaluationProcurexPage />;
 }
