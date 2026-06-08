@@ -435,7 +435,7 @@
           "title": "Demo account",
           "body": "Use the seeded verified user for local walkthroughs.",
           "button": "Sign in as demo user",
-          "securityHint": "Complete the security check first"
+          "securityHint": "Open the local demo workspace"
         },
         "note": "Your account opens the workspace allowed by its verification status."
       },
@@ -483,6 +483,99 @@
     "submitted": "Submitted",
     "review": "Review",
     "complete": "Complete"
+  },
+  "evaluationApp": {
+    "shell": {
+      "title": "Evaluation",
+      "sidebarTitle": "Evaluation",
+      "sidebarNote": "Tender review workspace"
+    },
+    "nav": {
+      "createTender": "Create Tender"
+    },
+    "hero": {
+      "kicker": "Evaluation workspace",
+      "title": "Tenders for Evaluation",
+      "subtitle": "Once tenders are published, closed, and supplier bids are submitted, they will appear here for evaluation."
+    },
+    "stats": {
+      "ariaLabel": "Evaluation dashboard statistics",
+      "publishedTenders": "Published Tenders",
+      "readyToEvaluate": "Ready to Evaluate",
+      "draftedEvaluations": "Drafted Evaluations",
+      "lockedUntilClosing": "Locked Until Closing"
+    },
+    "actions": {
+      "createTender": "Create Tender",
+      "viewTenderPlanning": "View Tender Planning"
+    },
+    "records": {
+      "kicker": "Evaluation records",
+      "title": "Find tender evaluations",
+      "countBadge": "{{count}} records",
+      "empty": "No evaluation records yet. Evaluation records will appear here after tenders are created, published, closed, and supplier bids are submitted."
+    },
+    "filters": {
+      "search": "Search",
+      "searchPlaceholder": "Search by tender title, reference, or buyer",
+      "status": "Evaluation status",
+      "type": "Procurement type",
+      "allStatuses": "All statuses",
+      "allTypes": "All procurement types"
+    },
+    "drafts": {
+      "kicker": "Saved progress",
+      "title": "Saved evaluation drafts",
+      "empty": "No saved evaluation drafts. Draft evaluations will appear here when an evaluator starts scoring a tender and saves progress."
+    },
+    "ready": {
+      "kicker": "Evaluation queue",
+      "title": "Ready for evaluation",
+      "readyBadge": "Ready",
+      "empty": "No tenders ready for evaluation. Tenders become available for evaluation only after the closing date has passed and supplier bids have been submitted."
+    },
+    "table": {
+      "tender": "Tender",
+      "type": "Type",
+      "status": "Status",
+      "stage": "Stage",
+      "progress": "Progress",
+      "submittedBids": "Submitted bids",
+      "updated": "Updated",
+      "closingDate": "Closing date"
+    },
+    "labels": {
+      "notStarted": "Not started",
+      "notScheduled": "Not scheduled"
+    },
+    "status": {
+      "NOT_STARTED": "Not started",
+      "IN_PROGRESS": "In progress",
+      "LOCKED": "Locked",
+      "COMPLETED": "Completed",
+      "RETURNED": "Returned"
+    },
+    "types": {
+      "GOODS": "Goods",
+      "WORKS": "Works",
+      "SERVICE": "Services",
+      "CONSULTANCY": "Consultancy"
+    },
+    "stages": {
+      "OPENING": "Opening",
+      "CONFLICT": "Conflict review",
+      "PRELIMINARY": "Preliminary",
+      "ELIGIBILITY": "Eligibility",
+      "TECHNICAL": "Technical",
+      "FINANCIAL": "Financial",
+      "CLARIFICATIONS": "Clarifications",
+      "COMPARISON": "Comparison",
+      "REPORT": "Report",
+      "RECOMMENDATION": "Recommendation"
+    },
+    "errors": {
+      "load": "Evaluation data could not be loaded. The workspace will remain empty until the database is available."
+    }
   },
   "common": {
     "budget": "Budget",

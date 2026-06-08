@@ -42,6 +42,9 @@ export function createApp() {
 
   for (const module of registeredModules) {
     app.use(module.basePath, module.router);
+    if (module.key === 'evaluation') {
+      app.use('/api/evaluations', module.router);
+    }
   }
 
   app.use((_req, res) => {

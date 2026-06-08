@@ -435,7 +435,7 @@
           "title": "Akaunti ya onyesho",
           "body": "Tumia mtumiaji aliyethibitishwa wa seed kwa majaribio ya ndani.",
           "button": "Ingia kama mtumiaji wa onyesho",
-          "securityHint": "Kamilisha ukaguzi wa usalama kwanza"
+          "securityHint": "Fungua eneo la kazi la onyesho la ndani"
         },
         "note": "Akaunti yako hufungua eneo la kazi linaloruhusiwa na hali yake ya uthibitishaji."
       },
@@ -483,6 +483,99 @@
     "submitted": "Imewasilishwa",
     "review": "Ukaguzi",
     "complete": "Imekamilika"
+  },
+  "evaluationApp": {
+    "shell": {
+      "title": "Tathmini",
+      "sidebarTitle": "Tathmini",
+      "sidebarNote": "Eneo la ukaguzi wa zabuni"
+    },
+    "nav": {
+      "createTender": "Tengeneza Zabuni"
+    },
+    "hero": {
+      "kicker": "Eneo la tathmini",
+      "title": "Zabuni za Tathmini",
+      "subtitle": "Zabuni zikichapishwa, kufungwa, na zabuni za wasambazaji kuwasilishwa, zitaonekana hapa kwa ajili ya tathmini."
+    },
+    "stats": {
+      "ariaLabel": "Takwimu za dashibodi ya tathmini",
+      "publishedTenders": "Zabuni Zilizochapishwa",
+      "readyToEvaluate": "Tayari Kutathminiwa",
+      "draftedEvaluations": "Rasimu za Tathmini",
+      "lockedUntilClosing": "Zilizofungwa Hadi Kufungwa"
+    },
+    "actions": {
+      "createTender": "Tengeneza Zabuni",
+      "viewTenderPlanning": "Tazama Mpango wa Zabuni"
+    },
+    "records": {
+      "kicker": "Rekodi za tathmini",
+      "title": "Tafuta tathmini za zabuni",
+      "countBadge": "Rekodi {{count}}",
+      "empty": "Hakuna rekodi za tathmini bado. Rekodi za tathmini zitaonekana hapa baada ya zabuni kutengenezwa, kuchapishwa, kufungwa, na zabuni za wasambazaji kuwasilishwa."
+    },
+    "filters": {
+      "search": "Tafuta",
+      "searchPlaceholder": "Tafuta kwa jina la zabuni, rejea, au mnunuzi",
+      "status": "Hali ya tathmini",
+      "type": "Aina ya manunuzi",
+      "allStatuses": "Hali zote",
+      "allTypes": "Aina zote za manunuzi"
+    },
+    "drafts": {
+      "kicker": "Maendeleo yaliyohifadhiwa",
+      "title": "Rasimu za tathmini zilizohifadhiwa",
+      "empty": "Hakuna rasimu za tathmini zilizohifadhiwa. Rasimu za tathmini zitaonekana hapa mtathmini atakapoanza kuweka alama za zabuni na kuhifadhi maendeleo."
+    },
+    "ready": {
+      "kicker": "Foleni ya tathmini",
+      "title": "Tayari kwa tathmini",
+      "readyBadge": "Tayari",
+      "empty": "Hakuna zabuni zilizo tayari kwa tathmini. Zabuni hupatikana kwa tathmini tu baada ya tarehe ya kufungwa kupita na zabuni za wasambazaji kuwasilishwa."
+    },
+    "table": {
+      "tender": "Zabuni",
+      "type": "Aina",
+      "status": "Hali",
+      "stage": "Hatua",
+      "progress": "Maendeleo",
+      "submittedBids": "Zabuni zilizowasilishwa",
+      "updated": "Imesasishwa",
+      "closingDate": "Tarehe ya kufungwa"
+    },
+    "labels": {
+      "notStarted": "Haijaanza",
+      "notScheduled": "Haijapangwa"
+    },
+    "status": {
+      "NOT_STARTED": "Haijaanza",
+      "IN_PROGRESS": "Inaendelea",
+      "LOCKED": "Imefungwa",
+      "COMPLETED": "Imekamilika",
+      "RETURNED": "Imerudishwa"
+    },
+    "types": {
+      "GOODS": "Bidhaa",
+      "WORKS": "Kazi",
+      "SERVICE": "Huduma",
+      "CONSULTANCY": "Ushauri"
+    },
+    "stages": {
+      "OPENING": "Ufunguzi",
+      "CONFLICT": "Ukaguzi wa mgongano",
+      "PRELIMINARY": "Awali",
+      "ELIGIBILITY": "Sifa",
+      "TECHNICAL": "Kiufundi",
+      "FINANCIAL": "Kifedha",
+      "CLARIFICATIONS": "Ufafanuzi",
+      "COMPARISON": "Ulinganisho",
+      "REPORT": "Ripoti",
+      "RECOMMENDATION": "Pendekezo"
+    },
+    "errors": {
+      "load": "Data ya tathmini haikuweza kupakiwa. Eneo hili litabaki tupu hadi kanzidata ipatikane."
+    }
   },
   "common": {
     "budget": "Bajeti",

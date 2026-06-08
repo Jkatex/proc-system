@@ -118,33 +118,27 @@ describe('SignInProcurexPage', () => {
     expect(screen.queryByRole('button', { name: /Sign in as demo user/i })).not.toBeInTheDocument();
   });
 
-  it('shows the local demo account icon button when enabled and keeps it blocked until Turnstile is complete', () => {
+  it('shows the local demo account icon button when enabled and keeps it available without Turnstile', () => {
     vi.stubEnv('VITE_DEMO_SIGN_IN_ENABLED', 'true');
 
     renderSignIn();
 
     const demoButton = screen.getByRole('button', { name: /Sign in as demo user/i });
-    expect(demoButton).toBeDisabled();
+    expect(demoButton).toBeEnabled();
     expect(demoButton.querySelector('svg')).toBeInTheDocument();
     expect(mockedAuthApi.signIn).not.toHaveBeenCalled();
   });
 
-  it('signs in the local demo account through the backend after Turnstile and routes to the dashboard', async () => {
+  it('signs in the local demo account without Turnstile or backend auth and routes to the dashboard', async () => {
     vi.stubEnv('VITE_DEMO_SIGN_IN_ENABLED', 'true');
-    mockedAuthApi.signIn.mockResolvedValueOnce({
-      token: 'demo-token',
-      expiresAt: '2026-06-13T00:00:00.000Z',
-      user: demoUsers.user
-    });
 
     renderSignIn();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Complete security check' }));
     fireEvent.click(screen.getByRole('button', { name: /Sign in as demo user/i }));
 
     await screen.findByText('User dashboard');
-    expect(mockedAuthApi.signIn).toHaveBeenCalledWith({ email: 'demo@procurex.tz', password: 'Demo123!', turnstileToken: 'turnstile-token' });
-    expect(window.localStorage.getItem('procurex.authToken')).toBe('demo-token');
+    expect(mockedAuthApi.signIn).not.toHaveBeenCalled();
+    expect(window.localStorage.getItem('procurex.authToken')).toBeNull();
   });
 
   it('accepts typed demo credentials through the backend when local demo sign-in is enabled', async () => {

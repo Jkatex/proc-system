@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import LoginRoundedIcon from '@mui/icons-material/LoginRounded';
 import { useAppDispatch, useAppSelector } from '@/app/store';
-import { signInWithCredentials } from '@/features/auth/slice';
+import { assumeUser, signInWithCredentials } from '@/features/auth/slice';
+import { demoUsers } from '@/shared/data/fixtures';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 import { useBodyPageMetadata } from '@/shared/hooks/useBodyPageMetadata';
 import { AuthAlert, authAlert, authAlertFromError, type AuthAlertMessage } from './AuthAlert';
@@ -72,9 +73,12 @@ export function SignInProcurexPage() {
   }
 
   async function submitDemoSignIn() {
+    if (loading) return;
+    setAlert(null);
     setEmail(demoSignIn.email);
     setPassword(demoSignIn.password);
-    await signIn(demoSignIn.email, demoSignIn.password, '/dashboard');
+    dispatch(assumeUser({ ...demoUsers.user, email: demoSignIn.email }));
+    navigate('/dashboard', { replace: true });
   }
 
   return (
@@ -166,7 +170,7 @@ export function SignInProcurexPage() {
                   type="button"
                   aria-label={t('auth.signIn.demo.button')}
                   title={t('auth.signIn.demo.securityHint')}
-                  disabled={loading || !turnstileToken}
+                  disabled={loading}
                   onClick={() => void submitDemoSignIn()}
                 >
                   <LoginRoundedIcon fontSize="small" aria-hidden="true" />

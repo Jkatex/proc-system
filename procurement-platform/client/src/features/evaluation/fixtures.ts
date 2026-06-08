@@ -1,1 +1,1 @@
-export { bids as evaluationFixtures } from '@/shared/data/fixtures';
+export const evaluationFixtures = [] as const;
