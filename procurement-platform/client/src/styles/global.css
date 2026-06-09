@@ -947,8 +947,8 @@ img {
 .records-visual-hero-copy {
   display: grid;
   align-content: center;
-  gap: 24px;
-  padding: 44px 42px;
+  gap: 18px;
+  padding: clamp(32px, 4.6vw, 58px);
   background: #eaf3ff;
 }
 
@@ -957,32 +957,32 @@ img {
   align-items: center;
   justify-content: center;
   width: max-content;
-  min-height: 44px;
-  padding: 9px 18px;
-  border: 1px solid rgba(15, 23, 42, 0.14);
+  min-height: 30px;
+  padding: 6px 14px;
+  border: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.38);
-  color: #0e2030;
-  font-size: 18px;
-  font-weight: 750;
+  background: #d5e8f3;
+  color: #526370;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .records-visual-hero h1 {
-  margin: 0;
-  max-width: 820px;
-  color: #07131d;
-  font-size: clamp(56px, 6.1vw, 86px);
-  font-weight: 900;
+  margin: 4px 0 0;
+  max-width: 720px;
+  color: #0d1f32;
+  font-size: clamp(42px, 6vw, 68px);
+  font-weight: 500;
   letter-spacing: 0;
-  line-height: 0.95;
+  line-height: 0.98;
 }
 
 .records-visual-hero p {
-  max-width: 1030px;
+  max-width: 690px;
   margin: 0;
-  color: #24364a;
-  font-size: clamp(20px, 1.7vw, 28px);
-  line-height: 1.48;
+  color: #445569;
+  font-size: 17px;
+  line-height: 1.65;
 }
 
 .records-visual-hero-media {
@@ -1018,15 +1018,15 @@ img {
 
 .records-visual-shell .records-history-tabs button {
   appearance: none;
-  min-height: 66px;
-  padding: 14px 22px;
+  min-height: 50px;
+  padding: 12px 22px;
   border: 1px solid transparent;
   border-radius: 9px;
   background: transparent;
   color: #334155;
   font: inherit;
-  font-size: clamp(18px, 1.35vw, 26px);
-  font-weight: 900;
+  font-size: 17px;
+  font-weight: 800;
   letter-spacing: 0;
   cursor: pointer;
 }
@@ -1048,27 +1048,29 @@ img {
 .records-visual-stat-card.kpi-card {
   display: grid;
   align-content: center;
-  gap: 12px;
-  min-height: 156px;
-  padding: 26px 28px !important;
+  gap: 8px;
+  min-height: 132px;
+  padding: 18px !important;
   border: 1px solid #e1e7ef;
-  border-radius: 16px;
+  border-radius: 8px;
   background: #ffffff;
   box-shadow: none;
 }
 
 .records-visual-stat-card .kpi-value {
-  color: #111827;
-  font-size: clamp(34px, 2.4vw, 44px);
+  color: #0d1f32;
+  font-size: 34px;
   font-weight: 600;
   letter-spacing: 0;
   line-height: 1;
 }
 
 .records-visual-stat-card .kpi-label {
-  color: #1f2933;
-  font-size: clamp(18px, 1.25vw, 23px);
-  font-weight: 650;
+  color: #536579;
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .records-visual-shell .records-filter-panel,
@@ -1076,13 +1078,13 @@ img {
 .records-visual-shell .records-insight-card,
 .records-visual-shell .records-chart-card {
   border: 1px solid #e1e7ef;
-  border-radius: 16px;
+  border-radius: 8px;
   background: #ffffff;
   box-shadow: none;
 }
 
 .records-visual-shell .records-filter-panel {
-  padding: 28px !important;
+  padding: 22px !important;
 }
 
 .records-visual-shell .records-filter-panel .panel-heading {
@@ -1093,22 +1095,23 @@ img {
 .records-visual-shell .section-kicker {
   display: inline-flex;
   align-items: center;
-  min-height: 42px;
-  padding: 8px 18px;
+  min-height: 30px;
+  padding: 6px 14px;
   border-radius: 999px;
-  background: #e5f5f4;
-  color: #0f172a;
-  font-size: 18px;
-  font-weight: 900;
+  background: #d5e8f3;
+  color: #526370;
+  font-size: 13px;
+  font-weight: 800;
   letter-spacing: 0;
   text-transform: none;
 }
 
 .records-visual-shell .records-filter-panel h2 {
   margin: 14px 0 0;
-  color: #111827;
-  font-size: clamp(28px, 2vw, 38px);
-  font-weight: 850;
+  color: #0d1f32;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.18;
   letter-spacing: 0;
 }
 
@@ -1128,23 +1131,23 @@ img {
 }
 
 .records-visual-shell .records-heading-actions .badge {
-  min-height: 44px;
-  padding: 8px 18px;
+  min-height: 34px;
+  padding: 7px 14px;
   border: 1px solid #d3dfec;
   border-radius: 999px;
   background: #eff6ff;
   color: #334155;
-  font-size: 18px;
+  font-size: 13px;
   font-weight: 750;
 }
 
 .records-visual-shell .records-heading-actions .btn,
 .records-visual-shell .records-filter-grid .btn,
 .records-visual-shell .records-report-filter-grid .btn {
-  min-height: 58px;
-  border-radius: 999px;
-  font-size: 22px;
-  font-weight: 850;
+  min-height: 44px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 800;
   letter-spacing: 0;
 }
 
@@ -1190,12 +1193,12 @@ img {
 }
 
 .records-visual-shell .form-input {
-  min-height: 58px;
+  min-height: 44px;
   border: 1px solid #d7dee8;
-  border-radius: 12px;
+  border-radius: 8px;
   background-color: #ffffff;
   color: #111827;
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .records-visual-shell .records-table-panel {
