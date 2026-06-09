@@ -1,7 +1,8 @@
 import { mockApi } from '@/shared/api/mockApi';
 import { demoUsers } from '@/shared/data/fixtures';
 import type { Bid, Tender } from '@/shared/types/domain';
-import type { MarketplacePayload, MyBidRow, MyTenderRow } from '../types';
+import { toTenderType } from '../createTenderConfig';
+import type { CreateTenderDraft, MarketplacePayload, MarketplaceTenderRow, MyBidRow, MyTenderRow } from '../types';
 
 export const procurementApi = {
   listTenders: mockApi.getTenders,
@@ -26,6 +27,58 @@ function buildMarketplacePayload(tenders: Tender[], bids: Bid[], workItems: Work
     myTenders: myTenderRows,
     myBids: myBidRows
   };
+}
+
+export function mergeSessionMarketplaceData(
+  payload: MarketplacePayload,
+  drafts: CreateTenderDraft[],
+  publishedTenders: CreateTenderDraft[],
+  organization = demoUsers.user.organization
+): MarketplacePayload {
+  const sessionTenderRows = publishedTenders.map((draft): MarketplaceTenderRow => createMarketplaceTenderFromDraft(draft, organization));
+  const sessionMyTenderRows = drafts.map((draft): MyTenderRow => ({
+    id: `my-tender-${draft.status.toLowerCase()}-${draft.id}`,
+    title: draft.title || 'Untitled tender draft',
+    section: draft.status === 'DRAFT' ? 'draft' : 'posted',
+    status: draft.status === 'DRAFT' ? 'Draft' : 'Posted',
+    type: toTenderType(draft.procurementTypeId),
+    tender: draft.status === 'PUBLISHED' ? createMarketplaceTenderFromDraft(draft, organization) : undefined,
+    lastActivity: draft.publishedAt?.slice(0, 10) || draft.updatedAt.slice(0, 10),
+    actionLabel: draft.status === 'DRAFT' ? 'Continue Draft' : 'View My Tender',
+    nav: draft.status === 'DRAFT' ? '/procurement/create-tender' : '/procurement/tender-details'
+  }));
+
+  const existingTenderIds = new Set(sessionTenderRows.map((row) => row.id));
+  const existingMyTenderIds = new Set(sessionMyTenderRows.map((row) => row.id));
+
+  return {
+    ...payload,
+    tenders: [...sessionTenderRows, ...payload.tenders.filter((row) => !existingTenderIds.has(row.id))],
+    myTenders: [...sessionMyTenderRows, ...payload.myTenders.filter((row) => !existingMyTenderIds.has(row.id))]
+  };
+}
+
+function createMarketplaceTenderFromDraft(draft: CreateTenderDraft, organization: string): MarketplaceTenderRow {
+  return {
+    id: `session-${draft.id}`,
+    reference: draft.reference,
+    title: draft.title || 'Untitled tender',
+    organization: draft.procuringEntity || organization,
+    type: toTenderType(draft.procurementTypeId),
+    status: 'OPEN',
+    budget: Number(draft.estimatedBudget || draft.requirements.estimated_budget || draft.commercialItems.length * 5000000 || 100000000),
+    currency: draft.currency || 'TZS',
+    closingDate: draft.submissionDate || new Date().toISOString().slice(0, 10),
+    location: draft.location || 'Tanzania',
+    description: summarizeDraft(draft),
+    createdByCurrentUser: true,
+    categories: draft.categories.length ? draft.categories : [draft.procurementTypeId]
+  };
+}
+
+function summarizeDraft(draft: CreateTenderDraft) {
+  const firstRequirement = Object.values(draft.requirements).find(Boolean);
+  return draft.description || firstRequirement || draft.deliverables[0] || `Published ${draft.procurementTypeId} tender created in the React workflow.`;
 }
 
 function buildMyTenderRows(tenders: Tender[], workItems: WorkItemFixture[]): MyTenderRow[] {

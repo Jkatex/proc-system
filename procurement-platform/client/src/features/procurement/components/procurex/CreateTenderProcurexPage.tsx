@@ -1,9 +1,1066 @@
-/* This file is generated from the ProcureX design prototype. Do not edit by hand. */
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAppDispatch } from '@/app/store';
+import { createEmptyTenderDraft, createTenderSetup, getSuggestedCriteria } from '../../createTenderConfig';
+import { publishSimulatedTender, saveCreateTenderDraft, submitCreateTenderForEvaluation } from '../../slice';
+import type {
+  CreateTenderConfirmationId,
+  CreateTenderDraft,
+  CreateTenderEvaluationCriterion,
+  CreateTenderLineItem,
+  CreateTenderProcurementTypeId,
+  CreateTenderRequirementTemplate
+} from '../../types';
 
-import { ProcurexStaticPage } from '@/shared/components/procurex/ProcurexStaticPage';
+const steps = ['Basic Information', 'Procurement Planning', 'Tender Requirements', 'Evaluation Criteria and Weights', 'Review Tender', 'Tender Review and Publication'];
+const confirmationLabels: Record<CreateTenderConfirmationId, string> = {
+  accuracy: 'Tender details and dates are accurate.',
+  compliance: 'The procurement method and requirements comply with internal rules.',
+  evaluation: 'Evaluation criteria and weights are complete and balanced.',
+  publication: 'This tender can be submitted for system evaluation and publication.'
+};
 
-const html = "\n            <header class=\"app-topbar\">\n                <div class=\"app-topbar-left\">\n                    <button class=\"app-brand-button\" type=\"button\" data-navigate=\"workspace-dashboard\">\n                        \n        <span class=\"platform-logo\">\n            <img class=\"platform-logo-image\" src=\"/assets/logo.svg\" alt=\"ProcureX\">\n        </span>\n    \n                        <span>Procurement</span>\n                    </button>\n                </div>\n\n                <div class=\"app-topbar-actions\">\n                      <button class=\"icon-menu-btn\" type=\"button\" data-app-menu-toggle aria-label=\"Open apps\" aria-expanded=\"false\">\n                        <span></span><span></span><span></span>\n                        <span></span><span></span><span></span>\n                        <span></span><span></span><span></span>\n                    </button>\n                    <div class=\"profile-menu-wrap\">\n                        <button class=\"profile-button\" type=\"button\" data-profile-menu-toggle aria-label=\"Open profile menu\" aria-expanded=\"false\">\n                            <span>AU</span>\n                        </button>\n                    </div>\n                </div>\n\n                <div class=\"app-drawer-menu\" data-app-menu>\n                    <div class=\"app-menu-header\">\n                        <div class=\"app-menu-brand\">\n                            \n        <span class=\"platform-logo platform-logo-sm\">\n            <img class=\"platform-logo-image\" src=\"/assets/logo.svg\" alt=\"ProcureX\">\n        </span>\n    \n                            <strong>ProcureX Apps</strong>\n                        </div>\n                        <span>Company account tools</span>\n                    </div>\n                    \n            <button class=\"app-menu-card app-menu-iam\" data-navigate=\"account-profile\">\n                <span class=\"app-menu-icon\">\n            <svg class=\"app-menu-svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">\n                <path d=\"M20 21a8 8 0 0 0-16 0\"/><circle cx=\"12\" cy=\"7\" r=\"4\"/><path d=\"M16 11l2 2 4-4\"/>\n            </svg>\n        </span>\n                <span><strong>Registration and Verification</strong><em>Account and identity verification</em></span>\n            </button>\n            <button class=\"app-menu-card app-menu-procurement\" data-navigate=\"tender-planning\">\n                <span class=\"app-menu-icon\">\n            <svg class=\"app-menu-svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">\n                <path d=\"M4 4h16v16H4z\"/><path d=\"M8 8h8\"/><path d=\"M8 12h8\"/><path d=\"M8 16h5\"/>\n            </svg>\n        </span>\n                <span><strong>Procurement Planning</strong><em>APP, SPP, budgets, approvals</em></span>\n            </button>\n            <button class=\"app-menu-card app-menu-procurement\" data-navigate=\"marketplace\">\n                <span class=\"app-menu-icon\">\n            <svg class=\"app-menu-svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">\n                <path d=\"M3 9h18l-2-5H5z\"/><path d=\"M5 9v11h14V9\"/><path d=\"M9 13h6\"/><path d=\"M9 17h4\"/>\n            </svg>\n        </span>\n                <span><strong>Procurement</strong><em>Marketplace, create tender, bid</em></span>\n            </button>\n            <button class=\"app-menu-card app-menu-communication\" data-navigate=\"communication-center\">\n                <span class=\"app-menu-icon\">\n            <svg class=\"app-menu-svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">\n                <path d=\"M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z\"/><path d=\"M8 9h8\"/><path d=\"M8 13h5\"/>\n            </svg>\n        </span>\n                <span><strong>Communication Center</strong><em>Messages, clarifications, alerts</em></span>\n            </button>\n            <button class=\"app-menu-card app-menu-evaluation\" data-navigate=\"bid-evaluation\">\n                <span class=\"app-menu-icon\">\n            <svg class=\"app-menu-svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">\n                <path d=\"M9 11l2 2 4-4\"/><path d=\"M8 4h8\"/><path d=\"M8 20h8\"/><path d=\"M5 7h14v10H5z\"/>\n            </svg>\n        </span>\n                <span><strong>Evaluation</strong><em>Evaluate bids on your tenders</em></span>\n            </button>\n            <button class=\"app-menu-card app-menu-awarding\" data-navigate=\"awarding-contracts\">\n                <span class=\"app-menu-icon\">\n            <svg class=\"app-menu-svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">\n                <circle cx=\"12\" cy=\"8\" r=\"4\"/><path d=\"M8.5 11.5L7 21l5-3 5 3-1.5-9.5\"/><path d=\"M10.5 8l1 1 2-2\"/>\n            </svg>\n        </span>\n                <span><strong>Awarding and Contract</strong><em>Awards, negotiations, signatures</em></span>\n            </button>\n            <button class=\"app-menu-card app-menu-contracts\" data-navigate=\"records-history\">\n                <span class=\"app-menu-icon\">\n            <svg class=\"app-menu-svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.1\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">\n                <path d=\"M8 3h8l3 3v15H5V3z\"/><path d=\"M15 3v4h4\"/><path d=\"M8 12h8\"/><path d=\"M8 16h6\"/>\n            </svg>\n        </span>\n                <span><strong>Records and History</strong><em>Past tenders, bids, awards</em></span>\n            </button>\n        \n                </div>\n\n                <div class=\"profile-menu\" data-profile-menu>\n                    <button type=\"button\" data-navigate=\"account-profile\">Profile</button>\n                    <button type=\"button\" data-navigate=\"communication-center\">Messages</button>\n                    <button type=\"button\">Help</button>\n                    <button type=\"button\">Language</button>\n                    <button type=\"button\" data-navigate=\"sign-in\">Logout</button>\n                </div>\n            </header>\n        \n        <div class=\"main-layout\">\n            <div class=\"sidebar\">\n                <div style=\"padding: 0 16px 20px;\">\n                    <h3>Create Tender</h3>\n                    <div style=\"font-size: 12px; color: var(--text-secondary); margin-top: 4px;\">Design and publication package</div>\n                </div>\n\n                <ul class=\"sidebar-nav\">\n                    <li><a href=\"#\" data-navigate=\"procurement-dashboard\">Procurement Dashboard</a></li>\n                    <li><a href=\"#\" data-navigate=\"procurement-guide\">Procurement Process Guide</a></li>\n                    <li><a href=\"#\" data-navigate=\"communication-center\">Communication Center</a></li>\n                    <li><a href=\"#\" data-navigate=\"marketplace\">Marketplace</a></li>\n                    <li><a href=\"#\" data-navigate=\"records-history\">Records and History</a></li>\n                    <li><a href=\"#\" data-navigate=\"sign-in\">Logout</a></li>\n                </ul>\n            </div>\n\n            <div class=\"main-content\">\n                <div class=\"journey-page tender-wizard-page\">\n                    <section class=\"journey-hero compact\">\n                        <div>\n                            <span class=\"badge badge-info\">Procurement design</span>\n                            <h1>Create Tender Wizard</h1>\n                            <p>Build a tender package that matches the procurement nature, then publish it directly to the marketplace.</p>\n                        </div>\n                        <div class=\"hero-action-stack\">\n                            <button class=\"btn btn-secondary\" type=\"button\" data-save-tender-draft>Save Draft</button>\n                        </div>\n                    </section>\n\n                    <div class=\"wizard-shell\" data-create-tender-wizard>\n                        <nav class=\"wizard-step-progress\" aria-label=\"Create tender progress\">\n                            \n                                <button type=\"button\" class=\"wizard-progress-step active\" data-wizard-step-index=\"0\">\n                                    <strong>01</strong>\n                                    <span>Basic Information</span>\n                                </button>\n                            \n                                <button type=\"button\" class=\"wizard-progress-step \" data-wizard-step-index=\"1\">\n                                    <strong>02</strong>\n                                    <span>Procurement Planning</span>\n                                </button>\n                            \n                                <button type=\"button\" class=\"wizard-progress-step \" data-wizard-step-index=\"2\">\n                                    <strong>03</strong>\n                                    <span>Tender Requirements</span>\n                                </button>\n                            \n                                <button type=\"button\" class=\"wizard-progress-step \" data-wizard-step-index=\"3\">\n                                    <strong>04</strong>\n                                    <span>Evaluation Criteria and Weights</span>\n                                </button>\n                            \n                                <button type=\"button\" class=\"wizard-progress-step \" data-wizard-step-index=\"4\">\n                                    <strong>05</strong>\n                                    <span>Review Tender</span>\n                                </button>\n                            \n                                <button type=\"button\" class=\"wizard-progress-step \" data-wizard-step-index=\"5\">\n                                    <strong>06</strong>\n                                    <span>Tender Review and Publication</span>\n                                </button>\n                            \n                        </nav>\n\n                        <aside class=\"wizard-rail\">\n                            \n                                <a href=\"#wizard-step-1\" class=\"wizard-rail-step active\" data-wizard-step-index=\"0\">\n                                    <strong>01</strong>\n                                    <span>Basic Information</span>\n                                </a>\n                            \n                                <a href=\"#wizard-step-2\" class=\"wizard-rail-step \" data-wizard-step-index=\"1\">\n                                    <strong>02</strong>\n                                    <span>Procurement Planning</span>\n                                </a>\n                            \n                                <a href=\"#wizard-step-3\" class=\"wizard-rail-step \" data-wizard-step-index=\"2\">\n                                    <strong>03</strong>\n                                    <span>Tender Requirements</span>\n                                </a>\n                            \n                                <a href=\"#wizard-step-4\" class=\"wizard-rail-step \" data-wizard-step-index=\"3\">\n                                    <strong>04</strong>\n                                    <span>Evaluation Criteria and Weights</span>\n                                </a>\n                            \n                                <a href=\"#wizard-step-5\" class=\"wizard-rail-step \" data-wizard-step-index=\"4\">\n                                    <strong>05</strong>\n                                    <span>Review Tender</span>\n                                </a>\n                            \n                                <a href=\"#wizard-step-6\" class=\"wizard-rail-step \" data-wizard-step-index=\"5\">\n                                    <strong>06</strong>\n                                    <span>Tender Review and Publication</span>\n                                </a>\n                            \n                        </aside>\n\n                        <div class=\"wizard-workspace\">\n                            <section class=\"journey-panel active\" id=\"wizard-step-1\">\n                                <div class=\"panel-heading\">\n                                    <div>\n                                        <span class=\"section-kicker\">Step 1</span>\n                                        <h2>Basic Information</h2>\n                                    </div>\n                                    <span class=\"badge badge-warning\" data-contact-status-badge>Verify contact</span>\n                                </div>\n                                <div class=\"contact-detail-grid\">\n                                    <div class=\"form-group\">\n                                        <label class=\"form-label\">Delivery Point </label>\n                                        <input class=\"form-input\" value=\"\" data-contact-field=\"tenderLocation\" aria-label=\"Delivery Point \">\n                                    </div>\n                                    <div class=\"form-group\">\n                                        <label class=\"form-label\">Contact person or department</label>\n                                        <input class=\"form-input\" value=\"\" data-contact-field=\"contactName\" aria-label=\"Contact person or department\">\n                                    </div>\n                                    <div class=\"form-group contact-verify-field\">\n                                        <label class=\"form-label\">Contact phone number</label>\n                                        <div class=\"contact-verify-row\">\n                                            <input class=\"form-input\" value=\"\" data-contact-field=\"phone\" aria-label=\"Contact phone number\">\n                                            <button class=\"btn btn-secondary\" type=\"button\" data-contact-verify=\"phone\">Verify</button>\n                                        </div>\n                                        <span class=\"form-hint\" data-contact-status=\"phone\">Enter a valid phone number</span>\n                                    </div>\n                                    <div class=\"form-group contact-verify-field\">\n                                        <label class=\"form-label\">Contact email</label>\n                                        <div class=\"contact-verify-row\">\n                                            <input class=\"form-input\" type=\"email\" value=\"\" data-contact-field=\"email\" aria-label=\"Contact email\">\n                                            <button class=\"btn btn-secondary\" type=\"button\" data-contact-verify=\"email\">Verify</button>\n                                        </div>\n                                        <span class=\"form-hint\" data-contact-status=\"email\">Enter a valid email address</span>\n                                    </div>\n                                </div>\n                                           <div class=\"planning-section\">\n                                    <div class=\"scope-list-heading\">\n                                        <div>\n                                            <h3>Tender details</h3>\n                                            <span class=\"form-hint\">Enter the tender title and key dates before preparing documents.</span>\n                                        </div>\n                                    </div>\n                                    <div class=\"form-group\">\n                                        <div class=\"form-group\">\n                                            <label class=\"form-label\">Tender title</label>\n                                            <input class=\"form-input\" value=\"\" aria-label=\"Tender title\" data-tender-title>\n                                        </div>\n                                        <div class=\"form-grid two\">\n                                        <div class=\"form-group\">\n                                            <label class=\"form-label\">Funding source</label>\n                                            <select class=\"form-input\" data-tender-funding-source-select aria-label=\"Funding source\">\n                                                <option value=\"\" selected></option><option >Government of Tanzania</option><option >Own Source</option><option >Donor Funded</option><option >Development Partner</option><option >Loan</option><option >Grant</option><option >Other</option>\n                                            </select>\n                                            <input class=\"form-input\" style=\"margin-top: 8px;\" value=\"\" data-tender-funding-source-custom aria-label=\"Custom funding source\" placeholder=\"Type funding source\" hidden>\n                                        </div>\n                                        <div class=\"form-group\">\n                                            <label class=\"form-label\">Submission deadline</label>\n                                            <input class=\"form-input\" type=\"date\" value=\"\" data-milestone-field=\"date\" data-milestone-row-proxy=\"milestone-closing\" aria-label=\"Submission deadline\">\n                                        </div>\n                                        <div class=\"form-group\">\n                                            <label class=\"form-label\">Opening date</label>\n                                            <input class=\"form-input\" type=\"date\" value=\"\" data-milestone-field=\"date\" data-milestone-row-proxy=\"milestone-opening\" aria-label=\"Opening date\">\n                                        </div>\n                                        </div>\n                                    </div>\n                                </div>\n                            </section>\n\n                            <section class=\"journey-panel\" id=\"wizard-step-2\">\n                                <div class=\"panel-heading\">\n                                    <div>\n                                        <span class=\"section-kicker\">Step 2</span>\n                                        <h2>Procurement Planning</h2>\n                                    </div>\n                                    <span class=\"badge badge-success\">Method valid</span>\n                                </div>\n                                <div class=\"planning-section\">\n                                    <div class=\"scope-list-heading\">\n                                        <div>\n                                            <h3>Procurement classification</h3>\n                                            <span class=\"form-hint\">Choose the procurement type, then search and select the matching category.</span>\n                                        </div>\n                                    </div>\n                                    <div class=\"option-grid four\" data-procurement-type-grid>\n                                        \n                                            <label class=\"option-card \" data-procurement-type-card>\n                                                <input type=\"radio\" name=\"procurementType\" value=\"goods\" >\n                                                <strong>Goods</strong>\n                                                <span>Physical items, equipment, stock, and supplies.</span>\n                                            </label>\n                                        \n                                            <label class=\"option-card selected\" data-procurement-type-card>\n                                                <input type=\"radio\" name=\"procurementType\" value=\"works\" checked>\n                                                <strong>Works</strong>\n                                                <span>Construction, rehabilitation, infrastructure, and civil works.</span>\n                                            </label>\n                                        \n                                            <label class=\"option-card \" data-procurement-type-card>\n                                                <input type=\"radio\" name=\"procurementType\" value=\"services\" >\n                                                <strong>Non Consultancy</strong>\n                                                <span>Operational services where advisory expertise is not the main component.</span>\n                                            </label>\n                                        \n                                            <label class=\"option-card \" data-procurement-type-card>\n                                                <input type=\"radio\" name=\"procurementType\" value=\"consultancy\" >\n                                                <strong>Consultancy</strong>\n                                                <span>Professional advisory, research, design, audit, and expert assignments.</span>\n                                            </label>\n                                        \n                                    </div>\n                                    <div class=\"form-group category-selector-panel\">\n                                        <label class=\"form-label\">Category</label>\n                                        <div class=\"category-picker\" data-category-picker>\n                                            <input class=\"form-input\" data-procurement-category-search aria-label=\"Search procurement categories\" placeholder=\"Search categories\">\n                                            <div class=\"category-results\" data-category-results role=\"listbox\"></div>\n                                        </div>\n                                        <div class=\"custom-category-field\" data-custom-category-group hidden>\n                                            <label class=\"form-label\">Custom category</label>\n                                            <div class=\"custom-category-add-row\">\n                                                <input class=\"form-input\" data-custom-category aria-label=\"Custom category\" placeholder=\"Write custom category\" disabled>\n                                                <button class=\"btn btn-secondary\" type=\"button\" data-custom-category-add>Add</button>\n                                            </div>\n                                        </div>\n                                        <div class=\"selected-category-list single-category-mode\" data-selected-category-list>\n                                            <div class=\"scope-empty\">No categories added yet.</div>\n                                        </div>\n                                    </div>\n                                </div>\n                                <div class=\"planning-section tender-method-section\">\n                                    <div class=\"scope-list-heading\">\n                                        <div>\n                                            <h3>Procurement method</h3>\n                                            <span class=\"form-hint\">Open tenders go to the public marketplace. Invited tenders are sent only to selected suppliers.</span>\n                                        </div>\n                                    </div>\n                                    <div class=\"method-inner-panel\">\n                                        <div class=\"form-group\">\n                                            <label class=\"form-label\">Method</label>\n                                            <select class=\"form-input\" name=\"procurementMethod\" data-procurement-method>\n                                                <option selected>Open Tender</option><option >Invited Tender</option>\n                                            </select>\n                                            <span class=\"form-hint\" data-method-visibility-note>Visible to everyone in the public marketplace.</span>\n                                        </div>\n                                        <div class=\"closed-tender-invitations\" data-closed-tender-panel hidden>\n                                            <div class=\"scope-list-heading\">\n                                                <div>\n                                                    <h3>Invited suppliers</h3>\n                                                    <span class=\"form-hint\">Search users, add preferred suppliers to the invite list, and remove them anytime.</span>\n                                                </div>\n                                                <span class=\"badge badge-info\" data-invited-user-count>0</span>\n                                            </div>\n                                            <div class=\"invite-picker\">\n                                                <input class=\"form-input\" data-invite-search aria-label=\"Search suppliers to invite\" placeholder=\"Search supplier users\">\n                                                <div class=\"invite-results\" data-invite-results role=\"listbox\"></div>\n                                            </div>\n                                            <div class=\"invited-user-list\" data-invited-user-list>\n                                                <div class=\"scope-empty\">No invited suppliers selected yet.</div>\n                                            </div>\n                                        </div>\n                                    </div>\n                                </div>\n                            </section>\n\n                            <section class=\"journey-panel\" id=\"wizard-step-3\">\n                                <div class=\"panel-heading\">\n                                    <div>\n                                        <span class=\"section-kicker\">Step 3</span>\n                                        <h2 data-profile-requirement-title>Tender Requirements</h2>\n                                    </div>\n                                    <span class=\"badge badge-warning\" data-requirement-type-badge>Works Tender Requirements</span>\n                                </div>\n                                <div data-requirement-sections>\n                                    \n        \n            <div class=\"requirement-type-header\">\n                <div>\n                    <span class=\"section-kicker\">Tender requirements</span>\n                    <h3>Works Tender Requirements</h3>\n                </div>\n                <span class=\"badge badge-info\">BOQ</span>\n            </div>\n        \n        <div class=\"requirement-section-grid\">\n            \n        <article class=\"requirement-block\" id=\"requirement-section-generalInformation\" data-consultancy-tor-section=\"generalInformation\">\n            <div>\n                <h4>1. Project Overview</h4>\n                <span class=\"form-hint\">Capture the purpose, buyer context, objective, and location of the works.</span>\n            </div>\n            <div class=\"requirement-control-grid\">\n                \n                    <div class=\"requirement-control \">\n                        <span class=\"form-label\">Project title</span>\n                        <input class=\"form-input\" type=\"text\" value=\"\"    id=\"requirement-projectName\" data-requirement-input=\"projectName\">\n                        \n                        \n                    </div>\n                \n                    <div class=\"requirement-control \">\n                        <span class=\"form-label\">Procuring entity</span>\n                        <input class=\"form-input\" type=\"text\" value=\"\"    id=\"requirement-procuringEntity\" data-requirement-input=\"procuringEntity\">\n                        \n                        \n                    </div>\n                \n                    <div class=\"requirement-control \">\n                        <span class=\"form-label\">Project location</span>\n                        <input class=\"form-input\" type=\"text\" value=\"\"    id=\"requirement-location\" data-requirement-input=\"location\">\n                        \n                        \n                    </div>\n                \n                    <div class=\"requirement-control \">\n                        <span class=\"form-label\">Contract type</span>\n                        <select class=\"form-input\" required id=\"requirement-contractType\" data-requirement-input=\"contractType\"><option value=\"\"></option><option value=\"Lump Sum Contract\" >Lump Sum Contract</option><option value=\"Unit Price Contract\" >Unit Price Contract</option><option value=\"Fixed Price Contract\" >Fixed Price Contract</option><option value=\"Framework Contract\" >Framework Contract</option><option value=\"Consultancy / Time-Based Contract\" >Consultancy / Time-Based Contract</option><option value=\"Other\" >Other</option></select>\n                        <span class=\"form-hint\" data-requirement-helper=\"contractType\">Select Other to type a contract type that is not listed.</span>\n                        \n                    </div>\n                \n                    <div class=\"requirement-control \">\n                        <span class=\"form-label\">Completion period</span>\n                        <input class=\"form-input\" type=\"text\" value=\"\"    id=\"requirement-completionPeriod\" data-requirement-input=\"completionPeriod\">\n                        \n                        \n                    </div>\n                \n            </div>\n        </article>\n    \n        <article class=\"requirement-block scope-description-block\">\n            <div class=\"scope-description-heading\">\n                <h4>2. Scope Description</h4>\n                <p>Summarize the works, major construction activities, and any project notes.</p>\n            </div>\n            \n                <div class=\"scope-field-group\">\n                    <span class=\"form-label\">Scope Summary</span>\n                    <span class=\"form-hint\">Summarize the overall scope of the project including what the contractor is expected to do.</span>\n                    <textarea class=\"form-input requirement-rich-input\" rows=\"6\" required placeholder=\"Example: Construction of a 3-floor academic building including structural works, electrical installation, plumbing, roofing, doors and windows, finishing works and external works.\" maxlength=\"1000\" id=\"requirement-scopeSummary\" data-requirement-input=\"scopeSummary\"></textarea>\n                    <span class=\"form-hint requirement-character-counter\" data-requirement-counter=\"scopeSummary\">0/1000</span>\n                </div>\n            \n            \n                <div class=\"scope-field-group scope-activity-group\">\n                    <div class=\"scope-activity-heading\">\n                        <div>\n                            <span class=\"form-label\">Main Activities</span>\n                            <span class=\"form-hint\">List the major construction activities to be carried out.</span>\n                        </div>\n                        <button class=\"btn btn-secondary scope-add scope-activity-add\" type=\"button\" data-requirement-control-add=\"mainConstructionActivities\">+ Add Activity</button>\n                    </div>\n                    <div class=\"scope-activity-list\" data-requirement-list-items=\"mainConstructionActivities\">\n                        <div class=\"scope-empty\">Add the key works activities expected, such as site preparation, foundation works, structural works, roofing, electrical installation, plumbing, finishing, or external works.</div>\n                    </div>\n                </div>\n            \n            \n        </article>\n    \n        <article class=\"requirement-block\" id=\"requirement-section-technicalSpecifications\" data-consultancy-tor-section=\"technicalSpecifications\">\n            <div>\n                <h4>3. Technical Specifications</h4>\n                <span class=\"form-hint\">Detailed technical requirements and mandatory specification documents.</span>\n            </div>\n            <div class=\"requirement-control-grid\">\n                \n                    <div class=\"requirement-control requirement-control-wide\">\n                        <span class=\"form-label\">Technical specification documents</span>\n                        \n        <div class=\"requirement-table-wrap\" data-requirement-table-wrap=\"technicalSpecificationDocuments\">\n            <table class=\"requirement-table\" data-requirement-table=\"technicalSpecificationDocuments\">\n                <thead>\n                    <tr>\n                        <th>Document title</th><th>Upload document</th>\n                        <th aria-label=\"Actions\"></th>\n                    </tr>\n                </thead>\n                <tbody data-requirement-table-body=\"technicalSpecificationDocuments\">\n                    \n            <tr>\n                <td colspan=\"3\">\n                    <div class=\"scope-empty\">No specification documents added yet.</div>\n                </td>\n            </tr>\n        \n                </tbody>\n            </table>\n        </div>\n        \n        <div class=\"requirement-table-actions\">\n            \n            \n            <button class=\"btn btn-secondary scope-add\" type=\"button\" data-requirement-control-add=\"technicalSpecificationDocuments\" >Add Specification Document</button>\n        </div>\n    \n                        \n                        \n                    </div>\n                \n            </div>\n        </article>\n    \n        <article class=\"requirement-block\" id=\"requirement-section-drawingsDesignDocuments\" data-consultancy-tor-section=\"drawingsDesignDocuments\">\n            <div>\n                <h4>4. Drawings and Design Documents</h4>\n                <span class=\"form-hint\">Reference drawings, revisions, design consultants, and CAD/PDF uploads.</span>\n            </div>\n            <div class=\"requirement-control-grid\">\n                \n                    <div class=\"requirement-control requirement-control-wide\">\n                        <span class=\"form-label\">Drawings and design documents</span>\n                        \n        <div class=\"requirement-table-wrap\" data-requirement-table-wrap=\"drawingDesignRows\">\n            <table class=\"requirement-table\" data-requirement-table=\"drawingDesignRows\">\n                <thead>\n                    <tr>\n                        <th>Document type</th><th>CAD / PDF upload</th>\n                        <th aria-label=\"Actions\"></th>\n                    </tr>\n                </thead>\n                <tbody data-requirement-table-body=\"drawingDesignRows\">\n                    \n            <tr>\n                <td colspan=\"3\">\n                    <div class=\"scope-empty\">No drawings or design documents added yet.</div>\n                </td>\n            </tr>\n        \n                </tbody>\n            </table>\n        </div>\n        \n        <div class=\"requirement-table-actions\">\n            \n            \n            <button class=\"btn btn-secondary scope-add\" type=\"button\" data-requirement-control-add=\"drawingDesignRows\" >Add Drawing</button>\n        </div>\n    \n                        \n                        \n                    </div>\n                \n            </div>\n        </article>\n    \n        <article class=\"requirement-block\" id=\"requirement-section-boqRequirements\" data-consultancy-tor-section=\"boqRequirements\">\n            <div>\n                <h4>5. Bill of Quantities (BoQ) / Pricing Schedule</h4>\n                <span class=\"form-hint\">Commercial breakdown of works. Lump Sum uses summary pricing; Unit Price uses detailed measured items.</span>\n            </div>\n            <div class=\"requirement-control-grid\">\n                \n                    <div class=\"requirement-control requirement-control-wide\">\n                        <span class=\"form-label\">Bill of Quantities table</span>\n                        \n        <div class=\"requirement-table-wrap\" data-requirement-table-wrap=\"boqRows\">\n            <table class=\"requirement-table\" data-requirement-table=\"boqRows\">\n                <thead>\n                    <tr>\n                        <th>No.</th><th>Description</th><th>Unit</th><th>Quantity</th><th>Rate</th><th>Total amount</th>\n                        <th aria-label=\"Actions\"></th>\n                    </tr>\n                </thead>\n                <tbody data-requirement-table-body=\"boqRows\">\n                    \n            <tr>\n                <td colspan=\"7\">\n                    <div class=\"scope-empty\">No BOQ lines added yet.</div>\n                </td>\n            </tr>\n        \n                </tbody>\n            </table>\n        </div>\n        \n        <div class=\"requirement-table-actions\">\n            <button class=\"btn btn-secondary scope-add\" type=\"button\" data-requirement-import=\"boqRows\">Import Excel</button>\n            <button class=\"btn btn-secondary scope-add\" type=\"button\" data-requirement-template=\"boqRows\">Download Excel Template</button>\n            <button class=\"btn btn-secondary scope-add\" type=\"button\" data-requirement-control-add=\"boqRows\" >Add BOQ Line</button>\n        </div>\n    \n                        \n                        \n                    </div>\n                \n            </div>\n        </article>\n    \n        <article class=\"requirement-block\" id=\"requirement-section-timeScheduleMilestones\" data-consultancy-tor-section=\"timeScheduleMilestones\">\n            <div>\n                <h4>6. Time Schedule and Milestones</h4>\n                <span class=\"form-hint\">Capture expected timelines, milestone triggers, and optional work program uploads.</span>\n            </div>\n            <div class=\"requirement-control-grid\">\n                \n                    <div class=\"requirement-control \">\n                        <span class=\"form-label\">Commencement date</span>\n                        <input class=\"form-input\" type=\"date\" value=\"\"    id=\"requirement-commencementDate\" data-requirement-input=\"commencementDate\">\n                        \n                        \n                    </div>\n                \n                    <div class=\"requirement-control \">\n                        <span class=\"form-label\">Completion period</span>\n                        <input class=\"form-input\" type=\"text\" value=\"\"    id=\"requirement-worksCompletionPeriod\" data-requirement-input=\"worksCompletionPeriod\">\n                        \n                        \n                    </div>\n                \n                    <div class=\"requirement-control requirement-control-wide\">\n                        <span class=\"form-label\">Works milestones</span>\n                        \n        <div class=\"requirement-table-wrap\" data-requirement-table-wrap=\"worksMilestoneRows\">\n            <table class=\"requirement-table\" data-requirement-table=\"worksMilestoneRows\">\n                <thead>\n                    <tr>\n                        <th>Milestone</th><th>Target date</th>\n                        <th aria-label=\"Actions\"></th>\n                    </tr>\n                </thead>\n                <tbody data-requirement-table-body=\"worksMilestoneRows\">\n                    \n            <tr>\n                <td colspan=\"3\">\n                    <div class=\"scope-empty\">No works milestones added yet.</div>\n                </td>\n            </tr>\n        \n                </tbody>\n            </table>\n        </div>\n        \n        <div class=\"requirement-table-actions\">\n            \n            \n            <button class=\"btn btn-secondary scope-add\" type=\"button\" data-requirement-control-add=\"worksMilestoneRows\" >Add Milestone</button>\n        </div>\n    \n                        \n                        \n                    </div>\n                \n            </div>\n        </article>\n    \n        <article class=\"requirement-block\" id=\"requirement-section-siteInformation\" data-consultancy-tor-section=\"siteInformation\">\n            <div>\n                <h4>7. Site Visit</h4>\n                <span class=\"form-hint\">Important works-procurement context for access, utilities, infrastructure, and ground conditions.</span>\n            </div>\n            <div class=\"requirement-control-grid\">\n                \n                    <div class=\"requirement-control \">\n                        <span class=\"form-label\">Site visit requirement</span>\n                        \n            <div class=\"requirement-choice-group\" role=\"radiogroup\" aria-label=\"Site visit requirement\">\n                \n                        <label class=\"requirement-choice-option\">\n                            <input type=\"radio\" name=\"requirement-siteVisitRequirement\" value=\"Mandatory\"  data-requirement-input=\"siteVisitRequirement\">\n                            <span>Mandatory</span>\n                        </label>\n                    \n                        <label class=\"requirement-choice-option\">\n                            <input type=\"radio\" name=\"requirement-siteVisitRequirement\" value=\"Not mandatory\" checked data-requirement-input=\"siteVisitRequirement\">\n                            <span>Not mandatory</span>\n                        </label>\n                    \n            </div>\n        \n                        \n                        \n                    </div>\n                \n                    <div class=\"requirement-control \">\n                        <span class=\"form-label\">Site survey</span>\n                        \n            <div class=\"requirement-upload-button-field\">\n                <button class=\"btn btn-secondary\" type=\"button\" data-upload-button-trigger=\"siteSurveyUpload\">Upload Site survey</button>\n                <input type=\"file\" accept=\".pdf,.doc,.docx,.jpg,.jpeg,.png,.dwg,.dxf\" data-requirement-input=\"siteSurveyUpload\" hidden>\n                <span class=\"form-hint\">No file selected</span>\n            </div>\n        \n                        \n                        \n                    </div>\n                \n            </div>\n        </article>\n    \n        <article class=\"requirement-block technical-capacity-block\">\n            <div>\n                <h4>Technical Capacity</h4>\n                <span class=\"form-hint\">Turn each technical capacity evidence requirement on or off.</span>\n            </div>\n            <div class=\"technical-capacity-list\">\n                \n                        <div class=\"technical-capacity-row\">\n                            <div>\n                                <strong>Similar completed projects</strong>\n                                <span>Require bidders to submit evidence of similar completed works.</span>\n                            </div>\n                            \n            <label class=\"requirement-toggle\">\n                <input type=\"checkbox\"  id=\"requirement-similarCompletedProjectsRequired\" data-requirement-input=\"similarCompletedProjectsRequired\">\n                <span></span>\n            </label>\n        \n                        </div>\n                    \n                        <div class=\"technical-capacity-row\">\n                            <div>\n                                <strong>Key personnel CVs</strong>\n                                <span>Require CVs for proposed key personnel.</span>\n                            </div>\n                            \n            <label class=\"requirement-toggle\">\n                <input type=\"checkbox\"  id=\"requirement-keyPersonnelCvsRequired\" data-requirement-input=\"keyPersonnelCvsRequired\">\n                <span></span>\n            </label>\n        \n                        </div>\n                    \n                        <div class=\"technical-capacity-row\">\n                            <div>\n                                <strong>Bank statements</strong>\n                                <span>Require bank statements as financial capacity evidence.</span>\n                            </div>\n                            \n            <label class=\"requirement-toggle\">\n                <input type=\"checkbox\"  id=\"requirement-bankStatementsRequired\" data-requirement-input=\"bankStatementsRequired\">\n                <span></span>\n            </label>\n        \n                        </div>\n                    \n            </div>\n        </article>\n    \n        <article class=\"requirement-block\" id=\"requirement-section-financialCapacity\" data-consultancy-tor-section=\"financialCapacity\">\n            <div>\n                <h4>Financial Capacity Requirements</h4>\n                <span class=\"form-hint\">Structured financial rules used to verify whether bidders can sustain the contract.</span>\n            </div>\n            <div class=\"requirement-control-grid\">\n                \n                    <div class=\"requirement-control requirement-control-wide\">\n                        <span class=\"form-label\">Financial requirements</span>\n                        \n        <div class=\"requirement-table-wrap\" data-requirement-table-wrap=\"financialRequirementRows\">\n            <table class=\"requirement-table\" data-requirement-table=\"financialRequirementRows\">\n                <thead>\n                    <tr>\n                        <th>Requirement type</th><th>Minimum value</th><th>Period</th><th>Evidence required</th><th>Mandatory</th>\n                        <th aria-label=\"Actions\"></th>\n                    </tr>\n                </thead>\n                <tbody data-requirement-table-body=\"financialRequirementRows\">\n                    \n            <tr>\n                <td colspan=\"6\">\n                    <div class=\"scope-empty\">No financial requirements added yet.</div>\n                </td>\n            </tr>\n        \n                </tbody>\n            </table>\n        </div>\n        \n        <div class=\"requirement-table-actions\">\n            \n            \n            <button class=\"btn btn-secondary scope-add\" type=\"button\" data-requirement-control-add=\"financialRequirementRows\" >Add Financial Requirement</button>\n        </div>\n    \n                        \n                        \n                    </div>\n                \n            </div>\n        </article>\n    \n        </div>\n    \n                                </div>\n                                <div data-license-panel-slot>\n                                    \n        <div class=\"scope-list-panel license-requirements-panel\" data-standalone-license-panel>\n            <div class=\"scope-list-heading\">\n                <div>\n                    <h3>Regulatory license requirements</h3>\n                    <span class=\"form-hint\">Search and select the licenses suppliers must hold for this tender. The issuing body is filled automatically.</span>\n                </div>\n                <span class=\"badge badge-info\" data-license-count>0</span>\n            </div>\n            <div class=\"license-requirement-list\" data-license-list>\n                <div class=\"scope-empty\">No regulatory license requirements added yet.</div>\n            </div>\n            <button class=\"btn btn-secondary scope-add\" type=\"button\" data-license-add>Add License Requirement</button>\n            <div class=\"license-add-picker\" data-license-add-picker hidden>\n                <input class=\"form-input\" type=\"search\" data-license-add-search autocomplete=\"off\" placeholder=\"Search all licenses\" aria-label=\"Search all regulatory licenses\">\n                <div class=\"license-results\" data-license-add-results role=\"listbox\" aria-label=\"Available regulatory licenses\"></div>\n            </div>\n        </div>\n    \n                                </div>\n                                <div data-post-license-requirement-sections>\n                                    \n                                </div>\n                            </section>\n\n                            <section class=\"journey-panel\" id=\"wizard-step-4\">\n                                <div class=\"panel-heading\">\n                                    <div>\n                                        <span class=\"section-kicker\">Step 4</span>\n                                        <h2>Evaluation Criteria and Weights</h2>\n                                    </div>\n                                    <span class=\"badge badge-success\" data-evaluation-header-badge>Balanced</span>\n                                </div>\n                                <div data-evaluation-builder-wrap>\n                                    \n        <div class=\"evaluation-builder\" data-evaluation-builder>\n            <div class=\"evaluation-builder-header\">\n                <div>\n                    <span class=\"section-kicker\">Evaluation setup</span>\n                    <h3>Criteria suggestion library</h3>\n                </div>\n                <span class=\"badge badge-success\" data-evaluation-status-badge>Balanced</span>\n            </div>\n            \n        <div class=\"evaluation-weight-panel balanced\" data-evaluation-status-panel>\n            <div class=\"evaluation-weight-status\">\n                <span>Total Weight: <strong data-evaluation-total>100%</strong></span>\n                <span data-evaluation-remaining>Balanced</span>\n            </div>\n            <div class=\"evaluation-progress-track\" aria-hidden=\"true\">\n                <span style=\"width: 100%\"></span>\n            </div>\n        </div>\n    \n            <div class=\"evaluation-toolbar\">\n                <label>\n                    <span class=\"form-label\">Balancing mode</span>\n                    <select class=\"form-input\" data-evaluation-mode>\n                        <option value=\"manual\" selected>Manual</option>\n                        <option value=\"auto\" >Auto-balance</option>\n                    </select>\n                </label>\n                <button class=\"btn btn-primary\" type=\"button\" data-evaluation-add-custom>Add Custom Criterion</button>\n            </div>\n            <div class=\"evaluation-builder-grid\">\n                <section class=\"evaluation-selected-panel\">\n                    <div class=\"scope-list-heading\">\n                        <div>\n                            <h3>Selected criteria</h3>\n                            <span class=\"form-hint\">Buyer-controlled labels, weights, and selectable subcriteria.</span>\n                        </div>\n                        <div class=\"evaluation-selected-heading-meta\">\n                            <span>Weight</span>\n                            <span class=\"badge badge-info\">7 criteria</span>\n                        </div>\n                    </div>\n                    <div class=\"evaluation-criteria-list\" data-evaluation-criteria-list>\n                        \n            <article class=\"evaluation-selected-card\" data-evaluation-criterion=\"works-technical-methodology\">\n                <div class=\"evaluation-selected-main\">\n                    <div class=\"evaluation-selected-copy\">\n                        <strong>Technical Methodology</strong>\n                        <div class=\"evaluation-subcriteria-preview\">\n                            <span class=\"evaluation-subcriterion-chip\">Construction methodology</span><span class=\"evaluation-subcriterion-chip\">Work execution plan</span><span class=\"evaluation-subcriterion-chip\">Site mobilization strategy</span><span class=\"evaluation-subcriterion-chip\">Risk management approach</span><span class=\"evaluation-subcriterion-chip\">Quality control plan</span><span class=\"evaluation-subcriterion-chip\">Environmental management plan</span>\n                        </div>\n                    </div>\n                    <div class=\"evaluation-selected-actions\">\n                        <div class=\"requirement-input-affix evaluation-weight-cell\">\n                            <input class=\"form-input evaluation-weight-input\" type=\"number\" min=\"0\" max=\"100\" step=\"0.01\" value=\"20\" data-evaluation-field=\"weight\" aria-label=\"Criterion weight\">\n                            <span>%</span>\n                        </div>\n                        <div class=\"evaluation-card-action-stack\">\n                            <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-edit>Edit</button>\n                            <button class=\"boq-row-action icon-delete-btn\" type=\"button\" data-evaluation-delete=\"works-technical-methodology\" aria-label=\"Delete criteria\" title=\"Delete criteria\">\n        <svg class=\"trash-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">\n            <path d=\"M3 6h18\"></path>\n            <path d=\"M8 6V4h8v2\"></path>\n            <path d=\"M19 6l-1 14H6L5 6\"></path>\n            <path d=\"M10 11v5\"></path>\n            <path d=\"M14 11v5\"></path>\n        </svg>\n    </button>\n                        </div>\n                    </div>\n                </div>\n                <div class=\"evaluation-edit-menu\" data-evaluation-edit-menu hidden>\n                    <button class=\"boq-row-action evaluation-edit-close\" type=\"button\" data-evaluation-cancel-edit aria-label=\"Close edit menu\" title=\"Close\">x</button>\n                    <div class=\"evaluation-edit-grid\">\n                        <label>\n                            <span class=\"form-label\">Criterion name</span>\n                            <input class=\"form-input\" value=\"Technical Methodology\" data-evaluation-field=\"name\" aria-label=\"Criterion name\">\n                        </label>\n                        <label>\n                            <span class=\"form-label\">Category</span>\n                            <input class=\"form-input\" value=\"Technical Methodology\" data-evaluation-field=\"category\" aria-label=\"Criterion category\">\n                        </label>\n                        <label>\n                            <span class=\"form-label\">Evaluation type</span>\n                            <select class=\"form-input\" data-evaluation-field=\"evaluationType\" aria-label=\"Evaluation type\">\n                                <option value=\"scored\" selected>Scored</option><option value=\"pass_fail\" >Pass / Fail</option><option value=\"price_based\" >Price-based</option><option value=\"document_check\" >Document check</option><option value=\"specification_compliance\" >Specification compliance</option><option value=\"sample_based\" >Sample-based</option><option value=\"delivery_based\" >Delivery-based</option><option value=\"warranty_support\" >Warranty / support</option>\n                            </select>\n                        </label>\n                        <label>\n                            <span class=\"form-label\">Max score</span>\n                            <input class=\"form-input\" type=\"number\" min=\"0\" max=\"100\" step=\"0.01\" value=\"20\" data-evaluation-field=\"maxScore\" aria-label=\"Criterion max score\">\n                        </label>\n                        <label class=\"wide\">\n                            <span class=\"form-label\">Description</span>\n                            <textarea class=\"form-input\" rows=\"2\" data-evaluation-field=\"description\" aria-label=\"Criterion description\"></textarea>\n                        </label>\n                        <label class=\"confirm-action evaluation-toggle-field\">\n                            <input type=\"checkbox\" class=\"confirm-action-input\" data-evaluation-field=\"mandatory\" >\n                            <span>Mandatory criterion</span>\n                        </label>\n                        <label class=\"confirm-action evaluation-toggle-field\">\n                            <input type=\"checkbox\" class=\"confirm-action-input\" data-evaluation-field=\"passFailGate\" >\n                            <span>Failure blocks ranking</span>\n                        </label>\n                        <label class=\"wide\">\n                            <span class=\"form-label\">Evidence required</span>\n                            <textarea class=\"form-input\" rows=\"2\" data-evaluation-field=\"evidenceRequired\" aria-label=\"Evidence required\">Construction methodology\nWork execution plan\nRisk mitigation plan\nQuality assurance approach</textarea>\n                        </label>\n                        <label class=\"wide\">\n                            <span class=\"form-label\">Scoring guide</span>\n                            <textarea class=\"form-input\" rows=\"3\" data-evaluation-field=\"scoringGuide\" aria-label=\"Scoring guide\"></textarea>\n                        </label>\n                    </div>\n                    \n        <div class=\"evaluation-subcriteria-control\">\n            <span class=\"form-label\">Subcriteria</span>\n            <div class=\"evaluation-subcriteria-list\">\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Construction methodology\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Construction methodology\" aria-label=\"Remove Construction methodology\">x</button>\n                    </span>\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Work execution plan\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Work execution plan\" aria-label=\"Remove Work execution plan\">x</button>\n                    </span>\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Site mobilization strategy\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Site mobilization strategy\" aria-label=\"Remove Site mobilization strategy\">x</button>\n                    </span>\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Risk management approach\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Risk management approach\" aria-label=\"Remove Risk management approach\">x</button>\n                    </span>\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Quality control plan\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Quality control plan\" aria-label=\"Remove Quality control plan\">x</button>\n                    </span>\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Environmental management plan\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Environmental management plan\" aria-label=\"Remove Environmental management plan\">x</button>\n                    </span>\n                \n            </div>\n            <div class=\"evaluation-subcriteria-add-row\">\n                <select class=\"form-input\" data-evaluation-subcriteria-picker aria-label=\"Select subcriterion\" >\n                    <option value=\"\">Choose subcriterion</option>\n                    <option value=\"Construction methodology\">Construction methodology</option><option value=\"Work execution plan\">Work execution plan</option><option value=\"Site mobilization strategy\">Site mobilization strategy</option><option value=\"Risk management approach\">Risk management approach</option><option value=\"Quality control plan\">Quality control plan</option><option value=\"Environmental management plan\">Environmental management plan</option>\n                </select>\n                <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-add-subcriterion >Add</button>\n            </div>\n            <div class=\"evaluation-subcriteria-add-row\">\n                <input class=\"form-input\" data-evaluation-custom-subcriterion placeholder=\"Custom subcriterion\" aria-label=\"Custom subcriterion\">\n                <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-add-custom-subcriterion>Add Custom</button>\n            </div>\n        </div>\n    \n                    <div class=\"evaluation-edit-actions\">\n                        <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-cancel-edit>Cancel</button>\n                        <button class=\"btn btn-primary\" type=\"button\" data-evaluation-save-edit>Save Changes</button>\n                    </div>\n                </div>\n            </article>\n        \n            <article class=\"evaluation-selected-card\" data-evaluation-criterion=\"works-personnel\">\n                <div class=\"evaluation-selected-main\">\n                    <div class=\"evaluation-selected-copy\">\n                        <strong>Personnel</strong>\n                        <div class=\"evaluation-subcriteria-preview\">\n                            <span class=\"evaluation-subcriterion-chip\">Project manager qualification</span><span class=\"evaluation-subcriterion-chip\">Site engineer qualifications</span><span class=\"evaluation-subcriterion-chip\">Safety officer competence</span><span class=\"evaluation-subcriterion-chip\">Key technical staff experience</span><span class=\"evaluation-subcriterion-chip\">Availability of required personnel</span>\n                        </div>\n                    </div>\n                    <div class=\"evaluation-selected-actions\">\n                        <div class=\"requirement-input-affix evaluation-weight-cell\">\n                            <input class=\"form-input evaluation-weight-input\" type=\"number\" min=\"0\" max=\"100\" step=\"0.01\" value=\"15\" data-evaluation-field=\"weight\" aria-label=\"Criterion weight\">\n                            <span>%</span>\n                        </div>\n                        <div class=\"evaluation-card-action-stack\">\n                            <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-edit>Edit</button>\n                            <button class=\"boq-row-action icon-delete-btn\" type=\"button\" data-evaluation-delete=\"works-personnel\" aria-label=\"Delete criteria\" title=\"Delete criteria\">\n        <svg class=\"trash-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">\n            <path d=\"M3 6h18\"></path>\n            <path d=\"M8 6V4h8v2\"></path>\n            <path d=\"M19 6l-1 14H6L5 6\"></path>\n            <path d=\"M10 11v5\"></path>\n            <path d=\"M14 11v5\"></path>\n        </svg>\n    </button>\n                        </div>\n                    </div>\n                </div>\n                <div class=\"evaluation-edit-menu\" data-evaluation-edit-menu hidden>\n                    <button class=\"boq-row-action evaluation-edit-close\" type=\"button\" data-evaluation-cancel-edit aria-label=\"Close edit menu\" title=\"Close\">x</button>\n                    <div class=\"evaluation-edit-grid\">\n                        <label>\n                            <span class=\"form-label\">Criterion name</span>\n                            <input class=\"form-input\" value=\"Personnel\" data-evaluation-field=\"name\" aria-label=\"Criterion name\">\n                        </label>\n                        <label>\n                            <span class=\"form-label\">Category</span>\n                            <input class=\"form-input\" value=\"Personnel\" data-evaluation-field=\"category\" aria-label=\"Criterion category\">\n                        </label>\n                        <label>\n                            <span class=\"form-label\">Evaluation type</span>\n                            <select class=\"form-input\" data-evaluation-field=\"evaluationType\" aria-label=\"Evaluation type\">\n                                <option value=\"scored\" selected>Scored</option><option value=\"pass_fail\" >Pass / Fail</option><option value=\"price_based\" >Price-based</option><option value=\"document_check\" >Document check</option><option value=\"specification_compliance\" >Specification compliance</option><option value=\"sample_based\" >Sample-based</option><option value=\"delivery_based\" >Delivery-based</option><option value=\"warranty_support\" >Warranty / support</option>\n                            </select>\n                        </label>\n                        <label>\n                            <span class=\"form-label\">Max score</span>\n                            <input class=\"form-input\" type=\"number\" min=\"0\" max=\"100\" step=\"0.01\" value=\"15\" data-evaluation-field=\"maxScore\" aria-label=\"Criterion max score\">\n                        </label>\n                        <label class=\"wide\">\n                            <span class=\"form-label\">Description</span>\n                            <textarea class=\"form-input\" rows=\"2\" data-evaluation-field=\"description\" aria-label=\"Criterion description\"></textarea>\n                        </label>\n                        <label class=\"confirm-action evaluation-toggle-field\">\n                            <input type=\"checkbox\" class=\"confirm-action-input\" data-evaluation-field=\"mandatory\" >\n                            <span>Mandatory criterion</span>\n                        </label>\n                        <label class=\"confirm-action evaluation-toggle-field\">\n                            <input type=\"checkbox\" class=\"confirm-action-input\" data-evaluation-field=\"passFailGate\" >\n                            <span>Failure blocks ranking</span>\n                        </label>\n                        <label class=\"wide\">\n                            <span class=\"form-label\">Evidence required</span>\n                            <textarea class=\"form-input\" rows=\"2\" data-evaluation-field=\"evidenceRequired\" aria-label=\"Evidence required\">Key personnel CVs\nProfessional certificates\nAvailability declaration</textarea>\n                        </label>\n                        <label class=\"wide\">\n                            <span class=\"form-label\">Scoring guide</span>\n                            <textarea class=\"form-input\" rows=\"3\" data-evaluation-field=\"scoringGuide\" aria-label=\"Scoring guide\"></textarea>\n                        </label>\n                    </div>\n                    \n        <div class=\"evaluation-subcriteria-control\">\n            <span class=\"form-label\">Subcriteria</span>\n            <div class=\"evaluation-subcriteria-list\">\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Project manager qualification\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Project manager qualification\" aria-label=\"Remove Project manager qualification\">x</button>\n                    </span>\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Site engineer qualifications\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Site engineer qualifications\" aria-label=\"Remove Site engineer qualifications\">x</button>\n                    </span>\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Safety officer competence\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Safety officer competence\" aria-label=\"Remove Safety officer competence\">x</button>\n                    </span>\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Key technical staff experience\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Key technical staff experience\" aria-label=\"Remove Key technical staff experience\">x</button>\n                    </span>\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Availability of required personnel\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Availability of required personnel\" aria-label=\"Remove Availability of required personnel\">x</button>\n                    </span>\n                \n            </div>\n            <div class=\"evaluation-subcriteria-add-row\">\n                <select class=\"form-input\" data-evaluation-subcriteria-picker aria-label=\"Select subcriterion\" >\n                    <option value=\"\">Choose subcriterion</option>\n                    <option value=\"Project manager qualification\">Project manager qualification</option><option value=\"Site engineer qualifications\">Site engineer qualifications</option><option value=\"Safety officer competence\">Safety officer competence</option><option value=\"Key technical staff experience\">Key technical staff experience</option><option value=\"Availability of required personnel\">Availability of required personnel</option>\n                </select>\n                <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-add-subcriterion >Add</button>\n            </div>\n            <div class=\"evaluation-subcriteria-add-row\">\n                <input class=\"form-input\" data-evaluation-custom-subcriterion placeholder=\"Custom subcriterion\" aria-label=\"Custom subcriterion\">\n                <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-add-custom-subcriterion>Add Custom</button>\n            </div>\n        </div>\n    \n                    <div class=\"evaluation-edit-actions\">\n                        <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-cancel-edit>Cancel</button>\n                        <button class=\"btn btn-primary\" type=\"button\" data-evaluation-save-edit>Save Changes</button>\n                    </div>\n                </div>\n            </article>\n        \n            <article class=\"evaluation-selected-card\" data-evaluation-criterion=\"works-equipment-resources\">\n                <div class=\"evaluation-selected-main\">\n                    <div class=\"evaluation-selected-copy\">\n                        <strong>Equipment and Resources</strong>\n                        <div class=\"evaluation-subcriteria-preview\">\n                            <span class=\"evaluation-subcriterion-chip\">Availability of construction equipment</span><span class=\"evaluation-subcriterion-chip\">Ownership vs leased equipment</span><span class=\"evaluation-subcriterion-chip\">Equipment capacity and suitability</span><span class=\"evaluation-subcriterion-chip\">Mobilization timeline for equipment</span>\n                        </div>\n                    </div>\n                    <div class=\"evaluation-selected-actions\">\n                        <div class=\"requirement-input-affix evaluation-weight-cell\">\n                            <input class=\"form-input evaluation-weight-input\" type=\"number\" min=\"0\" max=\"100\" step=\"0.01\" value=\"10\" data-evaluation-field=\"weight\" aria-label=\"Criterion weight\">\n                            <span>%</span>\n                        </div>\n                        <div class=\"evaluation-card-action-stack\">\n                            <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-edit>Edit</button>\n                            <button class=\"boq-row-action icon-delete-btn\" type=\"button\" data-evaluation-delete=\"works-equipment-resources\" aria-label=\"Delete criteria\" title=\"Delete criteria\">\n        <svg class=\"trash-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">\n            <path d=\"M3 6h18\"></path>\n            <path d=\"M8 6V4h8v2\"></path>\n            <path d=\"M19 6l-1 14H6L5 6\"></path>\n            <path d=\"M10 11v5\"></path>\n            <path d=\"M14 11v5\"></path>\n        </svg>\n    </button>\n                        </div>\n                    </div>\n                </div>\n                <div class=\"evaluation-edit-menu\" data-evaluation-edit-menu hidden>\n                    <button class=\"boq-row-action evaluation-edit-close\" type=\"button\" data-evaluation-cancel-edit aria-label=\"Close edit menu\" title=\"Close\">x</button>\n                    <div class=\"evaluation-edit-grid\">\n                        <label>\n                            <span class=\"form-label\">Criterion name</span>\n                            <input class=\"form-input\" value=\"Equipment and Resources\" data-evaluation-field=\"name\" aria-label=\"Criterion name\">\n                        </label>\n                        <label>\n                            <span class=\"form-label\">Category</span>\n                            <input class=\"form-input\" value=\"Equipment and Resources\" data-evaluation-field=\"category\" aria-label=\"Criterion category\">\n                        </label>\n                        <label>\n                            <span class=\"form-label\">Evaluation type</span>\n                            <select class=\"form-input\" data-evaluation-field=\"evaluationType\" aria-label=\"Evaluation type\">\n                                <option value=\"scored\" selected>Scored</option><option value=\"pass_fail\" >Pass / Fail</option><option value=\"price_based\" >Price-based</option><option value=\"document_check\" >Document check</option><option value=\"specification_compliance\" >Specification compliance</option><option value=\"sample_based\" >Sample-based</option><option value=\"delivery_based\" >Delivery-based</option><option value=\"warranty_support\" >Warranty / support</option>\n                            </select>\n                        </label>\n                        <label>\n                            <span class=\"form-label\">Max score</span>\n                            <input class=\"form-input\" type=\"number\" min=\"0\" max=\"100\" step=\"0.01\" value=\"10\" data-evaluation-field=\"maxScore\" aria-label=\"Criterion max score\">\n                        </label>\n                        <label class=\"wide\">\n                            <span class=\"form-label\">Description</span>\n                            <textarea class=\"form-input\" rows=\"2\" data-evaluation-field=\"description\" aria-label=\"Criterion description\"></textarea>\n                        </label>\n                        <label class=\"confirm-action evaluation-toggle-field\">\n                            <input type=\"checkbox\" class=\"confirm-action-input\" data-evaluation-field=\"mandatory\" >\n                            <span>Mandatory criterion</span>\n                        </label>\n                        <label class=\"confirm-action evaluation-toggle-field\">\n                            <input type=\"checkbox\" class=\"confirm-action-input\" data-evaluation-field=\"passFailGate\" >\n                            <span>Failure blocks ranking</span>\n                        </label>\n                        <label class=\"wide\">\n                            <span class=\"form-label\">Evidence required</span>\n                            <textarea class=\"form-input\" rows=\"2\" data-evaluation-field=\"evidenceRequired\" aria-label=\"Evidence required\">Equipment list\nOwnership proof\nLease agreements\nAvailability declaration</textarea>\n                        </label>\n                        <label class=\"wide\">\n                            <span class=\"form-label\">Scoring guide</span>\n                            <textarea class=\"form-input\" rows=\"3\" data-evaluation-field=\"scoringGuide\" aria-label=\"Scoring guide\"></textarea>\n                        </label>\n                    </div>\n                    \n        <div class=\"evaluation-subcriteria-control\">\n            <span class=\"form-label\">Subcriteria</span>\n            <div class=\"evaluation-subcriteria-list\">\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Availability of construction equipment\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Availability of construction equipment\" aria-label=\"Remove Availability of construction equipment\">x</button>\n                    </span>\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Ownership vs leased equipment\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Ownership vs leased equipment\" aria-label=\"Remove Ownership vs leased equipment\">x</button>\n                    </span>\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Equipment capacity and suitability\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Equipment capacity and suitability\" aria-label=\"Remove Equipment capacity and suitability\">x</button>\n                    </span>\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Mobilization timeline for equipment\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Mobilization timeline for equipment\" aria-label=\"Remove Mobilization timeline for equipment\">x</button>\n                    </span>\n                \n            </div>\n            <div class=\"evaluation-subcriteria-add-row\">\n                <select class=\"form-input\" data-evaluation-subcriteria-picker aria-label=\"Select subcriterion\" >\n                    <option value=\"\">Choose subcriterion</option>\n                    <option value=\"Availability of construction equipment\">Availability of construction equipment</option><option value=\"Ownership vs leased equipment\">Ownership vs leased equipment</option><option value=\"Equipment capacity and suitability\">Equipment capacity and suitability</option><option value=\"Mobilization timeline for equipment\">Mobilization timeline for equipment</option>\n                </select>\n                <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-add-subcriterion >Add</button>\n            </div>\n            <div class=\"evaluation-subcriteria-add-row\">\n                <input class=\"form-input\" data-evaluation-custom-subcriterion placeholder=\"Custom subcriterion\" aria-label=\"Custom subcriterion\">\n                <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-add-custom-subcriterion>Add Custom</button>\n            </div>\n        </div>\n    \n                    <div class=\"evaluation-edit-actions\">\n                        <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-cancel-edit>Cancel</button>\n                        <button class=\"btn btn-primary\" type=\"button\" data-evaluation-save-edit>Save Changes</button>\n                    </div>\n                </div>\n            </article>\n        \n            <article class=\"evaluation-selected-card\" data-evaluation-criterion=\"works-experience\">\n                <div class=\"evaluation-selected-main\">\n                    <div class=\"evaluation-selected-copy\">\n                        <strong>Experience</strong>\n                        <div class=\"evaluation-subcriteria-preview\">\n                            <span class=\"evaluation-subcriterion-chip\">Similar completed projects</span><span class=\"evaluation-subcriterion-chip\">Project value history</span><span class=\"evaluation-subcriterion-chip\">Experience in similar terrain/environment</span><span class=\"evaluation-subcriterion-chip\">Track record of timely completion</span>\n                        </div>\n                    </div>\n                    <div class=\"evaluation-selected-actions\">\n                        <div class=\"requirement-input-affix evaluation-weight-cell\">\n                            <input class=\"form-input evaluation-weight-input\" type=\"number\" min=\"0\" max=\"100\" step=\"0.01\" value=\"15\" data-evaluation-field=\"weight\" aria-label=\"Criterion weight\">\n                            <span>%</span>\n                        </div>\n                        <div class=\"evaluation-card-action-stack\">\n                            <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-edit>Edit</button>\n                            <button class=\"boq-row-action icon-delete-btn\" type=\"button\" data-evaluation-delete=\"works-experience\" aria-label=\"Delete criteria\" title=\"Delete criteria\">\n        <svg class=\"trash-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">\n            <path d=\"M3 6h18\"></path>\n            <path d=\"M8 6V4h8v2\"></path>\n            <path d=\"M19 6l-1 14H6L5 6\"></path>\n            <path d=\"M10 11v5\"></path>\n            <path d=\"M14 11v5\"></path>\n        </svg>\n    </button>\n                        </div>\n                    </div>\n                </div>\n                <div class=\"evaluation-edit-menu\" data-evaluation-edit-menu hidden>\n                    <button class=\"boq-row-action evaluation-edit-close\" type=\"button\" data-evaluation-cancel-edit aria-label=\"Close edit menu\" title=\"Close\">x</button>\n                    <div class=\"evaluation-edit-grid\">\n                        <label>\n                            <span class=\"form-label\">Criterion name</span>\n                            <input class=\"form-input\" value=\"Experience\" data-evaluation-field=\"name\" aria-label=\"Criterion name\">\n                        </label>\n                        <label>\n                            <span class=\"form-label\">Category</span>\n                            <input class=\"form-input\" value=\"Experience\" data-evaluation-field=\"category\" aria-label=\"Criterion category\">\n                        </label>\n                        <label>\n                            <span class=\"form-label\">Evaluation type</span>\n                            <select class=\"form-input\" data-evaluation-field=\"evaluationType\" aria-label=\"Evaluation type\">\n                                <option value=\"scored\" selected>Scored</option><option value=\"pass_fail\" >Pass / Fail</option><option value=\"price_based\" >Price-based</option><option value=\"document_check\" >Document check</option><option value=\"specification_compliance\" >Specification compliance</option><option value=\"sample_based\" >Sample-based</option><option value=\"delivery_based\" >Delivery-based</option><option value=\"warranty_support\" >Warranty / support</option>\n                            </select>\n                        </label>\n                        <label>\n                            <span class=\"form-label\">Max score</span>\n                            <input class=\"form-input\" type=\"number\" min=\"0\" max=\"100\" step=\"0.01\" value=\"15\" data-evaluation-field=\"maxScore\" aria-label=\"Criterion max score\">\n                        </label>\n                        <label class=\"wide\">\n                            <span class=\"form-label\">Description</span>\n                            <textarea class=\"form-input\" rows=\"2\" data-evaluation-field=\"description\" aria-label=\"Criterion description\"></textarea>\n                        </label>\n                        <label class=\"confirm-action evaluation-toggle-field\">\n                            <input type=\"checkbox\" class=\"confirm-action-input\" data-evaluation-field=\"mandatory\" >\n                            <span>Mandatory criterion</span>\n                        </label>\n                        <label class=\"confirm-action evaluation-toggle-field\">\n                            <input type=\"checkbox\" class=\"confirm-action-input\" data-evaluation-field=\"passFailGate\" >\n                            <span>Failure blocks ranking</span>\n                        </label>\n                        <label class=\"wide\">\n                            <span class=\"form-label\">Evidence required</span>\n                            <textarea class=\"form-input\" rows=\"2\" data-evaluation-field=\"evidenceRequired\" aria-label=\"Evidence required\">Similar completed project evidence\nCompletion certificates\nClient references</textarea>\n                        </label>\n                        <label class=\"wide\">\n                            <span class=\"form-label\">Scoring guide</span>\n                            <textarea class=\"form-input\" rows=\"3\" data-evaluation-field=\"scoringGuide\" aria-label=\"Scoring guide\"></textarea>\n                        </label>\n                    </div>\n                    \n        <div class=\"evaluation-subcriteria-control\">\n            <span class=\"form-label\">Subcriteria</span>\n            <div class=\"evaluation-subcriteria-list\">\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Similar completed projects\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Similar completed projects\" aria-label=\"Remove Similar completed projects\">x</button>\n                    </span>\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Project value history\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Project value history\" aria-label=\"Remove Project value history\">x</button>\n                    </span>\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Experience in similar terrain/environment\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Experience in similar terrain/environment\" aria-label=\"Remove Experience in similar terrain/environment\">x</button>\n                    </span>\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Track record of timely completion\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Track record of timely completion\" aria-label=\"Remove Track record of timely completion\">x</button>\n                    </span>\n                \n            </div>\n            <div class=\"evaluation-subcriteria-add-row\">\n                <select class=\"form-input\" data-evaluation-subcriteria-picker aria-label=\"Select subcriterion\" >\n                    <option value=\"\">Choose subcriterion</option>\n                    <option value=\"Similar completed projects\">Similar completed projects</option><option value=\"Project value history\">Project value history</option><option value=\"Experience in similar terrain/environment\">Experience in similar terrain/environment</option><option value=\"Track record of timely completion\">Track record of timely completion</option>\n                </select>\n                <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-add-subcriterion >Add</button>\n            </div>\n            <div class=\"evaluation-subcriteria-add-row\">\n                <input class=\"form-input\" data-evaluation-custom-subcriterion placeholder=\"Custom subcriterion\" aria-label=\"Custom subcriterion\">\n                <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-add-custom-subcriterion>Add Custom</button>\n            </div>\n        </div>\n    \n                    <div class=\"evaluation-edit-actions\">\n                        <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-cancel-edit>Cancel</button>\n                        <button class=\"btn btn-primary\" type=\"button\" data-evaluation-save-edit>Save Changes</button>\n                    </div>\n                </div>\n            </article>\n        \n            <article class=\"evaluation-selected-card\" data-evaluation-criterion=\"works-schedule-execution\">\n                <div class=\"evaluation-selected-main\">\n                    <div class=\"evaluation-selected-copy\">\n                        <strong>Schedule and Execution</strong>\n                        <div class=\"evaluation-subcriteria-preview\">\n                            <span class=\"evaluation-subcriterion-chip\">Work program / timeline</span><span class=\"evaluation-subcriterion-chip\">Milestone alignment</span><span class=\"evaluation-subcriterion-chip\">Project completion duration</span><span class=\"evaluation-subcriterion-chip\">Critical path feasibility</span>\n                        </div>\n                    </div>\n                    <div class=\"evaluation-selected-actions\">\n                        <div class=\"requirement-input-affix evaluation-weight-cell\">\n                            <input class=\"form-input evaluation-weight-input\" type=\"number\" min=\"0\" max=\"100\" step=\"0.01\" value=\"10\" data-evaluation-field=\"weight\" aria-label=\"Criterion weight\">\n                            <span>%</span>\n                        </div>\n                        <div class=\"evaluation-card-action-stack\">\n                            <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-edit>Edit</button>\n                            <button class=\"boq-row-action icon-delete-btn\" type=\"button\" data-evaluation-delete=\"works-schedule-execution\" aria-label=\"Delete criteria\" title=\"Delete criteria\">\n        <svg class=\"trash-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">\n            <path d=\"M3 6h18\"></path>\n            <path d=\"M8 6V4h8v2\"></path>\n            <path d=\"M19 6l-1 14H6L5 6\"></path>\n            <path d=\"M10 11v5\"></path>\n            <path d=\"M14 11v5\"></path>\n        </svg>\n    </button>\n                        </div>\n                    </div>\n                </div>\n                <div class=\"evaluation-edit-menu\" data-evaluation-edit-menu hidden>\n                    <button class=\"boq-row-action evaluation-edit-close\" type=\"button\" data-evaluation-cancel-edit aria-label=\"Close edit menu\" title=\"Close\">x</button>\n                    <div class=\"evaluation-edit-grid\">\n                        <label>\n                            <span class=\"form-label\">Criterion name</span>\n                            <input class=\"form-input\" value=\"Schedule and Execution\" data-evaluation-field=\"name\" aria-label=\"Criterion name\">\n                        </label>\n                        <label>\n                            <span class=\"form-label\">Category</span>\n                            <input class=\"form-input\" value=\"Schedule and Execution\" data-evaluation-field=\"category\" aria-label=\"Criterion category\">\n                        </label>\n                        <label>\n                            <span class=\"form-label\">Evaluation type</span>\n                            <select class=\"form-input\" data-evaluation-field=\"evaluationType\" aria-label=\"Evaluation type\">\n                                <option value=\"scored\" >Scored</option><option value=\"pass_fail\" >Pass / Fail</option><option value=\"price_based\" >Price-based</option><option value=\"document_check\" >Document check</option><option value=\"specification_compliance\" >Specification compliance</option><option value=\"sample_based\" >Sample-based</option><option value=\"delivery_based\" selected>Delivery-based</option><option value=\"warranty_support\" >Warranty / support</option>\n                            </select>\n                        </label>\n                        <label>\n                            <span class=\"form-label\">Max score</span>\n                            <input class=\"form-input\" type=\"number\" min=\"0\" max=\"100\" step=\"0.01\" value=\"10\" data-evaluation-field=\"maxScore\" aria-label=\"Criterion max score\">\n                        </label>\n                        <label class=\"wide\">\n                            <span class=\"form-label\">Description</span>\n                            <textarea class=\"form-input\" rows=\"2\" data-evaluation-field=\"description\" aria-label=\"Criterion description\"></textarea>\n                        </label>\n                        <label class=\"confirm-action evaluation-toggle-field\">\n                            <input type=\"checkbox\" class=\"confirm-action-input\" data-evaluation-field=\"mandatory\" >\n                            <span>Mandatory criterion</span>\n                        </label>\n                        <label class=\"confirm-action evaluation-toggle-field\">\n                            <input type=\"checkbox\" class=\"confirm-action-input\" data-evaluation-field=\"passFailGate\" >\n                            <span>Failure blocks ranking</span>\n                        </label>\n                        <label class=\"wide\">\n                            <span class=\"form-label\">Evidence required</span>\n                            <textarea class=\"form-input\" rows=\"2\" data-evaluation-field=\"evidenceRequired\" aria-label=\"Evidence required\">Work program\nConstruction schedule\nMilestone plan</textarea>\n                        </label>\n                        <label class=\"wide\">\n                            <span class=\"form-label\">Scoring guide</span>\n                            <textarea class=\"form-input\" rows=\"3\" data-evaluation-field=\"scoringGuide\" aria-label=\"Scoring guide\"></textarea>\n                        </label>\n                    </div>\n                    \n        <div class=\"evaluation-subcriteria-control\">\n            <span class=\"form-label\">Subcriteria</span>\n            <div class=\"evaluation-subcriteria-list\">\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Work program / timeline\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Work program / timeline\" aria-label=\"Remove Work program / timeline\">x</button>\n                    </span>\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Milestone alignment\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Milestone alignment\" aria-label=\"Remove Milestone alignment\">x</button>\n                    </span>\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Project completion duration\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Project completion duration\" aria-label=\"Remove Project completion duration\">x</button>\n                    </span>\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Critical path feasibility\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Critical path feasibility\" aria-label=\"Remove Critical path feasibility\">x</button>\n                    </span>\n                \n            </div>\n            <div class=\"evaluation-subcriteria-add-row\">\n                <select class=\"form-input\" data-evaluation-subcriteria-picker aria-label=\"Select subcriterion\" >\n                    <option value=\"\">Choose subcriterion</option>\n                    <option value=\"Work program / timeline\">Work program / timeline</option><option value=\"Milestone alignment\">Milestone alignment</option><option value=\"Project completion duration\">Project completion duration</option><option value=\"Critical path feasibility\">Critical path feasibility</option>\n                </select>\n                <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-add-subcriterion >Add</button>\n            </div>\n            <div class=\"evaluation-subcriteria-add-row\">\n                <input class=\"form-input\" data-evaluation-custom-subcriterion placeholder=\"Custom subcriterion\" aria-label=\"Custom subcriterion\">\n                <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-add-custom-subcriterion>Add Custom</button>\n            </div>\n        </div>\n    \n                    <div class=\"evaluation-edit-actions\">\n                        <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-cancel-edit>Cancel</button>\n                        <button class=\"btn btn-primary\" type=\"button\" data-evaluation-save-edit>Save Changes</button>\n                    </div>\n                </div>\n            </article>\n        \n            <article class=\"evaluation-selected-card\" data-evaluation-criterion=\"works-hse\">\n                <div class=\"evaluation-selected-main\">\n                    <div class=\"evaluation-selected-copy\">\n                        <strong>Health, Safety and Environment (HSE)</strong>\n                        <div class=\"evaluation-subcriteria-preview\">\n                            <span class=\"evaluation-subcriterion-chip\">Safety plan compliance</span><span class=\"evaluation-subcriterion-chip\">Environmental mitigation measures</span><span class=\"evaluation-subcriterion-chip\">Site safety record</span><span class=\"evaluation-subcriterion-chip\">Compliance with regulations</span>\n                        </div>\n                    </div>\n                    <div class=\"evaluation-selected-actions\">\n                        <div class=\"requirement-input-affix evaluation-weight-cell\">\n                            <input class=\"form-input evaluation-weight-input\" type=\"number\" min=\"0\" max=\"100\" step=\"0.01\" value=\"10\" data-evaluation-field=\"weight\" aria-label=\"Criterion weight\">\n                            <span>%</span>\n                        </div>\n                        <div class=\"evaluation-card-action-stack\">\n                            <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-edit>Edit</button>\n                            <button class=\"boq-row-action icon-delete-btn\" type=\"button\" data-evaluation-delete=\"works-hse\" aria-label=\"Delete criteria\" title=\"Delete criteria\">\n        <svg class=\"trash-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">\n            <path d=\"M3 6h18\"></path>\n            <path d=\"M8 6V4h8v2\"></path>\n            <path d=\"M19 6l-1 14H6L5 6\"></path>\n            <path d=\"M10 11v5\"></path>\n            <path d=\"M14 11v5\"></path>\n        </svg>\n    </button>\n                        </div>\n                    </div>\n                </div>\n                <div class=\"evaluation-edit-menu\" data-evaluation-edit-menu hidden>\n                    <button class=\"boq-row-action evaluation-edit-close\" type=\"button\" data-evaluation-cancel-edit aria-label=\"Close edit menu\" title=\"Close\">x</button>\n                    <div class=\"evaluation-edit-grid\">\n                        <label>\n                            <span class=\"form-label\">Criterion name</span>\n                            <input class=\"form-input\" value=\"Health, Safety and Environment (HSE)\" data-evaluation-field=\"name\" aria-label=\"Criterion name\">\n                        </label>\n                        <label>\n                            <span class=\"form-label\">Category</span>\n                            <input class=\"form-input\" value=\"Health, Safety and Environment (HSE)\" data-evaluation-field=\"category\" aria-label=\"Criterion category\">\n                        </label>\n                        <label>\n                            <span class=\"form-label\">Evaluation type</span>\n                            <select class=\"form-input\" data-evaluation-field=\"evaluationType\" aria-label=\"Evaluation type\">\n                                <option value=\"scored\" >Scored</option><option value=\"pass_fail\" >Pass / Fail</option><option value=\"price_based\" >Price-based</option><option value=\"document_check\" selected>Document check</option><option value=\"specification_compliance\" >Specification compliance</option><option value=\"sample_based\" >Sample-based</option><option value=\"delivery_based\" >Delivery-based</option><option value=\"warranty_support\" >Warranty / support</option>\n                            </select>\n                        </label>\n                        <label>\n                            <span class=\"form-label\">Max score</span>\n                            <input class=\"form-input\" type=\"number\" min=\"0\" max=\"100\" step=\"0.01\" value=\"10\" data-evaluation-field=\"maxScore\" aria-label=\"Criterion max score\">\n                        </label>\n                        <label class=\"wide\">\n                            <span class=\"form-label\">Description</span>\n                            <textarea class=\"form-input\" rows=\"2\" data-evaluation-field=\"description\" aria-label=\"Criterion description\"></textarea>\n                        </label>\n                        <label class=\"confirm-action evaluation-toggle-field\">\n                            <input type=\"checkbox\" class=\"confirm-action-input\" data-evaluation-field=\"mandatory\" checked>\n                            <span>Mandatory criterion</span>\n                        </label>\n                        <label class=\"confirm-action evaluation-toggle-field\">\n                            <input type=\"checkbox\" class=\"confirm-action-input\" data-evaluation-field=\"passFailGate\" checked>\n                            <span>Failure blocks ranking</span>\n                        </label>\n                        <label class=\"wide\">\n                            <span class=\"form-label\">Evidence required</span>\n                            <textarea class=\"form-input\" rows=\"2\" data-evaluation-field=\"evidenceRequired\" aria-label=\"Evidence required\">HSE policy\nPPE plan\nSafety officer assignment\nIncident management plan\nWaste management plan</textarea>\n                        </label>\n                        <label class=\"wide\">\n                            <span class=\"form-label\">Scoring guide</span>\n                            <textarea class=\"form-input\" rows=\"3\" data-evaluation-field=\"scoringGuide\" aria-label=\"Scoring guide\"></textarea>\n                        </label>\n                    </div>\n                    \n        <div class=\"evaluation-subcriteria-control\">\n            <span class=\"form-label\">Subcriteria</span>\n            <div class=\"evaluation-subcriteria-list\">\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Safety plan compliance\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Safety plan compliance\" aria-label=\"Remove Safety plan compliance\">x</button>\n                    </span>\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Environmental mitigation measures\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Environmental mitigation measures\" aria-label=\"Remove Environmental mitigation measures\">x</button>\n                    </span>\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Site safety record\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Site safety record\" aria-label=\"Remove Site safety record\">x</button>\n                    </span>\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Compliance with regulations\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Compliance with regulations\" aria-label=\"Remove Compliance with regulations\">x</button>\n                    </span>\n                \n            </div>\n            <div class=\"evaluation-subcriteria-add-row\">\n                <select class=\"form-input\" data-evaluation-subcriteria-picker aria-label=\"Select subcriterion\" >\n                    <option value=\"\">Choose subcriterion</option>\n                    <option value=\"Safety plan compliance\">Safety plan compliance</option><option value=\"Environmental mitigation measures\">Environmental mitigation measures</option><option value=\"Site safety record\">Site safety record</option><option value=\"Compliance with regulations\">Compliance with regulations</option>\n                </select>\n                <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-add-subcriterion >Add</button>\n            </div>\n            <div class=\"evaluation-subcriteria-add-row\">\n                <input class=\"form-input\" data-evaluation-custom-subcriterion placeholder=\"Custom subcriterion\" aria-label=\"Custom subcriterion\">\n                <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-add-custom-subcriterion>Add Custom</button>\n            </div>\n        </div>\n    \n                    <div class=\"evaluation-edit-actions\">\n                        <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-cancel-edit>Cancel</button>\n                        <button class=\"btn btn-primary\" type=\"button\" data-evaluation-save-edit>Save Changes</button>\n                    </div>\n                </div>\n            </article>\n        \n            <article class=\"evaluation-selected-card\" data-evaluation-criterion=\"works-financial\">\n                <div class=\"evaluation-selected-main\">\n                    <div class=\"evaluation-selected-copy\">\n                        <strong>Financial</strong>\n                        <div class=\"evaluation-subcriteria-preview\">\n                            <span class=\"evaluation-subcriterion-chip\">Total BOQ price</span><span class=\"evaluation-subcriterion-chip\">Unit rate accuracy</span><span class=\"evaluation-subcriterion-chip\">Price realism</span><span class=\"evaluation-subcriterion-chip\">Corrected tender sum</span>\n                        </div>\n                    </div>\n                    <div class=\"evaluation-selected-actions\">\n                        <div class=\"requirement-input-affix evaluation-weight-cell\">\n                            <input class=\"form-input evaluation-weight-input\" type=\"number\" min=\"0\" max=\"100\" step=\"0.01\" value=\"20\" data-evaluation-field=\"weight\" aria-label=\"Criterion weight\">\n                            <span>%</span>\n                        </div>\n                        <div class=\"evaluation-card-action-stack\">\n                            <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-edit>Edit</button>\n                            <button class=\"boq-row-action icon-delete-btn\" type=\"button\" data-evaluation-delete=\"works-financial\" aria-label=\"Delete criteria\" title=\"Delete criteria\">\n        <svg class=\"trash-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\">\n            <path d=\"M3 6h18\"></path>\n            <path d=\"M8 6V4h8v2\"></path>\n            <path d=\"M19 6l-1 14H6L5 6\"></path>\n            <path d=\"M10 11v5\"></path>\n            <path d=\"M14 11v5\"></path>\n        </svg>\n    </button>\n                        </div>\n                    </div>\n                </div>\n                <div class=\"evaluation-edit-menu\" data-evaluation-edit-menu hidden>\n                    <button class=\"boq-row-action evaluation-edit-close\" type=\"button\" data-evaluation-cancel-edit aria-label=\"Close edit menu\" title=\"Close\">x</button>\n                    <div class=\"evaluation-edit-grid\">\n                        <label>\n                            <span class=\"form-label\">Criterion name</span>\n                            <input class=\"form-input\" value=\"Financial\" data-evaluation-field=\"name\" aria-label=\"Criterion name\">\n                        </label>\n                        <label>\n                            <span class=\"form-label\">Category</span>\n                            <input class=\"form-input\" value=\"Financial\" data-evaluation-field=\"category\" aria-label=\"Criterion category\">\n                        </label>\n                        <label>\n                            <span class=\"form-label\">Evaluation type</span>\n                            <select class=\"form-input\" data-evaluation-field=\"evaluationType\" aria-label=\"Evaluation type\">\n                                <option value=\"scored\" >Scored</option><option value=\"pass_fail\" >Pass / Fail</option><option value=\"price_based\" selected>Price-based</option><option value=\"document_check\" >Document check</option><option value=\"specification_compliance\" >Specification compliance</option><option value=\"sample_based\" >Sample-based</option><option value=\"delivery_based\" >Delivery-based</option><option value=\"warranty_support\" >Warranty / support</option>\n                            </select>\n                        </label>\n                        <label>\n                            <span class=\"form-label\">Max score</span>\n                            <input class=\"form-input\" type=\"number\" min=\"0\" max=\"100\" step=\"0.01\" value=\"20\" data-evaluation-field=\"maxScore\" aria-label=\"Criterion max score\">\n                        </label>\n                        <label class=\"wide\">\n                            <span class=\"form-label\">Description</span>\n                            <textarea class=\"form-input\" rows=\"2\" data-evaluation-field=\"description\" aria-label=\"Criterion description\"></textarea>\n                        </label>\n                        <label class=\"confirm-action evaluation-toggle-field\">\n                            <input type=\"checkbox\" class=\"confirm-action-input\" data-evaluation-field=\"mandatory\" >\n                            <span>Mandatory criterion</span>\n                        </label>\n                        <label class=\"confirm-action evaluation-toggle-field\">\n                            <input type=\"checkbox\" class=\"confirm-action-input\" data-evaluation-field=\"passFailGate\" >\n                            <span>Failure blocks ranking</span>\n                        </label>\n                        <label class=\"wide\">\n                            <span class=\"form-label\">Evidence required</span>\n                            <textarea class=\"form-input\" rows=\"2\" data-evaluation-field=\"evidenceRequired\" aria-label=\"Evidence required\">Priced BOQ\nRate breakdown\nCommercial terms</textarea>\n                        </label>\n                        <label class=\"wide\">\n                            <span class=\"form-label\">Scoring guide</span>\n                            <textarea class=\"form-input\" rows=\"3\" data-evaluation-field=\"scoringGuide\" aria-label=\"Scoring guide\"></textarea>\n                        </label>\n                    </div>\n                    \n        <div class=\"evaluation-subcriteria-control\">\n            <span class=\"form-label\">Subcriteria</span>\n            <div class=\"evaluation-subcriteria-list\">\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Total BOQ price\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Total BOQ price\" aria-label=\"Remove Total BOQ price\">x</button>\n                    </span>\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Unit rate accuracy\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Unit rate accuracy\" aria-label=\"Remove Unit rate accuracy\">x</button>\n                    </span>\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Price realism\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Price realism\" aria-label=\"Remove Price realism\">x</button>\n                    </span>\n                \n                    <span class=\"evaluation-subcriterion-chip\">\n                        Corrected tender sum\n                        <button type=\"button\" data-evaluation-remove-subcriterion=\"Corrected tender sum\" aria-label=\"Remove Corrected tender sum\">x</button>\n                    </span>\n                \n            </div>\n            <div class=\"evaluation-subcriteria-add-row\">\n                <select class=\"form-input\" data-evaluation-subcriteria-picker aria-label=\"Select subcriterion\" >\n                    <option value=\"\">Choose subcriterion</option>\n                    <option value=\"Total BOQ price\">Total BOQ price</option><option value=\"Unit rate accuracy\">Unit rate accuracy</option><option value=\"Price realism\">Price realism</option><option value=\"Corrected tender sum\">Corrected tender sum</option>\n                </select>\n                <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-add-subcriterion >Add</button>\n            </div>\n            <div class=\"evaluation-subcriteria-add-row\">\n                <input class=\"form-input\" data-evaluation-custom-subcriterion placeholder=\"Custom subcriterion\" aria-label=\"Custom subcriterion\">\n                <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-add-custom-subcriterion>Add Custom</button>\n            </div>\n        </div>\n    \n                    <div class=\"evaluation-edit-actions\">\n                        <button class=\"btn btn-secondary\" type=\"button\" data-evaluation-cancel-edit>Cancel</button>\n                        <button class=\"btn btn-primary\" type=\"button\" data-evaluation-save-edit>Save Changes</button>\n                    </div>\n                </div>\n            </article>\n        \n                    </div>\n                </section>\n            </div>\n            <div class=\"evaluation-suggestions-row\">\n                <section class=\"evaluation-suggestions-panel\">\n                    <div class=\"scope-list-heading\">\n                        <div>\n                            <h3>Suggested criteria</h3>\n                            <span class=\"form-hint\">Suggestions are guidance only and can be removed after adding.</span>\n                        </div>\n                    </div>\n                    <div class=\"evaluation-suggestion-list\" data-evaluation-suggestion-list>\n                        <div class=\"scope-empty\">All suggested criteria have been added.</div>\n                    </div>\n                </section>\n            </div>\n        </div>\n    \n                                </div>\n                            </section>\n\n                            <section class=\"journey-panel\" id=\"wizard-step-5\">\n                                <div class=\"panel-heading\">\n                                    <div>\n                                        <span class=\"section-kicker\">Step 5</span>\n                                        <h2>Review Tender</h2>\n                                    </div>\n                                    <span class=\"badge badge-info\">Buyer preview</span>\n                                </div>\n                                <div data-tender-review-wrap>\n                                    \n        <div class=\"tender-review-workspace\">\n            <section class=\"tender-review-panel\">\n                <div class=\"scope-list-heading\">\n                    <div>\n                        <h3>Tender information</h3>\n                        <span class=\"form-hint\">Basic details, contact, procurement type, category, method, and visibility.</span>\n                    </div>\n                </div>\n                <div class=\"tender-review-field-grid\">\n                    \n        <div class=\"tender-review-field\">\n            <span>Tender title</span>\n            <strong>Not provided</strong>\n        </div>\n    \n                    \n        <div class=\"tender-review-field\">\n            <span>Procurement type</span>\n            <strong>Works</strong>\n        </div>\n    \n                    \n        <div class=\"tender-review-field\">\n            <span>Categories</span>\n            <strong>Not provided</strong>\n        </div>\n    \n                    \n        <div class=\"tender-review-field\">\n            <span>Procurement method</span>\n            <strong>Open Tender</strong>\n        </div>\n    \n                    \n        <div class=\"tender-review-field\">\n            <span>Funding source</span>\n            <strong>Not provided</strong>\n        </div>\n    \n                    \n        <div class=\"tender-review-field\">\n            <span>Visibility</span>\n            <strong>Public marketplace</strong>\n        </div>\n    \n                    \n        <div class=\"tender-review-field\">\n            <span>Invited suppliers</span>\n            <strong>Not provided</strong>\n        </div>\n    \n                    \n        <div class=\"tender-review-field\">\n            <span>Location</span>\n            <strong>Not provided</strong>\n        </div>\n    \n                    \n        <div class=\"tender-review-field\">\n            <span>Contact person / department</span>\n            <strong>Not provided</strong>\n        </div>\n    \n                    \n        <div class=\"tender-review-field\">\n            <span>Phone</span>\n            <strong>Not provided</strong>\n        </div>\n    \n                    \n        <div class=\"tender-review-field\">\n            <span>Email</span>\n            <strong>Not provided</strong>\n        </div>\n    \n                </div>\n            </section>\n\n            <section class=\"tender-review-panel\">\n                <div class=\"scope-list-heading\">\n                    <div>\n                        <h3>Tender requirements</h3>\n                        <span class=\"form-hint\">0 of 21 structured fields started.</span>\n                    </div>\n                </div>\n                \n        <div class=\"tender-review-section-stack\">\n            \n                <article class=\"tender-review-section\">\n                    <div>\n                        <h4>1. Project Overview</h4>\n                        <span class=\"form-hint\">Capture the purpose, buyer context, objective, and location of the works.</span>\n                    </div>\n                    \n                        <div class=\"tender-review-control\">\n                            <span class=\"form-label\">Project title</span>\n                            \n        <div class=\"tender-review-field\">\n            <span>Project title</span>\n            <strong>Not provided</strong>\n        </div>\n    \n                        </div>\n                    \n                        <div class=\"tender-review-control\">\n                            <span class=\"form-label\">Procuring entity</span>\n                            \n        <div class=\"tender-review-field\">\n            <span>Procuring entity</span>\n            <strong>Not provided</strong>\n        </div>\n    \n                        </div>\n                    \n                        <div class=\"tender-review-control\">\n                            <span class=\"form-label\">Project location</span>\n                            \n        <div class=\"tender-review-field\">\n            <span>Project location</span>\n            <strong>Not provided</strong>\n        </div>\n    \n                        </div>\n                    \n                        <div class=\"tender-review-control\">\n                            <span class=\"form-label\">Contract type</span>\n                            \n        <div class=\"tender-review-field\">\n            <span>Contract type</span>\n            <strong>Not provided</strong>\n        </div>\n    \n                        </div>\n                    \n                        <div class=\"tender-review-control\">\n                            <span class=\"form-label\">Completion period</span>\n                            \n        <div class=\"tender-review-field\">\n            <span>Completion period</span>\n            <strong>Not provided</strong>\n        </div>\n    \n                        </div>\n                    \n                </article>\n            \n                <article class=\"tender-review-section\">\n                    <div>\n                        <h4>2. Scope Description</h4>\n                        <span class=\"form-hint\">Summarize the works, major construction activities, and any project notes.</span>\n                    </div>\n                    \n                        <div class=\"tender-review-control\">\n                            <span class=\"form-label\">Scope Summary</span>\n                            \n        <div class=\"tender-review-field\">\n            <span>Scope Summary</span>\n            <strong>Not provided</strong>\n        </div>\n    \n                        </div>\n                    \n                        <div class=\"tender-review-control\">\n                            <span class=\"form-label\">Main Activities</span>\n                            <div class=\"scope-empty\">Add the key works activities expected, such as site preparation, foundation works, structural works, roofing, electrical installation, plumbing, finishing, or external works.</div>\n                        </div>\n                    \n                </article>\n            \n                <article class=\"tender-review-section\">\n                    <div>\n                        <h4>3. Technical Specifications</h4>\n                        <span class=\"form-hint\">Detailed technical requirements and mandatory specification documents.</span>\n                    </div>\n                    \n                        <div class=\"tender-review-control\">\n                            <span class=\"form-label\">Technical specification documents</span>\n                            <div class=\"scope-empty\">No records added yet.</div>\n                        </div>\n                    \n                </article>\n            \n                <article class=\"tender-review-section\">\n                    <div>\n                        <h4>4. Drawings and Design Documents</h4>\n                        <span class=\"form-hint\">Reference drawings, revisions, design consultants, and CAD/PDF uploads.</span>\n                    </div>\n                    \n                        <div class=\"tender-review-control\">\n                            <span class=\"form-label\">Drawings and design documents</span>\n                            <div class=\"scope-empty\">No records added yet.</div>\n                        </div>\n                    \n                </article>\n            \n                <article class=\"tender-review-section\">\n                    <div>\n                        <h4>5. Bill of Quantities (BoQ) / Pricing Schedule</h4>\n                        <span class=\"form-hint\">Commercial breakdown of works. Lump Sum uses summary pricing; Unit Price uses detailed measured items.</span>\n                    </div>\n                    \n                        <div class=\"tender-review-control\">\n                            <span class=\"form-label\">Summary pricing schedule</span>\n                            <div class=\"scope-empty\">No records added yet.</div>\n                        </div>\n                    \n                        <div class=\"tender-review-control\">\n                            <span class=\"form-label\">Bill of Quantities table</span>\n                            <div class=\"scope-empty\">No records added yet.</div>\n                        </div>\n                    \n                </article>\n            \n                <article class=\"tender-review-section\">\n                    <div>\n                        <h4>6. Time Schedule and Milestones</h4>\n                        <span class=\"form-hint\">Capture expected timelines, milestone triggers, and optional work program uploads.</span>\n                    </div>\n                    \n                        <div class=\"tender-review-control\">\n                            <span class=\"form-label\">Commencement date</span>\n                            \n        <div class=\"tender-review-field\">\n            <span>Commencement date</span>\n            <strong>Not provided</strong>\n        </div>\n    \n                        </div>\n                    \n                        <div class=\"tender-review-control\">\n                            <span class=\"form-label\">Completion period</span>\n                            \n        <div class=\"tender-review-field\">\n            <span>Completion period</span>\n            <strong>Not provided</strong>\n        </div>\n    \n                        </div>\n                    \n                        <div class=\"tender-review-control\">\n                            <span class=\"form-label\">Works milestones</span>\n                            <div class=\"scope-empty\">No records added yet.</div>\n                        </div>\n                    \n                </article>\n            \n                <article class=\"tender-review-section\">\n                    <div>\n                        <h4>7. Site Visit</h4>\n                        <span class=\"form-hint\">Important works-procurement context for access, utilities, infrastructure, and ground conditions.</span>\n                    </div>\n                    \n                        <div class=\"tender-review-control\">\n                            <span class=\"form-label\">Site visit requirement</span>\n                            \n        <div class=\"tender-review-field\">\n            <span>Site visit requirement</span>\n            <strong>Not mandatory</strong>\n        </div>\n    \n                        </div>\n                    \n                        <div class=\"tender-review-control\">\n                            <span class=\"form-label\">Site survey</span>\n                            \n        <div class=\"tender-review-field\">\n            <span>Site survey</span>\n            <strong>Not provided</strong>\n        </div>\n    \n                        </div>\n                    \n                </article>\n            \n                <article class=\"tender-review-section\">\n                    <div>\n                        <h4>Technical Capacity</h4>\n                        <span class=\"form-hint\">Turn each technical capacity evidence requirement on or off.</span>\n                    </div>\n                    \n                        <div class=\"tender-review-control\">\n                            <span class=\"form-label\">Similar completed projects</span>\n                            \n        <div class=\"tender-review-field\">\n            <span>Similar completed projects</span>\n            <strong>Not provided</strong>\n        </div>\n    \n                        </div>\n                    \n                        <div class=\"tender-review-control\">\n                            <span class=\"form-label\">Key personnel CVs</span>\n                            \n        <div class=\"tender-review-field\">\n            <span>Key personnel CVs</span>\n            <strong>Not provided</strong>\n        </div>\n    \n                        </div>\n                    \n                        <div class=\"tender-review-control\">\n                            <span class=\"form-label\">Bank statements</span>\n                            \n        <div class=\"tender-review-field\">\n            <span>Bank statements</span>\n            <strong>Not provided</strong>\n        </div>\n    \n                        </div>\n                    \n                        <div class=\"tender-review-control\">\n                            <span class=\"form-label\">Bank statement period</span>\n                            \n        <div class=\"tender-review-field\">\n            <span>Bank statement period</span>\n            <strong>Not provided</strong>\n        </div>\n    \n                        </div>\n                    \n                </article>\n            \n                <article class=\"tender-review-section\">\n                    <div>\n                        <h4>Financial Capacity Requirements</h4>\n                        <span class=\"form-hint\">Structured financial rules used to verify whether bidders can sustain the contract.</span>\n                    </div>\n                    \n                        <div class=\"tender-review-control\">\n                            <span class=\"form-label\">Financial requirements</span>\n                            <div class=\"scope-empty\">No records added yet.</div>\n                        </div>\n                    \n                </article>\n            \n        </div>\n    \n            </section>\n\n            \n                <section class=\"tender-review-panel\">\n                    <div class=\"scope-list-heading\">\n                        <div>\n                            <h3>Regulatory license requirements</h3>\n                            <span class=\"form-hint\">Licenses required for supplier eligibility.</span>\n                        </div>\n                    </div>\n                    <div class=\"scope-empty\">No regulatory licenses selected.</div>\n                </section>\n            \n\n            <section class=\"tender-review-panel\">\n                <div class=\"scope-list-heading\">\n                    <div>\n                        <h3>BOQ Editor</h3>\n                        <span class=\"form-hint\">Commercial schedule and estimated amount.</span>\n                    </div>\n                    <span class=\"badge badge-info\">TZS 0</span>\n                </div>\n                <div class=\"scope-empty\">No BOQ items added yet.</div>\n            </section>\n\n            <section class=\"tender-review-panel\">\n                <div class=\"scope-list-heading\">\n                    <div>\n                        <h3>Deliverables and attachments</h3>\n                        <span class=\"form-hint\">Outputs and required supporting documents.</span>\n                    </div>\n                </div>\n                <div class=\"tender-review-two-column\">\n                    <div>\n                        <h4>Key deliverables</h4>\n                        <div class=\"scope-empty\">No deliverables added yet.</div>\n                    </div>\n                    <div>\n                        <h4>Required attachments</h4>\n                        <div class=\"scope-empty\">No required attachments added yet.</div>\n                    </div>\n                </div>\n            </section>\n\n            <section class=\"tender-review-panel\">\n                <div class=\"scope-list-heading\">\n                    <div>\n                        <h3>Evaluation criteria and timeline</h3>\n                        <span class=\"form-hint\">Evaluation weights and publication milestones.</span>\n                    </div>\n                    <span class=\"badge badge-success\">Balanced</span>\n                </div>\n                <div class=\"tender-review-two-column\">\n                    <div>\n                        <h4>Evaluation criteria</h4>\n                        \n        <div class=\"tender-review-record-list\">\n            \n                <article class=\"tender-review-record\">\n                    <div class=\"tender-review-record-heading\">\n                        <strong>Technical Methodology</strong>\n                        <span>20%</span>\n                    </div>\n                    \n        <ul class=\"tender-review-bullet-list\">\n            <li>Construction methodology</li><li>Work execution plan</li><li>Site mobilization strategy</li><li>Risk management approach</li><li>Quality control plan</li><li>Environmental management plan</li>\n        </ul>\n    \n                </article>\n            \n                <article class=\"tender-review-record\">\n                    <div class=\"tender-review-record-heading\">\n                        <strong>Personnel</strong>\n                        <span>15%</span>\n                    </div>\n                    \n        <ul class=\"tender-review-bullet-list\">\n            <li>Project manager qualification</li><li>Site engineer qualifications</li><li>Safety officer competence</li><li>Key technical staff experience</li><li>Availability of required personnel</li>\n        </ul>\n    \n                </article>\n            \n                <article class=\"tender-review-record\">\n                    <div class=\"tender-review-record-heading\">\n                        <strong>Equipment and Resources</strong>\n                        <span>10%</span>\n                    </div>\n                    \n        <ul class=\"tender-review-bullet-list\">\n            <li>Availability of construction equipment</li><li>Ownership vs leased equipment</li><li>Equipment capacity and suitability</li><li>Mobilization timeline for equipment</li>\n        </ul>\n    \n                </article>\n            \n                <article class=\"tender-review-record\">\n                    <div class=\"tender-review-record-heading\">\n                        <strong>Experience</strong>\n                        <span>15%</span>\n                    </div>\n                    \n        <ul class=\"tender-review-bullet-list\">\n            <li>Similar completed projects</li><li>Project value history</li><li>Experience in similar terrain/environment</li><li>Track record of timely completion</li>\n        </ul>\n    \n                </article>\n            \n                <article class=\"tender-review-record\">\n                    <div class=\"tender-review-record-heading\">\n                        <strong>Schedule and Execution</strong>\n                        <span>10%</span>\n                    </div>\n                    \n        <ul class=\"tender-review-bullet-list\">\n            <li>Work program / timeline</li><li>Milestone alignment</li><li>Project completion duration</li><li>Critical path feasibility</li>\n        </ul>\n    \n                </article>\n            \n                <article class=\"tender-review-record\">\n                    <div class=\"tender-review-record-heading\">\n                        <strong>Health, Safety and Environment (HSE)</strong>\n                        <span>10%</span>\n                    </div>\n                    \n        <ul class=\"tender-review-bullet-list\">\n            <li>Safety plan compliance</li><li>Environmental mitigation measures</li><li>Site safety record</li><li>Compliance with regulations</li>\n        </ul>\n    \n                </article>\n            \n                <article class=\"tender-review-record\">\n                    <div class=\"tender-review-record-heading\">\n                        <strong>Financial</strong>\n                        <span>20%</span>\n                    </div>\n                    \n        <ul class=\"tender-review-bullet-list\">\n            <li>Total BOQ price</li><li>Unit rate accuracy</li><li>Price realism</li><li>Corrected tender sum</li>\n        </ul>\n    \n                </article>\n            \n        </div>\n    \n                    </div>\n                    <div>\n                        <h4>Timeline</h4>\n                        <div class=\"tender-review-field-grid\">\n                            \n        <div class=\"tender-review-field\">\n            <span>Publication</span>\n            <strong>Not provided</strong>\n        </div>\n    \n        <div class=\"tender-review-field\">\n            <span>Clarification deadline</span>\n            <strong>Not provided</strong>\n        </div>\n    \n        <div class=\"tender-review-field\">\n            <span>Bid closing</span>\n            <strong>Not provided</strong>\n        </div>\n    \n        <div class=\"tender-review-field\">\n            <span>Bid opening</span>\n            <strong>Not provided</strong>\n        </div>\n    \n        <div class=\"tender-review-field\">\n            <span>Evaluation complete</span>\n            <strong>Not provided</strong>\n        </div>\n    \n        <div class=\"tender-review-field\">\n            <span>Award target</span>\n            <strong>Not provided</strong>\n        </div>\n    \n                            \n        <div class=\"tender-review-field\">\n            <span>Window</span>\n            <strong>Not provided</strong>\n        </div>\n    \n                        </div>\n                    </div>\n                </div>\n            </section>\n        </div>\n    \n                                </div>\n                            </section>\n\n                            <section class=\"journey-panel review-panel\" id=\"wizard-step-6\">\n                                <div class=\"panel-heading\">\n                                    <div>\n                                        <span class=\"section-kicker\">Step 6</span>\n                                        <h2>Evaluation Submission</h2>\n                                    </div>\n                                    <span class=\"badge badge-warning\" data-system-evaluation-header-badge>Evaluation required</span>\n                                </div>\n                                \n        <div class=\"system-evaluation-workspace system-evaluation-submit-flow\" data-system-evaluation-wrap>\n            <section class=\"system-evaluation-submit-card\">\n                <div class=\"system-evaluation-submit-header\">\n                    <div>\n                        <span class=\"section-kicker\">Evaluation submission</span>\n                        <h3>Submit Tender for Evaluation</h3>\n                    </div>\n                    <span class=\"badge badge-info\" data-system-evaluation-status>Ready to submit</span>\n                </div>\n                <div class=\"system-evaluation-description\">\n                    <strong>Description</strong>\n                    <p>Your tender will be checked by the system for grammar, professionalism, clarity, and completeness before publication.</p>\n                </div>\n                <div class=\"system-evaluation-outcome-grid\">\n                    <article class=\"system-evaluation-outcome-card outcome-pass\">\n                        <h4>If the tender passes evaluation:</h4>\n                        <ul>\n                            <li>It will be published automatically to the marketplace.</li>\n                            <li>You will receive a success notification.</li>\n                        </ul>\n                    </article>\n                    <article class=\"system-evaluation-outcome-card outcome-return\">\n                        <h4>If the tender does not pass:</h4>\n                        <ul>\n                            <li>It will return to your dashboard as a draft.</li>\n                            <li>You will receive system comments and required changes.</li>\n                        </ul>\n                    </article>\n                </div>\n                <div class=\"system-evaluation-confirmations\">\n                    <label>\n                        <input type=\"checkbox\" data-evaluation-confirmation>\n                        <span>I confirm the tender information is complete and accurate.</span>\n                    </label>\n                    <label>\n                        <input type=\"checkbox\" data-evaluation-confirmation>\n                        <span>I understand the tender will be reviewed before publication.</span>\n                    </label>\n                    <label>\n                        <input type=\"checkbox\" data-evaluation-confirmation>\n                        <span>I understand rejected tenders will return as draft with comments.</span>\n                    </label>\n                </div>\n                <div class=\"submit-strip buyer-review-submit system-evaluation-publish\">\n                    <div style=\"color: #ffffff !important;\">\n                        <strong style=\"color: #ffffff !important;\">Actions</strong>\n                        <span data-system-publish-note style=\"color: rgba(255, 255, 255, 0.78) !important;\">Submit the tender for system review. The creation wizard will close after submission.</span>\n                    </div>\n                    <div class=\"system-evaluation-action-buttons\">\n                        <button class=\"btn btn-secondary\" type=\"button\" data-download-draft-tender-pdf>Download Tender PDF</button>\n                        <button class=\"btn btn-primary\" type=\"button\" data-run-system-evaluation disabled>Submit Tender for Evaluation</button>\n                    </div>\n                </div>\n            </section>\n        </div>\n    \n                            </section>\n\n                            <div class=\"wizard-flow-controls\" data-wizard-flow-controls>\n                                <button class=\"btn btn-secondary\" type=\"button\" data-wizard-prev>Back</button>\n                                <div class=\"wizard-flow-progress\">\n                                    <strong data-wizard-progress>Step 1 of 6</strong>\n                                    <span data-wizard-step-title>Basic Information</span>\n                                </div>\n                                <button class=\"btn btn-primary\" type=\"button\" data-wizard-next>Continue</button>\n                            </div>\n                        </div>\n                    </div>\n                </div>\n            </div>\n        </div>\n    ";
+type PlanningBridge = {
+  title?: string;
+  description?: string;
+  objective?: string;
+  procuringEntity?: string;
+  entity?: string;
+  buyer?: string;
+  location?: string;
+  category?: string;
+  categories?: string[];
+  method?: string;
+  fundingSource?: string;
+  currency?: string;
+  estimatedBudget?: string | number;
+  budget?: string | number;
+  clarificationDeadline?: string;
+  publicationDate?: string;
+  openingDate?: string;
+  closingDate?: string;
+  submissionDate?: string;
+  startStep?: number;
+  procurementType?: string;
+};
 
 export function CreateTenderProcurexPage() {
-  return <ProcurexStaticPage pageKey="create-tender" html={html} />;
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const [draft, setDraft] = useState<CreateTenderDraft>(() => createEmptyTenderDraft());
+  const [activeStep, setActiveStep] = useState(0);
+  const [statusMessage, setStatusMessage] = useState('');
+  const [validationMessage, setValidationMessage] = useState('');
+  const [newCategory, setNewCategory] = useState('');
+  const [newSupplier, setNewSupplier] = useState('');
+  const [newDeliverable, setNewDeliverable] = useState('');
+  const [newAttachment, setNewAttachment] = useState('');
+  const [planWarningFields, setPlanWarningFields] = useState<string[]>([]);
+
+  const selectedType = createTenderSetup.procurementTypes.find((type) => type.id === draft.procurementTypeId) ?? createTenderSetup.procurementTypes[0];
+  const requirementTemplates = createTenderSetup.requirementTemplates.filter((template) => template.typeId === draft.procurementTypeId);
+  const availableCategories = createTenderSetup.categories[draft.procurementTypeId];
+  const availableLicenses = createTenderSetup.regulatoryLicenses[draft.procurementTypeId];
+  const criteriaTotal = draft.evaluationCriteria.reduce((sum, criterion) => sum + Number(criterion.weight || 0), 0);
+  const canSaveDraft = hasMeaningfulDraft(draft);
+  const confirmationsComplete = Object.values(draft.confirmations).every(Boolean);
+  const contactVerified = (draft.contact.verifiedPhone && Boolean(draft.contact.phone)) || (draft.contact.verifiedEmail && Boolean(draft.contact.email));
+  const activeStepBadge =
+    activeStep === 0
+      ? contactVerified
+        ? 'Contact verified'
+        : 'Verify contact'
+      : activeStep === 1
+        ? 'Method valid'
+      : activeStep === 2
+        ? selectedType.label
+        : activeStep === 3
+          ? 'Evaluation criteria'
+            : activeStep === 4
+              ? 'Buyer preview'
+              : confirmationsComplete
+                ? 'Evaluation complete'
+                : 'Evaluation required';
+
+  useEffect(() => {
+    const bridge = readPlanningBridge();
+    if (!bridge) return;
+
+    setDraft((current) => {
+      const next = applyPlanningBridge(current, bridge);
+      return normalizeDraftForType(next, next.procurementTypeId);
+    });
+    if (bridge.startStep) setActiveStep(Math.min(Math.max(Number(bridge.startStep) - 1, 0), steps.length - 1));
+  }, []);
+
+  function patchDraft(patch: Partial<CreateTenderDraft>) {
+    setDraft((current) => ({ ...current, ...patch, updatedAt: new Date().toISOString() }));
+  }
+
+  function patchPlanAware(field: keyof CreateTenderDraft, value: CreateTenderDraft[keyof CreateTenderDraft]) {
+    if (draft.planFilledFields.includes(field as string) && !planWarningFields.includes(field as string)) {
+      setPlanWarningFields((current) => [...current, field as string]);
+    }
+    patchDraft({ [field]: value } as Partial<CreateTenderDraft>);
+  }
+
+  function patchContact(field: keyof CreateTenderDraft['contact'], value: string | boolean) {
+    patchDraft({ contact: { ...draft.contact, [field]: value } });
+  }
+
+  function changeType(typeId: CreateTenderProcurementTypeId) {
+    patchDraft(normalizeDraftForType({ ...draft, procurementTypeId: typeId }, typeId));
+  }
+
+  function addCategory() {
+    if (!newCategory || draft.categories.includes(newCategory)) return;
+    patchDraft({ categories: [...draft.categories, newCategory] });
+    setNewCategory('');
+  }
+
+  function removeCategory(category: string) {
+    patchDraft({ categories: draft.categories.filter((item) => item !== category) });
+  }
+
+  function addSupplier() {
+    const supplier = newSupplier.trim();
+    if (!supplier || draft.invitedSuppliers.includes(supplier)) return;
+    patchDraft({ invitedSuppliers: [...draft.invitedSuppliers, supplier] });
+    setNewSupplier('');
+  }
+
+  function addLineItem() {
+    const item: CreateTenderLineItem = { id: `item-${Date.now()}`, description: '', quantity: '', unit: '' };
+    patchDraft({ commercialItems: [...draft.commercialItems, item] });
+  }
+
+  function updateLineItem(itemId: string, patch: Partial<CreateTenderLineItem>) {
+    patchDraft({ commercialItems: draft.commercialItems.map((item) => (item.id === itemId ? { ...item, ...patch } : item)) });
+  }
+
+  function addTextListValue(value: string, key: 'deliverables' | 'attachments', reset: () => void) {
+    const text = value.trim();
+    if (!text) return;
+    patchDraft({ [key]: [...draft[key], text] } as Partial<CreateTenderDraft>);
+    reset();
+  }
+
+  function toggleLicense(license: string) {
+    const selectedLicenses = draft.selectedLicenses.includes(license)
+      ? draft.selectedLicenses.filter((item) => item !== license)
+      : [...draft.selectedLicenses, license];
+    patchDraft({ selectedLicenses });
+  }
+
+  function addCriterion(criterion: CreateTenderEvaluationCriterion) {
+    if (draft.evaluationCriteria.some((item) => item.id === criterion.id)) return;
+    patchDraft({ evaluationCriteria: [...draft.evaluationCriteria, { ...criterion }] });
+  }
+
+  function updateCriterion(criterionId: string, patch: Partial<CreateTenderEvaluationCriterion>) {
+    patchDraft({ evaluationCriteria: draft.evaluationCriteria.map((criterion) => (criterion.id === criterionId ? { ...criterion, ...patch } : criterion)) });
+  }
+
+  function removeCriterion(criterionId: string) {
+    patchDraft({ evaluationCriteria: draft.evaluationCriteria.filter((criterion) => criterion.id !== criterionId) });
+  }
+
+  function goToStep(index: number) {
+    setValidationMessage('');
+    setActiveStep(index);
+  }
+
+  function continueStep() {
+    const error = validateStep(activeStep, draft, criteriaTotal);
+    if (error) {
+      setValidationMessage(error);
+      return;
+    }
+    setValidationMessage('');
+    setActiveStep((current) => Math.min(current + 1, steps.length - 1));
+  }
+
+  function saveDraft() {
+    if (!canSaveDraft) {
+      setValidationMessage('Add a tender detail first, then you can save this draft.');
+      return;
+    }
+    const saved = { ...draft, status: 'DRAFT' as const, updatedAt: new Date().toISOString() };
+    setDraft(saved);
+    dispatch(saveCreateTenderDraft(saved));
+    setStatusMessage('Draft saved for this session.');
+    setValidationMessage('');
+  }
+
+  function submitTender() {
+    if (!confirmationsComplete) {
+      setValidationMessage('Please review and tick each publication confirmation before submitting.');
+      return;
+    }
+    const now = new Date().toISOString();
+    const submitted = { ...draft, status: 'SUBMITTED' as const, submittedAt: now, updatedAt: now };
+    const published = { ...submitted, status: 'PUBLISHED' as const, publishedAt: now };
+    dispatch(submitCreateTenderForEvaluation(submitted));
+    dispatch(publishSimulatedTender(published));
+    navigate('/procurement/my-tenders');
+  }
+
+  return (
+    <div className="procurement-app-page tender-wizard-page" data-create-tender-root>
+      <section className="journey-hero compact">
+        <div>
+          <span className="badge badge-info">Procurement design</span>
+          <h1>Create Tender Wizard</h1>
+          <p>Build a tender package that matches the procurement nature, then publish it directly to the marketplace.</p>
+        </div>
+        <div className="hero-action-stack">
+          <button className="btn btn-secondary" type="button" onClick={saveDraft} disabled={!canSaveDraft}>
+            Save Draft
+          </button>
+        </div>
+      </section>
+
+      <main className="wizard-shell" data-create-tender-wizard>
+        <nav className="wizard-step-progress" aria-label="Tender progress">
+          {steps.map((step, index) => {
+            const stateClass = index === activeStep ? 'active' : index < activeStep ? 'completed' : '';
+            return (
+              <button
+                key={step}
+                type="button"
+                className={`wizard-progress-step ${stateClass}`}
+                onClick={() => goToStep(index)}
+                aria-current={index === activeStep ? 'step' : undefined}
+              >
+                <strong>{String(index + 1).padStart(2, '0')}</strong>
+                <span>{step}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="wizard-workspace">
+          <section className="journey-panel active">
+            {statusMessage ? <div className="scope-empty success">{statusMessage}</div> : null}
+            {validationMessage ? <div className="scope-empty error">{validationMessage}</div> : null}
+            {planWarningFields.length ? <div className="planning-section planning-section-notice">Planning handoff fields were edited: {planWarningFields.join(', ')}.</div> : null}
+
+            <div className="panel-heading">
+              <div>
+                <span className="section-kicker">Step {activeStep + 1}</span>
+                <h2>{steps[activeStep]}</h2>
+              </div>
+              <span className="badge badge-info">{activeStepBadge}</span>
+            </div>
+
+            <div className="journey-panel-content">
+              {activeStep === 0 ? (
+                <BasicInfoStep draft={draft} onPatch={patchPlanAware} onContactPatch={patchContact} />
+              ) : null}
+              {activeStep === 1 ? (
+                <PlanningStep
+                  draft={draft}
+                  selectedType={selectedType}
+                  availableCategories={availableCategories}
+                  newCategory={newCategory}
+                  newSupplier={newSupplier}
+                  onTypeChange={changeType}
+                  onPatch={patchPlanAware}
+                  onNewCategory={setNewCategory}
+                  onAddCategory={addCategory}
+                  onRemoveCategory={removeCategory}
+                  onNewSupplier={setNewSupplier}
+                  onAddSupplier={addSupplier}
+                />
+              ) : null}
+              {activeStep === 2 ? (
+                <RequirementsStep
+                  draft={draft}
+                  templates={requirementTemplates}
+                  licenses={availableLicenses}
+                  newDeliverable={newDeliverable}
+                  newAttachment={newAttachment}
+                  onPatch={patchDraft}
+                  onToggleLicense={toggleLicense}
+                  onAddLineItem={addLineItem}
+                  onUpdateLineItem={updateLineItem}
+                  onNewDeliverable={setNewDeliverable}
+                  onNewAttachment={setNewAttachment}
+                  onAddDeliverable={() => addTextListValue(newDeliverable, 'deliverables', () => setNewDeliverable(''))}
+                  onAddAttachment={() => addTextListValue(newAttachment, 'attachments', () => setNewAttachment(''))}
+                />
+              ) : null}
+              {activeStep === 3 ? (
+                <EvaluationStep
+                  draft={draft}
+                  total={criteriaTotal}
+                  suggestions={createTenderSetup.evaluationCatalog.filter((criterion) => criterion.suggestedFor.includes(draft.procurementTypeId))}
+                  onAddCriterion={addCriterion}
+                  onUpdateCriterion={updateCriterion}
+                  onRemoveCriterion={removeCriterion}
+                />
+              ) : null}
+              {activeStep === 4 ? <ReviewStep draft={draft} selectedTypeLabel={selectedType.label} total={criteriaTotal} /> : null}
+              {activeStep === 5 ? <PublicationStep draft={draft} onPatch={patchDraft} confirmationsComplete={confirmationsComplete} /> : null}
+            </div>
+
+            <footer className="wizard-flow-controls" data-wizard-flow-controls>
+              <button className="btn btn-secondary" type="button" onClick={() => setActiveStep((current) => Math.max(current - 1, 0))} disabled={activeStep === 0}>
+                Back
+              </button>
+              <div className="wizard-flow-progress">
+                <strong>Step {activeStep + 1} of {steps.length}</strong>
+                <span>{steps[activeStep]}</span>
+              </div>
+              {activeStep < steps.length - 1 ? (
+                <button className="btn btn-primary" type="button" onClick={continueStep}>
+                  Continue
+                </button>
+              ) : (
+                <button className="btn btn-primary" type="button" onClick={submitTender} disabled={!confirmationsComplete}>
+                  Submit Tender for Evaluation
+                </button>
+              )}
+            </footer>
+          </section>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function BasicInfoStep({
+  draft,
+  onPatch,
+  onContactPatch
+}: {
+  draft: CreateTenderDraft;
+  onPatch: (field: keyof CreateTenderDraft, value: CreateTenderDraft[keyof CreateTenderDraft]) => void;
+  onContactPatch: (field: keyof CreateTenderDraft['contact'], value: string | boolean) => void;
+}) {
+  const phoneStatus = draft.contact.verifiedPhone && draft.contact.phone ? 'Phone verified' : draft.contact.phone ? 'Phone ready to verify' : 'Enter a valid phone number';
+  const emailStatus = draft.contact.verifiedEmail && draft.contact.email ? 'Email verified' : draft.contact.email ? 'Email ready to verify' : 'Enter a valid email address';
+  const contactVerified = (draft.contact.verifiedPhone && Boolean(draft.contact.phone)) || (draft.contact.verifiedEmail && Boolean(draft.contact.email));
+
+  return (
+    <div className="basic-information-prototype wizard-step-surface">
+      <section className="planning-section wizard-section">
+        <div className="scope-list-heading">
+          <div>
+            <h3>Contact and delivery</h3>
+            <span className="form-hint">Set the submission contact and delivery point visible to suppliers.</span>
+          </div>
+          <span className={`status-badge ${contactVerified ? 'is-success' : 'is-warning'}`}>{contactVerified ? 'Verified' : 'Action needed'}</span>
+        </div>
+        <div className="contact-detail-grid">
+          <div className="form-group">
+            <label className="form-label" htmlFor="create-tender-delivery-point">
+              Delivery Point
+            </label>
+            <input
+              id="create-tender-delivery-point"
+              className="form-input"
+              aria-label="Delivery Point"
+              placeholder="Enter delivery point or project location"
+              value={draft.location}
+              onChange={(event) => onPatch('location', event.target.value)}
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label" htmlFor="create-tender-contact-name">
+              Contact person or department
+            </label>
+            <input
+              id="create-tender-contact-name"
+              className="form-input"
+              aria-label="Contact person or department"
+              placeholder="Enter contact person or department"
+              value={draft.contact.name}
+              onChange={(event) => onContactPatch('name', event.target.value)}
+            />
+          </div>
+          <div className="form-group contact-verify-field">
+            <label className="form-label" htmlFor="create-tender-contact-phone">
+              Contact phone number
+            </label>
+            <div className="contact-verify-row">
+              <input
+                id="create-tender-contact-phone"
+                className="form-input"
+                aria-label="Contact phone number"
+                placeholder="+255 700 000 000"
+                value={draft.contact.phone}
+                onChange={(event) => onContactPatch('phone', event.target.value)}
+              />
+              <button className="btn btn-secondary" type="button" aria-label="Verify Phone" onClick={() => onContactPatch('verifiedPhone', true)} disabled={!draft.contact.phone}>
+                Verify
+              </button>
+            </div>
+            <span className={`form-hint ${draft.contact.verifiedPhone && draft.contact.phone ? 'is-verified' : ''}`}>{phoneStatus}</span>
+          </div>
+          <div className="form-group contact-verify-field">
+            <label className="form-label" htmlFor="create-tender-contact-email">
+              Contact email
+            </label>
+            <div className="contact-verify-row">
+              <input
+                id="create-tender-contact-email"
+                className="form-input"
+                aria-label="Contact email"
+                type="email"
+                placeholder="procurement@example.go.tz"
+                value={draft.contact.email}
+                onChange={(event) => onContactPatch('email', event.target.value)}
+              />
+              <button className="btn btn-secondary" type="button" aria-label="Verify Email" onClick={() => onContactPatch('verifiedEmail', true)} disabled={!draft.contact.email}>
+                Verify
+              </button>
+            </div>
+            <span className={`form-hint ${draft.contact.verifiedEmail && draft.contact.email ? 'is-verified' : ''}`}>{emailStatus}</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="planning-section wizard-section">
+        <div className="scope-list-heading">
+          <div>
+            <h3>Tender details</h3>
+            <span className="form-hint">Enter the tender title and key dates before preparing documents.</span>
+          </div>
+        </div>
+        <div className="form-group">
+          <div className="form-group">
+            <label className="form-label" htmlFor="create-tender-title">
+              Tender title
+            </label>
+            <input
+              id="create-tender-title"
+              className="form-input"
+              aria-label="Tender title"
+              placeholder="Example: Supply of medical equipment for regional clinics"
+              value={draft.title}
+              onChange={(event) => onPatch('title', event.target.value)}
+            />
+          </div>
+          <div className="form-grid two">
+            <div className="form-group">
+              <label className="form-label" htmlFor="create-tender-funding-source">
+                Funding source
+              </label>
+              <select
+                id="create-tender-funding-source"
+                className="form-input"
+                aria-label="Funding source"
+                value={draft.fundingSource}
+                onChange={(event) => onPatch('fundingSource', event.target.value)}
+              >
+                <option value="">Select funding source</option>
+                {createTenderSetup.fundingSources.map((source) => (
+                  <option key={source} value={source}>
+                    {source}
+                  </option>
+                ))}
+              </select>
+              {draft.fundingSource === 'Other' ? (
+                <input
+                  className="form-input"
+                  aria-label="Custom funding source"
+                  placeholder="Type funding source"
+                  value={draft.customFundingSource}
+                  onChange={(event) => onPatch('customFundingSource', event.target.value)}
+                />
+              ) : null}
+            </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="create-tender-submission-deadline">
+                Submission deadline
+              </label>
+              <input
+                id="create-tender-submission-deadline"
+                className="form-input"
+                aria-label="Submission deadline"
+                type="date"
+                value={draft.submissionDate}
+                onChange={(event) => onPatch('submissionDate', event.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="create-tender-opening-date">
+                Opening date
+              </label>
+              <input
+                id="create-tender-opening-date"
+                className="form-input"
+                aria-label="Opening date"
+                type="date"
+                value={draft.openingDate}
+                onChange={(event) => onPatch('openingDate', event.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function PlanningStep({
+  draft,
+  selectedType,
+  availableCategories,
+  newCategory,
+  newSupplier,
+  onTypeChange,
+  onPatch,
+  onNewCategory,
+  onAddCategory,
+  onRemoveCategory,
+  onNewSupplier,
+  onAddSupplier
+}: {
+  draft: CreateTenderDraft;
+  selectedType: { id: CreateTenderProcurementTypeId; label: string; description: string };
+  availableCategories: string[];
+  newCategory: string;
+  newSupplier: string;
+  onTypeChange: (typeId: CreateTenderProcurementTypeId) => void;
+  onPatch: (field: keyof CreateTenderDraft, value: CreateTenderDraft[keyof CreateTenderDraft]) => void;
+  onNewCategory: (value: string) => void;
+  onAddCategory: () => void;
+  onRemoveCategory: (category: string) => void;
+  onNewSupplier: (value: string) => void;
+  onAddSupplier: () => void;
+}) {
+  return (
+    <div className="wizard-step-surface planning-step-surface">
+      {draft.planFilledFields.length ? <div className="planning-section planning-section-notice">Planning-autofill notice: selected plan values pre-filled this tender draft.</div> : null}
+      <section className="planning-section wizard-section">
+        <div className="scope-list-heading">
+          <div>
+            <h3>Procurement route</h3>
+            <span className="form-hint">Choose the buying route and category taxonomy for this tender package.</span>
+          </div>
+          <span className="status-badge">{selectedType.label}</span>
+        </div>
+        <div className="marketplace-category-grid">
+          {createTenderSetup.procurementTypes.map((type) => (
+            <button key={type.id} className={type.id === draft.procurementTypeId ? 'marketplace-category-card active' : 'marketplace-category-card'} type="button" onClick={() => onTypeChange(type.id)}>
+              <strong>{type.label}</strong>
+              <span>{type.description}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+      <section className="planning-section wizard-section planning-controls-panel">
+        <div className="scope-list-heading">
+          <div>
+            <h3>Category and method</h3>
+            <span className="form-hint">Selected type: {selectedType.label}</span>
+          </div>
+        </div>
+        <div className="planning-control-grid">
+          <label>
+            Category
+            <select value={newCategory} onChange={(event) => onNewCategory(event.target.value)}>
+              <option value="">Select category</option>
+              {availableCategories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button className="btn btn-secondary" type="button" onClick={onAddCategory}>
+            Add Category
+          </button>
+          <label>
+            Procurement method
+            <select value={draft.method} onChange={(event) => onPatch('method', event.target.value)}>
+              {createTenderSetup.procurementMethods.map((method) => (
+                <option key={method} value={method}>
+                  {method}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="market-row category-chip-row">
+          {draft.categories.length ? (
+            draft.categories.map((category) => (
+              <button key={category} className="status-badge removable" type="button" onClick={() => onRemoveCategory(category)}>
+                {category} x
+              </button>
+            ))
+          ) : (
+            <span className="form-hint">No categories added yet.</span>
+          )}
+        </div>
+      </section>
+
+      {draft.method === 'Invited Tender' ? (
+        <section className="planning-section wizard-section">
+          <div className="scope-list-heading">
+            <div>
+              <h3>Invited suppliers</h3>
+              <span className="form-hint">Add suppliers eligible for this invitation-only package.</span>
+            </div>
+          </div>
+          <div className="planning-control-grid">
+            <label>
+              Supplier name
+              <input placeholder="Search or type supplier name" value={newSupplier} onChange={(event) => onNewSupplier(event.target.value)} />
+            </label>
+            <button className="btn btn-secondary" type="button" onClick={onAddSupplier}>
+              Add Supplier
+            </button>
+          </div>
+          <ul className="wizard-compact-list">
+            {draft.invitedSuppliers.map((supplier) => (
+              <li key={supplier}>{supplier}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+function RequirementsStep({
+  draft,
+  templates,
+  licenses,
+  newDeliverable,
+  newAttachment,
+  onPatch,
+  onToggleLicense,
+  onAddLineItem,
+  onUpdateLineItem,
+  onNewDeliverable,
+  onNewAttachment,
+  onAddDeliverable,
+  onAddAttachment
+}: {
+  draft: CreateTenderDraft;
+  templates: CreateTenderRequirementTemplate[];
+  licenses: string[];
+  newDeliverable: string;
+  newAttachment: string;
+  onPatch: (patch: Partial<CreateTenderDraft>) => void;
+  onToggleLicense: (license: string) => void;
+  onAddLineItem: () => void;
+  onUpdateLineItem: (itemId: string, patch: Partial<CreateTenderLineItem>) => void;
+  onNewDeliverable: (value: string) => void;
+  onNewAttachment: (value: string) => void;
+  onAddDeliverable: () => void;
+  onAddAttachment: () => void;
+}) {
+  return (
+    <div className="wizard-step-surface requirements-step-surface">
+      {templates.map((template) => (
+        <section key={template.id} className="planning-section wizard-section">
+          <div className="scope-list-heading">
+            <div>
+              <h3>{template.title}</h3>
+              <span className="form-hint">{template.description}</span>
+            </div>
+          </div>
+          <div className="requirement-control-grid">
+            {template.controls.map((control) => (
+              <label key={control.id}>
+                {control.label}
+                {control.kind === 'select' ? (
+                  <select value={draft.requirements[control.id] ?? ''} onChange={(event) => onPatch({ requirements: { ...draft.requirements, [control.id]: event.target.value } })}>
+                    <option value="">Select</option>
+                    {control.options?.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <textarea
+                    placeholder={`Describe ${control.label.toLowerCase()}`}
+                    value={draft.requirements[control.id] ?? ''}
+                    onChange={(event) => onPatch({ requirements: { ...draft.requirements, [control.id]: event.target.value } })}
+                  />
+                )}
+              </label>
+            ))}
+          </div>
+        </section>
+      ))}
+
+      <section className="planning-section wizard-section">
+        <div className="scope-list-heading">
+          <div>
+            <h3>Regulatory licenses</h3>
+            <span className="form-hint">Select mandatory licenses and declarations for supplier eligibility.</span>
+          </div>
+          <span className="status-badge">{draft.selectedLicenses.length} selected</span>
+        </div>
+        <div className="license-check-grid">
+          {licenses.map((license) => (
+            <label key={license}>
+              <input type="checkbox" checked={draft.selectedLicenses.includes(license)} onChange={() => onToggleLicense(license)} /> {license}
+            </label>
+          ))}
+        </div>
+      </section>
+
+      <section className="planning-section wizard-section">
+        <div className="scope-list-heading">
+          <div>
+            <h3>Commercial items</h3>
+            <span className="form-hint">Build line items that suppliers will price against.</span>
+          </div>
+          <button className="btn btn-secondary" type="button" onClick={onAddLineItem}>
+            Add Commercial Item
+          </button>
+        </div>
+        <div className="commercial-item-list">
+          {draft.commercialItems.length ? (
+            draft.commercialItems.map((item) => (
+              <div key={item.id} className="procurement-tender-row commercial-item-row">
+                <input aria-label="Item description" placeholder="Item description" value={item.description} onChange={(event) => onUpdateLineItem(item.id, { description: event.target.value })} />
+                <input aria-label="Item quantity" placeholder="Qty" value={item.quantity} onChange={(event) => onUpdateLineItem(item.id, { quantity: event.target.value })} />
+                <input aria-label="Item unit" placeholder="Unit" value={item.unit} onChange={(event) => onUpdateLineItem(item.id, { unit: event.target.value })} />
+              </div>
+            ))
+          ) : (
+            <p>No commercial items added yet.</p>
+          )}
+        </div>
+      </section>
+
+      <section className="planning-section wizard-section">
+        <div className="scope-list-heading">
+          <div>
+            <h3>Deliverables and attachments</h3>
+            <span className="form-hint">Capture outputs and document requirements suppliers must include.</span>
+          </div>
+        </div>
+        <div className="deliverable-attachment-grid">
+          <div>
+            <div className="market-row">
+              <input aria-label="Deliverable" placeholder="Example: Installation report" value={newDeliverable} onChange={(event) => onNewDeliverable(event.target.value)} />
+              <button className="btn btn-secondary" type="button" onClick={onAddDeliverable}>
+                Add Deliverable
+              </button>
+            </div>
+            <ul className="wizard-compact-list">{draft.deliverables.map((deliverable) => <li key={deliverable}>{deliverable}</li>)}</ul>
+          </div>
+          <div>
+            <div className="market-row">
+              <input aria-label="Attachment" placeholder="Example: Manufacturer authorization" value={newAttachment} onChange={(event) => onNewAttachment(event.target.value)} />
+              <button className="btn btn-secondary" type="button" onClick={onAddAttachment}>
+                Add Attachment
+              </button>
+            </div>
+            <ul className="wizard-compact-list">{draft.attachments.map((attachment) => <li key={attachment}>{attachment}</li>)}</ul>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function EvaluationStep({
+  draft,
+  total,
+  suggestions,
+  onAddCriterion,
+  onUpdateCriterion,
+  onRemoveCriterion
+}: {
+  draft: CreateTenderDraft;
+  total: number;
+  suggestions: CreateTenderEvaluationCriterion[];
+  onAddCriterion: (criterion: CreateTenderEvaluationCriterion) => void;
+  onUpdateCriterion: (criterionId: string, patch: Partial<CreateTenderEvaluationCriterion>) => void;
+  onRemoveCriterion: (criterionId: string) => void;
+}) {
+  return (
+    <div className="wizard-step-surface evaluation-step-surface">
+      <section className="planning-section wizard-section evaluation-balance-panel">
+        <div>
+          <span className={`status-badge ${total === 100 ? 'is-success' : 'is-warning'}`}>{total === 100 ? 'Balanced total: 100%' : `Unbalanced total: ${total}%`}</span>
+          <h3>Evaluation weighting</h3>
+          <p>Weights must total 100% before review.</p>
+        </div>
+        <div className="evaluation-score-meter" aria-label={`Evaluation criteria total ${total}%`}>
+          <strong>{total}%</strong>
+          <span>Score total</span>
+        </div>
+      </section>
+      <section className="planning-section wizard-section">
+        <div className="scope-list-heading">
+          <div>
+            <h3>Suggested criteria</h3>
+            <span className="form-hint">Add criteria from the catalog, then tune weights and scoring notes.</span>
+          </div>
+        </div>
+        <div className="marketplace-category-grid">
+          {suggestions.map((criterion) => (
+            <button key={criterion.id} className="marketplace-category-card" type="button" onClick={() => onAddCriterion(criterion)}>
+              <strong>{criterion.label}</strong>
+              <span>{criterion.notes}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+      <section className="planning-section wizard-section">
+        <div className="scope-list-heading">
+          <div>
+            <h3>Evaluation criteria</h3>
+            <span className="form-hint">Edit labels, weights, and subcriteria used during bid scoring.</span>
+          </div>
+        </div>
+        <div className="criteria-row-list">
+          {draft.evaluationCriteria.map((criterion) => (
+            <div key={criterion.id} className="procurement-tender-row">
+              <label>
+                Criterion
+                <input placeholder="Criterion name" value={criterion.label} onChange={(event) => onUpdateCriterion(criterion.id, { label: event.target.value })} />
+              </label>
+              <label>
+                Weight
+                <input type="number" placeholder="%" value={criterion.weight} onChange={(event) => onUpdateCriterion(criterion.id, { weight: Number(event.target.value) })} />
+              </label>
+              <label>
+                Subcriteria / scoring notes
+                <textarea placeholder="Add scoring notes or subcriteria" value={criterion.notes} onChange={(event) => onUpdateCriterion(criterion.id, { notes: event.target.value })} />
+              </label>
+              <button className="btn btn-secondary" type="button" onClick={() => onRemoveCriterion(criterion.id)}>
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function ReviewStep({ draft, selectedTypeLabel, total }: { draft: CreateTenderDraft; selectedTypeLabel: string; total: number }) {
+  return (
+    <div className="wizard-step-surface review-step-surface">
+      <section className="planning-section wizard-section review-hero-panel">
+        <div>
+          <span className="section-kicker">Tender package</span>
+          <h3>{draft.title || 'Untitled tender'}</h3>
+          <p>{draft.description || `${selectedTypeLabel} tender using ${draft.method || 'no method selected'}.`}</p>
+        </div>
+        <span className={`status-badge ${total === 100 ? 'is-success' : 'is-warning'}`}>Evaluation criteria ({total}%)</span>
+        <dl>
+          <dt>Reference</dt>
+          <dd>{draft.reference}</dd>
+          <dt>Procuring entity</dt>
+          <dd>{draft.procuringEntity || 'Not set'}</dd>
+          <dt>Funding source</dt>
+          <dd>{draft.fundingSource === 'Other' ? draft.customFundingSource || 'Other' : draft.fundingSource || 'Not set'}</dd>
+          <dt>Estimated budget</dt>
+          <dd>{draft.estimatedBudget ? `${draft.currency} ${draft.estimatedBudget}` : 'Not set'}</dd>
+          <dt>Location</dt>
+          <dd>{draft.location || 'Not set'}</dd>
+          <dt>Submission deadline</dt>
+          <dd>{draft.submissionDate || 'Not set'}</dd>
+          <dt>Opening date</dt>
+          <dd>{draft.openingDate || 'Not set'}</dd>
+          <dt>Clarification deadline</dt>
+          <dd>{draft.clarificationDeadline || 'Not set'}</dd>
+          <dt>Publication date</dt>
+          <dd>{draft.publicationDate || 'Not set'}</dd>
+          <dt>Contact</dt>
+          <dd>{[draft.contact.name, draft.contact.role, draft.contact.email || draft.contact.phone].filter(Boolean).join(' / ') || 'Not set'}</dd>
+        </dl>
+      </section>
+      <SummaryList title="Categories" items={draft.categories} />
+      <SummaryList title="Requirements" items={Object.entries(draft.requirements).filter(([, value]) => Boolean(value)).map(([key, value]) => `${key}: ${value}`)} />
+      <SummaryList title="Commercial items" items={draft.commercialItems.map((item) => `${item.description || 'Item'} - ${item.quantity || 'Qty'} ${item.unit || ''}`)} />
+      <SummaryList title="Deliverables" items={draft.deliverables} />
+      <SummaryList title="Attachments" items={draft.attachments} />
+      <SummaryList title="Milestones" items={draft.milestones.map((milestone) => `${milestone.label}: ${milestone.dueDate || 'date pending'}`)} />
+      <SummaryList title={`Evaluation criteria (${total}%)`} items={draft.evaluationCriteria.map((criterion) => `${criterion.label} - ${criterion.weight}%`)} />
+    </div>
+  );
+}
+
+function PublicationStep({
+  draft,
+  onPatch,
+  confirmationsComplete
+}: {
+  draft: CreateTenderDraft;
+  onPatch: (patch: Partial<CreateTenderDraft>) => void;
+  confirmationsComplete: boolean;
+}) {
+  return (
+    <div className="wizard-step-surface publication-step-surface">
+      <section className="planning-section wizard-section publication-readiness-panel">
+        <div>
+          <h3>System evaluation preview</h3>
+          <p>Ready for simulated rules check. Publication will create a frontend tender record visible in My Tenders and Marketplace.</p>
+        </div>
+        <span className={`status-badge ${confirmationsComplete ? 'is-success' : 'is-warning'}`}>{confirmationsComplete ? 'Ready to submit' : 'Confirmations required'}</span>
+      </section>
+      <section className="planning-section wizard-section">
+        <div className="scope-list-heading">
+          <div>
+            <h3>Publication confirmations</h3>
+            <span className="form-hint">Confirm the package before simulated system evaluation.</span>
+          </div>
+        </div>
+        <div className="confirmation-check-list">
+          {Object.entries(confirmationLabels).map(([id, label]) => (
+            <label key={id}>
+              <input
+                type="checkbox"
+                checked={draft.confirmations[id as CreateTenderConfirmationId]}
+                onChange={(event) => onPatch({ confirmations: { ...draft.confirmations, [id]: event.target.checked } })}
+              />{' '}
+              {label}
+            </label>
+          ))}
+        </div>
+      </section>
+      <div className="submit-strip">
+        <span className="status-badge">{confirmationsComplete ? 'Ready to submit' : 'Confirmations required'}</span>
+      </div>
+    </div>
+  );
+}
+
+function SummaryList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <section className="planning-section wizard-section summary-list-section">
+      <h3>{title}</h3>
+      {items.length ? (
+        <ul className="wizard-compact-list">
+          {items.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      ) : (
+        <p>Not provided yet.</p>
+      )}
+    </section>
+  );
+}
+
+function normalizeDraftForType(draft: CreateTenderDraft, typeId: CreateTenderProcurementTypeId): CreateTenderDraft {
+  return {
+    ...draft,
+    procurementTypeId: typeId,
+    categories: draft.categories.filter((category) => createTenderSetup.categories[typeId].includes(category)),
+    selectedLicenses: draft.selectedLicenses.filter((license) => createTenderSetup.regulatoryLicenses[typeId].includes(license)),
+    evaluationCriteria: getSuggestedCriteria(typeId),
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function hasMeaningfulDraft(draft: CreateTenderDraft) {
+  return Boolean(
+    draft.title ||
+      draft.description ||
+      draft.procuringEntity ||
+      draft.fundingSource ||
+      draft.estimatedBudget ||
+      draft.contact.email ||
+      draft.contact.phone ||
+      draft.contact.name ||
+      draft.submissionDate ||
+      draft.categories.length ||
+      Object.values(draft.requirements).some(Boolean) ||
+      draft.deliverables.length
+  );
+}
+
+function validateStep(step: number, draft: CreateTenderDraft, total: number) {
+  if (step === 0 && (!draft.title.trim() || !draft.fundingSource || !draft.submissionDate || !draft.openingDate || (!draft.contact.email.trim() && !draft.contact.phone.trim()))) {
+    return 'Please add the title, funding source, key dates, and one contact option before continuing.';
+  }
+  if (step === 1 && (!draft.procurementTypeId || !draft.categories.length || !draft.method)) return 'Please choose a procurement type, method, and at least one category before continuing.';
+  if (step === 1 && draft.method === 'Invited Tender' && draft.invitedSuppliers.length === 0) return 'Please add at least one supplier for this invited tender.';
+  if (step === 3 && total !== 100) return 'Please adjust the evaluation weights so they add up to 100% before review.';
+  return '';
+}
+
+function readPlanningBridge(): PlanningBridge | null {
+  if (typeof window === 'undefined') return null;
+  const raw = window.localStorage.getItem('procurex.planning.selectedTenderPlan');
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as PlanningBridge;
+  } catch {
+    return null;
+  }
+}
+
+function applyPlanningBridge(draft: CreateTenderDraft, bridge: PlanningBridge): CreateTenderDraft {
+  const planFilledFields: string[] = [];
+  const procurementTypeId = parseProcurementType(bridge.procurementType) ?? draft.procurementTypeId;
+  const categories = [...new Set([...(bridge.categories ?? []), bridge.category].filter(Boolean) as string[])].filter((category) => createTenderSetup.categories[procurementTypeId].includes(category));
+  const next: CreateTenderDraft = { ...draft, procurementTypeId };
+
+  if (bridge.title) {
+    next.title = bridge.title;
+    planFilledFields.push('title');
+  }
+  if (bridge.description || bridge.objective) {
+    next.description = bridge.description || bridge.objective || '';
+    planFilledFields.push('description');
+  }
+  if (bridge.procuringEntity || bridge.entity || bridge.buyer) {
+    next.procuringEntity = bridge.procuringEntity || bridge.entity || bridge.buyer || '';
+    planFilledFields.push('procuringEntity');
+  }
+  if (bridge.location) {
+    next.location = bridge.location;
+    planFilledFields.push('location');
+  }
+  if (bridge.fundingSource) {
+    next.fundingSource = bridge.fundingSource;
+    planFilledFields.push('fundingSource');
+  }
+  if (bridge.currency) {
+    next.currency = bridge.currency;
+    planFilledFields.push('currency');
+  }
+  if (bridge.estimatedBudget || bridge.budget) {
+    next.estimatedBudget = String(bridge.estimatedBudget || bridge.budget || '');
+    planFilledFields.push('estimatedBudget');
+  }
+  if (bridge.clarificationDeadline) {
+    next.clarificationDeadline = bridge.clarificationDeadline;
+    planFilledFields.push('clarificationDeadline');
+  }
+  if (bridge.publicationDate) {
+    next.publicationDate = bridge.publicationDate;
+    planFilledFields.push('publicationDate');
+  }
+  if (bridge.method) {
+    next.method = bridge.method;
+    planFilledFields.push('method');
+  }
+  if (bridge.openingDate) {
+    next.openingDate = bridge.openingDate;
+    planFilledFields.push('openingDate');
+  }
+  if (bridge.closingDate || bridge.submissionDate) {
+    next.submissionDate = bridge.closingDate || bridge.submissionDate || '';
+    planFilledFields.push('submissionDate');
+  }
+  if (categories.length) {
+    next.categories = categories;
+    planFilledFields.push('categories');
+  }
+
+  return { ...next, planFilledFields, updatedAt: new Date().toISOString() };
+}
+
+function parseProcurementType(value?: string): CreateTenderProcurementTypeId | null {
+  const normalized = value?.toLowerCase();
+  if (normalized === 'goods' || normalized === 'works' || normalized === 'services' || normalized === 'consultancy') return normalized;
+  if (normalized === 'service') return 'services';
+  return null;
 }

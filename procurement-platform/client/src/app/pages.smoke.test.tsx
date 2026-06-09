@@ -6,7 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import '@/i18n';
 import { WelcomePage } from '@/features/public/pages/PublicPages';
-import { MarketplacePage } from '@/features/procurement/pages/ProcurementPages';
+import { CreateTenderPage, MarketplacePage } from '@/features/procurement/pages/ProcurementPages';
 import { AdminDashboardPage } from '@/features/admin/pages/AdminPages';
 import { store } from './store';
 import { procurexTheme } from '@/styles/mui-theme';
@@ -30,6 +30,11 @@ describe('page smoke tests', () => {
   it('renders marketplace data', () => {
     renderPage(<MarketplacePage />);
     expect(screen.getByRole('heading', { name: 'Marketplace' })).toBeInTheDocument();
+  });
+
+  it('renders the create tender React wizard', () => {
+    renderPage(<CreateTenderPage />);
+    expect(screen.getByRole('heading', { name: 'Create Tender Wizard' })).toBeInTheDocument();
   });
 
   it('renders the admin dashboard', () => {
