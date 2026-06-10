@@ -2183,6 +2183,7 @@ body:not([data-page="iam-verification"]) .tender-wizard-page .wizard-rail {
   --wizard-border: #e0e0e0;
   --wizard-border-soft: #f0f0f0;
   --wizard-soft: #f5f5f7;
+  --wizard-content-inset: clamp(20px, 2vw, 28px);
   display: grid;
   gap: 20px;
   padding: 18px 26px 32px;
@@ -2375,17 +2376,40 @@ body:not([data-page="iam-verification"]) .tender-wizard-page .wizard-rail {
 }
 
 .tender-wizard-page .panel-heading {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  column-gap: 16px;
+  row-gap: 12px;
   margin-bottom: 18px;
-  padding-bottom: 14px;
+  padding: var(--wizard-content-inset) var(--wizard-content-inset) 16px;
   border-bottom: 1px solid var(--wizard-border-soft);
 }
 
+.tender-wizard-page .panel-heading > div,
+.tender-wizard-page .scope-list-heading > div {
+  min-width: 0;
+}
+
+.tender-wizard-page .panel-heading > div {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+}
+
+.tender-wizard-page .panel-heading > .badge,
+.tender-wizard-page .panel-heading > .status-badge,
+.tender-wizard-page .scope-list-heading > .badge,
+.tender-wizard-page .scope-list-heading > .status-badge,
+.tender-wizard-page .scope-list-heading > .btn {
+  justify-self: end;
+  align-self: center;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
 .tender-wizard-page .panel-heading h2 {
-  margin: 8px 0 0;
+  margin: 0;
   color: var(--wizard-ink);
   font-size: 24px;
   line-height: 1.2;
@@ -2409,7 +2433,7 @@ body:not([data-page="iam-verification"]) .tender-wizard-page .wizard-rail {
 .tender-wizard-page .planning-section {
   display: grid;
   gap: 14px;
-  padding: 18px;
+  padding: var(--wizard-content-inset);
   border: 1px solid var(--wizard-border);
   border-radius: 8px;
   background: #ffffff;
@@ -2442,6 +2466,14 @@ body:not([data-page="iam-verification"]) .tender-wizard-page .wizard-rail {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+}
+
+.tender-wizard-page .scope-list-heading {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  column-gap: 16px;
+  row-gap: 10px;
 }
 
 .tender-wizard-page .scope-list-heading h3,
@@ -2549,7 +2581,7 @@ body:not([data-page="iam-verification"]) .tender-wizard-page .wizard-rail {
 .tender-wizard-page .market-row,
 .tender-wizard-page .planning-control-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(132px, max-content);
   gap: 10px;
   align-items: end;
 }
@@ -2563,7 +2595,7 @@ body:not([data-page="iam-verification"]) .tender-wizard-page .wizard-rail {
 }
 
 .tender-wizard-page .planning-control-grid {
-  grid-template-columns: minmax(220px, 1fr) auto minmax(220px, 1fr);
+  grid-template-columns: minmax(220px, 1fr) minmax(132px, max-content) minmax(220px, 1fr);
 }
 
 .tender-wizard-page .marketplace-category-grid {
@@ -2685,6 +2717,152 @@ body:not([data-page="iam-verification"]) .tender-wizard-page .wizard-rail {
 
 .tender-wizard-page .commercial-item-row {
   grid-template-columns: minmax(220px, 1fr) minmax(120px, 0.35fr) minmax(120px, 0.35fr);
+}
+
+.tender-wizard-page .goods-requirements-step {
+  gap: 18px;
+}
+
+.tender-wizard-page .goods-requirements-hero,
+.tender-wizard-page .goods-requirements-section {
+  background: #f2f5f7;
+}
+
+.tender-wizard-page .goods-requirements-hero {
+  min-height: 132px;
+  align-content: center;
+}
+
+.tender-wizard-page .goods-requirements-hero .scope-list-heading {
+  align-items: center;
+}
+
+.tender-wizard-page .goods-requirements-hero h3 {
+  margin-top: 14px;
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.tender-wizard-page .goods-requirements-section {
+  gap: 18px;
+}
+
+.tender-wizard-page .requirement-table-wrap {
+  min-width: 0;
+  overflow-x: auto;
+  border: 1px solid var(--wizard-border);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.tender-wizard-page .requirement-table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+
+.tender-wizard-page .requirement-table th,
+.tender-wizard-page .requirement-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--wizard-border);
+  color: var(--wizard-ink);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.tender-wizard-page .requirement-table th {
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.tender-wizard-page .requirement-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tender-wizard-page .goods-quantity-table td:first-child,
+.tender-wizard-page .goods-quantity-table th:first-child {
+  width: 96px;
+}
+
+.tender-wizard-page .goods-quantity-table td:nth-child(4),
+.tender-wizard-page .goods-quantity-table th:nth-child(4),
+.tender-wizard-page .goods-quantity-table td:nth-child(5),
+.tender-wizard-page .goods-quantity-table th:nth-child(5),
+.tender-wizard-page .goods-quantity-table td:nth-child(6),
+.tender-wizard-page .goods-quantity-table th:nth-child(6) {
+  width: 150px;
+}
+
+.tender-wizard-page .goods-quantity-table input {
+  min-height: 42px;
+}
+
+.tender-wizard-page .goods-table-empty {
+  margin: 0;
+  border-style: dashed;
+  background: #ffffff;
+  font-size: 20px;
+  text-align: center;
+}
+
+.tender-wizard-page .requirement-table-actions,
+.tender-wizard-page .goods-table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.tender-wizard-page .goods-import-control {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.tender-wizard-page .goods-import-control input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.tender-wizard-page .product-spec-builder,
+.tender-wizard-page .product-spec-item-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.tender-wizard-page .product-spec-item-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--wizard-border);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.tender-wizard-page .product-spec-item-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.tender-wizard-page .product-spec-item-header h4 {
+  margin: 3px 0 4px;
+  color: var(--wizard-ink);
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.tender-wizard-page .product-spec-item-header p {
+  margin: 0;
+  color: var(--wizard-text);
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .tender-wizard-page dl {
@@ -2957,11 +3135,47 @@ body:not([data-page="iam-verification"]) .tender-wizard-page .wizard-rail {
   .tender-wizard-page .panel-heading,
   .tender-wizard-page .scope-list-heading {
     align-items: flex-start;
-    flex-direction: column;
+    grid-template-columns: 1fr;
+  }
+
+  .tender-wizard-page .panel-heading > .badge,
+  .tender-wizard-page .panel-heading > .status-badge,
+  .tender-wizard-page .scope-list-heading > .badge,
+  .tender-wizard-page .scope-list-heading > .status-badge,
+  .tender-wizard-page .scope-list-heading > .btn {
+    justify-self: start;
   }
 
   .tender-wizard-page .planning-section {
-    padding: 16px;
+    padding: var(--wizard-content-inset);
+  }
+
+  .tender-wizard-page .goods-requirements-hero {
+    min-height: auto;
+  }
+
+  .tender-wizard-page .goods-requirements-hero h3 {
+    font-size: 21px;
+  }
+
+  .tender-wizard-page .goods-table-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .tender-wizard-page .goods-table-actions .btn,
+  .tender-wizard-page .goods-import-control {
+    width: 100%;
+  }
+
+  .tender-wizard-page .requirement-table {
+    min-width: 720px;
+  }
+
+  .tender-wizard-page .contact-verify-row .btn,
+  .tender-wizard-page .market-row .btn,
+  .tender-wizard-page .planning-control-grid .btn {
+    width: 100%;
   }
 
   .tender-wizard-page .wizard-flow-controls {

@@ -20,6 +20,62 @@ const confirmationLabels: Record<CreateTenderConfirmationId, string> = {
   publication: 'This tender can be submitted for system evaluation and publication.'
 };
 
+const goodsSpecificationKey = (itemId: string) => `goods_spec_${itemId}`;
+
+function getLineItemTotal(item: CreateTenderLineItem) {
+  const quantity = Number(item.quantity);
+  const unitPrice = Number(item.unitPrice);
+  if (!Number.isFinite(quantity) || !Number.isFinite(unitPrice) || !item.quantity || !item.unitPrice) return '';
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(quantity * unitPrice);
+}
+
+function downloadGoodsQuantityTemplate() {
+  const csv = ['Item,Description,Unit,Qty,Unit Price,Total', '1,,,,,'].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'goods-quantity-schedule-template.csv';
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function parseCsvLine(line: string) {
+  const cells: string[] = [];
+  let current = '';
+  let quoted = false;
+
+  for (const char of line) {
+    if (char === '"') {
+      quoted = !quoted;
+    } else if (char === ',' && !quoted) {
+      cells.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  cells.push(current.trim());
+  return cells.map((cell) => cell.replace(/^"|"$/g, ''));
+}
+
+function parseGoodsQuantityCsv(text: string): CreateTenderLineItem[] {
+  const rows = text
+    .split(/\r?\n/)
+    .map((line) => parseCsvLine(line))
+    .filter((row) => row.some(Boolean));
+  const dataRows = rows[0]?.join(' ').toLowerCase().includes('description') ? rows.slice(1) : rows;
+
+  return dataRows.map((row, index) => ({
+    id: `item-import-${Date.now()}-${index}`,
+    description: row[1] || row[0] || '',
+    unit: row[2] || '',
+    quantity: row[3] || '',
+    unitPrice: row[4] || ''
+  }));
+}
+
 type PlanningBridge = {
   title?: string;
   description?: string;
@@ -73,7 +129,9 @@ export function CreateTenderProcurexPage() {
       : activeStep === 1
         ? 'Method valid'
       : activeStep === 2
-        ? selectedType.label
+        ? draft.procurementTypeId === 'goods'
+          ? 'Goods Tender Requirements'
+          : selectedType.label
         : activeStep === 3
           ? 'Evaluation criteria'
             : activeStep === 4
@@ -130,7 +188,7 @@ export function CreateTenderProcurexPage() {
   }
 
   function addLineItem() {
-    const item: CreateTenderLineItem = { id: `item-${Date.now()}`, description: '', quantity: '', unit: '' };
+    const item: CreateTenderLineItem = { id: `item-${Date.now()}`, description: '', quantity: '', unit: '', unitPrice: '' };
     patchDraft({ commercialItems: [...draft.commercialItems, item] });
   }
 
@@ -537,8 +595,8 @@ function PlanningStep({
       <section className="planning-section wizard-section">
         <div className="scope-list-heading">
           <div>
-            <h3>Procurement route</h3>
-            <span className="form-hint">Choose the buying route and category taxonomy for this tender package.</span>
+            <h3>Procurement classification</h3>
+            <span className="form-hint">Choose the procurement type, then search and select the matching category.</span>
           </div>
           <span className="status-badge">{selectedType.label}</span>
         </div>
@@ -654,6 +712,197 @@ function RequirementsStep({
   onAddDeliverable: () => void;
   onAddAttachment: () => void;
 }) {
+  if (draft.procurementTypeId === 'goods') {
+    function importGoodsQuantitySchedule(file: File | undefined) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const importedItems = parseGoodsQuantityCsv(String(reader.result || ''));
+        if (!importedItems.length) return;
+        onPatch({ commercialItems: [...draft.commercialItems, ...importedItems] });
+      };
+      reader.readAsText(file);
+    }
+
+    return (
+      <div className="wizard-step-surface requirements-step-surface goods-requirements-step">
+        <section className="planning-section wizard-section goods-requirements-hero">
+          <div className="scope-list-heading">
+            <div>
+              <span className="section-kicker">Tender requirements</span>
+              <h3>Goods Tender Requirements</h3>
+            </div>
+            <span className="status-badge">Quantity Schedule</span>
+          </div>
+        </section>
+
+        <section className="planning-section wizard-section goods-requirements-section">
+          <div>
+            <h3>Quantity Schedule / BOQ</h3>
+            <span className="form-hint">Editable table with row numbering and calculated totals.</span>
+          </div>
+          <div className="form-label">Quantity lines</div>
+          <div className="requirement-table-wrap goods-quantity-table-wrap">
+            <table className="requirement-table goods-quantity-table">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Description</th>
+                  <th>Unit</th>
+                  <th>Qty</th>
+                  <th>Unit Price</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {draft.commercialItems.length ? (
+                  draft.commercialItems.map((item, index) => (
+                    <tr key={item.id}>
+                      <td>{index + 1}</td>
+                      <td>
+                        <input
+                          aria-label={`Item ${index + 1} description`}
+                          value={item.description}
+                          onChange={(event) => onUpdateLineItem(item.id, { description: event.target.value })}
+                        />
+                      </td>
+                      <td>
+                        <input aria-label={`Item ${index + 1} unit`} value={item.unit} onChange={(event) => onUpdateLineItem(item.id, { unit: event.target.value })} />
+                      </td>
+                      <td>
+                        <input
+                          aria-label={`Item ${index + 1} quantity`}
+                          inputMode="decimal"
+                          value={item.quantity}
+                          onChange={(event) => onUpdateLineItem(item.id, { quantity: event.target.value })}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          aria-label={`Item ${index + 1} unit price`}
+                          inputMode="decimal"
+                          value={item.unitPrice ?? ''}
+                          onChange={(event) => onUpdateLineItem(item.id, { unitPrice: event.target.value })}
+                        />
+                      </td>
+                      <td aria-label={`Item ${index + 1} total`}>{getLineItemTotal(item)}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6}>
+                      <div className="scope-empty goods-table-empty">No items added yet.</div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div className="requirement-table-actions goods-table-actions">
+            <label className="btn btn-secondary scope-add goods-import-control">
+              Import Excel
+              <input type="file" accept=".csv,.txt" onChange={(event) => importGoodsQuantitySchedule(event.target.files?.[0])} />
+            </label>
+            <button className="btn btn-secondary scope-add" type="button" onClick={downloadGoodsQuantityTemplate}>
+              Download Excel Template
+            </button>
+            <button className="btn btn-secondary scope-add" type="button" onClick={onAddLineItem}>
+              Add Item
+            </button>
+          </div>
+        </section>
+
+        <section className="planning-section wizard-section goods-requirements-section">
+          <div>
+            <h3>Product Specification Builder</h3>
+            <span className="form-hint">specification that suppliers must respond to.</span>
+          </div>
+          <div className="form-label">Product specification table</div>
+          <div className="product-spec-builder">
+            {draft.commercialItems.length ? (
+              <div className="product-spec-item-grid">
+                {draft.commercialItems.map((item, index) => {
+                  const key = goodsSpecificationKey(item.id);
+                  return (
+                    <article key={item.id} className="product-spec-item-card">
+                      <div className="product-spec-item-header">
+                        <div>
+                          <span className="section-kicker">Quantity schedule item {index + 1}</span>
+                          <h4>{item.description || `Product item ${index + 1}`}</h4>
+                          <p>
+                            {item.quantity || 0} {item.unit || 'unit'}
+                            {Number(item.quantity) === 1 ? '' : 's'} required
+                          </p>
+                        </div>
+                      </div>
+                      <label>
+                        Product specification
+                        <textarea
+                          aria-label={`Product specification for item ${index + 1}`}
+                          placeholder="Describe specifications suppliers must respond to."
+                          value={draft.requirements[key] ?? ''}
+                          onChange={(event) => onPatch({ requirements: { ...draft.requirements, [key]: event.target.value } })}
+                        />
+                      </label>
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="scope-empty">Add goods items in the Quantity Schedule first. Each item will get its own specification table here.</div>
+            )}
+          </div>
+        </section>
+
+        <section className="planning-section wizard-section">
+          <div className="scope-list-heading">
+            <div>
+              <h3>Regulatory licenses</h3>
+              <span className="form-hint">Select mandatory licenses and declarations for supplier eligibility.</span>
+            </div>
+            <span className="status-badge">{draft.selectedLicenses.length} selected</span>
+          </div>
+          <div className="license-check-grid">
+            {licenses.map((license) => (
+              <label key={license}>
+                <input type="checkbox" checked={draft.selectedLicenses.includes(license)} onChange={() => onToggleLicense(license)} /> {license}
+              </label>
+            ))}
+          </div>
+        </section>
+
+        <section className="planning-section wizard-section">
+          <div className="scope-list-heading">
+            <div>
+              <h3>Deliverables and attachments</h3>
+              <span className="form-hint">Capture outputs and document requirements suppliers must include.</span>
+            </div>
+          </div>
+          <div className="deliverable-attachment-grid">
+            <div>
+              <div className="market-row">
+                <input aria-label="Deliverable" placeholder="Example: Installation report" value={newDeliverable} onChange={(event) => onNewDeliverable(event.target.value)} />
+                <button className="btn btn-secondary" type="button" onClick={onAddDeliverable}>
+                  Add Deliverable
+                </button>
+              </div>
+              <ul className="wizard-compact-list">{draft.deliverables.map((deliverable) => <li key={deliverable}>{deliverable}</li>)}</ul>
+            </div>
+            <div>
+              <div className="market-row">
+                <input aria-label="Attachment" placeholder="Example: Manufacturer authorization" value={newAttachment} onChange={(event) => onNewAttachment(event.target.value)} />
+                <button className="btn btn-secondary" type="button" onClick={onAddAttachment}>
+                  Add Attachment
+                </button>
+              </div>
+              <ul className="wizard-compact-list">{draft.attachments.map((attachment) => <li key={attachment}>{attachment}</li>)}</ul>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="wizard-step-surface requirements-step-surface">
       {templates.map((template) => (

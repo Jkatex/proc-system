@@ -109,6 +109,16 @@ describe('CreateTenderProcurexPage', () => {
     expect(screen.getByLabelText('Custom funding source')).toBeInTheDocument();
   });
 
+  it('keeps Submission deadline and Opening date independent', () => {
+    renderCreateTender();
+
+    fireEvent.change(screen.getByLabelText('Opening date'), { target: { value: '2026-08-25' } });
+    fireEvent.change(screen.getByLabelText('Submission deadline'), { target: { value: '2026-08-20' } });
+
+    expect(screen.getByLabelText('Submission deadline')).toHaveValue('2026-08-20');
+    expect(screen.getByLabelText('Opening date')).toHaveValue('2026-08-25');
+  });
+
   it('updates frontend-only contact verification badges', async () => {
     const user = userEvent.setup();
     renderCreateTender();
@@ -143,11 +153,42 @@ describe('CreateTenderProcurexPage', () => {
     renderCreateTender();
 
     await user.click(screen.getAllByRole('button', { name: /Procurement Planning/ })[0]);
-    await user.click(screen.getByRole('button', { name: /Services/ }));
+    expect(screen.getByRole('heading', { name: 'Procurement classification' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Non Consultancy/ }));
     await user.click(screen.getAllByRole('button', { name: /Tender Requirements/ })[0]);
 
     expect(screen.getByRole('heading', { name: 'Service Scope and Service Levels' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Quantity Schedule and Product Specifications' })).not.toBeInTheDocument();
+  });
+
+  it('renders goods tender requirements with a BOQ table and product specification builder', async () => {
+    const user = userEvent.setup();
+    renderCreateTender();
+
+    await user.click(screen.getAllByRole('button', { name: /Tender Requirements/ })[0]);
+
+    expect(screen.getAllByText('Goods Tender Requirements').length).toBeGreaterThan(0);
+    expect(screen.getByRole('heading', { name: 'Quantity Schedule / BOQ' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Product Specification Builder' })).toBeInTheDocument();
+    expect(screen.getByText('No items added yet.')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /item/i })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /description/i })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /^unit$/i })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /qty/i })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /unit price/i })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /total/i })).toBeInTheDocument();
+    expect(screen.getByText('Import Excel')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Download Excel Template' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Add Item' }));
+    await user.type(screen.getByLabelText('Item 1 description'), 'Solar panel kit');
+    await user.type(screen.getByLabelText('Item 1 unit'), 'Each');
+    await user.type(screen.getByLabelText('Item 1 quantity'), '2');
+    await user.type(screen.getByLabelText('Item 1 unit price'), '12500');
+
+    expect(screen.getByText('25,000')).toBeInTheDocument();
+    expect(screen.getByLabelText('Product specification for item 1')).toBeInTheDocument();
   });
 
   it('category selection supports adding and removing categories', async () => {
@@ -252,7 +293,17 @@ describe('CreateTenderProcurexPage', () => {
     await user.click(screen.getAllByRole('button', { name: 'Continue' })[0]);
     await addDefaultCategory(user);
     await user.click(screen.getAllByRole('button', { name: 'Continue' })[0]);
-    fireEvent.change(screen.getByLabelText('Technical specifications'), {
+    await user.click(screen.getByRole('button', { name: 'Add Item' }));
+    fireEvent.change(screen.getByLabelText('Item 1 description'), {
+      target: { value: 'Solar panel kit' }
+    });
+    fireEvent.change(screen.getByLabelText('Item 1 unit'), {
+      target: { value: 'Each' }
+    });
+    fireEvent.change(screen.getByLabelText('Item 1 quantity'), {
+      target: { value: '12' }
+    });
+    fireEvent.change(screen.getByLabelText('Product specification for item 1'), {
       target: { value: 'Solar panels, inverters, mounting kits' }
     });
     fireEvent.change(screen.getByLabelText('Deliverable'), { target: { value: 'Installed pilot system' } });
@@ -262,7 +313,10 @@ describe('CreateTenderProcurexPage', () => {
     expect(screen.getByRole('heading', { name: 'Supply of Solar Equipment' })).toBeInTheDocument();
     expect(screen.getByText(/Procurement Officer/)).toBeInTheDocument();
     expect(screen.getByText('Dodoma')).toBeInTheDocument();
+    expect(screen.getByText('2026-08-20')).toBeInTheDocument();
+    expect(screen.getByText('2026-08-21')).toBeInTheDocument();
     expect(screen.getByText(/Solar panels, inverters, mounting kits/)).toBeInTheDocument();
+    expect(screen.getByText(/Solar panel kit - 12 Each/)).toBeInTheDocument();
     expect(screen.getByText('Installed pilot system')).toBeInTheDocument();
   }, 10000);
 

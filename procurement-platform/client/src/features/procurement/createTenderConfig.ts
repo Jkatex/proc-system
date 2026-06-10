@@ -2,10 +2,10 @@ import type { CreateTenderDraft, CreateTenderEvaluationCriterion, CreateTenderPr
 
 export const createTenderSetup: CreateTenderSetup = {
   procurementTypes: [
-    { id: 'goods', label: 'Goods', description: 'Supplies, equipment, materials, spares, and product-based procurement.' },
-    { id: 'works', label: 'Works', description: 'Construction, rehabilitation, civil works, installations, and site-based projects.' },
-    { id: 'services', label: 'Services', description: 'Operational, maintenance, logistics, ICT, security, and non-consultancy services.' },
-    { id: 'consultancy', label: 'Consultancy', description: 'Advisory, design, audit, research, technical assistance, and professional services.' }
+    { id: 'goods', label: 'Goods', description: 'Physical items, equipment, stock, and supplies.' },
+    { id: 'works', label: 'Works', description: 'Construction, rehabilitation, infrastructure, and civil works.' },
+    { id: 'services', label: 'Non Consultancy', description: 'Operational services where advisory expertise is not the main component.' },
+    { id: 'consultancy', label: 'Consultancy', description: 'Professional advisory, research, design, audit, and expert assignments.' }
   ],
   categories: {
     goods: [

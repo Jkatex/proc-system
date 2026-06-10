@@ -57,6 +57,7 @@ export type CreateTenderLineItem = {
   description: string;
   quantity: string;
   unit: string;
+  unitPrice?: string;
 };
 
 export type CreateTenderMilestone = {
