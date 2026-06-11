@@ -2,6 +2,7 @@
   "name": "procurement-platform",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "Canonical monorepo for the ProcureX production platform.",
   "type": "module",
   "workspaces": [

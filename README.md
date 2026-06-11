@@ -13,7 +13,7 @@
   ![Client](https://img.shields.io/badge/client-React%2019%20%7C%20Vite%20%7C%20TypeScript-1d1d1f)
   ![Server](https://img.shields.io/badge/server-Express%20%7C%20Prisma%20%7C%20PostgreSQL-2f855a)
   ![Infra](https://img.shields.io/badge/infra-Postgres%20%7C%20Redis%20%7C%20Elasticsearch%20%7C%20MinIO-5b5fc7)
-  ![License](https://img.shields.io/badge/license-all%20rights%20reserved-lightgrey)
+  ![License](https://img.shields.io/badge/license-MIT-blue)
 </div>
 
 ---
@@ -333,4 +333,6 @@ Near-term roadmap:
 
 ## License
 
-No license file is currently included in this repository. Until a license is added, all rights are reserved by the project owner.
+The source code in this repository is licensed under the [MIT License](LICENSE).
+
+ProcureX trademarks, names, logos, branding, screenshots, hosted service content, procurement records, user-uploaded content, and user/procurement data are not licensed under MIT except where separately stated. See [NOTICE](NOTICE) for details.

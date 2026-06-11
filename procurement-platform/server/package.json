@@ -2,6 +2,7 @@
   "name": "@procurex/server",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "ProcureX TypeScript Express backend and Prisma database foundation.",
   "type": "module",
   "main": "dist/server.js",
