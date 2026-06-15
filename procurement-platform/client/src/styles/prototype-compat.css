@@ -117,6 +117,63 @@
   margin-top: 26px;
 }
 
+.tender-wizard-page .sample-requirement-choice-group {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.tender-wizard-page .sample-requirement-choice-group > .form-label {
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 800;
+  text-transform: none;
+}
+
+.tender-wizard-page .sample-requirement-choice-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tender-wizard-page .sample-requirement-choice-row .sample-requirement-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 104px;
+  height: 50px;
+  min-height: 50px;
+  padding: 0 16px;
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tender-wizard-page .sample-requirement-choice-row .sample-requirement-choice.is-selected {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, var(--card-bg));
+}
+
+.tender-wizard-page .sample-requirement-choice-row .sample-requirement-choice input {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: var(--primary);
+}
+
+.tender-wizard-page .sample-source-hint {
+  display: block;
+  margin-top: 14px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 800;
+}
+
 .px-topbar .px-actions {
   position: relative;
 }

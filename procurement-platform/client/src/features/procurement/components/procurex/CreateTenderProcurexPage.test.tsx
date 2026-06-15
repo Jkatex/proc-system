@@ -180,16 +180,175 @@ describe('CreateTenderProcurexPage', () => {
     expect(screen.getByRole('columnheader', { name: /total/i })).toBeInTheDocument();
     expect(screen.getByText('Import Excel')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Download Excel Template' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Sample Requirements' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Financial Capacity Requirements' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Regulatory license requirements' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Other Eligibility Requirements' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Deliverables and attachments' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Add Sample Requirement' })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Add Item' }));
     await user.type(screen.getByLabelText('Item 1 description'), 'Solar panel kit');
-    await user.type(screen.getByLabelText('Item 1 unit'), 'Each');
+    await user.selectOptions(screen.getByLabelText('Item 1 unit'), 'Pcs');
     await user.type(screen.getByLabelText('Item 1 quantity'), '2');
     await user.type(screen.getByLabelText('Item 1 unit price'), '12500');
 
     expect(screen.getByText('25,000')).toBeInTheDocument();
-    expect(screen.getByLabelText('Product specification for item 1')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Solar panel kit' })).toBeInTheDocument();
+    expect(screen.getByText('No specifications added for this item yet.')).toBeInTheDocument();
   });
+
+  it('orders goods requirements with regulatory licenses after financial capacity', async () => {
+    const user = userEvent.setup();
+    renderCreateTender();
+
+    await user.click(screen.getAllByRole('button', { name: /Tender Requirements/ })[0]);
+
+    const bodyText = document.body.textContent ?? '';
+    const financialIndex = bodyText.indexOf('Financial Capacity Requirements');
+    const licenseIndex = bodyText.indexOf('Regulatory license requirements');
+    const eligibilityIndex = bodyText.indexOf('Other Eligibility Requirements');
+
+    expect(financialIndex).toBeGreaterThan(-1);
+    expect(licenseIndex).toBeGreaterThan(financialIndex);
+    expect(eligibilityIndex).toBeGreaterThan(licenseIndex);
+    expect(bodyText).not.toContain('Deliverables and attachments');
+  });
+
+  it('adds and removes product specifications through the prototype modal', async () => {
+    const user = userEvent.setup();
+    renderCreateTender();
+
+    await user.click(screen.getAllByRole('button', { name: /Tender Requirements/ })[0]);
+    await user.click(screen.getByRole('button', { name: 'Add Item' }));
+    await user.type(screen.getByLabelText('Item 1 description'), 'Laptop computer');
+
+    await user.click(screen.getByRole('button', { name: 'Add Specification' }));
+    expect(screen.getByRole('dialog', { name: 'Add Specification' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Save Specification' }));
+    expect(screen.getByText('Specification name is required.')).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('Specification name'), 'Processor');
+    await user.type(screen.getByLabelText('Specific detail required'), 'Core i5 or above');
+    await user.click(screen.getByRole('button', { name: 'Save Specification' }));
+
+    expect(screen.getByDisplayValue('Processor')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Core i5 or above')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Delete specification' }));
+
+    expect(screen.queryByDisplayValue('Processor')).not.toBeInTheDocument();
+    expect(screen.getByText('No specifications added for this item yet.')).toBeInTheDocument();
+  }, 10000);
+
+  it('supports sample, financial, and eligibility goods requirement rows', async () => {
+    const user = userEvent.setup();
+    renderCreateTender();
+
+    await user.click(screen.getAllByRole('button', { name: /Tender Requirements/ })[0]);
+    expect(screen.queryByText('Sample requirement design')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('radio', { name: 'Yes' }));
+    expect(screen.getByRole('radio', { name: 'Yes' })).toBeChecked();
+    expect(screen.getByText('Sample requirement design')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add Sample Requirement' })).toBeDisabled();
+    expect(screen.getByText('Add at least one quantity item before adding sample requirements.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Add Item' }));
+    await user.type(screen.getByLabelText('Item 1 description'), 'Solar panel kit');
+
+    await user.click(screen.getByRole('button', { name: 'Add Sample Requirement' }));
+    expect(screen.getByLabelText('Related BOQ Item 1')).toHaveDisplayValue('Solar panel kit');
+    expect(screen.getByLabelText('Sample Required 1')).toBeChecked();
+    await user.type(screen.getByLabelText('Number of Samples 1'), '2');
+    await user.type(screen.getByLabelText('Sample Description 1'), 'One sealed sample and one working sample');
+
+    await user.click(screen.getByRole('button', { name: 'Add Financial Requirement' }));
+    await user.selectOptions(screen.getByLabelText('Requirement type 1'), 'Minimum Annual Turnover');
+    await user.type(screen.getByLabelText('Minimum value 1'), '50000000');
+    await user.selectOptions(screen.getByLabelText('Period 1'), 'Last 3 Years');
+    await user.selectOptions(screen.getByLabelText('Evidence required 1'), 'Audited accounts');
+
+    await user.click(screen.getByRole('button', { name: 'Manufacturer authorization' }));
+    expect(screen.getByLabelText('Requirement name 1')).toHaveValue('Manufacturer authorization');
+    await user.type(screen.getByLabelText('Eligibility notes 1'), 'Must be current');
+  }, 10000);
+
+  it('manages regulatory license requirements with the prototype picker', async () => {
+    const user = userEvent.setup();
+    renderCreateTender();
+
+    await user.click(screen.getAllByRole('button', { name: /Tender Requirements/ })[0]);
+    expect(screen.getByText('No regulatory license requirements added yet.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Add License Requirement' }));
+    await user.type(screen.getByLabelText('Search all regulatory licenses'), 'Food Business');
+    await user.click(screen.getByRole('option', { name: /Food Business Permit/ }));
+
+    expect(screen.getAllByText('Food Business Permit / Food Handling License').length).toBeGreaterThan(0);
+    expect(screen.getByText('Tanzania Medicines and Medical Devices Authority (TMDA)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Food Business Permit / Food Handling License Mandatory')).toBeChecked();
+    expect(screen.getByLabelText('Food Business Permit / Food Handling License Expiry required')).toBeChecked();
+
+    await user.click(screen.getByRole('button', { name: 'Add License Requirement' }));
+    await user.type(screen.getByLabelText('Search all regulatory licenses'), 'Food Business Permit');
+    expect(screen.queryByRole('option', { name: /Food Business Permit/ })).not.toBeInTheDocument();
+    expect(screen.getByText('No matching license')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Change' }));
+    await user.type(screen.getByLabelText('Search regulatory license'), 'Petroleum Retail');
+    await user.click(screen.getByRole('option', { name: /Petroleum Retail Outlet License/ }));
+
+    expect(screen.queryByText('Food Business Permit / Food Handling License')).not.toBeInTheDocument();
+    expect(screen.getByText('Petroleum Retail Outlet License')).toBeInTheDocument();
+    expect(screen.getByText('Energy and Water Utilities Regulatory Authority (EWURA)')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Remove license requirement' }));
+    expect(screen.queryByText('Petroleum Retail Outlet License')).not.toBeInTheDocument();
+    expect(screen.getByText('No regulatory license requirements added yet.')).toBeInTheDocument();
+  }, 10000);
+
+  it('summarizes goods-specific prototype requirements during review', async () => {
+    const user = userEvent.setup();
+    renderCreateTender();
+
+    await user.click(screen.getAllByRole('button', { name: /Tender Requirements/ })[0]);
+    await user.click(screen.getByRole('button', { name: 'Add Item' }));
+    await user.type(screen.getByLabelText('Item 1 description'), 'Laptop computer');
+    await user.selectOptions(screen.getByLabelText('Item 1 unit'), 'Pcs');
+    await user.type(screen.getByLabelText('Item 1 quantity'), '5');
+
+    await user.click(screen.getByRole('button', { name: 'Add Specification' }));
+    await user.type(screen.getByLabelText('Specification name'), 'Processor');
+    await user.type(screen.getByLabelText('Specific detail required'), 'Core i5 or above');
+    await user.click(screen.getByRole('button', { name: 'Save Specification' }));
+
+    await user.click(screen.getByRole('radio', { name: 'Yes' }));
+    await user.click(screen.getByRole('button', { name: 'Add Sample Requirement' }));
+    await user.type(screen.getByLabelText('Number of Samples 1'), '1');
+
+    await user.click(screen.getByRole('button', { name: 'Add Financial Requirement' }));
+    await user.selectOptions(screen.getByLabelText('Requirement type 1'), 'Access to Credit');
+    await user.type(screen.getByLabelText('Minimum value 1'), '20000000');
+
+    await user.click(screen.getByRole('button', { name: 'Add License Requirement' }));
+    await user.type(screen.getByLabelText('Search all regulatory licenses'), 'Food Business');
+    await user.click(screen.getByRole('option', { name: /Food Business Permit/ }));
+
+    await user.click(screen.getByRole('button', { name: 'Tax clearance certificate' }));
+    await user.click(screen.getAllByRole('button', { name: /Review Tender/ })[0]);
+
+    expect(screen.getByRole('heading', { name: 'Product specifications' })).toBeInTheDocument();
+    expect(screen.getByText('Laptop computer - Processor: Core i5 or above')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Sample requirements' })).toBeInTheDocument();
+    expect(screen.getByText(/Laptop computer - 1/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Financial capacity' })).toBeInTheDocument();
+    expect(screen.getByText(/Access to Credit - minimum 20000000/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Regulatory licenses' })).toBeInTheDocument();
+    expect(screen.getByText(/License: Food Business Permit \/ Food Handling License/)).toBeInTheDocument();
+    expect(screen.getByText(/Issuing body: Tanzania Medicines and Medical Devices Authority \(TMDA\)/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Other eligibility' })).toBeInTheDocument();
+    expect(screen.getByText(/Tax clearance certificate/)).toBeInTheDocument();
+  }, 10000);
 
   it('category selection supports adding and removing categories', async () => {
     const user = userEvent.setup();
@@ -298,16 +457,15 @@ describe('CreateTenderProcurexPage', () => {
       target: { value: 'Solar panel kit' }
     });
     fireEvent.change(screen.getByLabelText('Item 1 unit'), {
-      target: { value: 'Each' }
+      target: { value: 'Pcs' }
     });
     fireEvent.change(screen.getByLabelText('Item 1 quantity'), {
       target: { value: '12' }
     });
-    fireEvent.change(screen.getByLabelText('Product specification for item 1'), {
-      target: { value: 'Solar panels, inverters, mounting kits' }
-    });
-    fireEvent.change(screen.getByLabelText('Deliverable'), { target: { value: 'Installed pilot system' } });
-    await user.click(screen.getByRole('button', { name: 'Add Deliverable' }));
+    await user.click(screen.getByRole('button', { name: 'Add Specification' }));
+    await user.type(screen.getByLabelText('Specification name'), 'Kit requirements');
+    await user.type(screen.getByLabelText('Specific detail required'), 'Solar panels, inverters, mounting kits');
+    await user.click(screen.getByRole('button', { name: 'Save Specification' }));
     await user.click(screen.getAllByRole('button', { name: /Review Tender/ })[0]);
 
     expect(screen.getByRole('heading', { name: 'Supply of Solar Equipment' })).toBeInTheDocument();
@@ -316,8 +474,8 @@ describe('CreateTenderProcurexPage', () => {
     expect(screen.getByText('2026-08-20')).toBeInTheDocument();
     expect(screen.getByText('2026-08-21')).toBeInTheDocument();
     expect(screen.getByText(/Solar panels, inverters, mounting kits/)).toBeInTheDocument();
-    expect(screen.getByText(/Solar panel kit - 12 Each/)).toBeInTheDocument();
-    expect(screen.getByText('Installed pilot system')).toBeInTheDocument();
+    expect(screen.getByText(/Solar panel kit - 12 Pcs/)).toBeInTheDocument();
+    expect(screen.queryByText('Installed pilot system')).not.toBeInTheDocument();
   }, 10000);
 
   it('save draft creates a My Tenders draft visible through marketplace state', async () => {

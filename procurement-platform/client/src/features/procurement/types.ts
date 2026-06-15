@@ -60,6 +60,50 @@ export type CreateTenderLineItem = {
   unitPrice?: string;
 };
 
+export type CreateTenderProductSpecificationRow = {
+  id: string;
+  sourceItemId: string;
+  specificationName: string;
+  acceptableRequirement: string;
+};
+
+export type CreateTenderSampleRequirementRow = {
+  id: string;
+  relatedBoqItemId: string;
+  sampleRequired: boolean;
+  numberOfSamples: string;
+  sampleDescription: string;
+  deliveryLocation: string;
+  deliveryDeadline: string;
+  mandatory: boolean;
+  returnableSample: boolean;
+};
+
+export type CreateTenderFinancialRequirementRow = {
+  id: string;
+  requirementType: string;
+  minimumValue: string;
+  period: string;
+  evidenceRequired: string;
+  mandatory: boolean;
+};
+
+export type CreateTenderEligibilityRequirementRow = {
+  id: string;
+  requirementName: string;
+  mandatory: boolean;
+  requiresUpload: boolean;
+  notes: string;
+};
+
+export type CreateTenderRegulatoryLicenseRequirementRow = {
+  id: string;
+  license: string;
+  body: string;
+  mandatory: boolean;
+  expiryRequired: boolean;
+};
+
 export type CreateTenderMilestone = {
   id: string;
   label: string;
@@ -92,6 +136,11 @@ export type CreateTenderDraft = {
   requirements: Record<string, string>;
   selectedLicenses: string[];
   commercialItems: CreateTenderLineItem[];
+  productSpecifications: CreateTenderProductSpecificationRow[];
+  sampleRequirements: CreateTenderSampleRequirementRow[];
+  financialRequirements: CreateTenderFinancialRequirementRow[];
+  eligibilityRequirements: CreateTenderEligibilityRequirementRow[];
+  regulatoryLicenseRequirements: CreateTenderRegulatoryLicenseRequirementRow[];
   deliverables: string[];
   attachments: string[];
   milestones: CreateTenderMilestone[];

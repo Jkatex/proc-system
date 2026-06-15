@@ -8,10 +8,15 @@ import { NotificationCard } from '@/shared/components/NotificationCard';
 import type {
   CreateTenderConfirmationId,
   CreateTenderDraft,
+  CreateTenderEligibilityRequirementRow,
   CreateTenderEvaluationCriterion,
+  CreateTenderFinancialRequirementRow,
   CreateTenderLineItem,
+  CreateTenderProductSpecificationRow,
   CreateTenderProcurementTypeId,
-  CreateTenderRequirementTemplate
+  CreateTenderRegulatoryLicenseRequirementRow,
+  CreateTenderRequirementTemplate,
+  CreateTenderSampleRequirementRow
 } from '../../types';
 
 const steps = ['Basic Information', 'Procurement Planning', 'Tender Requirements', 'Evaluation Criteria and Weights', 'Review Tender', 'Tender Review and Publication'];
@@ -22,7 +27,77 @@ const confirmationLabels: Record<CreateTenderConfirmationId, string> = {
   publication: 'This tender can be submitted for system evaluation and publication.'
 };
 
-const goodsSpecificationKey = (itemId: string) => `goods_spec_${itemId}`;
+const goodsUnitOptions = ['Pcs', 'Unit', 'Set', 'Lot', 'Kg', 'Litre', 'Meter', 'Sqm', 'Day', 'Month'];
+const financialRequirementTypes = [
+  'Minimum Annual Turnover',
+  'Average Annual Turnover',
+  'Positive Net Worth',
+  'Working Capital',
+  'Access to Credit',
+  'Bank Statement Requirement',
+  'Audited Financial Statements'
+];
+const financialPeriods = ['Annual', 'Current', 'Last 12 Months', 'Last 3 Years', 'Last 5 Years'];
+const financialEvidence = ['Audited accounts', 'Bank statement', 'Bank letter', 'Credit facility letter', 'Tax clearance', 'Management accounts'];
+const eligibilityPresets = ['Certificate of incorporation', 'Tax clearance certificate', 'Manufacturer authorization', 'Past supply contracts', 'Audited financial statements'];
+const regulatoryLicenseCatalog = [
+  { group: 'Food, Drugs and Cosmetics', license: 'Food Business Permit / Food Handling License', body: 'Tanzania Medicines and Medical Devices Authority (TMDA)' },
+  { group: 'Food, Drugs and Cosmetics', license: 'Pharmaceutical Business License', body: 'Tanzania Medicines and Medical Devices Authority (TMDA)' },
+  { group: 'Food, Drugs and Cosmetics', license: 'Medical Devices Registration Permit', body: 'Tanzania Medicines and Medical Devices Authority (TMDA)' },
+  { group: 'Food, Drugs and Cosmetics', license: 'Cosmetics Registration Certificate', body: 'Tanzania Medicines and Medical Devices Authority (TMDA)' },
+  { group: 'Energy and Water (EWURA)', license: 'Petroleum Retail Outlet License', body: 'Energy and Water Utilities Regulatory Authority (EWURA)' },
+  { group: 'Energy and Water (EWURA)', license: 'Petroleum Wholesale License', body: 'Energy and Water Utilities Regulatory Authority (EWURA)' },
+  { group: 'Energy and Water (EWURA)', license: 'Electricity Generation License', body: 'Energy and Water Utilities Regulatory Authority (EWURA)' },
+  { group: 'Energy and Water (EWURA)', license: 'Electricity Distribution and Supply License', body: 'Energy and Water Utilities Regulatory Authority (EWURA)' },
+  { group: 'Energy and Water (EWURA)', license: 'Water Supply and Sanitation Services License', body: 'Energy and Water Utilities Regulatory Authority (EWURA)' },
+  { group: 'Communications and Transport', license: 'Content Services License', body: 'Tanzania Communications Regulatory Authority (TCRA)' },
+  { group: 'Communications and Transport', license: 'Network Facilities License', body: 'Tanzania Communications Regulatory Authority (TCRA)' },
+  { group: 'Communications and Transport', license: 'Application Services License', body: 'Tanzania Communications Regulatory Authority (TCRA)' },
+  { group: 'Communications and Transport', license: 'Electronic Communications Service License', body: 'Tanzania Communications Regulatory Authority (TCRA)' },
+  { group: 'Communications and Transport', license: 'Shipping Agency License', body: 'Tanzania Shipping Agencies Corporation (TASAC)' },
+  { group: 'Communications and Transport', license: 'Port Services License', body: 'Tanzania Shipping Agencies Corporation (TASAC)' },
+  { group: 'Mining and Natural Resources', license: 'Reconnaissance License', body: 'Ministry of Minerals' },
+  { group: 'Mining and Natural Resources', license: 'Prospecting License', body: 'Ministry of Minerals' },
+  { group: 'Mining and Natural Resources', license: 'Primary Mining License', body: 'Ministry of Minerals' },
+  { group: 'Mining and Natural Resources', license: 'Mining License', body: 'Ministry of Minerals' },
+  { group: 'Mining and Natural Resources', license: 'Special Mining License', body: 'Ministry of Minerals' },
+  { group: 'Mining and Natural Resources', license: "Explosives Dealer's License", body: 'Ministry of Minerals' },
+  { group: 'Construction and Real Estate', license: 'Contractor Registration Certificate', body: 'Contractors Registration Board (CRB) and Local Government Authorities' },
+  { group: 'Construction and Real Estate', license: 'Building Permit', body: 'Contractors Registration Board (CRB) and Local Government Authorities' },
+  { group: 'Construction and Real Estate', license: 'Environmental Building Approval', body: 'Contractors Registration Board (CRB) and Local Government Authorities' },
+  { group: 'Environmental and Safety', license: 'Environmental Impact Assessment Certificate', body: 'National Environment Management Council (NEMC)' },
+  { group: 'Environmental and Safety', license: 'Environmental Compliance Certificate', body: 'National Environment Management Council (NEMC)' },
+  { group: 'Environmental and Safety', license: 'Occupational Safety and Health Compliance Certificate', body: 'Occupational Safety and Health Authority (OSHA)' },
+  { group: 'Finance and Banking', license: 'Banking Business License', body: 'Bank of Tanzania (BOT)' },
+  { group: 'Finance and Banking', license: 'Financial Institution License', body: 'Bank of Tanzania (BOT)' },
+  { group: 'Finance and Banking', license: 'Microfinance Business License', body: 'Bank of Tanzania (BOT)' },
+  { group: 'Finance and Banking', license: 'Foreign Exchange Bureau License', body: 'Bank of Tanzania (BOT)' },
+  { group: 'Finance and Banking', license: 'Capital Markets and Securities Dealer License', body: 'Capital Markets and Securities Authority (CMSA)' },
+  { group: 'Finance and Banking', license: 'Investment Adviser License', body: 'Capital Markets and Securities Authority (CMSA)' },
+  { group: 'Finance and Banking', license: 'Fund Manager License', body: 'Capital Markets and Securities Authority (CMSA)' },
+  { group: 'Specialized Services', license: 'Hazardous Chemicals Handling Certificate', body: 'Government Chemist Laboratory Authority (GCLA)' },
+  { group: 'Specialized Services', license: 'Weights and Measures Inspection Certificate', body: 'Weights and Measures Agency (WMA)' },
+  { group: 'Specialized Services', license: 'Calibration Certificate', body: 'Weights and Measures Agency (WMA)' }
+];
+
+function createRowId(prefix: string) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function getRegulatoryLicenseByName(licenseName: string) {
+  return regulatoryLicenseCatalog.find((item) => item.license === licenseName) ?? regulatoryLicenseCatalog[0];
+}
+
+function createRegulatoryLicenseRow(licenseName: string): CreateTenderRegulatoryLicenseRequirementRow {
+  const catalogItem = getRegulatoryLicenseByName(licenseName);
+  return {
+    id: createRowId('license'),
+    license: catalogItem.license,
+    body: catalogItem.body,
+    mandatory: true,
+    expiryRequired: true
+  };
+}
 
 function getLineItemTotal(item: CreateTenderLineItem) {
   const quantity = Number(item.quantity);
@@ -38,6 +113,17 @@ function downloadGoodsQuantityTemplate() {
   const link = document.createElement('a');
   link.href = url;
   link.download = 'goods-quantity-schedule-template.csv';
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadProductSpecificationTemplate() {
+  const csv = ['Item,Specification,Specific detail required', '1,Brand,HP/Dell/Lenovo or equivalent'].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'goods-product-specification-template.csv';
   link.click();
   URL.revokeObjectURL(url);
 }
@@ -76,6 +162,32 @@ function parseGoodsQuantityCsv(text: string): CreateTenderLineItem[] {
     quantity: row[3] || '',
     unitPrice: row[4] || ''
   }));
+}
+
+function parseProductSpecificationCsv(text: string, items: CreateTenderLineItem[]): CreateTenderProductSpecificationRow[] {
+  const rows = text
+    .split(/\r?\n/)
+    .map((line) => parseCsvLine(line))
+    .filter((row) => row.some(Boolean));
+  const dataRows = rows[0]?.join(' ').toLowerCase().includes('specification') ? rows.slice(1) : rows;
+
+  return dataRows
+    .map((row, index) => {
+      const sourceToken = row[0] || '';
+      const itemIndex = Math.max(Number(sourceToken) - 1, 0);
+      const matchedItem =
+        items[itemIndex] ??
+        items.find((item) => item.description.toLowerCase() === sourceToken.toLowerCase()) ??
+        items[0];
+      if (!matchedItem || !row[1]) return null;
+      return {
+        id: createRowId(`spec-import-${index}`),
+        sourceItemId: matchedItem.id,
+        specificationName: row[1],
+        acceptableRequirement: row[2] || ''
+      };
+    })
+    .filter(Boolean) as CreateTenderProductSpecificationRow[];
 }
 
 type PlanningBridge = {
@@ -191,12 +303,20 @@ export function CreateTenderProcurexPage() {
   }
 
   function addLineItem() {
-    const item: CreateTenderLineItem = { id: `item-${Date.now()}`, description: '', quantity: '', unit: '', unitPrice: '' };
+    const item: CreateTenderLineItem = { id: createRowId('item'), description: '', quantity: '', unit: '', unitPrice: '' };
     patchDraft({ commercialItems: [...draft.commercialItems, item] });
   }
 
   function updateLineItem(itemId: string, patch: Partial<CreateTenderLineItem>) {
     patchDraft({ commercialItems: draft.commercialItems.map((item) => (item.id === itemId ? { ...item, ...patch } : item)) });
+  }
+
+  function removeLineItem(itemId: string) {
+    patchDraft({
+      commercialItems: draft.commercialItems.filter((item) => item.id !== itemId),
+      productSpecifications: draft.productSpecifications.filter((row) => row.sourceItemId !== itemId),
+      sampleRequirements: draft.sampleRequirements.filter((row) => row.relatedBoqItemId !== itemId)
+    });
   }
 
   function addTextListValue(value: string, key: 'deliverables' | 'attachments', reset: () => void) {
@@ -362,6 +482,7 @@ export function CreateTenderProcurexPage() {
                   onToggleLicense={toggleLicense}
                   onAddLineItem={addLineItem}
                   onUpdateLineItem={updateLineItem}
+                  onRemoveLineItem={removeLineItem}
                   onNewDeliverable={setNewDeliverable}
                   onNewAttachment={setNewAttachment}
                   onAddDeliverable={() => addTextListValue(newDeliverable, 'deliverables', () => setNewDeliverable(''))}
@@ -713,6 +834,7 @@ function RequirementsStep({
   onToggleLicense,
   onAddLineItem,
   onUpdateLineItem,
+  onRemoveLineItem,
   onNewDeliverable,
   onNewAttachment,
   onAddDeliverable,
@@ -727,11 +849,155 @@ function RequirementsStep({
   onToggleLicense: (license: string) => void;
   onAddLineItem: () => void;
   onUpdateLineItem: (itemId: string, patch: Partial<CreateTenderLineItem>) => void;
+  onRemoveLineItem: (itemId: string) => void;
   onNewDeliverable: (value: string) => void;
   onNewAttachment: (value: string) => void;
   onAddDeliverable: () => void;
   onAddAttachment: () => void;
 }) {
+  const [specModal, setSpecModal] = useState<{ sourceItemId: string; name: string; detail: string; error: string } | null>(null);
+  const [licenseAddOpen, setLicenseAddOpen] = useState(false);
+  const [licenseAddSearch, setLicenseAddSearch] = useState('');
+  const [licenseChangeRowId, setLicenseChangeRowId] = useState<string | null>(null);
+  const [licenseChangeSearch, setLicenseChangeSearch] = useState('');
+  const filteredAddLicenses = filterRegulatoryLicenses(licenseAddSearch, draft.regulatoryLicenseRequirements.map((row) => row.license));
+
+  function filterRegulatoryLicenses(query: string, excluded: string[] = []) {
+    const needle = query.trim().toLowerCase();
+    return regulatoryLicenseCatalog
+      .filter((item) => !excluded.includes(item.license))
+      .filter((item) => {
+        if (!needle) return true;
+        return `${item.group} ${item.license} ${item.body}`.toLowerCase().includes(needle);
+      });
+  }
+
+  function updateProductSpecification(rowId: string, patch: Partial<CreateTenderProductSpecificationRow>) {
+    onPatch({
+      productSpecifications: draft.productSpecifications.map((row) => (row.id === rowId ? { ...row, ...patch } : row))
+    });
+  }
+
+  function deleteProductSpecification(rowId: string) {
+    onPatch({ productSpecifications: draft.productSpecifications.filter((row) => row.id !== rowId) });
+  }
+
+  function saveProductSpecification() {
+    if (!specModal) return;
+    const specificationName = specModal.name.trim();
+    if (!specificationName) {
+      setSpecModal({ ...specModal, error: 'Specification name is required.' });
+      return;
+    }
+    onPatch({
+      productSpecifications: [
+        ...draft.productSpecifications,
+        {
+          id: createRowId('product-spec'),
+          sourceItemId: specModal.sourceItemId,
+          specificationName,
+          acceptableRequirement: specModal.detail.trim()
+        }
+      ]
+    });
+    setSpecModal(null);
+  }
+
+  function addSampleRequirement() {
+    if (!draft.commercialItems.length) return;
+    const row: CreateTenderSampleRequirementRow = {
+      id: createRowId('sample'),
+      relatedBoqItemId: draft.commercialItems[0].id,
+      sampleRequired: true,
+      numberOfSamples: '',
+      sampleDescription: '',
+      deliveryLocation: '',
+      deliveryDeadline: '',
+      mandatory: true,
+      returnableSample: false
+    };
+    onPatch({ sampleRequirements: [...draft.sampleRequirements, row] });
+  }
+
+  function updateSampleRequirement(rowId: string, patch: Partial<CreateTenderSampleRequirementRow>) {
+    onPatch({ sampleRequirements: draft.sampleRequirements.map((row) => (row.id === rowId ? { ...row, ...patch } : row)) });
+  }
+
+  function deleteSampleRequirement(rowId: string) {
+    onPatch({ sampleRequirements: draft.sampleRequirements.filter((row) => row.id !== rowId) });
+  }
+
+  function addFinancialRequirement() {
+    const row: CreateTenderFinancialRequirementRow = {
+      id: createRowId('financial'),
+      requirementType: '',
+      minimumValue: '',
+      period: '',
+      evidenceRequired: '',
+      mandatory: true
+    };
+    onPatch({ financialRequirements: [...draft.financialRequirements, row] });
+  }
+
+  function updateFinancialRequirement(rowId: string, patch: Partial<CreateTenderFinancialRequirementRow>) {
+    onPatch({ financialRequirements: draft.financialRequirements.map((row) => (row.id === rowId ? { ...row, ...patch } : row)) });
+  }
+
+  function deleteFinancialRequirement(rowId: string) {
+    onPatch({ financialRequirements: draft.financialRequirements.filter((row) => row.id !== rowId) });
+  }
+
+  function addEligibilityRequirement(preset = '') {
+    const row: CreateTenderEligibilityRequirementRow = {
+      id: createRowId('eligibility'),
+      requirementName: preset,
+      mandatory: true,
+      requiresUpload: true,
+      notes: ''
+    };
+    onPatch({ eligibilityRequirements: [...draft.eligibilityRequirements, row] });
+  }
+
+  function updateEligibilityRequirement(rowId: string, patch: Partial<CreateTenderEligibilityRequirementRow>) {
+    onPatch({ eligibilityRequirements: draft.eligibilityRequirements.map((row) => (row.id === rowId ? { ...row, ...patch } : row)) });
+  }
+
+  function deleteEligibilityRequirement(rowId: string) {
+    onPatch({ eligibilityRequirements: draft.eligibilityRequirements.filter((row) => row.id !== rowId) });
+  }
+
+  function patchRegulatoryLicenseRows(rows: CreateTenderRegulatoryLicenseRequirementRow[]) {
+    onPatch({
+      regulatoryLicenseRequirements: rows,
+      selectedLicenses: rows.map((row) => row.license)
+    });
+  }
+
+  function addRegulatoryLicenseRequirement(licenseName: string) {
+    if (draft.regulatoryLicenseRequirements.some((row) => row.license === licenseName)) return;
+    patchRegulatoryLicenseRows([...draft.regulatoryLicenseRequirements, createRegulatoryLicenseRow(licenseName)]);
+    setLicenseAddOpen(false);
+    setLicenseAddSearch('');
+  }
+
+  function updateRegulatoryLicenseRequirement(rowId: string, patch: Partial<CreateTenderRegulatoryLicenseRequirementRow>) {
+    patchRegulatoryLicenseRows(draft.regulatoryLicenseRequirements.map((row) => (row.id === rowId ? { ...row, ...patch } : row)));
+  }
+
+  function changeRegulatoryLicenseRequirement(rowId: string, licenseName: string) {
+    if (draft.regulatoryLicenseRequirements.some((row) => row.id !== rowId && row.license === licenseName)) return;
+    const catalogItem = getRegulatoryLicenseByName(licenseName);
+    patchRegulatoryLicenseRows(
+      draft.regulatoryLicenseRequirements.map((row) => (row.id === rowId ? { ...row, license: catalogItem.license, body: catalogItem.body } : row))
+    );
+    setLicenseChangeRowId(null);
+    setLicenseChangeSearch('');
+  }
+
+  function deleteRegulatoryLicenseRequirement(rowId: string) {
+    patchRegulatoryLicenseRows(draft.regulatoryLicenseRequirements.filter((row) => row.id !== rowId));
+  }
+
   if (draft.procurementTypeId === 'goods') {
     function importGoodsQuantitySchedule(file: File | undefined) {
       if (!file) return;
@@ -740,6 +1006,17 @@ function RequirementsStep({
         const importedItems = parseGoodsQuantityCsv(String(reader.result || ''));
         if (!importedItems.length) return;
         onPatch({ commercialItems: [...draft.commercialItems, ...importedItems] });
+      };
+      reader.readAsText(file);
+    }
+
+    function importProductSpecifications(file: File | undefined) {
+      if (!file || !draft.commercialItems.length) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const importedRows = parseProductSpecificationCsv(String(reader.result || ''), draft.commercialItems);
+        if (!importedRows.length) return;
+        onPatch({ productSpecifications: [...draft.productSpecifications, ...importedRows] });
       };
       reader.readAsText(file);
     }
@@ -772,6 +1049,7 @@ function RequirementsStep({
                   <th>Qty</th>
                   <th>Unit Price</th>
                   <th>Total</th>
+                  <th aria-label="Actions"></th>
                 </tr>
               </thead>
               <tbody>
@@ -787,7 +1065,14 @@ function RequirementsStep({
                         />
                       </td>
                       <td>
-                        <input aria-label={`Item ${index + 1} unit`} value={item.unit} onChange={(event) => onUpdateLineItem(item.id, { unit: event.target.value })} />
+                        <select aria-label={`Item ${index + 1} unit`} value={item.unit} onChange={(event) => onUpdateLineItem(item.id, { unit: event.target.value })}>
+                          <option value="">Select unit</option>
+                          {goodsUnitOptions.map((unit) => (
+                            <option key={unit} value={unit}>
+                              {unit}
+                            </option>
+                          ))}
+                        </select>
                       </td>
                       <td>
                         <input
@@ -806,11 +1091,16 @@ function RequirementsStep({
                         />
                       </td>
                       <td aria-label={`Item ${index + 1} total`}>{getLineItemTotal(item)}</td>
+                      <td className="requirement-table-action-cell">
+                        <button className="boq-row-action icon-delete-btn" type="button" aria-label={`Delete item ${index + 1}`} onClick={() => onRemoveLineItem(item.id)}>
+                          x
+                        </button>
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6}>
+                    <td colSpan={7}>
                       <div className="scope-empty goods-table-empty">No items added yet.</div>
                     </td>
                   </tr>
@@ -838,11 +1128,20 @@ function RequirementsStep({
             <span className="form-hint">specification that suppliers must respond to.</span>
           </div>
           <div className="form-label">Product specification table</div>
-          <div className="product-spec-builder">
-            {draft.commercialItems.length ? (
-              <div className="product-spec-item-grid">
-                {draft.commercialItems.map((item, index) => {
-                  const key = goodsSpecificationKey(item.id);
+          <div className="product-spec-builder" data-product-spec-builder="productSpecificationTemplate">
+            <div className="product-spec-toolbar">
+              <label className="btn btn-secondary scope-add goods-import-control">
+                Import CSV
+                <input type="file" accept=".csv,.txt" onChange={(event) => importProductSpecifications(event.target.files?.[0])} />
+              </label>
+              <button className="btn btn-secondary scope-add" type="button" onClick={downloadProductSpecificationTemplate}>
+                Download CSV Template
+              </button>
+            </div>
+            <div className="product-spec-item-grid">
+              {draft.commercialItems.length ? (
+                draft.commercialItems.map((item, index) => {
+                  const itemRows = draft.productSpecifications.filter((row) => row.sourceItemId === item.id);
                   return (
                     <article key={item.id} className="product-spec-item-card">
                       <div className="product-spec-item-header">
@@ -854,70 +1153,553 @@ function RequirementsStep({
                             {Number(item.quantity) === 1 ? '' : 's'} required
                           </p>
                         </div>
+                        <button
+                          className="btn btn-secondary scope-add"
+                          type="button"
+                          onClick={() => setSpecModal({ sourceItemId: item.id, name: '', detail: '', error: '' })}
+                        >
+                          Add Specification
+                        </button>
                       </div>
-                      <label>
-                        Product specification
-                        <textarea
-                          aria-label={`Product specification for item ${index + 1}`}
-                          placeholder="Describe specifications suppliers must respond to."
-                          value={draft.requirements[key] ?? ''}
-                          onChange={(event) => onPatch({ requirements: { ...draft.requirements, [key]: event.target.value } })}
-                        />
-                      </label>
+                      <div className="product-spec-sheet-wrap">
+                        <table className="product-spec-sheet product-spec-item-sheet">
+                          <thead>
+                            <tr>
+                              <th>Specification <span className="required-dot">*</span></th>
+                              <th>Specific detail required</th>
+                              <th aria-label="Actions"></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {itemRows.length ? (
+                              itemRows.map((row, rowIndex) => (
+                                <tr key={row.id}>
+                                  <td>
+                                    <input
+                                      className="form-input"
+                                      aria-label={`Specification name ${rowIndex + 1}`}
+                                      value={row.specificationName}
+                                      onChange={(event) => updateProductSpecification(row.id, { specificationName: event.target.value })}
+                                    />
+                                  </td>
+                                  <td>
+                                    <textarea
+                                      className="form-input"
+                                      rows={3}
+                                      aria-label={`Specific detail required ${rowIndex + 1}`}
+                                      value={row.acceptableRequirement}
+                                      onChange={(event) => updateProductSpecification(row.id, { acceptableRequirement: event.target.value })}
+                                    />
+                                  </td>
+                                  <td>
+                                    <button className="boq-row-action icon-delete-btn" type="button" aria-label="Delete specification" onClick={() => deleteProductSpecification(row.id)}>
+                                      x
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={3}>
+                                  <div className="scope-empty">No specifications added for this item yet.</div>
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
                     </article>
                   );
-                })}
+                })
+              ) : (
+                <div className="scope-empty">Add goods items in the Quantity Schedule first. Each item will get its own specification table here.</div>
+              )}
+            </div>
+            <div className="product-spec-modal" role="dialog" aria-modal="true" aria-labelledby="product-spec-modal-title" hidden={!specModal}>
+              <div className="product-spec-modal-card">
+                <div className="product-spec-modal-heading">
+                  <div>
+                    <span className="section-kicker">Item specification</span>
+                    <h4 id="product-spec-modal-title">Add Specification</h4>
+                    <p>{draft.commercialItems.find((item) => item.id === specModal?.sourceItemId)?.description || 'Product item'}</p>
+                  </div>
+                  <button className="boq-row-action icon-delete-btn" type="button" aria-label="Cancel add specification" onClick={() => setSpecModal(null)}>
+                    x
+                  </button>
+                </div>
+                <label>
+                  <span className="form-label">Specification name</span>
+                  <input
+                    className="form-input"
+                    type="text"
+                    aria-label="Specification name"
+                    placeholder="Example: Brand, Processor, Warranty"
+                    value={specModal?.name ?? ''}
+                    onChange={(event) => specModal && setSpecModal({ ...specModal, name: event.target.value, error: '' })}
+                  />
+                </label>
+                <label>
+                  <span className="form-label">Specific detail required</span>
+                  <textarea
+                    className="form-input"
+                    rows={4}
+                    aria-label="Specific detail required"
+                    placeholder="Optional, e.g. HP/Dell/Lenovo or equivalent, Core i5 or above"
+                    value={specModal?.detail ?? ''}
+                    onChange={(event) => specModal && setSpecModal({ ...specModal, detail: event.target.value })}
+                  />
+                </label>
+                {specModal?.error ? <span className="form-hint error">{specModal.error}</span> : null}
+                <div className="product-spec-modal-actions">
+                  <button className="btn btn-secondary" type="button" onClick={() => setSpecModal(null)}>
+                    Cancel
+                  </button>
+                  <button className="btn btn-primary" type="button" onClick={saveProductSpecification}>
+                    Save Specification
+                  </button>
+                </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="planning-section wizard-section goods-requirements-section">
+          <div className="scope-list-heading">
+            <div>
+              <h3>Sample Requirements</h3>
+              <span className="form-hint">Enable samples only when buyers need physical samples before evaluation or award.</span>
+            </div>
+          </div>
+          <div className="sample-requirement-choice-group" role="radiogroup" aria-label="Require Samples?">
+            <span className="form-label">Require Samples?</span>
+            <div className="sample-requirement-choice-row">
+              {(['Yes', 'No'] as const).map((option) => {
+                const checked = (draft.requirements.requireSamples ?? 'No') === option;
+                return (
+                  <label key={option} className={`sample-requirement-choice ${checked ? 'is-selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="requireSamples"
+                      value={option}
+                      checked={checked}
+                      onChange={() => onPatch({ requirements: { ...draft.requirements, requireSamples: option } })}
+                    />
+                    <span>{option}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+          {draft.requirements.requireSamples === 'Yes' ? (
+            <>
+              <div className="form-label">Sample requirement design</div>
+              <div className="requirement-table-wrap">
+                <table className="requirement-table">
+                    <thead>
+                      <tr>
+                        <th>Related BOQ Item</th>
+                        <th>Sample Required</th>
+                        <th>Number of Samples</th>
+                        <th>Sample Description</th>
+                        <th>Delivery Location</th>
+                        <th>Delivery Deadline</th>
+                        <th>Mandatory</th>
+                        <th>Returnable Sample?</th>
+                        <th aria-label="Actions"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {draft.sampleRequirements.length ? (
+                        draft.sampleRequirements.map((row, index) => (
+                          <tr key={row.id}>
+                            <td>
+                              <select
+                                aria-label={`Related BOQ Item ${index + 1}`}
+                                value={row.relatedBoqItemId}
+                                onChange={(event) => updateSampleRequirement(row.id, { relatedBoqItemId: event.target.value })}
+                              >
+                                {draft.commercialItems.map((item, itemIndex) => (
+                                  <option key={item.id} value={item.id}>
+                                    {item.description || `Product item ${itemIndex + 1}`}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                            <td>
+                              <label className="requirement-toggle" title="Sample Required">
+                                <input
+                                  type="checkbox"
+                                  aria-label={`Sample Required ${index + 1}`}
+                                  checked={row.sampleRequired}
+                                  onChange={(event) => updateSampleRequirement(row.id, { sampleRequired: event.target.checked })}
+                                />
+                                <span></span>
+                              </label>
+                            </td>
+                            <td>
+                              <input
+                                aria-label={`Number of Samples ${index + 1}`}
+                                inputMode="numeric"
+                                value={row.numberOfSamples}
+                                onChange={(event) => updateSampleRequirement(row.id, { numberOfSamples: event.target.value })}
+                              />
+                            </td>
+                            <td>
+                              <textarea
+                                aria-label={`Sample Description ${index + 1}`}
+                                value={row.sampleDescription}
+                                onChange={(event) => updateSampleRequirement(row.id, { sampleDescription: event.target.value })}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                aria-label={`Delivery Location ${index + 1}`}
+                                value={row.deliveryLocation}
+                                onChange={(event) => updateSampleRequirement(row.id, { deliveryLocation: event.target.value })}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                aria-label={`Delivery Deadline ${index + 1}`}
+                                type="date"
+                                value={row.deliveryDeadline}
+                                onChange={(event) => updateSampleRequirement(row.id, { deliveryDeadline: event.target.value })}
+                              />
+                            </td>
+                            <td>
+                              <label className="requirement-toggle" title="Mandatory">
+                                <input
+                                  type="checkbox"
+                                  aria-label={`Mandatory sample ${index + 1}`}
+                                  checked={row.mandatory}
+                                  onChange={(event) => updateSampleRequirement(row.id, { mandatory: event.target.checked })}
+                                />
+                                <span></span>
+                              </label>
+                            </td>
+                            <td>
+                              <label className="requirement-toggle" title="Returnable Sample?">
+                                <input
+                                  type="checkbox"
+                                  aria-label={`Returnable Sample ${index + 1}`}
+                                  checked={row.returnableSample}
+                                  onChange={(event) => updateSampleRequirement(row.id, { returnableSample: event.target.checked })}
+                                />
+                                <span></span>
+                              </label>
+                            </td>
+                            <td className="requirement-table-action-cell">
+                              <button className="boq-row-action icon-delete-btn" type="button" aria-label={`Delete sample requirement ${index + 1}`} onClick={() => deleteSampleRequirement(row.id)}>
+                                x
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={9}>
+                            <div className="scope-empty">No sample requirements added yet.</div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                {!draft.commercialItems.length ? <span className="sample-source-hint">Add at least one quantity item before adding sample requirements.</span> : null}
+                <div className="requirement-table-actions">
+                  <button className="btn btn-secondary scope-add" type="button" onClick={addSampleRequirement} disabled={!draft.commercialItems.length}>
+                    Add Sample Requirement
+                  </button>
+                </div>
+              </>
+          ) : null}
+        </section>
+
+        <section className="planning-section wizard-section goods-requirements-section">
+          <div className="scope-list-heading">
+            <div>
+              <h3>Financial Capacity Requirements</h3>
+              <span className="form-hint">Structured financial rules used to verify whether bidders can sustain the contract.</span>
+            </div>
+            <button className="btn btn-secondary scope-add" type="button" onClick={addFinancialRequirement}>
+              Add Financial Requirement
+            </button>
+          </div>
+          <div className="requirement-table-wrap">
+            <table className="requirement-table">
+              <thead>
+                <tr>
+                  <th>Requirement type</th>
+                  <th>Minimum value</th>
+                  <th>Period</th>
+                  <th>Evidence required</th>
+                  <th>Mandatory</th>
+                  <th aria-label="Actions"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {draft.financialRequirements.length ? (
+                  draft.financialRequirements.map((row, index) => (
+                    <tr key={row.id}>
+                      <td>
+                        <select
+                          aria-label={`Requirement type ${index + 1}`}
+                          value={row.requirementType}
+                          onChange={(event) => updateFinancialRequirement(row.id, { requirementType: event.target.value })}
+                        >
+                          <option value="">Select</option>
+                          {financialRequirementTypes.map((type) => (
+                            <option key={type} value={type}>
+                              {type}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          aria-label={`Minimum value ${index + 1}`}
+                          inputMode="decimal"
+                          value={row.minimumValue}
+                          onChange={(event) => updateFinancialRequirement(row.id, { minimumValue: event.target.value })}
+                        />
+                      </td>
+                      <td>
+                        <select aria-label={`Period ${index + 1}`} value={row.period} onChange={(event) => updateFinancialRequirement(row.id, { period: event.target.value })}>
+                          <option value="">Select</option>
+                          {financialPeriods.map((period) => (
+                            <option key={period} value={period}>
+                              {period}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <select
+                          aria-label={`Evidence required ${index + 1}`}
+                          value={row.evidenceRequired}
+                          onChange={(event) => updateFinancialRequirement(row.id, { evidenceRequired: event.target.value })}
+                        >
+                          <option value="">Select</option>
+                          {financialEvidence.map((evidence) => (
+                            <option key={evidence} value={evidence}>
+                              {evidence}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          type="checkbox"
+                          aria-label={`Mandatory financial requirement ${index + 1}`}
+                          checked={row.mandatory}
+                          onChange={(event) => updateFinancialRequirement(row.id, { mandatory: event.target.checked })}
+                        />
+                      </td>
+                      <td>
+                        <button className="boq-row-action icon-delete-btn" type="button" aria-label={`Delete financial requirement ${index + 1}`} onClick={() => deleteFinancialRequirement(row.id)}>
+                          x
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6}>
+                      <div className="scope-empty">No financial requirements added yet.</div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="planning-section wizard-section scope-list-panel license-requirements-panel">
+          <div className="scope-list-heading">
+            <div>
+              <h3>Regulatory license requirements</h3>
+              <span className="form-hint">Search and select the licenses suppliers must hold for this tender. The issuing body is filled automatically.</span>
+            </div>
+            <span className="badge badge-info">{draft.regulatoryLicenseRequirements.length}</span>
+          </div>
+          <div className="license-requirement-list">
+            {draft.regulatoryLicenseRequirements.length ? (
+              draft.regulatoryLicenseRequirements.map((row) => {
+                const changeMatches = filterRegulatoryLicenses(
+                  licenseChangeSearch,
+                  draft.regulatoryLicenseRequirements.filter((item) => item.id !== row.id).map((item) => item.license)
+                );
+                return (
+                  <div className="license-requirement-row" key={row.id}>
+                    <div className="license-summary">
+                      <span>License</span>
+                      <strong>{row.license}</strong>
+                      <small>{row.body}</small>
+                      {licenseChangeRowId === row.id ? (
+                        <div className="license-picker">
+                          <input
+                            className="form-input"
+                            type="search"
+                            aria-label="Search regulatory license"
+                            placeholder="Search license"
+                            value={licenseChangeSearch}
+                            onChange={(event) => setLicenseChangeSearch(event.target.value)}
+                          />
+                          <div className="license-results open" role="listbox" aria-label="Matching licenses">
+                            {changeMatches.length ? (
+                              changeMatches.map((item) => (
+                                <button className="license-result-option" type="button" role="option" key={item.license} onClick={() => changeRegulatoryLicenseRequirement(row.id, item.license)}>
+                                  <strong>{item.license}</strong>
+                                  <span>{item.group} - {item.body}</span>
+                                </button>
+                              ))
+                            ) : (
+                              <div className="license-result-empty">No matching license</div>
+                            )}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="license-toggle-cell">
+                      <span>Mandatory</span>
+                      <label className="requirement-toggle">
+                        <input
+                          type="checkbox"
+                          aria-label={`${row.license} Mandatory`}
+                          checked={row.mandatory}
+                          onChange={(event) => updateRegulatoryLicenseRequirement(row.id, { mandatory: event.target.checked })}
+                        />
+                        <span></span>
+                      </label>
+                    </div>
+                    <div className="license-toggle-cell">
+                      <span>Expiry required</span>
+                      <label className="requirement-toggle">
+                        <input
+                          type="checkbox"
+                          aria-label={`${row.license} Expiry required`}
+                          checked={row.expiryRequired}
+                          onChange={(event) => updateRegulatoryLicenseRequirement(row.id, { expiryRequired: event.target.checked })}
+                        />
+                        <span></span>
+                      </label>
+                    </div>
+                    <div className="license-row-actions">
+                      <button
+                        className="btn btn-secondary"
+                        type="button"
+                        onClick={() => {
+                          setLicenseAddOpen(false);
+                          setLicenseAddSearch('');
+                          setLicenseChangeRowId(row.id);
+                          setLicenseChangeSearch('');
+                        }}
+                      >
+                        Change
+                      </button>
+                      <button className="boq-row-action icon-delete-btn" type="button" aria-label="Remove license requirement" title="Remove license requirement" onClick={() => deleteRegulatoryLicenseRequirement(row.id)}>
+                        x
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
             ) : (
-              <div className="scope-empty">Add goods items in the Quantity Schedule first. Each item will get its own specification table here.</div>
+              <div className="scope-empty">No regulatory license requirements added yet.</div>
             )}
           </div>
+          <button
+            className="btn btn-secondary scope-add"
+            type="button"
+            onClick={() => {
+              setLicenseAddOpen((current) => !current);
+              setLicenseAddSearch('');
+            }}
+          >
+            Add License Requirement
+          </button>
+          {licenseAddOpen ? (
+            <div className="license-add-picker">
+              <input
+                className="form-input"
+                type="search"
+                aria-label="Search all regulatory licenses"
+                placeholder="Search all licenses"
+                value={licenseAddSearch}
+                onChange={(event) => setLicenseAddSearch(event.target.value)}
+              />
+              <div className="license-results open" role="listbox" aria-label="Available regulatory licenses">
+                {filteredAddLicenses.length ? (
+                  filteredAddLicenses.map((item) => (
+                    <button className="license-result-option" type="button" role="option" key={item.license} onClick={() => addRegulatoryLicenseRequirement(item.license)}>
+                      <strong>{item.license}</strong>
+                      <span>{item.group} - {item.body}</span>
+                    </button>
+                  ))
+                ) : (
+                  <div className="license-result-empty">No matching license</div>
+                )}
+              </div>
+            </div>
+          ) : null}
         </section>
 
-        <section className="planning-section wizard-section">
+        <section className="planning-section wizard-section goods-requirements-section">
           <div className="scope-list-heading">
             <div>
-              <h3>Regulatory licenses</h3>
-              <span className="form-hint">Select mandatory licenses and declarations for supplier eligibility.</span>
+              <h3>Other Eligibility Requirements</h3>
+              <span className="form-hint">Use add/remove requirement cards for supplier eligibility documents and notes.</span>
             </div>
-            <span className="status-badge">{draft.selectedLicenses.length} selected</span>
+            <button className="btn btn-secondary scope-add" type="button" onClick={() => addEligibilityRequirement()}>
+              Add Requirement
+            </button>
           </div>
-          <div className="license-check-grid">
-            {licenses.map((license) => (
-              <label key={license}>
-                <input type="checkbox" checked={draft.selectedLicenses.includes(license)} onChange={() => onToggleLicense(license)} /> {license}
-              </label>
+          <div className="category-chip-row">
+            {eligibilityPresets.map((preset) => (
+              <button className="status-badge removable" type="button" key={preset} onClick={() => addEligibilityRequirement(preset)}>
+                {preset}
+              </button>
             ))}
           </div>
-        </section>
-
-        <section className="planning-section wizard-section">
-          <div className="scope-list-heading">
-            <div>
-              <h3>Deliverables and attachments</h3>
-              <span className="form-hint">Capture outputs and document requirements suppliers must include.</span>
+          {draft.eligibilityRequirements.length ? (
+            <div className="product-spec-item-grid">
+              {draft.eligibilityRequirements.map((row, index) => (
+                <article key={row.id} className="product-spec-item-card">
+                  <div className="product-spec-item-header">
+                    <div>
+                      <span className="section-kicker">Eligibility requirement {index + 1}</span>
+                      <h4>{row.requirementName || 'New requirement'}</h4>
+                    </div>
+                    <button className="boq-row-action icon-delete-btn" type="button" aria-label={`Delete eligibility requirement ${index + 1}`} onClick={() => deleteEligibilityRequirement(row.id)}>
+                      x
+                    </button>
+                  </div>
+                  <div className="form-grid two">
+                    <label>
+                      Requirement name
+                      <input
+                        aria-label={`Requirement name ${index + 1}`}
+                        value={row.requirementName}
+                        onChange={(event) => updateEligibilityRequirement(row.id, { requirementName: event.target.value })}
+                      />
+                    </label>
+                    <label>
+                      Notes
+                      <textarea aria-label={`Eligibility notes ${index + 1}`} value={row.notes} onChange={(event) => updateEligibilityRequirement(row.id, { notes: event.target.value })} />
+                    </label>
+                    <label>
+                      <input type="checkbox" checked={row.mandatory} onChange={(event) => updateEligibilityRequirement(row.id, { mandatory: event.target.checked })} /> Mandatory
+                    </label>
+                    <label>
+                      <input type="checkbox" checked={row.requiresUpload} onChange={(event) => updateEligibilityRequirement(row.id, { requiresUpload: event.target.checked })} /> Requires upload
+                    </label>
+                  </div>
+                </article>
+              ))}
             </div>
-          </div>
-          <div className="deliverable-attachment-grid">
-            <div>
-              <div className="market-row">
-                <input aria-label="Deliverable" placeholder="Example: Installation report" value={newDeliverable} onChange={(event) => onNewDeliverable(event.target.value)} />
-                <button className="btn btn-secondary" type="button" onClick={onAddDeliverable}>
-                  Add Deliverable
-                </button>
-              </div>
-              <ul className="wizard-compact-list">{draft.deliverables.map((deliverable) => <li key={deliverable}>{deliverable}</li>)}</ul>
-            </div>
-            <div>
-              <div className="market-row">
-                <input aria-label="Attachment" placeholder="Example: Manufacturer authorization" value={newAttachment} onChange={(event) => onNewAttachment(event.target.value)} />
-                <button className="btn btn-secondary" type="button" onClick={onAddAttachment}>
-                  Add Attachment
-                </button>
-              </div>
-              <ul className="wizard-compact-list">{draft.attachments.map((attachment) => <li key={attachment}>{attachment}</li>)}</ul>
-            </div>
-          </div>
+          ) : (
+            <div className="scope-empty">No other eligibility requirements added yet.</div>
+          )}
         </section>
       </div>
     );
@@ -1111,6 +1893,15 @@ function EvaluationStep({
 }
 
 function ReviewStep({ draft, selectedTypeLabel, total }: { draft: CreateTenderDraft; selectedTypeLabel: string; total: number }) {
+  const itemLabel = (itemId: string) => {
+    const index = draft.commercialItems.findIndex((item) => item.id === itemId);
+    const item = draft.commercialItems[index];
+    return item ? item.description || `Product item ${index + 1}` : 'Unknown BOQ item';
+  };
+  const requirementEntries = Object.entries(draft.requirements)
+    .filter(([, value]) => Boolean(value))
+    .map(([key, value]) => `${key === 'requireSamples' ? 'Require Samples?' : key}: ${value}`);
+
   return (
     <div className="wizard-step-surface review-step-surface">
       <section className="planning-section wizard-section review-hero-panel">
@@ -1144,8 +1935,43 @@ function ReviewStep({ draft, selectedTypeLabel, total }: { draft: CreateTenderDr
         </dl>
       </section>
       <SummaryList title="Categories" items={draft.categories} />
-      <SummaryList title="Requirements" items={Object.entries(draft.requirements).filter(([, value]) => Boolean(value)).map(([key, value]) => `${key}: ${value}`)} />
+      <SummaryList title="Requirements" items={requirementEntries} />
       <SummaryList title="Commercial items" items={draft.commercialItems.map((item) => `${item.description || 'Item'} - ${item.quantity || 'Qty'} ${item.unit || ''}`)} />
+      <SummaryList
+        title="Product specifications"
+        items={draft.productSpecifications.map((row) => `${itemLabel(row.sourceItemId)} - ${row.specificationName}${row.acceptableRequirement ? `: ${row.acceptableRequirement}` : ''}`)}
+      />
+      <SummaryList
+        title="Sample requirements"
+        items={draft.sampleRequirements.map((row) => `${itemLabel(row.relatedBoqItemId)} - ${row.numberOfSamples || 'Sample count pending'}${row.deliveryDeadline ? ` by ${row.deliveryDeadline}` : ''}`)}
+      />
+      <SummaryList
+        title="Financial capacity"
+        items={draft.financialRequirements.map((row) =>
+          [row.requirementType || 'Financial requirement', row.minimumValue ? `minimum ${row.minimumValue}` : '', row.period, row.evidenceRequired].filter(Boolean).join(' - ')
+        )}
+      />
+      <SummaryList
+        title="Regulatory licenses"
+        items={
+          draft.regulatoryLicenseRequirements.length
+            ? draft.regulatoryLicenseRequirements.map((row) =>
+                [
+                  `License: ${row.license}`,
+                  `Issuing body: ${row.body}`,
+                  `Mandatory: ${row.mandatory ? 'Yes' : 'No'}`,
+                  `Expiry required: ${row.expiryRequired ? 'Yes' : 'No'}`
+                ].join(' - ')
+              )
+            : draft.selectedLicenses
+        }
+      />
+      <SummaryList
+        title="Other eligibility"
+        items={draft.eligibilityRequirements.map((row) =>
+          `${row.requirementName || 'Eligibility requirement'}${row.mandatory ? ' - mandatory' : ''}${row.requiresUpload ? ' - upload required' : ''}${row.notes ? ` - ${row.notes}` : ''}`
+        )}
+      />
       <SummaryList title="Deliverables" items={draft.deliverables} />
       <SummaryList title="Attachments" items={draft.attachments} />
       <SummaryList title="Milestones" items={draft.milestones.map((milestone) => `${milestone.label}: ${milestone.dueDate || 'date pending'}`)} />
@@ -1222,6 +2048,7 @@ function normalizeDraftForType(draft: CreateTenderDraft, typeId: CreateTenderPro
     procurementTypeId: typeId,
     categories: draft.categories.filter((category) => createTenderSetup.categories[typeId].includes(category)),
     selectedLicenses: draft.selectedLicenses.filter((license) => createTenderSetup.regulatoryLicenses[typeId].includes(license)),
+    regulatoryLicenseRequirements: typeId === 'goods' ? draft.regulatoryLicenseRequirements : [],
     evaluationCriteria: getSuggestedCriteria(typeId),
     updatedAt: new Date().toISOString()
   };
@@ -1240,6 +2067,11 @@ function hasMeaningfulDraft(draft: CreateTenderDraft) {
       draft.submissionDate ||
       draft.categories.length ||
       Object.values(draft.requirements).some(Boolean) ||
+      draft.productSpecifications.length ||
+      draft.sampleRequirements.length ||
+      draft.financialRequirements.length ||
+      draft.eligibilityRequirements.length ||
+      draft.regulatoryLicenseRequirements.length ||
       draft.deliverables.length
   );
 }
