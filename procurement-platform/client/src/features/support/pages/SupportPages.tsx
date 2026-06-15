@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { useAppSelector } from '@/app/store';
+import { supportApi, type SupportTicketPriority } from '@/features/support/api';
 import { apiClient } from '@/shared/api/http';
 import { NotificationCard } from '@/shared/components/NotificationCard';
 
@@ -57,6 +59,40 @@ function SupportShell({ children }: { children: ReactNode }) {
 }
 
 export function HelpCenterProcurexPage() {
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  const [subject, setSubject] = useState('');
+  const [category, setCategory] = useState('General');
+  const [priority, setPriority] = useState<SupportTicketPriority>('NORMAL');
+  const [description, setDescription] = useState('');
+  const [status, setStatus] = useState<{ tone: 'success' | 'error'; title: string; message: string } | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function submitTicket(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    setStatus(null);
+    try {
+      const ticket = await supportApi.createTicket({ subject, category, priority, description });
+      setSubject('');
+      setCategory('General');
+      setPriority('NORMAL');
+      setDescription('');
+      setStatus({
+        tone: 'success',
+        title: 'Support ticket created',
+        message: `Ticket ${ticket.id.slice(0, 8)} is now with ProcureX support.`
+      });
+    } catch {
+      setStatus({
+        tone: 'error',
+        title: 'Ticket could not be created',
+        message: 'Please check your session and try again.'
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <SupportShell>
       <section className="launch-support-hero">
@@ -84,6 +120,57 @@ export function HelpCenterProcurexPage() {
           <Link to="/contact">Contact support</Link>
         </article>
       </section>
+
+      {isAuthenticated ? (
+        <section className="launch-support-faq" aria-labelledby="support-ticket-title">
+          <div className="section-header welcome-centered-v2">
+            <span className="section-label">Create support ticket</span>
+            <h2 id="support-ticket-title">Send an account-specific support request</h2>
+          </div>
+          {status ? (
+            <NotificationCard
+              notification={{
+                tone: status.tone,
+                title: status.title,
+                message: status.message,
+                dismissible: false
+              }}
+            />
+          ) : null}
+          <form className="launch-contact-form" onSubmit={submitTicket}>
+            <label>
+              Subject
+              <input value={subject} onChange={(event) => setSubject(event.target.value)} required minLength={3} maxLength={180} />
+            </label>
+            <label>
+              Category
+              <select value={category} onChange={(event) => setCategory(event.target.value)}>
+                <option value="General">General</option>
+                <option value="Identity">Identity</option>
+                <option value="Procurement">Procurement</option>
+                <option value="Technical">Technical</option>
+                <option value="Compliance">Compliance</option>
+              </select>
+            </label>
+            <label>
+              Priority
+              <select value={priority} onChange={(event) => setPriority(event.target.value as SupportTicketPriority)}>
+                <option value="LOW">Low</option>
+                <option value="NORMAL">Normal</option>
+                <option value="HIGH">High</option>
+                <option value="URGENT">Urgent</option>
+              </select>
+            </label>
+            <label>
+              Description
+              <textarea value={description} onChange={(event) => setDescription(event.target.value)} required minLength={10} maxLength={5000} rows={5} />
+            </label>
+            <button className="btn btn-primary" type="submit" disabled={submitting}>
+              {submitting ? 'Creating...' : 'Create support ticket'}
+            </button>
+          </form>
+        </section>
+      ) : null}
 
       <section className="launch-support-faq" aria-labelledby="support-faq-title">
         <div className="section-header welcome-centered-v2">

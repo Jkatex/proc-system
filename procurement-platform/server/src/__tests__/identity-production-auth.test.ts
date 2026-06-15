@@ -17,6 +17,7 @@ class FakeIdentityRepository {
   signatures: any[] = [];
   trustHistory: any[] = [];
   screeningChecks: any[] = [];
+  preferences = new Map<string, any>();
   id = 0;
 
   nextId(prefix: string) {
@@ -34,6 +35,28 @@ class FakeIdentityRepository {
 
   findUserById(id: string) {
     return Promise.resolve(this.users.get(id) ?? null);
+  }
+
+  findPreference(userId: string) {
+    return Promise.resolve(this.preferences.get(userId) ?? null);
+  }
+
+  upsertPreference(input: { userId: string; preferredLanguage?: string; timezone?: string; metadata?: Record<string, unknown> }) {
+    const preference =
+      this.preferences.get(input.userId) ??
+      {
+        id: this.nextId('preference'),
+        userId: input.userId,
+        preferredLanguage: 'en',
+        timezone: 'Africa/Dar_es_Salaam',
+        metadata: {},
+        createdAt: new Date()
+      };
+    Object.assign(preference, input, { updatedAt: new Date() });
+    this.preferences.set(input.userId, preference);
+    const user = this.users.get(input.userId);
+    if (user) user.preference = preference;
+    return Promise.resolve(preference);
   }
 
   upsertRegistrationUser(input: { email: string; phone: string; displayName: string }) {
@@ -474,6 +497,22 @@ describe('identity production auth', () => {
 
     expect(session.user.email).toBe('walkthrough@example.test');
     expect(session.user.verificationStatus).toBe(VerificationStatus.NOT_STARTED);
+  });
+
+  it('persists preferred language and records an audit event', async () => {
+    const { repository, notifications, service } = makeService();
+    const registration = await service.startRegistration({ email: 'language@example.test', phone: '+255 700 000 050' });
+    const otp = await service.verifyOtp(registration.challengeId, notifications.phoneOtps[0].code);
+    await service.activateEmail(otp.activationChallengeId, notifications.activations[0].code);
+    await service.setPassword('language@example.test', 'Strong123!', legalAcceptance());
+    const session = await service.signIn('language@example.test', 'Strong123!');
+
+    await expect(service.preferences(session.token)).resolves.toMatchObject({ preferredLanguage: 'en' });
+    const updated = await service.updatePreferences(session.token, { preferredLanguage: 'sw' }, { ipAddress: '127.0.0.1', userAgent: 'vitest' });
+
+    expect(updated).toMatchObject({ preferredLanguage: 'sw' });
+    expect(repository.preferences.get(session.user.id)).toMatchObject({ preferredLanguage: 'sw' });
+    expect(repository.auditEvents.some((event) => event.event === 'identity.preferences.language_changed')).toBe(true);
   });
 
   it('normalizes Tanzanian phone numbers and rejects duplicate phone registrations', async () => {

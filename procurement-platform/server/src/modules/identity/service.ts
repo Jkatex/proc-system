@@ -175,6 +175,17 @@ function inputJson(value: Record<string, unknown>): Prisma.InputJsonObject {
   return value as Prisma.InputJsonObject;
 }
 
+function supportedLanguage(value: unknown): 'en' | 'sw' {
+  return value === 'sw' ? 'sw' : 'en';
+}
+
+function preferenceDto(preference?: { preferredLanguage: string; timezone: string } | null) {
+  return {
+    preferredLanguage: supportedLanguage(preference?.preferredLanguage),
+    timezone: preference?.timezone ?? 'Africa/Dar_es_Salaam'
+  };
+}
+
 function canonicalJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map((item) => canonicalJson(item)).join(',')}]`;
   if (value && typeof value === 'object') {
@@ -228,7 +239,8 @@ function toSessionUser(user: UserWithDefaultOrg): SessionUserDto {
     trustTier: access.trustTier,
     riskLevel: access.riskLevel,
     featureGates: access.featureGates,
-    screeningStatus: access.screeningStatus
+    screeningStatus: access.screeningStatus,
+    preferences: preferenceDto(user.preference)
   };
 }
 
@@ -257,7 +269,8 @@ function toSessionUserFromSession(session: SessionWithUser): SessionUserDto {
     trustTier: access.trustTier,
     riskLevel: access.riskLevel,
     featureGates: access.featureGates,
-    screeningStatus: access.screeningStatus
+    screeningStatus: access.screeningStatus,
+    preferences: preferenceDto(session.user.preference)
   };
 }
 
@@ -1056,6 +1069,52 @@ export class ModuleService {
   async accessMe(token?: string) {
     const session = await this.requireSession(token);
     return session.user;
+  }
+
+  async preferences(token?: string) {
+    const { user } = await this.requireSession(token);
+    const preference = await this.repository.findPreference(user.id);
+    return preferenceDto(preference);
+  }
+
+  async updatePreferences(token: string | undefined, input: { preferredLanguage: 'en' | 'sw'; timezone?: string }, audit?: AuthAuditContext) {
+    const { user } = await this.requireSession(token);
+    const previous = await this.repository.findPreference(user.id);
+    const preference = await this.repository.upsertPreference({
+      userId: user.id,
+      preferredLanguage: input.preferredLanguage,
+      timezone: input.timezone,
+      metadata: inputJson({
+        updatedFrom: 'account_menu',
+        updatedAt: new Date().toISOString()
+      })
+    });
+
+    if (previous?.preferredLanguage !== preference.preferredLanguage) {
+      await this.recordAuthEvent('identity.preferences.language_changed', {
+        ...audit,
+        userId: user.id,
+        ownerOrgId: user.organizationId,
+        entityRef: preference.id,
+        details: {
+          previousLanguage: previous?.preferredLanguage ?? 'en',
+          preferredLanguage: preference.preferredLanguage
+        }
+      });
+    }
+
+    return preferenceDto(preference);
+  }
+
+  async recordAccountActivity(token: string | undefined, event: 'identity.profile.opened' | 'communication.messages.opened' | 'support.help.opened', audit?: AuthAuditContext) {
+    const { user } = await this.requireSession(token);
+    await this.recordAuthEvent(event, {
+      ...audit,
+      userId: user.id,
+      ownerOrgId: user.organizationId,
+      details: { source: 'account_menu' }
+    });
+    return { ok: true };
   }
 
   async signOut(token: string, audit?: AuthAuditContext) {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { useAppDispatch, useAppSelector } from '@/app/store';
-import { signOut } from '@/features/auth/slice';
+import { useAppSelector } from '@/app/store';
+import { AccountMenu } from '@/shared/components/AccountMenu';
 import {
   PlatformAppsButton,
   PlatformAppsDrawer,
@@ -12,28 +12,19 @@ type PlanningTopBarProps = {
   onNavigate: (pageKey: string) => void;
 };
 
-function initials(name?: string | null) {
-  const parts = String(name || 'ProcureX user')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-  return (parts[0]?.[0] || 'P').toUpperCase() + (parts.length > 1 ? (parts[1]?.[0] || '').toUpperCase() : '');
-}
-
 export function PlanningTopBar({ title = 'Procurement Planning', onNavigate }: PlanningTopBarProps) {
-  const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
-  const [openMenu, setOpenMenu] = useState<'apps' | 'profile' | null>(null);
+  const [appsOpen, setAppsOpen] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
   const organizationLabel = user?.organization || (user?.accountType === 'ADMIN' ? 'Platform admin tools' : 'ProcureX account tools');
 
   useEffect(() => {
     function handleDocumentClick(event: PointerEvent) {
-      if (!headerRef.current?.contains(event.target as Node)) setOpenMenu(null);
+      if (!headerRef.current?.contains(event.target as Node)) setAppsOpen(false);
     }
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') setOpenMenu(null);
+      if (event.key === 'Escape') setAppsOpen(false);
     }
 
     document.addEventListener('pointerdown', handleDocumentClick);
@@ -45,18 +36,12 @@ export function PlanningTopBar({ title = 'Procurement Planning', onNavigate }: P
   }, []);
 
   function navigate(pageKey: string) {
-    setOpenMenu(null);
+    setAppsOpen(false);
     onNavigate(pageKey);
   }
 
   function navigatePlatformApp(pageKey: PlatformAppPageKey) {
     navigate(pageKey);
-  }
-
-  function logout() {
-    setOpenMenu(null);
-    dispatch(signOut());
-    onNavigate('sign-in');
   }
 
   return (
@@ -77,38 +62,15 @@ export function PlanningTopBar({ title = 'Procurement Planning', onNavigate }: P
 
       <div className="app-topbar-actions">
         <PlatformAppsButton
-          expanded={openMenu === 'apps'}
-          onClick={() => setOpenMenu((current) => (current === 'apps' ? null : 'apps'))}
+          expanded={appsOpen}
+          onClick={() => setAppsOpen((current) => !current)}
         />
         <div className="profile-menu-wrap">
-          <button
-            className="profile-button"
-            type="button"
-            data-profile-menu-toggle
-            aria-label="Open profile menu"
-            aria-expanded={openMenu === 'profile'}
-          onClick={() => setOpenMenu((current) => (current === 'profile' ? null : 'profile'))}
-          >
-            <span>{initials(user?.displayName)}</span>
-          </button>
+          <AccountMenu buttonClassName="profile-button" />
         </div>
       </div>
 
-      <PlatformAppsDrawer open={openMenu === 'apps'} organizationLabel={organizationLabel} onSelect={navigatePlatformApp} />
-
-      <div className={`profile-menu${openMenu === 'profile' ? ' open' : ''}`} data-profile-menu>
-        <button type="button" data-navigate="account-profile" onClick={() => navigate('account-profile')}>
-          Profile
-        </button>
-        <button type="button" data-navigate="communication-center" onClick={() => navigate('communication-center')}>
-          Messages
-        </button>
-        <button type="button">Help</button>
-        <button type="button">Language</button>
-        <button type="button" data-navigate="sign-in" onClick={logout}>
-          Logout
-        </button>
-      </div>
+      <PlatformAppsDrawer open={appsOpen} organizationLabel={organizationLabel} onSelect={navigatePlatformApp} />
     </header>
   );
 }

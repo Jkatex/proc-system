@@ -97,6 +97,15 @@ export const profileUpdateSchema = z.object({
   documents: z.array(z.record(z.unknown())).optional()
 });
 
+export const preferencesPatchSchema = z.object({
+  preferredLanguage: z.enum(['en', 'sw']),
+  timezone: z.string().min(1).max(80).optional()
+});
+
+export const accountActivitySchema = z.object({
+  event: z.enum(['identity.profile.opened', 'communication.messages.opened', 'support.help.opened'])
+});
+
 export const adminVerificationListQuerySchema = z.object({
   status: z.enum(['NOT_STARTED', 'DRAFT', 'PENDING', 'APPROVED', 'REJECTED', 'EXPIRED']).optional()
 });

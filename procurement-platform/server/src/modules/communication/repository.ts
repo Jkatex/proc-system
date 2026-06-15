@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import {
+  AuditSeverity,
   CommunicationKind,
   CommunicationPriority,
   CommunicationStatus,
@@ -232,6 +233,10 @@ export class ModuleRepository {
       return records;
     });
 
+    await this.recordCommunicationAudit(original.ownerOrgId, original.id, 'communication.message.replied', {
+      replies: result.map((item) => item.id)
+    });
+
     return {
       message: toDto(result[0]),
       deliveries: result.map(toDto)
@@ -275,13 +280,23 @@ export class ModuleRepository {
       include: communicationInclude
     });
 
+    if (updated.read && !existing.read) {
+      await this.recordCommunicationAudit(updated.ownerOrgId, updated.id, 'communication.message.read');
+    }
+    if (updated.status === CommunicationStatus.ARCHIVED && existing.status !== CommunicationStatus.ARCHIVED) {
+      await this.recordCommunicationAudit(updated.ownerOrgId, updated.id, 'communication.message.archived');
+    }
+    if (updated.status === CommunicationStatus.DELETED && existing.status !== CommunicationStatus.DELETED) {
+      await this.recordCommunicationAudit(updated.ownerOrgId, updated.id, 'communication.message.deleted');
+    }
+
     return toDto(updated);
   }
 
   async markRead(messageId: string): Promise<CommunicationMessageDto | null> {
     const existing = await this.db.communicationItem.findUnique({
       where: { id: messageId },
-      select: { status: true }
+      select: { status: true, read: true }
     });
     if (!existing) return null;
 
@@ -293,6 +308,10 @@ export class ModuleRepository {
       },
       include: communicationInclude
     });
+
+    if (!existing.read) {
+      await this.recordCommunicationAudit(updated.ownerOrgId, updated.id, 'communication.message.read');
+    }
 
     return toDto(updated);
   }
@@ -312,6 +331,19 @@ export class ModuleRepository {
       status: CommunicationStatus.DELETED,
       read: true,
       actionRequired: false
+    });
+  }
+
+  private async recordCommunicationAudit(ownerOrgId: string | null, messageId: string, event: string, payload: Prisma.InputJsonObject = {}) {
+    await this.db.auditEvent.create({
+      data: {
+        ownerOrgId,
+        event,
+        entityType: 'communication_item',
+        entityRef: messageId,
+        severity: AuditSeverity.INFO,
+        payload
+      }
     });
   }
 

@@ -22,6 +22,9 @@ export function createModuleRouter() {
   router.post('/auth/reset-password', publicAuthLimit, controller.resetPassword);
   router.get('/session', controller.getSession);
   router.get('/access/me', controller.accessMe);
+  router.get('/preferences', controller.getPreferences);
+  router.patch('/preferences', controller.updatePreferences);
+  router.post('/activity', controller.recordAccountActivity);
   router.post('/auth/sign-out', controller.signOut);
 
   router.get('/verification/me', controller.getVerificationMe);

@@ -1,11 +1,9 @@
-import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import { useEffect, useRef, useState } from 'react';
-import { Button, Tooltip } from '@mui/material';
+import { Tooltip } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '@/app/store';
-import { signOut } from '@/features/auth/slice';
-import { LanguageSwitcher } from './LanguageSwitcher';
+import { useAppSelector } from '@/app/store';
+import { AccountMenu } from './AccountMenu';
 import {
   PlatformAppsButton,
   PlatformAppsDrawer,
@@ -16,7 +14,6 @@ import {
 export function TopBar() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
   const [appsOpen, setAppsOpen] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
@@ -58,22 +55,13 @@ export function TopBar() {
           {user?.accountType === 'ADMIN' ? <NavLink to="/admin">{t('nav.admin')}</NavLink> : null}
         </nav>
         <div className="px-actions" style={{ marginTop: 0 }}>
-          <LanguageSwitcher />
           <Tooltip title={t('pages.launcher.title')}>
             <span>
               <PlatformAppsButton expanded={appsOpen} onClick={() => setAppsOpen((current) => !current)} />
             </span>
           </Tooltip>
           <PlatformAppsDrawer open={appsOpen} organizationLabel={organizationLabel} onSelect={selectPlatformApp} />
-          <Button
-            startIcon={<LogoutRoundedIcon />}
-            variant="outlined"
-            onClick={() => dispatch(signOut())}
-            component={Link}
-            to="/sign-in"
-          >
-            {t('actions.logout')}
-          </Button>
+          <AccountMenu />
         </div>
       </div>
     </header>

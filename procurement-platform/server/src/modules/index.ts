@@ -13,6 +13,7 @@ import { createModuleRouter as createIntelligenceRouter, moduleDefinition as int
 import { createModuleRouter as createIntegrationRouter, moduleDefinition as integrationDefinition } from './integration/index.js';
 import { createModuleRouter as createDocumentsRouter, moduleDefinition as documentsDefinition } from './documents/index.js';
 import { createModuleRouter as createPublicRouter, moduleDefinition as publicDefinition } from './public/index.js';
+import { createModuleRouter as createSupportRouter, moduleDefinition as supportDefinition } from './support/index.js';
 import type { RegisteredModule } from './module-contract.js';
 
 export const registeredModules: RegisteredModule[] = [
@@ -30,5 +31,6 @@ export const registeredModules: RegisteredModule[] = [
   { ...recordsDefinition, basePath: '/api/records', router: createRecordsRouter() },
   { ...intelligenceDefinition, basePath: '/api/intelligence', router: createIntelligenceRouter() },
   { ...integrationDefinition, basePath: '/api/integration', router: createIntegrationRouter() },
-  { ...documentsDefinition, basePath: '/api/documents', router: createDocumentsRouter() }
+  { ...documentsDefinition, basePath: '/api/documents', router: createDocumentsRouter() },
+  { ...supportDefinition, basePath: '/api/support', router: createSupportRouter() }
 ];

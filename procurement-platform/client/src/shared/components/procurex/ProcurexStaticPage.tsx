@@ -3,7 +3,8 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/app/store';
-import { assumeUser, signOut } from '@/features/auth/slice';
+import { accountApi, type AccountActivityEvent } from '@/features/account/api';
+import { assumeUser, signOut, signOutSession } from '@/features/auth/slice';
 import i18nInstance from '@/i18n';
 import { demoUsers } from '@/shared/data/fixtures';
 import type { SessionUser } from '@/shared/types/domain';
@@ -21,6 +22,7 @@ const pageToRoute: Record<string, string> = {
   'privacy-policy': '/privacy',
   'terms-and-conditions': '/terms',
   contact: '/contact',
+  help: '/help',
   'guest-marketplace': '/guest-marketplace',
   register: '/register',
   'sign-in': '/sign-in',
@@ -189,6 +191,15 @@ function personalizeStaticChrome(root: HTMLElement, user?: SessionUser | null) {
 
   root.querySelectorAll<HTMLElement>('.app-menu-header > span').forEach((node) => {
     node.textContent = user?.organization || 'ProcureX account tools';
+  });
+
+  root.querySelectorAll<HTMLButtonElement>('[data-profile-menu] button').forEach((button) => {
+    const label = normalizeButtonText(button);
+    if (label === 'profile') button.dataset.navigate = 'account-profile';
+    if (label === 'messages') button.dataset.navigate = 'communication-center';
+    if (label === 'help') button.dataset.navigate = 'help';
+    if (label === 'language') button.dataset.profileLanguage = 'true';
+    if (label === 'logout') button.dataset.navigate = 'sign-in';
   });
 }
 
@@ -1025,6 +1036,13 @@ function shouldNavigateBack(target: HTMLElement, pageKey: string) {
   return target.classList.contains('app-brand-button') && dashboardNavigationTargets.has(page) && !dashboardPageKeys.has(pageKey);
 }
 
+function accountActivityForPage(page: string): AccountActivityEvent | null {
+  if (page === 'account-profile' || page === 'verification-status') return 'identity.profile.opened';
+  if (page === 'communication-center') return 'communication.messages.opened';
+  if (page === 'help') return 'support.help.opened';
+  return null;
+}
+
 function captureAwardContractSelection(target: HTMLElement) {
   const tenderId = target.getAttribute('data-select-tender');
   if (!tenderId || typeof window === 'undefined') return;
@@ -1555,6 +1573,7 @@ export function ProcurexStaticPage({ pageKey, html, onInitialize }: ProcurexStat
       '[data-award-step-index], [data-award-prev], [data-award-next]'
     );
     const menuButton = target.closest<HTMLElement>('[data-app-menu-toggle], [data-profile-menu-toggle]');
+    const profileLanguage = target.closest<HTMLElement>('[data-profile-language]');
     const planningAnchor = target.closest<HTMLAnchorElement>('.planning-nav-card[href^="#"]');
     const procurementPlanningView = target.closest<HTMLElement>('[data-planning-view]');
     const procurementPlanOpen = target.closest<HTMLElement>('[data-plan-open]');
@@ -1789,6 +1808,14 @@ export function ProcurexStaticPage({ pageKey, html, onInitialize }: ProcurexStat
       return;
     }
 
+    if (profileLanguage && rootRef.current) {
+      event.preventDefault();
+      rootRef.current.querySelector<HTMLElement>('[data-profile-menu]')?.classList.remove('open');
+      rootRef.current.querySelector<HTMLElement>('[data-profile-menu-toggle]')?.setAttribute('aria-expanded', 'false');
+      rootRef.current.querySelector<HTMLElement>('[aria-label="Language"], [aria-label="Lugha"]')?.focus();
+      return;
+    }
+
     if (navTarget) {
       event.preventDefault();
       const page = navTarget.getAttribute('data-navigate') || 'welcome';
@@ -1805,8 +1832,14 @@ export function ProcurexStaticPage({ pageKey, html, onInitialize }: ProcurexStat
       }
 
       captureAwardContractSelection(navTarget);
+      const accountEvent = accountActivityForPage(page);
+      if (accountEvent) void accountApi.recordActivity(accountEvent).catch(() => undefined);
       if (page === 'bid-evaluation') clearEvaluationEntrySelection();
-      if (page === 'sign-in') dispatch(signOut());
+      if (page === 'sign-in') {
+        dispatch(signOutSession())
+          .unwrap()
+          .catch(() => dispatch(signOut()));
+      }
       if (pageKey === 'bid-evaluation' && page === 'bid-evaluation' && rootRef.current) {
         resetStaticPage(rootRef.current, staticHtml, i18n.language, pageKey, location.search);
         setLanguageMount(prepareLanguageSwitcherMount(rootRef.current));

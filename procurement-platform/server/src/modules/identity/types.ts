@@ -29,6 +29,10 @@ export type SessionUserDto = {
   riskLevel: RiskLevel;
   featureGates: FeatureGateMap;
   screeningStatus: ScreeningStatus;
+  preferences: {
+    preferredLanguage: 'en' | 'sw';
+    timezone: string;
+  };
 };
 
 export type AuthSessionDto = {

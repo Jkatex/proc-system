@@ -16,6 +16,10 @@ export type SessionUser = {
   riskLevel?: RiskLevel;
   featureGates?: FeatureGateMap;
   screeningStatus?: ScreeningStatus;
+  preferences?: {
+    preferredLanguage: 'en' | 'sw';
+    timezone: string;
+  };
   verificationStatus: 'NOT_STARTED' | 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED';
 };
 

@@ -4,9 +4,11 @@ import { verifyTurnstileToken } from '../../security/turnstile.js';
 import { ModuleService } from './service.js';
 import {
   activateEmailSchema,
+  accountActivitySchema,
   adminDecisionSchema,
   adminVerificationListQuerySchema,
   moduleStatusQuerySchema,
+  preferencesPatchSchema,
   profileUpdateSchema,
   registryLookupSchema,
   forgotPasswordSchema,
@@ -57,6 +59,25 @@ export class ModuleController {
       });
     } catch {
       // The request should still receive the security failure even if audit storage is unavailable.
+    }
+  }
+
+  private async recordUnauthorizedMenuAccess(req: Request, error: unknown, event: string) {
+    const status = typeof error === 'object' && error !== null && 'status' in error ? Number((error as { status?: unknown }).status) : 500;
+    if (status !== 401 && status !== 403) return;
+    if (!process.env.DATABASE_URL) return;
+    try {
+      await this.service.recordAuthEvent(event, {
+        ...this.auditContext(req),
+        severity: AuditSeverity.WARNING,
+        details: {
+          path: req.path,
+          method: req.method,
+          status
+        }
+      });
+    } catch {
+      // Preserve the original auth failure even if audit storage is unavailable.
     }
   }
 
@@ -205,6 +226,35 @@ export class ModuleController {
     try {
       res.json(await this.service.accessMe(bearerToken(req)));
     } catch (error) {
+      next(error);
+    }
+  };
+
+  getPreferences: RequestHandler = async (req, res, next) => {
+    try {
+      res.json(await this.service.preferences(bearerToken(req)));
+    } catch (error) {
+      await this.recordUnauthorizedMenuAccess(req, error, 'identity.preferences.access_denied');
+      next(error);
+    }
+  };
+
+  updatePreferences: RequestHandler = async (req, res, next) => {
+    try {
+      const input = preferencesPatchSchema.parse(req.body);
+      res.json(await this.service.updatePreferences(bearerToken(req), input, this.auditContext(req)));
+    } catch (error) {
+      await this.recordUnauthorizedMenuAccess(req, error, 'identity.preferences.access_denied');
+      next(error);
+    }
+  };
+
+  recordAccountActivity: RequestHandler = async (req, res, next) => {
+    try {
+      const input = accountActivitySchema.parse(req.body);
+      res.status(202).json(await this.service.recordAccountActivity(bearerToken(req), input.event, this.auditContext(req)));
+    } catch (error) {
+      await this.recordUnauthorizedMenuAccess(req, error, 'identity.account_menu.access_denied');
       next(error);
     }
   };

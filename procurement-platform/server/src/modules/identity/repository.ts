@@ -15,6 +15,7 @@ import {
 import { prisma } from '../../db/prisma.js';
 
 const userInclude = {
+  preference: true,
   memberships: {
     where: { status: 'ACTIVE' as const, isDefault: true },
     include: {
@@ -82,6 +83,29 @@ export class ModuleRepository {
     return this.db.user.findUnique({
       where: { id },
       include: userInclude
+    });
+  }
+
+  findPreference(userId: string) {
+    return this.db.userPreference.findUnique({
+      where: { userId }
+    });
+  }
+
+  upsertPreference(input: { userId: string; preferredLanguage?: string; timezone?: string; metadata?: Prisma.InputJsonObject }) {
+    return this.db.userPreference.upsert({
+      where: { userId: input.userId },
+      update: {
+        ...(input.preferredLanguage !== undefined ? { preferredLanguage: input.preferredLanguage } : {}),
+        ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
+        ...(input.metadata !== undefined ? { metadata: input.metadata } : {})
+      },
+      create: {
+        userId: input.userId,
+        preferredLanguage: input.preferredLanguage ?? 'en',
+        timezone: input.timezone ?? 'Africa/Dar_es_Salaam',
+        metadata: input.metadata ?? {}
+      }
     });
   }
 

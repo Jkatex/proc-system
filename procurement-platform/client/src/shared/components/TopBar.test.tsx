@@ -1,11 +1,60 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { I18nextProvider } from 'react-i18next';
 import { Provider } from 'react-redux';
 import { MemoryRouter, useLocation } from 'react-router-dom';
+import { vi } from 'vitest';
 import { store } from '@/app/store';
 import { assumeUser, signOut } from '@/features/auth/slice';
+import { accountApi } from '@/features/account/api';
+import { authApi } from '@/features/auth/api';
+import { communicationApi } from '@/features/communication/api';
 import i18n from '@/i18n';
 import { TopBar } from './TopBar';
+
+vi.mock('@/features/account/api', () => ({
+  accountApi: {
+    recordActivity: vi.fn().mockResolvedValue({ ok: true }),
+    updatePreferences: vi.fn().mockResolvedValue({ preferredLanguage: 'sw', timezone: 'Africa/Dar_es_Salaam' })
+  }
+}));
+
+vi.mock('@/features/auth/api', () => ({
+  authApi: {
+    signOut: vi.fn().mockResolvedValue({ ok: true }),
+    getSession: vi.fn().mockResolvedValue({
+      user: {
+        id: 'user-1',
+        displayName: 'Demo Verified User',
+        email: 'demo@procurex.test',
+        accountType: 'USER',
+        organization: 'Company account tools',
+        capabilities: ['BUYER'],
+        verificationStatus: 'APPROVED',
+        preferences: { preferredLanguage: 'sw', timezone: 'Africa/Dar_es_Salaam' }
+      },
+      expiresAt: new Date(Date.now() + 3600_000).toISOString()
+    })
+  }
+}));
+
+vi.mock('@/features/communication/api', () => ({
+  communicationApi: {
+    listMailbox: vi.fn().mockResolvedValue({
+      messages: [],
+      counts: { total: 3, inbox: 3, sent: 0, drafts: 0, archived: 0, trash: 0, unread: 3, actionRequired: 0 },
+      totalMessages: 3,
+      page: 1,
+      pageSize: 1,
+      totalPages: 3
+    })
+  }
+}));
+
+const recordActivity = vi.mocked(accountApi.recordActivity);
+const updatePreferences = vi.mocked(accountApi.updatePreferences);
+const authSignOut = vi.mocked(authApi.signOut);
+const listMailbox = vi.mocked(communicationApi.listMailbox);
 
 function LocationProbe() {
   const location = useLocation();
@@ -21,8 +70,10 @@ function renderTopBar() {
       email: 'demo@procurex.test',
       accountType: 'USER',
       organization: 'Company account tools',
+      organizationId: 'org-1',
       capabilities: ['BUYER'],
-      verificationStatus: 'APPROVED'
+      verificationStatus: 'APPROVED',
+      preferences: { preferredLanguage: 'en', timezone: 'Africa/Dar_es_Salaam' }
     })
   );
 
@@ -50,6 +101,10 @@ describe('TopBar platform apps drawer', () => {
     act(() => {
       store.dispatch(signOut());
     });
+    recordActivity.mockClear();
+    updatePreferences.mockClear();
+    authSignOut.mockClear();
+    listMailbox.mockClear();
   });
 
   it('opens the platform apps drawer from the 9-dot button', () => {
@@ -92,5 +147,41 @@ describe('TopBar platform apps drawer', () => {
     expect(appsButton).toHaveAttribute('aria-expanded', 'true');
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(appsButton).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('opens account menu and records profile navigation', async () => {
+    const user = userEvent.setup();
+    renderTopBar();
+
+    await user.click(screen.getByRole('button', { name: 'Open account menu' }));
+    expect(await screen.findByText('Demo Verified User')).toBeInTheDocument();
+    await waitFor(() => expect(listMailbox).toHaveBeenCalledWith({ organizationId: 'org-1', folder: 'unread', page: 1, pageSize: 1 }));
+
+    await user.click(screen.getByText('Profile'));
+
+    expect(recordActivity).toHaveBeenCalledWith('identity.profile.opened');
+    expect(screen.getByTestId('location')).toHaveTextContent('/identity/profile');
+  });
+
+  it('persists language changes from the account menu', async () => {
+    renderTopBar();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open account menu' }));
+    fireEvent.mouseDown(await screen.findByText('English'));
+    fireEvent.click(await screen.findByRole('option', { name: 'Kiswahili' }));
+
+    await waitFor(() => expect(updatePreferences).toHaveBeenCalledWith({ preferredLanguage: 'sw' }));
+    expect(window.localStorage.getItem('procurex.language')).toBe('sw');
+  });
+
+  it('logs out through the server sign-out endpoint', async () => {
+    const user = userEvent.setup();
+    renderTopBar();
+
+    await user.click(screen.getByRole('button', { name: 'Open account menu' }));
+    await user.click(await screen.findByText('Logout'));
+
+    await waitFor(() => expect(authSignOut).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/sign-in'));
   });
 });

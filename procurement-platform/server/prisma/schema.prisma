@@ -5,7 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["identity", "organization", "procurement", "bidding", "evaluation", "contract", "financial", "compliance", "communication", "documents", "records", "intelligence", "integration", "content"]
+  schemas  = ["identity", "organization", "procurement", "bidding", "evaluation", "contract", "financial", "compliance", "communication", "documents", "records", "intelligence", "integration", "content", "support"]
 }
 
 enum AccountType {
@@ -354,6 +354,25 @@ enum CommunicationStatus {
   @@schema("communication")
 }
 
+enum SupportTicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+
+  @@schema("support")
+}
+
+enum SupportTicketStatus {
+  OPEN
+  WAITING_ON_SUPPORT
+  WAITING_ON_USER
+  RESOLVED
+  CLOSED
+
+  @@schema("support")
+}
+
 model User {
   id                        String                       @id @default(uuid()) @db.Uuid
   email                     String                       @unique
@@ -387,10 +406,27 @@ model User {
   awardResponses            AwardResponse[]              @relation("AwardResponseActor")
   contractSignatures        ContractSignature[]          @relation("ContractSignatureSigner")
   contractMilestoneEvidence ContractMilestoneEvidence[]  @relation("ContractMilestoneEvidenceUploader")
+  preference                UserPreference?
+  supportTickets            SupportTicket[]              @relation("SupportTicketOwner")
+  supportComments           SupportTicketComment[]       @relation("SupportTicketCommentActor")
   auditEvents               AuditEvent[]                 @relation("AuditActor")
   adminActions              AdminAction[]                @relation("AdminActionActor")
 
   @@map("users")
+  @@schema("identity")
+}
+
+model UserPreference {
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @unique @map("user_id") @db.Uuid
+  preferredLanguage String   @default("en") @map("preferred_language")
+  timezone          String   @default("Africa/Dar_es_Salaam")
+  metadata          Json     @default("{}")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
   @@schema("identity")
 }
 
@@ -632,6 +668,7 @@ model Organization {
   communicationOwned        CommunicationItem[]          @relation("CommunicationOwnerOrg")
   communicationSent         CommunicationItem[]          @relation("CommunicationSenderOrg")
   communicationReceived     CommunicationItem[]          @relation("CommunicationRecipientOrg")
+  supportTickets            SupportTicket[]              @relation("SupportTicketOwnerOrg")
   auditEvents               AuditEvent[]
   complianceCases           ComplianceCase[]
   adminActions              AdminAction[]
@@ -1470,6 +1507,48 @@ model CommunicationAttachment {
   @@index([documentId])
   @@map("communication_attachments")
   @@schema("communication")
+}
+
+model SupportTicket {
+  id          String                 @id @default(uuid()) @db.Uuid
+  ownerUserId String                 @map("owner_user_id") @db.Uuid
+  ownerOrgId  String?                @map("owner_org_id") @db.Uuid
+  subject     String
+  category    String                 @default("General")
+  priority    SupportTicketPriority  @default(NORMAL)
+  status      SupportTicketStatus    @default(OPEN)
+  description String
+  payload     Json                   @default("{}")
+  createdAt   DateTime               @default(now()) @map("created_at")
+  updatedAt   DateTime               @updatedAt @map("updated_at")
+  resolvedAt  DateTime?              @map("resolved_at")
+  closedAt    DateTime?              @map("closed_at")
+  ownerUser   User                   @relation("SupportTicketOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  ownerOrg    Organization?          @relation("SupportTicketOwnerOrg", fields: [ownerOrgId], references: [id], onDelete: SetNull)
+  comments    SupportTicketComment[]
+
+  @@index([ownerUserId, status])
+  @@index([ownerOrgId, status])
+  @@index([status, priority])
+  @@map("support_tickets")
+  @@schema("support")
+}
+
+model SupportTicketComment {
+  id          String        @id @default(uuid()) @db.Uuid
+  ticketId    String        @map("ticket_id") @db.Uuid
+  actorUserId String?       @map("actor_user_id") @db.Uuid
+  body        String
+  visibility  String        @default("PUBLIC")
+  payload     Json          @default("{}")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  ticket      SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  actorUser   User?         @relation("SupportTicketCommentActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId, createdAt])
+  @@index([actorUserId])
+  @@map("support_ticket_comments")
+  @@schema("support")
 }
 
 model RecordEntry {
