@@ -117,6 +117,32 @@
   margin-top: 26px;
 }
 
+.px-topbar .px-actions {
+  position: relative;
+}
+
+.px-topbar .icon-menu-btn {
+  flex: 0 0 auto;
+}
+
+.px-topbar .app-drawer-menu {
+  position: absolute;
+  top: calc(100% + 14px);
+  right: 0;
+  left: auto;
+  width: min(800px, calc(100vw - 32px));
+  max-height: calc(100vh - 96px);
+  overflow: auto;
+  z-index: 1000;
+}
+
+@media (max-width: 720px) {
+  .px-topbar .app-drawer-menu {
+    right: -12px;
+    width: min(640px, calc(100vw - 20px));
+  }
+}
+
 .px-section {
   width: min(1180px, calc(100% - 32px));
   margin: 0 auto;

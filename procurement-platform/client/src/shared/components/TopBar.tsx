@@ -1,19 +1,51 @@
-import AppsRoundedIcon from '@mui/icons-material/AppsRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
-import { Button, IconButton, Tooltip } from '@mui/material';
+import { useEffect, useRef, useState } from 'react';
+import { Button, Tooltip } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/app/store';
 import { signOut } from '@/features/auth/slice';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import {
+  PlatformAppsButton,
+  PlatformAppsDrawer,
+  resolvePlatformAppRoute,
+  type PlatformAppPageKey
+} from './procurex/PlatformAppsDrawer';
 
 export function TopBar() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
+  const [appsOpen, setAppsOpen] = useState(false);
+  const headerRef = useRef<HTMLElement | null>(null);
+  const organizationLabel = user?.organization || (user?.accountType === 'ADMIN' ? 'Platform admin tools' : 'ProcureX account tools');
+
+  useEffect(() => {
+    function handleDocumentClick(event: PointerEvent) {
+      if (!headerRef.current?.contains(event.target as Node)) setAppsOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setAppsOpen(false);
+    }
+
+    document.addEventListener('pointerdown', handleDocumentClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handleDocumentClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  function selectPlatformApp(pageKey: PlatformAppPageKey) {
+    setAppsOpen(false);
+    navigate(resolvePlatformAppRoute(pageKey));
+  }
 
   return (
-    <header className="px-topbar">
+    <header className="px-topbar" ref={headerRef}>
       <div className="px-topbar-inner">
         <Link className="px-brand" to={user?.accountType === 'ADMIN' ? '/admin' : '/dashboard'}>
           <img src="/assets/logo.svg" alt="" />
@@ -28,10 +60,11 @@ export function TopBar() {
         <div className="px-actions" style={{ marginTop: 0 }}>
           <LanguageSwitcher />
           <Tooltip title={t('pages.launcher.title')}>
-            <IconButton component={Link} to="/apps" aria-label={t('pages.launcher.title')}>
-              <AppsRoundedIcon />
-            </IconButton>
+            <span>
+              <PlatformAppsButton expanded={appsOpen} onClick={() => setAppsOpen((current) => !current)} />
+            </span>
           </Tooltip>
+          <PlatformAppsDrawer open={appsOpen} organizationLabel={organizationLabel} onSelect={selectPlatformApp} />
           <Button
             startIcon={<LogoutRoundedIcon />}
             variant="outlined"

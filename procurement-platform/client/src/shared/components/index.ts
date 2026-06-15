@@ -13,4 +13,5 @@ export * from './SidebarNav';
 export * from './StatusBadge';
 export * from './Timeline';
 export * from './TopBar';
+export * from './procurex/PlatformAppsDrawer';
 export * from './procurex/ProcurexStaticPage';

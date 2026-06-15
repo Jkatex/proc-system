@@ -1,64 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/app/store';
 import { signOut } from '@/features/auth/slice';
-import { AppMenuIcon } from './icons';
+import {
+  PlatformAppsButton,
+  PlatformAppsDrawer,
+  type PlatformAppPageKey
+} from '@/shared/components/procurex/PlatformAppsDrawer';
 
 type PlanningTopBarProps = {
   title?: string;
   onNavigate: (pageKey: string) => void;
 };
-
-const appMenuItems = [
-  {
-    className: 'app-menu-iam',
-    page: 'account-profile',
-    icon: 'iam',
-    title: 'Registration and Verification',
-    description: 'Account and identity verification'
-  },
-  {
-    className: 'app-menu-procurement',
-    page: 'tender-planning',
-    icon: 'planning',
-    title: 'Procurement Planning',
-    description: 'APP, SPP, budgets, approvals'
-  },
-  {
-    className: 'app-menu-procurement',
-    page: 'marketplace',
-    icon: 'procurement',
-    title: 'Procurement',
-    description: 'Marketplace, create tender, bid'
-  },
-  {
-    className: 'app-menu-communication',
-    page: 'communication-center',
-    icon: 'communication',
-    title: 'Communication Center',
-    description: 'Messages, clarifications, alerts'
-  },
-  {
-    className: 'app-menu-evaluation',
-    page: 'bid-evaluation',
-    icon: 'evaluation',
-    title: 'Evaluation',
-    description: 'Evaluate bids on your tenders'
-  },
-  {
-    className: 'app-menu-awarding',
-    page: 'awarding-contracts',
-    icon: 'awarding',
-    title: 'Awarding and Contract',
-    description: 'Awards, negotiations, signatures'
-  },
-  {
-    className: 'app-menu-contracts',
-    page: 'records-history',
-    icon: 'records',
-    title: 'Records and History',
-    description: 'Past tenders, bids, awards'
-  }
-] as const;
 
 function initials(name?: string | null) {
   const parts = String(name || 'ProcureX user')
@@ -80,13 +32,25 @@ export function PlanningTopBar({ title = 'Procurement Planning', onNavigate }: P
       if (!headerRef.current?.contains(event.target as Node)) setOpenMenu(null);
     }
 
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setOpenMenu(null);
+    }
+
     document.addEventListener('pointerdown', handleDocumentClick);
-    return () => document.removeEventListener('pointerdown', handleDocumentClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handleDocumentClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   function navigate(pageKey: string) {
     setOpenMenu(null);
     onNavigate(pageKey);
+  }
+
+  function navigatePlatformApp(pageKey: PlatformAppPageKey) {
+    navigate(pageKey);
   }
 
   function logout() {
@@ -112,24 +76,10 @@ export function PlanningTopBar({ title = 'Procurement Planning', onNavigate }: P
       </div>
 
       <div className="app-topbar-actions">
-        <button
-          className="icon-menu-btn"
-          type="button"
-          data-app-menu-toggle
-          aria-label="Open apps"
-          aria-expanded={openMenu === 'apps'}
+        <PlatformAppsButton
+          expanded={openMenu === 'apps'}
           onClick={() => setOpenMenu((current) => (current === 'apps' ? null : 'apps'))}
-        >
-          <span />
-          <span />
-          <span />
-          <span />
-          <span />
-          <span />
-          <span />
-          <span />
-          <span />
-        </button>
+        />
         <div className="profile-menu-wrap">
           <button
             className="profile-button"
@@ -144,32 +94,7 @@ export function PlanningTopBar({ title = 'Procurement Planning', onNavigate }: P
         </div>
       </div>
 
-      <div className={`app-drawer-menu${openMenu === 'apps' ? ' open' : ''}`} data-app-menu>
-        <div className="app-menu-header">
-          <div className="app-menu-brand">
-            <span className="platform-logo platform-logo-sm">
-              <img className="platform-logo-image" src="/assets/logo.svg" alt="ProcureX" />
-            </span>
-            <strong>ProcureX Apps</strong>
-          </div>
-          <span>{organizationLabel}</span>
-        </div>
-        {appMenuItems.map((item) => (
-          <button
-            key={item.page}
-            className={`app-menu-card ${item.className}`}
-            type="button"
-            data-navigate={item.page}
-            onClick={() => navigate(item.page)}
-          >
-            <AppMenuIcon kind={item.icon} />
-            <span>
-              <strong>{item.title}</strong>
-              <em>{item.description}</em>
-            </span>
-          </button>
-        ))}
-      </div>
+      <PlatformAppsDrawer open={openMenu === 'apps'} organizationLabel={organizationLabel} onSelect={navigatePlatformApp} />
 
       <div className={`profile-menu${openMenu === 'profile' ? ' open' : ''}`} data-profile-menu>
         <button type="button" data-navigate="account-profile" onClick={() => navigate('account-profile')}>
