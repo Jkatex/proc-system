@@ -11,6 +11,7 @@ import { useBodyPageMetadata } from '@/shared/hooks/useBodyPageMetadata';
 import type { CreateNotificationInput, NotificationTone } from '@/shared/types/notifications';
 
 type EkycStep = 1 | 2 | 3 | 4;
+type SignatureVerificationState = 'idle' | 'checking' | 'valid' | 'invalid';
 
 const applicantCards: Array<{
   type: EntityType;
@@ -115,6 +116,8 @@ export function IdentityVerificationProcurexPage() {
   const [requestKeyphrase, setRequestKeyphrase] = useState('');
   const [repeatKeyphrase, setRepeatKeyphrase] = useState('');
   const [signatureKeyphrase, setSignatureKeyphrase] = useState('');
+  const [signatureVerificationState, setSignatureVerificationState] = useState<SignatureVerificationState>('idle');
+  const [showSignatureResetConfirm, setShowSignatureResetConfirm] = useState(false);
   const [result, setResult] = useState<VerificationSubmitResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<CreateNotificationInput | null>(null);
@@ -124,7 +127,13 @@ export function IdentityVerificationProcurexPage() {
   const registrySource = useMemo(() => sourceFor(entityType, businessRegistrationSource), [businessRegistrationSource, entityType]);
   const canContinueRegistry = Boolean(registryRecord && registryVerified && registryRecord.registryNumber === registryNumber.trim());
   const canRequestSignature = requestKeyphrase.length >= 6 && requestKeyphrase === repeatKeyphrase;
-  const canSubmit = canContinueRegistry && signatureName.trim().length > 1 && signatureConsent && Boolean(signatureStatus?.hasCredential) && signatureKeyphrase.length >= 6;
+  const canVerifySignature = Boolean(signatureStatus?.hasCredential) && signatureKeyphrase.length >= 6 && signatureVerificationState !== 'checking';
+  const canSubmit =
+    canContinueRegistry &&
+    signatureName.trim().length > 1 &&
+    signatureConsent &&
+    Boolean(signatureStatus?.hasCredential) &&
+    signatureVerificationState === 'valid';
 
   useEffect(() => {
     let active = true;
@@ -172,11 +181,56 @@ export function IdentityVerificationProcurexPage() {
       const status = await identityApi.requestSignature({ keyphrase: requestKeyphrase, repeatedKeyphrase: repeatKeyphrase });
       setSignatureStatus(status);
       setSignatureKeyphrase('');
+      setSignatureVerificationState('idle');
+      setShowSignatureResetConfirm(false);
       setRequestKeyphrase('');
       setRepeatKeyphrase('');
       setMessage(identityNotification('info', 'Digital signature ready', 'Your keyphrase-backed digital signature is active.', 'Use this keyphrase whenever you sign ProcureX documents.'));
     } catch (error) {
       setMessage(notificationFromApiError(error, { title: 'Digital signature not created', fallback: 'Could not create the digital signature keyphrase.' }));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function verifySignatureKeyphrase() {
+    if (!canVerifySignature) {
+      setMessage(identityNotification('warning', 'Keyphrase not ready', 'Enter your signing keyphrase before verifying it.', 'ProcureX checks the keyphrase before final submission so mistakes can be fixed early.'));
+      return;
+    }
+
+    setLoading(true);
+    setMessage(null);
+    setSignatureVerificationState('checking');
+
+    try {
+      await identityApi.testSignature({ keyphrase: signatureKeyphrase });
+      setSignatureVerificationState('valid');
+      setMessage(identityNotification('info', 'Keyphrase verified', 'This keyphrase matches your active digital signature.', 'You can now confirm consent and submit the verification.'));
+    } catch (error) {
+      setSignatureVerificationState('invalid');
+      setMessage(notificationFromApiError(error, { title: 'Keyphrase not verified', fallback: friendlyIdentityMessage(error, 'The keyphrase does not match this digital signature.') }));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function resetSignatureKeyphrase() {
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      const status = await identityApi.revokeSignature();
+      setSignatureStatus(status);
+      setSignatureKeyphrase('');
+      setSignatureVerificationState('idle');
+      setSignatureConsent(false);
+      setShowSignatureResetConfirm(false);
+      setRequestKeyphrase('');
+      setRepeatKeyphrase('');
+      setMessage(identityNotification('info', 'Signature keyphrase reset', 'The previous signing credential was revoked. Create a new signature keyphrase to continue.', 'The old keyphrase can no longer sign verification documents.'));
+    } catch (error) {
+      setMessage(notificationFromApiError(error, { title: 'Signature keyphrase not reset', fallback: 'Could not reset the signature keyphrase.' }));
     } finally {
       setLoading(false);
     }
@@ -259,7 +313,7 @@ export function IdentityVerificationProcurexPage() {
     event.preventDefault();
 
     if (!registryRecord || !canSubmit) {
-      setMessage(identityNotification('warning', 'Verification incomplete', 'Complete registry confirmation and digital signature before submitting.', 'ProcureX needs confirmed registry data and signer consent before it can review the account.'));
+      setMessage(identityNotification('warning', 'Verification incomplete', 'Complete registry confirmation, verify the signing keyphrase, and confirm consent before submitting.', 'ProcureX needs confirmed registry data and a verified digital signature before it can review the account.'));
       return;
     }
 
@@ -303,6 +357,9 @@ export function IdentityVerificationProcurexPage() {
     } catch (error) {
       const notification = notificationFromApiError(error, { title: 'Verification could not be submitted', fallback: friendlyIdentityMessage(error, 'Could not submit verification.') });
       setMessage({ ...notification, message: friendlyIdentityMessage(error, notification.message) });
+      if (/invalid keyphrase/i.test(friendlyIdentityMessage(error, notification.message))) {
+        setSignatureVerificationState('invalid');
+      }
     } finally {
       setLoading(false);
     }
@@ -489,16 +546,21 @@ export function IdentityVerificationProcurexPage() {
 
               <div className="signature-panel">
                 {!signatureStatus?.hasCredential ? (
-                  <div className="signature-keyphrase-panel">
-                    <div>
-                      <span className="section-kicker">Signature request</span>
-                      <h3>Request your digital signature</h3>
-                      <p>This keyphrase protects your signing key and is required each time you sign a ProcureX document.</p>
+                  <div className="signature-card signature-card--setup">
+                    <div className="signature-card-header">
+                      <div>
+                        <span className="section-kicker">Signature setup</span>
+                        <h3>Create your reusable signature keyphrase</h3>
+                        <p>This keyphrase encrypts your private signing key. ProcureX never stores the phrase, so keep it somewhere safe.</p>
+                      </div>
+                      <span className="signature-status-pill pending">Not created</span>
                     </div>
+
                     <div className="ekyc-grid two">
                       <div className="form-group-new">
-                        <label className="form-label-new">Keyphrase *</label>
+                        <label className="form-label-new" htmlFor="signature-request-keyphrase">Keyphrase *</label>
                         <input
+                          id="signature-request-keyphrase"
                           className="form-input-new"
                           type="password"
                           value={requestKeyphrase}
@@ -507,12 +569,13 @@ export function IdentityVerificationProcurexPage() {
                           autoComplete="new-password"
                           onChange={(event) => setRequestKeyphrase(event.target.value)}
                         />
-                        <span className="form-hint-new">Minimum 6 characters.</span>
+                        <span className={`form-hint-new ${requestKeyphrase && requestKeyphrase.length < 6 ? 'is-warning' : ''}`}>Minimum 6 characters.</span>
                       </div>
 
                       <div className="form-group-new">
-                        <label className="form-label-new">Repeat keyphrase *</label>
+                        <label className="form-label-new" htmlFor="signature-repeat-keyphrase">Repeat keyphrase *</label>
                         <input
+                          id="signature-repeat-keyphrase"
                           className="form-input-new"
                           type="password"
                           value={repeatKeyphrase}
@@ -521,59 +584,117 @@ export function IdentityVerificationProcurexPage() {
                           autoComplete="new-password"
                           onChange={(event) => setRepeatKeyphrase(event.target.value)}
                         />
-                        <span className="form-hint-new">{repeatKeyphrase && requestKeyphrase !== repeatKeyphrase ? 'Key phrase and repeated key phrase do not match.' : 'Repeat the same keyphrase.'}</span>
+                        <span className={`form-hint-new ${repeatKeyphrase && requestKeyphrase !== repeatKeyphrase ? 'is-error' : canRequestSignature ? 'is-success' : ''}`}>
+                          {repeatKeyphrase && requestKeyphrase !== repeatKeyphrase ? 'Keyphrase and repeated keyphrase do not match.' : canRequestSignature ? 'Keyphrases match.' : 'Repeat the same keyphrase.'}
+                        </span>
                       </div>
                     </div>
-                    <button type="button" className="btn btn-secondary" disabled={loading || !canRequestSignature} onClick={() => void requestDigitalSignature()}>
-                      {loading ? 'Requesting...' : 'Request signature'}
-                    </button>
+
+                    <div className="signature-action-row">
+                      <button type="button" className="btn btn-primary" disabled={loading || !canRequestSignature} onClick={() => void requestDigitalSignature()}>
+                        {loading ? 'Creating...' : 'Create signature'}
+                      </button>
+                      <p className="signature-action-note">You will use this same keyphrase below to sign this verification and future ProcureX documents.</p>
+                    </div>
                   </div>
                 ) : (
-                  <div className="signature-keyphrase-panel ready">
-                    <div>
-                      <span className="section-kicker">Signature ready</span>
-                      <h3>You have successfully registered your digital signature</h3>
-                      <p>Use your keyphrase below to sign this verification submission.</p>
+                  <div className="signature-card signature-card--ready">
+                    <div className="signature-card-header">
+                      <div>
+                        <span className="section-kicker">Signature ready</span>
+                        <h3>Your digital signature is active</h3>
+                        <p>Verify your saved keyphrase before submitting so mistakes are caught here, not after final review.</p>
+                      </div>
+                      <span className="signature-status-pill ready">Active</span>
                     </div>
                     {signatureStatus.keyFingerprint ? <span className="signature-fingerprint">{signatureStatus.keyFingerprint}</span> : null}
+                    <button className="signature-reset-link" type="button" onClick={() => setShowSignatureResetConfirm(true)}>
+                      Forgot keyphrase? Reset signature keyphrase
+                    </button>
+
+                    {showSignatureResetConfirm ? (
+                      <div className="signature-reset-panel" role="group" aria-label="Reset signature keyphrase confirmation">
+                        <div>
+                          <strong>Reset this signature keyphrase?</strong>
+                          <p>The current signing credential will be revoked. You will need to create a new keyphrase before submitting verification.</p>
+                        </div>
+                        <div className="signature-reset-actions">
+                          <button type="button" className="btn btn-secondary" disabled={loading} onClick={() => setShowSignatureResetConfirm(false)}>
+                            Keep current
+                          </button>
+                          <button type="button" className="btn btn-primary" disabled={loading} onClick={() => void resetSignatureKeyphrase()}>
+                            {loading ? 'Resetting...' : 'Reset keyphrase'}
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 )}
 
-                <div className="ekyc-grid two">
-                  <div className="form-group-new">
-                    <label className="form-label-new">Signer full name *</label>
-                    <input className="form-input-new" type="text" value={signatureName} onChange={(event) => setSignatureName(event.target.value)} />
+                <div className="signature-card signature-card--sign">
+                  <div className="signature-card-header compact">
+                    <div>
+                      <span className="section-kicker">Sign verification</span>
+                      <h3>Review signer details and verify the keyphrase</h3>
+                    </div>
+                    <span className={`signature-status-pill ${signatureVerificationState}`}>
+                      {signatureVerificationState === 'valid' ? 'Verified' : signatureVerificationState === 'invalid' ? 'Check failed' : signatureVerificationState === 'checking' ? 'Checking' : 'Not verified'}
+                    </span>
                   </div>
 
-                  <div className="form-group-new">
-                    <label className="form-label-new">Signer title</label>
-                    <input className="form-input-new" type="text" value={signatureTitle} placeholder="Owner, director, officer" onChange={(event) => setSignatureTitle(event.target.value)} />
+                  <div className="ekyc-grid two">
+                    <div className="form-group-new">
+                      <label className="form-label-new" htmlFor="signature-signer-name">Signer full name *</label>
+                      <input id="signature-signer-name" className="form-input-new" type="text" value={signatureName} onChange={(event) => setSignatureName(event.target.value)} />
+                    </div>
+
+                    <div className="form-group-new">
+                      <label className="form-label-new" htmlFor="signature-signer-title">Signer title</label>
+                      <input id="signature-signer-title" className="form-input-new" type="text" value={signatureTitle} placeholder="Owner, director, officer" onChange={(event) => setSignatureTitle(event.target.value)} />
+                    </div>
                   </div>
+
+                  <div className="signature-preview">{signatureName.trim() || 'Typed signature preview'}</div>
+
+                  <div className="signature-keyphrase-check">
+                    <div className="form-group-new">
+                      <label className="form-label-new" htmlFor="signature-signing-keyphrase">Signing keyphrase *</label>
+                      <input
+                        id="signature-signing-keyphrase"
+                        className={`form-input-new ${signatureVerificationState === 'invalid' ? 'is-invalid' : signatureVerificationState === 'valid' ? 'is-valid' : ''}`}
+                        type="password"
+                        value={signatureKeyphrase}
+                        minLength={6}
+                        maxLength={128}
+                        autoComplete="current-password"
+                        disabled={!signatureStatus?.hasCredential}
+                        placeholder={signatureStatus?.hasCredential ? 'Enter your signing keyphrase' : 'Create a signature keyphrase first'}
+                        onChange={(event) => {
+                          setSignatureKeyphrase(event.target.value);
+                          setSignatureVerificationState('idle');
+                        }}
+                      />
+                      <span className={`form-hint-new ${signatureVerificationState === 'valid' ? 'is-success' : signatureVerificationState === 'invalid' ? 'is-error' : ''}`}>
+                        {signatureVerificationState === 'valid'
+                          ? 'Keyphrase verified. You can submit after consent is confirmed.'
+                          : signatureVerificationState === 'invalid'
+                            ? 'This keyphrase does not match the active signature. Try again or reset it.'
+                            : 'Verify this keyphrase before submitting.'}
+                      </span>
+                    </div>
+                    <button type="button" className="btn btn-secondary" disabled={loading || !canVerifySignature} onClick={() => void verifySignatureKeyphrase()}>
+                      {signatureVerificationState === 'checking' || loading ? 'Verifying...' : 'Verify keyphrase'}
+                    </button>
+                  </div>
+
+                  <label className={`confirm-action signature-consent-card ${signatureConsent ? 'confirmed' : ''}`}>
+                    <input className="confirm-action-input" type="checkbox" checked={signatureConsent} onChange={(event) => setSignatureConsent(event.target.checked)} />
+                    <span>
+                      <strong>Confirm digital signature consent</strong>
+                      <small>{signatureConsentTitle} v{signatureConsentVersion}</small>
+                    </span>
+                  </label>
                 </div>
-
-                <div className="signature-preview">{signatureName.trim() || 'Typed signature preview'}</div>
-
-                <div className="form-group-new">
-                  <label className="form-label-new">Signing keyphrase *</label>
-                  <input
-                    className="form-input-new"
-                    type="password"
-                    value={signatureKeyphrase}
-                    minLength={6}
-                    maxLength={128}
-                    autoComplete="current-password"
-                    disabled={!signatureStatus?.hasCredential}
-                    placeholder={signatureStatus?.hasCredential ? 'Enter your signing keyphrase' : 'Request a digital signature first'}
-                    onChange={(event) => setSignatureKeyphrase(event.target.value)}
-                  />
-                  <span className="form-hint-new">This keyphrase is verified by decrypting your signing key in memory only.</span>
-                </div>
-
-                <label className={`confirm-action ${signatureConsent ? 'confirmed' : ''}`}>
-                  <input className="confirm-action-input" type="checkbox" checked={signatureConsent} onChange={(event) => setSignatureConsent(event.target.checked)} />
-                  <span>Confirm digital signature consent</span>
-                </label>
-                <p className="form-hint-new">{signatureConsentTitle} v{signatureConsentVersion}</p>
               </div>
 
               <div className="ekyc-step-actions split">
