@@ -1,9 +1,7 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import en from './locales/en/common.json';
-import enProcurexStatic from './locales/en/procurex-static.json';
 import sw from './locales/sw/common.json';
-import swProcurexStatic from './locales/sw/procurex-static.json';
 
 export const supportedLanguages = ['en', 'sw'] as const;
 export type SupportedLanguage = (typeof supportedLanguages)[number];
@@ -15,8 +13,8 @@ const initialLanguage = supportedLanguages.includes(storedLanguage as SupportedL
 
 void i18n.use(initReactI18next).init({
   resources: {
-    en: { common: en, procurexStatic: enProcurexStatic },
-    sw: { common: sw, procurexStatic: swProcurexStatic }
+    en: { common: en },
+    sw: { common: sw }
   },
   lng: initialLanguage,
   fallbackLng: 'en',
@@ -25,6 +23,29 @@ void i18n.use(initReactI18next).init({
     escapeValue: false
   }
 });
+
+const procurexStaticNamespaceLoads = new Map<SupportedLanguage, Promise<void>>();
+
+export function hasProcurexStaticNamespace(language: SupportedLanguage) {
+  return i18n.hasResourceBundle(language, 'procurexStatic');
+}
+
+export function ensureProcurexStaticNamespace(language: SupportedLanguage) {
+  if (hasProcurexStaticNamespace(language)) return Promise.resolve();
+
+  const activeLoad = procurexStaticNamespaceLoads.get(language);
+  if (activeLoad) return activeLoad;
+
+  const load = (language === 'sw'
+    ? import('./locales/sw/procurex-static.json')
+    : import('./locales/en/procurex-static.json')
+  ).then((module) => {
+    i18n.addResourceBundle(language, 'procurexStatic', module.default, true, true);
+  });
+
+  procurexStaticNamespaceLoads.set(language, load);
+  return load;
+}
 
 export function persistLanguage(language: SupportedLanguage) {
   window.localStorage.setItem('procurex.language', language);

@@ -1,14 +1,30 @@
 import { Navigate, createBrowserRouter } from 'react-router-dom';
-import type { ComponentProps, ReactNode } from 'react';
-import { ForgotPasswordProcurexPage } from '@/features/auth/components/procurex/ForgotPasswordProcurexPage';
+import { lazy, Suspense, type ComponentProps, type ElementType, type ReactNode } from 'react';
 import { procurexPageRegistry, type ProcurexPageKey } from '@/features/procurexPageRegistry';
-import { AccountLockedProcurexPage, HelpCenterProcurexPage, NotFoundProcurexPage, SessionExpiredProcurexPage, SystemStatusProcurexPage } from '@/features/support/pages/SupportPages';
+import { ProcurexLoadingPage } from '@/shared/components/ProcurexLoadingPage';
 import { LegacyPageRedirect, HomeOrLegacyPage } from './legacyRedirects';
 import { AdminRoute, ProtectedRoute } from './routeGuards';
 
+const ForgotPasswordProcurexPage = lazy(() =>
+  import('@/features/auth/components/procurex/ForgotPasswordProcurexPage').then((module) => ({ default: module.ForgotPasswordProcurexPage }))
+);
+const HelpCenterProcurexPage = lazy(() => import('@/features/support/pages/SupportPages').then((module) => ({ default: module.HelpCenterProcurexPage })));
+const SystemStatusProcurexPage = lazy(() => import('@/features/support/pages/SupportPages').then((module) => ({ default: module.SystemStatusProcurexPage })));
+const SessionExpiredProcurexPage = lazy(() => import('@/features/support/pages/SupportPages').then((module) => ({ default: module.SessionExpiredProcurexPage })));
+const AccountLockedProcurexPage = lazy(() => import('@/features/support/pages/SupportPages').then((module) => ({ default: module.AccountLockedProcurexPage })));
+const NotFoundProcurexPage = lazy(() => import('@/features/support/pages/SupportPages').then((module) => ({ default: module.NotFoundProcurexPage })));
+
+function lazyElement(Component: ElementType) {
+  return (
+    <Suspense fallback={<ProcurexLoadingPage />}>
+      <Component />
+    </Suspense>
+  );
+}
+
 function page(pageKey: ProcurexPageKey) {
   const Page = procurexPageRegistry[pageKey];
-  return <Page />;
+  return lazyElement(Page);
 }
 
 function protectedPage(
@@ -51,13 +67,13 @@ export const routes = [
   { path: '/privacy', element: page('privacy-policy') },
   { path: '/terms', element: page('terms-and-conditions') },
   { path: '/contact', element: page('contact') },
-  { path: '/help', element: <HelpCenterProcurexPage /> },
-  { path: '/status', element: <SystemStatusProcurexPage /> },
+  { path: '/help', element: lazyElement(HelpCenterProcurexPage) },
+  { path: '/status', element: lazyElement(SystemStatusProcurexPage) },
   { path: '/register', element: page('register') },
   { path: '/sign-in', element: page('sign-in') },
-  { path: '/forgot-password', element: <ForgotPasswordProcurexPage /> },
-  { path: '/session-expired', element: <SessionExpiredProcurexPage /> },
-  { path: '/account-locked', element: <AccountLockedProcurexPage /> },
+  { path: '/forgot-password', element: lazyElement(ForgotPasswordProcurexPage) },
+  { path: '/session-expired', element: lazyElement(SessionExpiredProcurexPage) },
+  { path: '/account-locked', element: lazyElement(AccountLockedProcurexPage) },
   { path: '/role-selection', element: <Navigate to="/register" replace /> },
 
   { path: '/apps', element: verifiedPage('app-launcher') },
@@ -96,7 +112,7 @@ export const routes = [
   { path: '/buyer-dashboard', element: <Navigate to="/dashboard" replace /> },
   { path: '/supplier-dashboard', element: <Navigate to="/dashboard" replace /> },
   { path: '/procurement-dashboard', element: <Navigate to="/dashboard" replace /> },
-  { path: '*', element: <NotFoundProcurexPage /> }
+  { path: '*', element: lazyElement(NotFoundProcurexPage) }
 ];
 
 export const router = createBrowserRouter(routes);

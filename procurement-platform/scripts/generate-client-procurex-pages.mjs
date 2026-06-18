@@ -282,6 +282,10 @@ const registryEntries = [];
 const routeEntries = [];
 const staticStrings = new Set();
 
+function lazyRegistryEntry(feature, page, componentName) {
+  return `  '${page}': lazy(() => import('@/features/${feature}/components/procurex/${componentName}').then((module) => ({ default: module.${componentName} })))`;
+}
+
 function decodeHtml(value) {
   return value
     .replaceAll('&amp;', '&')
@@ -561,13 +565,13 @@ for (const [feature, page, componentName] of pages) {
     await writeFile(path.join(dir, `${componentName}.tsx`), componentSource(page, componentName, html));
   }
   registryImports.push(`import { ${componentName} } from '@/features/${feature}/components/procurex/${componentName}';`);
-  registryEntries.push(`  '${page}': ${componentName}`);
+  registryEntries.push(lazyRegistryEntry(feature, page, componentName));
   routeEntries.push(`  '${page}': '${componentName}'`);
 }
 
 await writeFile(
   path.join(clientSrc, 'features', 'procurexPageRegistry.tsx'),
-  `${generatedHeader()}import type { ComponentType } from 'react';\n${registryImports.join('\n')}\n\nexport const procurexPageRegistry = {\n${registryEntries.join(',\n')}\n} satisfies Record<string, ComponentType>;\n\nexport type ProcurexPageKey = keyof typeof procurexPageRegistry;\n`
+  `${generatedHeader()}import { lazy, type ComponentType, type LazyExoticComponent } from 'react';\n\ntype ProcurexPageComponent = LazyExoticComponent<ComponentType>;\n\nexport const procurexPageRegistry = {\n${registryEntries.join(',\n')}\n} satisfies Record<string, ProcurexPageComponent>;\n\nexport type ProcurexPageKey = keyof typeof procurexPageRegistry;\n`
 );
 
 const translations = translationObjects(staticStrings);

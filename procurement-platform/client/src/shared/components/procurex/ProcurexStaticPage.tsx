@@ -5,7 +5,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/app/store';
 import { accountApi, type AccountActivityEvent } from '@/features/account/api';
 import { assumeUser, signOut, signOutSession } from '@/features/auth/slice';
-import i18nInstance from '@/i18n';
+import i18nInstance, { ensureProcurexStaticNamespace, hasProcurexStaticNamespace } from '@/i18n';
 import { demoUsers } from '@/shared/data/fixtures';
 import type { SessionUser } from '@/shared/types/domain';
 import { LanguageSwitcher } from '../LanguageSwitcher';
@@ -1494,6 +1494,7 @@ function handleRegisterSubmit(form: HTMLFormElement, root: HTMLElement) {
 export function ProcurexStaticPage({ pageKey, html, onInitialize }: ProcurexStaticPageProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [languageMount, setLanguageMount] = useState<HTMLElement | null>(null);
+  const [staticTranslationVersion, setStaticTranslationVersion] = useState(0);
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -1501,14 +1502,15 @@ export function ProcurexStaticPage({ pageKey, html, onInitialize }: ProcurexStat
   const { i18n } = useTranslation();
   const renderLanguage =
     i18n.language === 'sw' || i18nInstance.language === 'sw' || i18nInstance.resolvedLanguage === 'sw' ? 'sw' : 'en';
+  const staticTranslationLanguage = renderLanguage === 'sw' && !hasProcurexStaticNamespace('sw') ? 'en' : renderLanguage;
   const baseStaticHtml = useMemo(() => createStaticHtmlWithLanguageMount(html), [html]);
   const staticHtml = useMemo(() => {
     const routeStaticHtml =
       pageKey === 'marketplace'
         ? createMarketplaceRouteHtml(baseStaticHtml, location.pathname, location.search)
         : baseStaticHtml;
-    return createTranslatedStaticHtml(routeStaticHtml, renderLanguage);
-  }, [baseStaticHtml, location.pathname, location.search, pageKey, renderLanguage]);
+    return createTranslatedStaticHtml(routeStaticHtml, staticTranslationLanguage);
+  }, [baseStaticHtml, location.pathname, location.search, pageKey, staticTranslationLanguage, staticTranslationVersion]);
   const staticPageInstanceKey =
     pageKey === 'bid-evaluation'
       ? `${pageKey}:${location.key}`
@@ -1536,6 +1538,19 @@ export function ProcurexStaticPage({ pageKey, html, onInitialize }: ProcurexStat
       delete document.body.dataset.procurexReactPage;
     };
   }, [pageKey, staticHtml, i18n.language, location.key, location.pathname, location.search, user]);
+
+  useEffect(() => {
+    if (renderLanguage !== 'sw' || hasProcurexStaticNamespace('sw')) return;
+
+    let isMounted = true;
+    void ensureProcurexStaticNamespace('sw').then(() => {
+      if (isMounted) setStaticTranslationVersion((version) => version + 1);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [renderLanguage]);
 
   useEffect(() => {
     const root = rootRef.current;

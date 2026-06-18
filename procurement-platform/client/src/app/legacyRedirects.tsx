@@ -1,5 +1,7 @@
+import { Suspense } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { procurexPageRegistry } from '@/features/procurexPageRegistry';
+import { ProcurexLoadingPage } from '@/shared/components/ProcurexLoadingPage';
 
 const pageRouteAliases: Record<string, string> = {
   welcome: '/',
@@ -66,5 +68,9 @@ export function HomeOrLegacyPage() {
     return <Navigate to={pageRouteAliases[page] ?? '/'} replace />;
   }
   const WelcomePage = procurexPageRegistry.welcome;
-  return <WelcomePage />;
+  return (
+    <Suspense fallback={<ProcurexLoadingPage />}>
+      <WelcomePage />
+    </Suspense>
+  );
 }

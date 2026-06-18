@@ -8,6 +8,7 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "dev:example": "node ../scripts/run-server-dev.mjs .env.example",
     "build": "prisma generate && tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "test": "vitest run",

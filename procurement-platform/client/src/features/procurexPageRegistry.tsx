@@ -1,78 +1,45 @@
 /* This file is generated from the ProcureX design prototype. Do not edit by hand. */
 
-import type { ComponentType } from 'react';
-import { WelcomeProcurexPage } from '@/features/public/components/procurex/WelcomeProcurexPage';
-import { AboutProcurexPage } from '@/features/public/components/procurex/AboutProcurexPage';
-import { PrivacyPolicyProcurexPage } from '@/features/public/components/procurex/PrivacyPolicyProcurexPage';
-import { TermsAndConditionsProcurexPage } from '@/features/public/components/procurex/TermsAndConditionsProcurexPage';
-import { ContactProcurexPage } from '@/features/public/components/procurex/ContactProcurexPage';
-import { GuestMarketplaceProcurexPage } from '@/features/public/components/procurex/GuestMarketplaceProcurexPage';
-import { RegisterProcurexPage } from '@/features/auth/components/procurex/RegisterProcurexPage';
-import { SignInProcurexPage } from '@/features/auth/components/procurex/SignInProcurexPage';
-import { IdentityVerificationProcurexPage } from '@/features/identity/components/procurex/IdentityVerificationProcurexPage';
-import { AccountProfileProcurexPage } from '@/features/identity/components/procurex/AccountProfileProcurexPage';
-import { AppLauncherProcurexPage } from '@/features/workspace/components/procurex/AppLauncherProcurexPage';
-import { WorkspaceDashboardProcurexPage } from '@/features/workspace/components/procurex/WorkspaceDashboardProcurexPage';
-import { TenderPlanningProcurexPage } from '@/features/tenderPlanning/components/procurex/TenderPlanningProcurexPage';
-import { MarketplaceProcurexPage } from '@/features/procurement/components/procurex/MarketplaceProcurexPage';
-import { CreateTenderProcurexPage } from '@/features/procurement/components/procurex/CreateTenderProcurexPage';
-import { TenderPublicationProcurexPage } from '@/features/procurement/components/procurex/TenderPublicationProcurexPage';
-import { TenderDetailsProcurexPage } from '@/features/procurement/components/procurex/TenderDetailsProcurexPage';
-import { TenderDocumentProcurexPage } from '@/features/procurement/components/procurex/TenderDocumentProcurexPage';
-import { SupplierTenderDetailProcurexPage } from '@/features/procurement/components/procurex/SupplierTenderDetailProcurexPage';
-import { ProcurementGuideProcurexPage } from '@/features/procurement/components/procurex/ProcurementGuideProcurexPage';
-import { BiddingWorkspaceProcurexPage } from '@/features/bidding/components/procurex/BiddingWorkspaceProcurexPage';
-import { BidEvaluationProcurexPage } from '@/features/evaluation/components/procurex/BidEvaluationProcurexPage';
-import { AwardingContractsProcurexPage } from '@/features/awardsContracts/components/procurex/AwardingContractsProcurexPage';
-import { AwardRecommendationProcurexPage } from '@/features/awardsContracts/components/procurex/AwardRecommendationProcurexPage';
-import { AwardResponseProcurexPage } from '@/features/awardsContracts/components/procurex/AwardResponseProcurexPage';
-import { ContractNegotiationProcurexPage } from '@/features/awardsContracts/components/procurex/ContractNegotiationProcurexPage';
-import { PostAwardTrackingProcurexPage } from '@/features/awardsContracts/components/procurex/PostAwardTrackingProcurexPage';
-import { CommunicationCenterProcurexPage } from '@/features/communication/components/procurex/CommunicationCenterProcurexPage';
-import { RecordsHistoryProcurexPage } from '@/features/records/components/procurex/RecordsHistoryProcurexPage';
-import { AdminDashboardProcurexPage } from '@/features/admin/components/procurex/AdminDashboardProcurexPage';
-import { AdminSearchProcurexPage } from '@/features/admin/components/procurex/AdminSearchProcurexPage';
-import { AdminUsersProcurexPage } from '@/features/admin/components/procurex/AdminUsersProcurexPage';
-import { AdminComplianceProcurexPage } from '@/features/admin/components/procurex/AdminComplianceProcurexPage';
-import { AdminAnalyticsProcurexPage } from '@/features/admin/components/procurex/AdminAnalyticsProcurexPage';
-import { AdminAuditProcurexPage } from '@/features/admin/components/procurex/AdminAuditProcurexPage';
+import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
+
+type ProcurexPageComponent = LazyExoticComponent<ComponentType>;
 
 export const procurexPageRegistry = {
-  'welcome': WelcomeProcurexPage,
-  'about-procurex': AboutProcurexPage,
-  'privacy-policy': PrivacyPolicyProcurexPage,
-  'terms-and-conditions': TermsAndConditionsProcurexPage,
-  'contact': ContactProcurexPage,
-  'guest-marketplace': GuestMarketplaceProcurexPage,
-  'register': RegisterProcurexPage,
-  'sign-in': SignInProcurexPage,
-  'identity-verification': IdentityVerificationProcurexPage,
-  'account-profile': AccountProfileProcurexPage,
-  'app-launcher': AppLauncherProcurexPage,
-  'workspace-dashboard': WorkspaceDashboardProcurexPage,
-  'tender-planning': TenderPlanningProcurexPage,
-  'marketplace': MarketplaceProcurexPage,
-  'create-tender': CreateTenderProcurexPage,
-  'tender-publication': TenderPublicationProcurexPage,
-  'tender-details': TenderDetailsProcurexPage,
-  'tender-document': TenderDocumentProcurexPage,
-  'tender-detail': SupplierTenderDetailProcurexPage,
-  'procurement-guide': ProcurementGuideProcurexPage,
-  'bidding-workspace': BiddingWorkspaceProcurexPage,
-  'bid-evaluation': BidEvaluationProcurexPage,
-  'awarding-contracts': AwardingContractsProcurexPage,
-  'award-recommendation': AwardRecommendationProcurexPage,
-  'award-response': AwardResponseProcurexPage,
-  'contract-negotiation': ContractNegotiationProcurexPage,
-  'post-award-tracking': PostAwardTrackingProcurexPage,
-  'communication-center': CommunicationCenterProcurexPage,
-  'records-history': RecordsHistoryProcurexPage,
-  'admin-dashboard': AdminDashboardProcurexPage,
-  'admin-search': AdminSearchProcurexPage,
-  'admin-users': AdminUsersProcurexPage,
-  'admin-compliance': AdminComplianceProcurexPage,
-  'admin-analytics': AdminAnalyticsProcurexPage,
-  'admin-audit': AdminAuditProcurexPage
-} satisfies Record<string, ComponentType>;
+  'welcome': lazy(() => import('@/features/public/components/procurex/WelcomeProcurexPage').then((module) => ({ default: module.WelcomeProcurexPage }))),
+  'about-procurex': lazy(() => import('@/features/public/components/procurex/AboutProcurexPage').then((module) => ({ default: module.AboutProcurexPage }))),
+  'privacy-policy': lazy(() => import('@/features/public/components/procurex/PrivacyPolicyProcurexPage').then((module) => ({ default: module.PrivacyPolicyProcurexPage }))),
+  'terms-and-conditions': lazy(() => import('@/features/public/components/procurex/TermsAndConditionsProcurexPage').then((module) => ({ default: module.TermsAndConditionsProcurexPage }))),
+  'contact': lazy(() => import('@/features/public/components/procurex/ContactProcurexPage').then((module) => ({ default: module.ContactProcurexPage }))),
+  'guest-marketplace': lazy(() => import('@/features/public/components/procurex/GuestMarketplaceProcurexPage').then((module) => ({ default: module.GuestMarketplaceProcurexPage }))),
+  'register': lazy(() => import('@/features/auth/components/procurex/RegisterProcurexPage').then((module) => ({ default: module.RegisterProcurexPage }))),
+  'sign-in': lazy(() => import('@/features/auth/components/procurex/SignInProcurexPage').then((module) => ({ default: module.SignInProcurexPage }))),
+  'identity-verification': lazy(() => import('@/features/identity/components/procurex/IdentityVerificationProcurexPage').then((module) => ({ default: module.IdentityVerificationProcurexPage }))),
+  'account-profile': lazy(() => import('@/features/identity/components/procurex/AccountProfileProcurexPage').then((module) => ({ default: module.AccountProfileProcurexPage }))),
+  'app-launcher': lazy(() => import('@/features/workspace/components/procurex/AppLauncherProcurexPage').then((module) => ({ default: module.AppLauncherProcurexPage }))),
+  'workspace-dashboard': lazy(() => import('@/features/workspace/components/procurex/WorkspaceDashboardProcurexPage').then((module) => ({ default: module.WorkspaceDashboardProcurexPage }))),
+  'tender-planning': lazy(() => import('@/features/tenderPlanning/components/procurex/TenderPlanningProcurexPage').then((module) => ({ default: module.TenderPlanningProcurexPage }))),
+  'marketplace': lazy(() => import('@/features/procurement/components/procurex/MarketplaceProcurexPage').then((module) => ({ default: module.MarketplaceProcurexPage }))),
+  'create-tender': lazy(() => import('@/features/procurement/components/procurex/CreateTenderProcurexPage').then((module) => ({ default: module.CreateTenderProcurexPage }))),
+  'tender-publication': lazy(() => import('@/features/procurement/components/procurex/TenderPublicationProcurexPage').then((module) => ({ default: module.TenderPublicationProcurexPage }))),
+  'tender-details': lazy(() => import('@/features/procurement/components/procurex/TenderDetailsProcurexPage').then((module) => ({ default: module.TenderDetailsProcurexPage }))),
+  'tender-document': lazy(() => import('@/features/procurement/components/procurex/TenderDocumentProcurexPage').then((module) => ({ default: module.TenderDocumentProcurexPage }))),
+  'tender-detail': lazy(() => import('@/features/procurement/components/procurex/SupplierTenderDetailProcurexPage').then((module) => ({ default: module.SupplierTenderDetailProcurexPage }))),
+  'procurement-guide': lazy(() => import('@/features/procurement/components/procurex/ProcurementGuideProcurexPage').then((module) => ({ default: module.ProcurementGuideProcurexPage }))),
+  'bidding-workspace': lazy(() => import('@/features/bidding/components/procurex/BiddingWorkspaceProcurexPage').then((module) => ({ default: module.BiddingWorkspaceProcurexPage }))),
+  'bid-evaluation': lazy(() => import('@/features/evaluation/components/procurex/BidEvaluationProcurexPage').then((module) => ({ default: module.BidEvaluationProcurexPage }))),
+  'awarding-contracts': lazy(() => import('@/features/awardsContracts/components/procurex/AwardingContractsProcurexPage').then((module) => ({ default: module.AwardingContractsProcurexPage }))),
+  'award-recommendation': lazy(() => import('@/features/awardsContracts/components/procurex/AwardRecommendationProcurexPage').then((module) => ({ default: module.AwardRecommendationProcurexPage }))),
+  'award-response': lazy(() => import('@/features/awardsContracts/components/procurex/AwardResponseProcurexPage').then((module) => ({ default: module.AwardResponseProcurexPage }))),
+  'contract-negotiation': lazy(() => import('@/features/awardsContracts/components/procurex/ContractNegotiationProcurexPage').then((module) => ({ default: module.ContractNegotiationProcurexPage }))),
+  'post-award-tracking': lazy(() => import('@/features/awardsContracts/components/procurex/PostAwardTrackingProcurexPage').then((module) => ({ default: module.PostAwardTrackingProcurexPage }))),
+  'communication-center': lazy(() => import('@/features/communication/components/procurex/CommunicationCenterProcurexPage').then((module) => ({ default: module.CommunicationCenterProcurexPage }))),
+  'records-history': lazy(() => import('@/features/records/components/procurex/RecordsHistoryProcurexPage').then((module) => ({ default: module.RecordsHistoryProcurexPage }))),
+  'admin-dashboard': lazy(() => import('@/features/admin/components/procurex/AdminDashboardProcurexPage').then((module) => ({ default: module.AdminDashboardProcurexPage }))),
+  'admin-search': lazy(() => import('@/features/admin/components/procurex/AdminSearchProcurexPage').then((module) => ({ default: module.AdminSearchProcurexPage }))),
+  'admin-users': lazy(() => import('@/features/admin/components/procurex/AdminUsersProcurexPage').then((module) => ({ default: module.AdminUsersProcurexPage }))),
+  'admin-compliance': lazy(() => import('@/features/admin/components/procurex/AdminComplianceProcurexPage').then((module) => ({ default: module.AdminComplianceProcurexPage }))),
+  'admin-analytics': lazy(() => import('@/features/admin/components/procurex/AdminAnalyticsProcurexPage').then((module) => ({ default: module.AdminAnalyticsProcurexPage }))),
+  'admin-audit': lazy(() => import('@/features/admin/components/procurex/AdminAuditProcurexPage').then((module) => ({ default: module.AdminAuditProcurexPage })))
+} satisfies Record<string, ProcurexPageComponent>;
 
 export type ProcurexPageKey = keyof typeof procurexPageRegistry;

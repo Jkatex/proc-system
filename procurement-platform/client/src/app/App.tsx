@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { RouterProvider } from 'react-router-dom';
 import { hydrateAuthSession } from '@/features/auth/slice';
 import { NotificationToastHost } from '@/features/notifications/NotificationToastHost';
-import { CookieConsentBanner } from '@/features/support/pages/SupportPages';
+import { CookieConsentBanner } from '@/features/support/components/CookieConsentBanner';
 import { router } from './router';
 import { useAppDispatch, useAppSelector } from './store';
 

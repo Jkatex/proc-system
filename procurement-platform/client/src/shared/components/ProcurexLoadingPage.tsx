@@ -7,7 +7,7 @@ export function ProcurexLoadingPage({ title = 'Loading ProcureX...', message = '
   return (
     <div className="procurex-loading-page" role="status" aria-live="polite" aria-label={title}>
       <div className="loading-animation-shell" aria-hidden="true">
-        <dotlottie-player className="procurex-lottie procurex-lottie-lg" src="/assets/ProcureX.json" background="transparent" speed="1" loop autoplay />
+        <img className="procurex-loading-logo" src="/assets/logo.svg" alt="" />
       </div>
       <h2>{title}</h2>
       <p>{message}</p>

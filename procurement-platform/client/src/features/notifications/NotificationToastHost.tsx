@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@/app/store';
-import { NotificationCard } from '@/shared/components/NotificationCard';
 import type { CreateNotificationInput } from '@/shared/types/notifications';
 import { dismissNotification, enqueueNotification } from './slice';
+
+const NotificationCard = lazy(() => import('@/shared/components/NotificationCard').then((module) => ({ default: module.NotificationCard })));
 
 export function NotificationToastHost() {
   const dispatch = useAppDispatch();
@@ -37,9 +38,11 @@ export function NotificationToastHost() {
 
   return (
     <section className="procurex-toast-host" aria-label="Notifications">
-      {notifications.map((notification) => (
-        <NotificationCard key={notification.id} notification={{ ...notification, dismissible: true }} compact onDismiss={() => dispatch(dismissNotification(notification.id))} />
-      ))}
+      <Suspense fallback={null}>
+        {notifications.map((notification) => (
+          <NotificationCard key={notification.id} notification={{ ...notification, dismissible: true }} compact onDismiss={() => dispatch(dismissNotification(notification.id))} />
+        ))}
+      </Suspense>
     </section>
   );
 }

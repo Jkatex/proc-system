@@ -70,7 +70,7 @@ describe('route guards', () => {
 
     expect(screen.getByRole('status', { name: 'Restoring session' })).toBeInTheDocument();
     expect(screen.getByText('Checking your ProcureX sign-in state.')).toBeInTheDocument();
-    expect(document.querySelector('dotlottie-player.procurex-lottie-lg')).toHaveAttribute('src', '/assets/ProcureX.json');
+    expect(document.querySelector('img.procurex-loading-logo')).toHaveAttribute('src', '/assets/logo.svg');
   });
 
   it('redirects normal users away from admin routes', () => {

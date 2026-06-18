@@ -1,4 +1,3 @@
-import { MenuItem, Select } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { store } from '@/app/store';
 import { accountApi } from '@/features/account/api';
@@ -22,29 +21,14 @@ export function LanguageSwitcher() {
   }
 
   return (
-    <Select
+    <select
+      className="procurex-language-select"
       aria-label={t('language')}
-      inputProps={{ 'aria-label': t('language') }}
-      SelectDisplayProps={{ 'aria-label': t('language') }}
       value={language}
-      size="small"
       onChange={(event) => void handleChange(event.target.value as SupportedLanguage)}
-      renderValue={(value) => (value === 'sw' ? 'SW' : 'EN')}
-      sx={{
-        minWidth: 74,
-        background: '#fff',
-        '& .MuiSelect-select': {
-          minHeight: 'auto',
-          py: 0.75,
-          pr: '28px !important',
-          pl: 1.25,
-          fontSize: '0.82rem',
-          fontWeight: 800
-        }
-      }}
     >
-      <MenuItem value="en">{t('english')}</MenuItem>
-      <MenuItem value="sw">{t('swahili')}</MenuItem>
-    </Select>
+      <option value="en">{t('english')}</option>
+      <option value="sw">{t('swahili')}</option>
+    </select>
   );
 }

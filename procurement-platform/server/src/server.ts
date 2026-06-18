@@ -1,9 +1,12 @@
 import dotenv from 'dotenv';
-import { dirname, resolve } from 'node:path';
+import { dirname, isAbsolute, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const serverDir = dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: resolve(serverDir, '../.env') });
+const serverRoot = resolve(serverDir, '..');
+const envFile = process.env.PROCUREX_SERVER_ENV_FILE ?? '.env';
+const envPath = isAbsolute(envFile) ? envFile : resolve(serverRoot, envFile);
+dotenv.config({ path: envPath });
 
 const { createApp } = await import('./app.js');
 
