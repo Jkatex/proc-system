@@ -39,7 +39,10 @@ export const procurexPageRegistry = {
   'admin-users': lazy(() => import('@/features/admin/components/procurex/AdminUsersProcurexPage').then((module) => ({ default: module.AdminUsersProcurexPage }))),
   'admin-compliance': lazy(() => import('@/features/admin/components/procurex/AdminComplianceProcurexPage').then((module) => ({ default: module.AdminComplianceProcurexPage }))),
   'admin-analytics': lazy(() => import('@/features/admin/components/procurex/AdminAnalyticsProcurexPage').then((module) => ({ default: module.AdminAnalyticsProcurexPage }))),
-  'admin-audit': lazy(() => import('@/features/admin/components/procurex/AdminAuditProcurexPage').then((module) => ({ default: module.AdminAuditProcurexPage })))
+  'admin-audit': lazy(() => import('@/features/admin/components/procurex/AdminAuditProcurexPage').then((module) => ({ default: module.AdminAuditProcurexPage }))),
+  'admin-datastore': lazy(() => import('@/features/admin/components/procurex/AdminDatastoreProcurexPage').then((module) => ({ default: module.AdminDatastoreProcurexPage }))),
+  'admin-communication': lazy(() => import('@/features/admin/components/procurex/AdminCommunicationProcurexPage').then((module) => ({ default: module.AdminCommunicationProcurexPage }))),
+  'admin-profile': lazy(() => import('@/features/admin/components/procurex/AdminProfileProcurexPage').then((module) => ({ default: module.AdminProfileProcurexPage })))
 } satisfies Record<string, ProcurexPageComponent>;
 
 export type ProcurexPageKey = keyof typeof procurexPageRegistry;

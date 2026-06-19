@@ -10,6 +10,7 @@ type GuardProps = {
   requiredPermission?: PermissionName;
   requiredGate?: FeatureGateName;
   minimumTrustTier?: TrustTier;
+  adminRedirectTo?: string;
 };
 
 const trustRank: Record<TrustTier, number> = {
@@ -25,7 +26,7 @@ function LoadingGate() {
   return <ProcurexLoadingPage title="Restoring session" message="Checking your ProcureX sign-in state." />;
 }
 
-export function ProtectedRoute({ children, requireVerified = false, requiredPermission, requiredGate, minimumTrustTier }: GuardProps) {
+export function ProtectedRoute({ children, requireVerified = false, requiredPermission, requiredGate, minimumTrustTier, adminRedirectTo }: GuardProps) {
   const location = useLocation();
   const { isAuthenticated, sessionExpired, status, token, user } = useAppSelector((state) => state.auth);
 
@@ -39,6 +40,10 @@ export function ProtectedRoute({ children, requireVerified = false, requiredPerm
 
   if (!isAuthenticated) {
     return <Navigate to="/sign-in" replace state={{ from: location }} />;
+  }
+
+  if (adminRedirectTo && user?.accountType === 'ADMIN') {
+    return <Navigate to={adminRedirectTo} replace state={{ from: location }} />;
   }
 
   if (requireVerified && user?.accountType !== 'ADMIN' && user?.verificationStatus !== 'APPROVED') {

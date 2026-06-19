@@ -34,8 +34,11 @@ function protectedPage(
   return <ProtectedRoute {...options}>{page(pageKey)}</ProtectedRoute>;
 }
 
-function verifiedPage(pageKey: ProcurexPageKey) {
-  return protectedPage(pageKey, { requireVerified: true });
+function verifiedPage(
+  pageKey: ProcurexPageKey,
+  options?: Omit<ComponentProps<typeof ProtectedRoute>, 'children' | 'requireVerified'> & { children?: ReactNode }
+) {
+  return protectedPage(pageKey, { ...options, requireVerified: true });
 }
 
 function adminPage(pageKey: ProcurexPageKey) {
@@ -76,30 +79,30 @@ export const routes = [
   { path: '/account-locked', element: lazyElement(AccountLockedProcurexPage) },
   { path: '/role-selection', element: <Navigate to="/register" replace /> },
 
-  { path: '/apps', element: verifiedPage('app-launcher') },
-  { path: '/dashboard', element: verifiedPage('workspace-dashboard') },
-  { path: '/identity/verification', element: protectedPage('identity-verification') },
-  { path: '/identity/profile', element: protectedPage('account-profile') },
-  { path: '/tender-planning', element: verifiedPage('tender-planning') },
-  { path: '/procurement/guide', element: verifiedPage('procurement-guide') },
-  { path: '/procurement/marketplace', element: verifiedPage('marketplace') },
-  { path: '/procurement/my-tenders', element: verifiedPage('marketplace') },
-  { path: '/procurement/my-bids', element: verifiedPage('marketplace') },
-  { path: '/procurement/create-tender', element: protectedPage('create-tender', procurementCoreGateOptions.createTender) },
-  { path: '/procurement/tender-publication', element: protectedPage('tender-publication', procurementCoreGateOptions.tenderPublication) },
-  { path: '/procurement/tender-details', element: verifiedPage('tender-details') },
-  { path: '/procurement/tender-document', element: verifiedPage('tender-document') },
-  { path: '/procurement/supplier-tender-detail', element: verifiedPage('tender-detail') },
-  { path: '/bidding', element: protectedPage('bidding-workspace', procurementCoreGateOptions.bidding) },
-  { path: '/evaluation', element: protectedPage('bid-evaluation', procurementCoreGateOptions.evaluation) },
-  { path: '/awards-contracts', element: verifiedPage('awarding-contracts') },
-  { path: '/awards-contracts/recommendation', element: verifiedPage('award-recommendation') },
-  { path: '/awards-contracts/award-response', element: verifiedPage('award-response') },
-  { path: '/awards-contracts/negotiation', element: verifiedPage('contract-negotiation') },
-  { path: '/awards-contracts/post-award', element: verifiedPage('post-award-tracking') },
-  { path: '/communication', element: verifiedPage('communication-center') },
-  { path: '/records', element: verifiedPage('records-history') },
-  { path: '/documents', element: verifiedPage('tender-document') },
+  { path: '/apps', element: verifiedPage('app-launcher', { adminRedirectTo: '/admin' }) },
+  { path: '/dashboard', element: verifiedPage('workspace-dashboard', { adminRedirectTo: '/admin' }) },
+  { path: '/identity/verification', element: protectedPage('identity-verification', { adminRedirectTo: '/admin/profile' }) },
+  { path: '/identity/profile', element: protectedPage('account-profile', { adminRedirectTo: '/admin/profile' }) },
+  { path: '/tender-planning', element: verifiedPage('tender-planning', { adminRedirectTo: '/admin' }) },
+  { path: '/procurement/guide', element: verifiedPage('procurement-guide', { adminRedirectTo: '/admin' }) },
+  { path: '/procurement/marketplace', element: verifiedPage('marketplace', { adminRedirectTo: '/admin/search' }) },
+  { path: '/procurement/my-tenders', element: verifiedPage('marketplace', { adminRedirectTo: '/admin/search' }) },
+  { path: '/procurement/my-bids', element: verifiedPage('marketplace', { adminRedirectTo: '/admin/search' }) },
+  { path: '/procurement/create-tender', element: protectedPage('create-tender', { ...procurementCoreGateOptions.createTender, adminRedirectTo: '/admin' }) },
+  { path: '/procurement/tender-publication', element: protectedPage('tender-publication', { ...procurementCoreGateOptions.tenderPublication, adminRedirectTo: '/admin' }) },
+  { path: '/procurement/tender-details', element: verifiedPage('tender-details', { adminRedirectTo: '/admin/search' }) },
+  { path: '/procurement/tender-document', element: verifiedPage('tender-document', { adminRedirectTo: '/admin/search' }) },
+  { path: '/procurement/supplier-tender-detail', element: verifiedPage('tender-detail', { adminRedirectTo: '/admin/search' }) },
+  { path: '/bidding', element: protectedPage('bidding-workspace', { ...procurementCoreGateOptions.bidding, adminRedirectTo: '/admin/search' }) },
+  { path: '/evaluation', element: protectedPage('bid-evaluation', { ...procurementCoreGateOptions.evaluation, adminRedirectTo: '/admin/analytics' }) },
+  { path: '/awards-contracts', element: verifiedPage('awarding-contracts', { adminRedirectTo: '/admin/search' }) },
+  { path: '/awards-contracts/recommendation', element: verifiedPage('award-recommendation', { adminRedirectTo: '/admin/search' }) },
+  { path: '/awards-contracts/award-response', element: verifiedPage('award-response', { adminRedirectTo: '/admin/search' }) },
+  { path: '/awards-contracts/negotiation', element: verifiedPage('contract-negotiation', { adminRedirectTo: '/admin/search' }) },
+  { path: '/awards-contracts/post-award', element: verifiedPage('post-award-tracking', { adminRedirectTo: '/admin/search' }) },
+  { path: '/communication', element: verifiedPage('communication-center', { adminRedirectTo: '/admin/communication' }) },
+  { path: '/records', element: verifiedPage('records-history', { adminRedirectTo: '/admin/audit' }) },
+  { path: '/documents', element: verifiedPage('tender-document', { adminRedirectTo: '/admin/search' }) },
 
   { path: '/admin', element: adminPage('admin-dashboard') },
   { path: '/admin/search', element: adminPage('admin-search') },
@@ -107,6 +110,9 @@ export const routes = [
   { path: '/admin/compliance', element: adminPage('admin-compliance') },
   { path: '/admin/analytics', element: adminPage('admin-analytics') },
   { path: '/admin/audit', element: adminPage('admin-audit') },
+  { path: '/admin/datastore', element: adminPage('admin-datastore') },
+  { path: '/admin/communication', element: adminPage('admin-communication') },
+  { path: '/admin/profile', element: adminPage('admin-profile') },
 
   { path: '/supplier-marketplace', element: <Navigate to="/procurement/marketplace" replace /> },
   { path: '/buyer-dashboard', element: <Navigate to="/dashboard" replace /> },

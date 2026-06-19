@@ -103,6 +103,8 @@ export function AccountMenu({ buttonClassName }: AccountMenuProps) {
   }
 
   const badgeLabel = user.accountType === 'ADMIN' ? 'Admin' : user.verificationStatus === 'APPROVED' ? 'Verified' : 'Account';
+  const profileRoute = user.accountType === 'ADMIN' ? '/admin/profile' : '/identity/profile';
+  const messagesRoute = user.accountType === 'ADMIN' ? '/admin/communication' : '/communication';
 
   return (
     <>
@@ -149,13 +151,13 @@ export function AccountMenu({ buttonClassName }: AccountMenuProps) {
           </Box>
         </Box>
         <Divider />
-        <MenuItem onClick={() => navigateFromMenu('/identity/profile', 'identity.profile.opened')}>
+        <MenuItem onClick={() => navigateFromMenu(profileRoute, 'identity.profile.opened')}>
           <ListItemIcon>
             <AccountCircleRoundedIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>Profile</ListItemText>
         </MenuItem>
-        <MenuItem onClick={() => navigateFromMenu('/communication', 'communication.messages.opened')}>
+        <MenuItem onClick={() => navigateFromMenu(messagesRoute, 'communication.messages.opened')}>
           <ListItemIcon>
             <MarkEmailUnreadRoundedIcon fontSize="small" />
           </ListItemIcon>

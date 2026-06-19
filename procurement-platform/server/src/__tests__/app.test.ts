@@ -147,4 +147,14 @@ describe('ProcureX server skeleton', () => {
       .send({ action: 'ACCEPT' })
       .expect(401);
   });
+
+  it('keeps compliance admin data routes behind authentication', async () => {
+    await request(createApp()).get('/api/compliance-admin/dashboard').expect(401);
+    await request(createApp()).get('/api/compliance-admin/users').expect(401);
+    await request(createApp()).get('/api/compliance-admin/audit/events').expect(401);
+    await request(createApp())
+      .post('/api/compliance-admin/compliance/rules')
+      .send({ code: 'KYC.TEST', title: 'Test rule', condition: {} })
+      .expect(401);
+  });
 });

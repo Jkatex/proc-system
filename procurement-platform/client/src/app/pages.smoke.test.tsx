@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import '@/i18n';
 import { WelcomePage } from '@/features/public/pages/PublicPages';
 import { CreateTenderPage, MarketplacePage } from '@/features/procurement/pages/ProcurementPages';
-import { AdminDashboardPage } from '@/features/admin/pages/AdminPages';
+import { AdminCommunicationPage, AdminDashboardPage, AdminDatastorePage, AdminProfilePage } from '@/features/admin/pages/AdminPages';
 import { store } from './store';
 import { procurexTheme } from '@/styles/mui-theme';
 
@@ -39,6 +39,19 @@ describe('page smoke tests', () => {
 
   it('renders the admin dashboard', () => {
     renderPage(<AdminDashboardPage />);
-    expect(screen.getByRole('heading', { name: 'No platform activity has been indexed yet.' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Admin Command Center' })).toBeInTheDocument();
+  });
+
+  it('renders admin-owned communication and profile pages', () => {
+    renderPage(<AdminCommunicationPage />);
+    expect(screen.getByRole('heading', { name: 'Admin Communication Center' })).toBeInTheDocument();
+
+    renderPage(<AdminProfilePage />);
+    expect(screen.getByRole('heading', { name: 'Admin Profile' })).toBeInTheDocument();
+  });
+
+  it('renders the admin datastore page', () => {
+    renderPage(<AdminDatastorePage />);
+    expect(screen.getByRole('heading', { name: 'Admin Data Store' })).toBeInTheDocument();
   });
 });

@@ -1,25 +1,9 @@
-import { FirstRunAppPage } from '@/features/workspace/components/procurex/FirstRunAppPage';
-
-export function AdminDashboardPage() {
-  return <FirstRunAppPage page="admin-dashboard" />;
-}
-
-export function AdminSearchPage() {
-  return <FirstRunAppPage page="admin-search" />;
-}
-
-export function AdminUsersPage() {
-  return <FirstRunAppPage page="admin-users" />;
-}
-
-export function AdminCompliancePage() {
-  return <FirstRunAppPage page="admin-compliance" />;
-}
-
-export function AdminAnalyticsPage() {
-  return <FirstRunAppPage page="admin-analytics" />;
-}
-
-export function AdminAuditPage() {
-  return <FirstRunAppPage page="admin-audit" />;
-}
+export { AdminDashboardProcurexPage as AdminDashboardPage } from '@/features/admin/components/procurex/AdminDashboardProcurexPage';
+export { AdminSearchProcurexPage as AdminSearchPage } from '@/features/admin/components/procurex/AdminSearchProcurexPage';
+export { AdminUsersProcurexPage as AdminUsersPage } from '@/features/admin/components/procurex/AdminUsersProcurexPage';
+export { AdminComplianceProcurexPage as AdminCompliancePage } from '@/features/admin/components/procurex/AdminComplianceProcurexPage';
+export { AdminAnalyticsProcurexPage as AdminAnalyticsPage } from '@/features/admin/components/procurex/AdminAnalyticsProcurexPage';
+export { AdminAuditProcurexPage as AdminAuditPage } from '@/features/admin/components/procurex/AdminAuditProcurexPage';
+export { AdminDatastoreProcurexPage as AdminDatastorePage } from '@/features/admin/components/procurex/AdminDatastoreProcurexPage';
+export { AdminCommunicationProcurexPage as AdminCommunicationPage } from '@/features/admin/components/procurex/AdminCommunicationProcurexPage';
+export { AdminProfileProcurexPage as AdminProfilePage } from '@/features/admin/components/procurex/AdminProfileProcurexPage';

@@ -412,6 +412,13 @@ model User {
   supportComments           SupportTicketComment[]       @relation("SupportTicketCommentActor")
   auditEvents               AuditEvent[]                 @relation("AuditActor")
   adminActions              AdminAction[]                @relation("AdminActionActor")
+  revertedAdminActions      AdminAction[]                @relation("AdminActionRevertedBy")
+  createdComplianceRules    ComplianceRule[]             @relation("ComplianceRuleCreator")
+  ownedDataStoreEntries     DataStoreEntry[]             @relation("DataStoreOwnerUser")
+  createdDataStoreEntries   DataStoreEntry[]             @relation("DataStoreCreatedByUser")
+  updatedDataStoreEntries   DataStoreEntry[]             @relation("DataStoreUpdatedByUser")
+  deletedDataStoreEntries   DataStoreEntry[]             @relation("DataStoreDeletedByUser")
+  dataStoreVersions         DataStoreEntryVersion[]       @relation("DataStoreVersionActor")
 
   @@map("users")
   @@schema("identity")
@@ -692,6 +699,7 @@ model Organization {
   supportTickets            SupportTicket[]              @relation("SupportTicketOwnerOrg")
   auditEvents               AuditEvent[]
   complianceCases           ComplianceCase[]
+  complianceRules           ComplianceRule[]
   adminActions              AdminAction[]
 
   @@index([kind])
@@ -1449,6 +1457,29 @@ model ComplianceCase {
   @@schema("compliance")
 }
 
+model ComplianceRule {
+  id              String        @id @default(uuid()) @db.Uuid
+  ownerOrgId      String?       @map("owner_org_id") @db.Uuid
+  code            String        @unique
+  title           String
+  description     String?
+  severity        AuditSeverity @default(WARNING)
+  status          String        @default("ACTIVE")
+  condition       Json          @default("{}")
+  payload         Json          @default("{}")
+  createdByUserId String?       @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  ownerOrg        Organization? @relation(fields: [ownerOrgId], references: [id], onDelete: SetNull)
+  createdByUser   User?         @relation("ComplianceRuleCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([severity])
+  @@index([ownerOrgId])
+  @@map("compliance_rules")
+  @@schema("compliance")
+}
+
 model RiskSignal {
   id            String    @id @default(uuid()) @db.Uuid
   tenderId      String?   @map("tender_id") @db.Uuid
@@ -1467,19 +1498,31 @@ model RiskSignal {
 }
 
 model AdminAction {
-  id          String          @id @default(uuid()) @db.Uuid
-  actorUserId String?         @map("actor_user_id") @db.Uuid
-  ownerOrgId  String?         @map("owner_org_id") @db.Uuid
-  actionType  AdminActionType @map("action_type")
-  entityType  String          @map("entity_type")
-  entityRef   String?         @map("entity_ref")
-  summary     String?
-  createdAt   DateTime        @default(now()) @map("created_at")
-  actorUser   User?           @relation("AdminActionActor", fields: [actorUserId], references: [id], onDelete: SetNull)
-  ownerOrg    Organization?   @relation(fields: [ownerOrgId], references: [id], onDelete: SetNull)
+  id               String          @id @default(uuid()) @db.Uuid
+  actorUserId      String?         @map("actor_user_id") @db.Uuid
+  ownerOrgId       String?         @map("owner_org_id") @db.Uuid
+  actionType       AdminActionType @map("action_type")
+  entityType       String          @map("entity_type")
+  entityRef        String?         @map("entity_ref")
+  summary          String?
+  payload          Json            @default("{}")
+  previousState    Json            @default("{}") @map("previous_state")
+  nextState        Json            @default("{}") @map("next_state")
+  reversible       Boolean         @default(false)
+  revertedAt       DateTime?       @map("reverted_at")
+  revertedByUserId String?         @map("reverted_by_user_id") @db.Uuid
+  reverseActionId  String?         @map("reverse_action_id") @db.Uuid
+  createdAt        DateTime        @default(now()) @map("created_at")
+  actorUser        User?           @relation("AdminActionActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  ownerOrg         Organization?   @relation(fields: [ownerOrgId], references: [id], onDelete: SetNull)
+  revertedByUser   User?           @relation("AdminActionRevertedBy", fields: [revertedByUserId], references: [id], onDelete: SetNull)
+  reverseAction    AdminAction?    @relation("AdminActionReverse", fields: [reverseActionId], references: [id], onDelete: SetNull)
+  reversedActions  AdminAction[]   @relation("AdminActionReverse")
 
   @@index([ownerOrgId])
   @@index([entityType, entityRef])
+  @@index([revertedByUserId])
+  @@index([reverseActionId])
   @@map("admin_actions")
   @@schema("compliance")
 }
@@ -1659,6 +1702,53 @@ model PublicPageVersion {
   @@unique([pageKey, version])
   @@index([pageKey, status, effectiveAt])
   @@map("public_page_versions")
+  @@schema("content")
+}
+
+model DataStoreEntry {
+  id              String    @id @default(uuid()) @db.Uuid
+  scope           String    @default("GLOBAL")
+  ownerUserId     String?   @map("owner_user_id") @db.Uuid
+  namespace       String
+  key             String
+  value           Json      @default("{}")
+  encrypted       Boolean   @default(false)
+  createdByUserId String?   @map("created_by_user_id") @db.Uuid
+  updatedByUserId String?   @map("updated_by_user_id") @db.Uuid
+  deletedByUserId String?   @map("deleted_by_user_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+  ownerUser       User?     @relation("DataStoreOwnerUser", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  createdByUser   User?     @relation("DataStoreCreatedByUser", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedByUser   User?     @relation("DataStoreUpdatedByUser", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  deletedByUser   User?     @relation("DataStoreDeletedByUser", fields: [deletedByUserId], references: [id], onDelete: SetNull)
+  versions        DataStoreEntryVersion[]
+
+  @@index([scope])
+  @@index([namespace])
+  @@index([key])
+  @@index([ownerUserId])
+  @@index([updatedAt])
+  @@index([deletedAt])
+  @@map("data_store_entries")
+  @@schema("content")
+}
+
+model DataStoreEntryVersion {
+  id            String         @id @default(uuid()) @db.Uuid
+  entryId       String         @map("entry_id") @db.Uuid
+  actorUserId   String?        @map("actor_user_id") @db.Uuid
+  action        String
+  previousValue Json?          @map("previous_value")
+  nextValue     Json?          @map("next_value")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  entry         DataStoreEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  actorUser     User?          @relation("DataStoreVersionActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([entryId, createdAt])
+  @@index([actorUserId])
+  @@map("data_store_entry_versions")
   @@schema("content")
 }
 

@@ -11,6 +11,8 @@ import { authApi } from '@/features/auth/api';
 import { communicationApi } from '@/features/communication/api';
 import i18n from '@/i18n';
 import { TopBar } from './TopBar';
+import { demoUsers } from '@/shared/data/fixtures';
+import type { SessionUser } from '@/shared/types/domain';
 
 vi.mock('@/features/account/api', () => ({
   accountApi: {
@@ -61,20 +63,22 @@ function LocationProbe() {
   return <span data-testid="location">{location.pathname}</span>;
 }
 
-function renderTopBar() {
+function renderTopBar(userOverride?: SessionUser) {
   store.dispatch(signOut());
   store.dispatch(
-    assumeUser({
-      id: 'user-1',
-      displayName: 'Demo Verified User',
-      email: 'demo@procurex.test',
-      accountType: 'USER',
-      organization: 'Company account tools',
-      organizationId: 'org-1',
-      capabilities: ['BUYER'],
-      verificationStatus: 'APPROVED',
-      preferences: { preferredLanguage: 'en', timezone: 'Africa/Dar_es_Salaam' }
-    })
+    assumeUser(
+      userOverride ?? {
+        id: 'user-1',
+        displayName: 'Demo Verified User',
+        email: 'demo@procurex.test',
+        accountType: 'USER',
+        organization: 'Company account tools',
+        organizationId: 'org-1',
+        capabilities: ['BUYER'],
+        verificationStatus: 'APPROVED',
+        preferences: { preferredLanguage: 'en', timezone: 'Africa/Dar_es_Salaam' }
+      }
+    )
   );
 
   return render(
@@ -149,6 +153,20 @@ describe('TopBar platform apps drawer', () => {
     expect(appsButton).toHaveAttribute('aria-expanded', 'false');
   });
 
+  it('sends admin app launcher and nav links to admin pages only', () => {
+    renderTopBar({ ...demoUsers.admin, organizationId: 'org-admin' });
+
+    expect(screen.getByRole('link', { name: /Command Center/i })).toHaveAttribute('href', '/admin');
+    expect(screen.getByRole('link', { name: /Deep Search/i })).toHaveAttribute('href', '/admin/search');
+    expect(screen.getByRole('link', { name: /Communication/i })).toHaveAttribute('href', '/admin/communication');
+    expect(screen.queryByRole('link', { name: /Marketplace/i })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open apps' }));
+
+    expect(screen.getByTestId('location')).toHaveTextContent('/admin');
+    expect(screen.queryByText('ProcureX Apps')).not.toBeInTheDocument();
+  });
+
   it('opens account menu and records profile navigation', async () => {
     const user = userEvent.setup();
     renderTopBar();
@@ -161,6 +179,21 @@ describe('TopBar platform apps drawer', () => {
 
     expect(recordActivity).toHaveBeenCalledWith('identity.profile.opened');
     expect(screen.getByTestId('location')).toHaveTextContent('/identity/profile');
+  });
+
+  it('opens admin account menu links on admin pages', async () => {
+    const user = userEvent.setup();
+    renderTopBar({ ...demoUsers.admin, organizationId: 'org-admin' });
+
+    await user.click(screen.getByRole('button', { name: 'Open account menu' }));
+    await waitFor(() => expect(listMailbox).toHaveBeenCalledWith({ organizationId: 'org-admin', folder: 'unread', page: 1, pageSize: 1 }));
+
+    await user.click(await screen.findByText('Profile'));
+    expect(screen.getByTestId('location')).toHaveTextContent('/admin/profile');
+
+    await user.click(screen.getByRole('button', { name: 'Open account menu' }));
+    await user.click(await screen.findByText('Messages'));
+    expect(screen.getByTestId('location')).toHaveTextContent('/admin/communication');
   });
 
   it('persists language changes from the account menu', async () => {

@@ -84,6 +84,54 @@ describe('route guards', () => {
     expect(screen.getByText('Allowed')).toBeInTheDocument();
   });
 
+  it('redirects admins away from shared user routes when an admin redirect is configured', () => {
+    store.dispatch(assumeUser(demoUsers.admin));
+
+    render(
+      <Provider store={store}>
+        <MemoryRouter initialEntries={['/identity/profile']}>
+          <Routes>
+            <Route path="/admin/profile" element={<div>Admin profile</div>} />
+            <Route
+              path="/identity/profile"
+              element={
+                <ProtectedRoute adminRedirectTo="/admin/profile">
+                  <div>User profile</div>
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </Provider>
+    );
+
+    expect(screen.getByText('Admin profile')).toBeInTheDocument();
+  });
+
+  it('redirects admins from shared communication to admin communication', () => {
+    store.dispatch(assumeUser(demoUsers.admin));
+
+    render(
+      <Provider store={store}>
+        <MemoryRouter initialEntries={['/communication']}>
+          <Routes>
+            <Route path="/admin/communication" element={<div>Admin communication</div>} />
+            <Route
+              path="/communication"
+              element={
+                <ProtectedRoute requireVerified adminRedirectTo="/admin/communication">
+                  <div>User communication</div>
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </Provider>
+    );
+
+    expect(screen.getByText('Admin communication')).toBeInTheDocument();
+  });
+
   it('allows signed-in low-trust users through temporary auth-only procurement core routes', () => {
     store.dispatch(assumeUser({
       ...demoUsers.user,

@@ -17,6 +17,7 @@ export function TopBar() {
   const user = useAppSelector((state) => state.auth.user);
   const [appsOpen, setAppsOpen] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
+  const isAdmin = user?.accountType === 'ADMIN';
   const organizationLabel = user?.organization || (user?.accountType === 'ADMIN' ? 'Platform admin tools' : 'ProcureX account tools');
 
   useEffect(() => {
@@ -41,26 +42,40 @@ export function TopBar() {
     navigate(resolvePlatformAppRoute(pageKey));
   }
 
+  function openAdminApps() {
+    setAppsOpen(false);
+    navigate('/admin');
+  }
+
   return (
     <header className="px-topbar" ref={headerRef}>
       <div className="px-topbar-inner">
-        <Link className="px-brand" to={user?.accountType === 'ADMIN' ? '/admin' : '/dashboard'}>
+        <Link className="px-brand" to={isAdmin ? '/admin' : '/dashboard'}>
           <img src="/assets/logo.svg" alt="" />
           <span>{t('brand')}</span>
         </Link>
         <nav className="px-nav-links" aria-label="Primary">
-          <NavLink to="/dashboard">{t('nav.dashboard')}</NavLink>
-          <NavLink to="/procurement/marketplace">{t('nav.marketplace')}</NavLink>
-          <NavLink to="/communication">{t('nav.communication')}</NavLink>
-          {user?.accountType === 'ADMIN' ? <NavLink to="/admin">{t('nav.admin')}</NavLink> : null}
+          {isAdmin ? (
+            <>
+              <NavLink to="/admin">Command Center</NavLink>
+              <NavLink to="/admin/search">Deep Search</NavLink>
+              <NavLink to="/admin/communication">{t('nav.communication')}</NavLink>
+            </>
+          ) : (
+            <>
+              <NavLink to="/dashboard">{t('nav.dashboard')}</NavLink>
+              <NavLink to="/procurement/marketplace">{t('nav.marketplace')}</NavLink>
+              <NavLink to="/communication">{t('nav.communication')}</NavLink>
+            </>
+          )}
         </nav>
         <div className="px-actions" style={{ marginTop: 0 }}>
           <Tooltip title={t('pages.launcher.title')}>
             <span>
-              <PlatformAppsButton expanded={appsOpen} onClick={() => setAppsOpen((current) => !current)} />
+              <PlatformAppsButton expanded={isAdmin ? false : appsOpen} onClick={isAdmin ? openAdminApps : () => setAppsOpen((current) => !current)} />
             </span>
           </Tooltip>
-          <PlatformAppsDrawer open={appsOpen} organizationLabel={organizationLabel} onSelect={selectPlatformApp} />
+          {isAdmin ? null : <PlatformAppsDrawer open={appsOpen} organizationLabel={organizationLabel} onSelect={selectPlatformApp} />}
           <AccountMenu />
         </div>
       </div>
