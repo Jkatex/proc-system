@@ -17,6 +17,18 @@ import { createIdentityNotifications, type DeliveryReceipt, type IdentityNotific
 import { ProductionRegistryProvider, isRegistryProviderFailure, type RegistryProvider } from './registryProviders.js';
 import { DeterministicScreeningProvider, type ScreeningProvider } from './screeningProviders.js';
 import {
+  MailboxlayerEmailValidationProvider,
+  isEmailValidationProviderFailure,
+  type EmailValidationProvider,
+  type EmailValidationResult
+} from './emailValidation.js';
+import {
+  SendchampNumberInsightProvider,
+  isPhoneValidationProviderFailure,
+  type PhoneValidationProvider,
+  type PhoneValidationResult
+} from './phoneValidation.js';
+import {
   moduleDefinition,
   type AdminVerificationDto,
   type AuthSessionDto,
@@ -43,6 +55,7 @@ const phoneOtpMinutes = 10;
 const activationMinutes = 60;
 const passwordResetMinutes = 30;
 const resendCooldownSeconds = 30;
+const passwordResetRequestedMessage = 'If an account exists for this email, password reset instructions have been sent.';
 
 type RegistrationStartInput = {
   email: string;
@@ -215,8 +228,47 @@ function deliveryMetadata(receipt: DeliveryReceipt) {
   };
 }
 
+function emailValidationMetadata(result: EmailValidationResult) {
+  return {
+    provider: result.provider,
+    configured: result.configured,
+    accepted: result.accepted,
+    reasons: result.reasons,
+    score: result.score,
+    didYouMean: result.didYouMean,
+    checks: result.checks
+  };
+}
+
+function phoneValidationMetadata(result: PhoneValidationResult) {
+  return {
+    provider: result.provider,
+    configured: result.configured,
+    accepted: result.accepted,
+    reasons: result.reasons,
+    checks: result.checks,
+    providerMetadata: result.providerMetadata ? inputJson(result.providerMetadata) : undefined
+  };
+}
+
 function devChallengeMetadata(receipt: DeliveryReceipt, code: string) {
   return receipt.provider === 'dev-console' ? { devCode: code } : {};
+}
+
+function appPublicUrl() {
+  const raw = process.env.APP_PUBLIC_URL || 'http://localhost:5173';
+  try {
+    return new URL(raw).toString().replace(/\/$/, '');
+  } catch {
+    return 'http://localhost:5173';
+  }
+}
+
+function passwordResetActionUrl(challengeId: string, code: string) {
+  const url = new URL('/forgot-password', `${appPublicUrl()}/`);
+  url.searchParams.set('challengeId', challengeId);
+  url.hash = `code=${encodeURIComponent(code)}`;
+  return url.toString();
 }
 
 function toSessionUser(user: UserWithDefaultOrg): SessionUserDto {
@@ -433,7 +485,9 @@ export class ModuleService {
     private readonly repository = new ModuleRepository(),
     private readonly notifications: IdentityNotificationProvider = createIdentityNotifications(),
     private readonly registryProvider: RegistryProvider = new ProductionRegistryProvider(),
-    private readonly screeningProvider: ScreeningProvider = new DeterministicScreeningProvider()
+    private readonly screeningProvider: ScreeningProvider = new DeterministicScreeningProvider(),
+    private readonly emailValidationProvider: EmailValidationProvider = new MailboxlayerEmailValidationProvider(),
+    private readonly phoneValidationProvider: PhoneValidationProvider = new SendchampNumberInsightProvider()
   ) {}
 
   async status(): Promise<ModuleStatus> {
@@ -575,6 +629,90 @@ export class ModuleService {
     });
   }
 
+  private async validateAuthEmailDelivery(input: {
+    email: string;
+    userId?: string | null;
+    entityRef?: string | null;
+    purpose: 'registration_start' | 'email_activation' | 'password_reset';
+    audit?: AuthAuditContext;
+    unavailableMessage?: string;
+  }) {
+    let emailValidation: EmailValidationResult;
+    try {
+      emailValidation = await this.emailValidationProvider.validate({ email: input.email });
+    } catch (error) {
+      await this.recordAuthEvent(`identity.auth.${input.purpose}.email_validation_failed`, {
+        ...input.audit,
+        userId: input.userId,
+        entityRef: input.entityRef,
+        target: input.email,
+        severity: AuditSeverity.ERROR,
+        details: { provider: 'mailboxlayer', providerError: error instanceof Error ? error.message : 'Email validation failed.' }
+      });
+      if (isEmailValidationProviderFailure(error)) {
+        throw requestError(input.unavailableMessage ?? 'Could not verify this email address. Please try again later.', 502);
+      }
+      throw error;
+    }
+
+    if (!emailValidation.accepted) {
+      await this.recordAuthEvent(`identity.auth.${input.purpose}.email_validation_rejected`, {
+        ...input.audit,
+        userId: input.userId,
+        entityRef: input.entityRef,
+        target: input.email,
+        severity: AuditSeverity.WARNING,
+        details: emailValidationMetadata(emailValidation)
+      });
+      throw requestError(emailValidation.didYouMean ? `Email address could not be verified. Did you mean ${emailValidation.didYouMean}?` : 'Email address could not be verified.', 400);
+    }
+
+    return emailValidation;
+  }
+
+  private async validateAuthPhoneDelivery(input: {
+    phone: string;
+    userId?: string | null;
+    entityRef?: string | null;
+    purpose: 'registration_start' | 'phone_otp_resend';
+    audit?: AuthAuditContext;
+  }) {
+    let phoneValidation: PhoneValidationResult;
+    try {
+      phoneValidation = await this.phoneValidationProvider.validate({ phone: input.phone });
+    } catch (error) {
+      await this.recordAuthEvent(`identity.auth.${input.purpose}.phone_validation_failed`, {
+        ...input.audit,
+        userId: input.userId,
+        entityRef: input.entityRef,
+        target: input.phone,
+        severity: AuditSeverity.ERROR,
+        details: {
+          provider: 'sendchamp-number-insight',
+          providerError: error instanceof Error ? error.message : 'Phone validation failed.'
+        }
+      });
+      if (isPhoneValidationProviderFailure(error)) {
+        throw requestError('Could not verify this phone number. Please try again later.', 502);
+      }
+      throw error;
+    }
+
+    if (!phoneValidation.accepted) {
+      await this.recordAuthEvent(`identity.auth.${input.purpose}.phone_validation_rejected`, {
+        ...input.audit,
+        userId: input.userId,
+        entityRef: input.entityRef,
+        target: input.phone,
+        severity: AuditSeverity.WARNING,
+        details: phoneValidationMetadata(phoneValidation)
+      });
+      throw requestError('Phone number could not be verified.', 400);
+    }
+
+    return phoneValidation;
+  }
+
   async startRegistration(input: RegistrationStartInput, audit?: AuthAuditContext) {
     const email = normalizeEmail(input.email);
     const phone = normalizePhone(input.phone);
@@ -591,18 +729,25 @@ export class ModuleService {
       throw requestError('An account already exists for this phone number.', 409);
     }
 
+    const phoneValidation = await this.validateAuthPhoneDelivery({ phone, purpose: 'registration_start', audit });
+    const emailValidation = await this.validateAuthEmailDelivery({ email, purpose: 'registration_start', audit });
+
     const user = await this.repository.upsertRegistrationUser({
       email,
       phone,
       displayName: existing?.displayName ?? displayNameFromEmail(email)
     });
-    const challenge = await this.createPhoneOtpChallenge(user.id, phone, email, audit);
+    const challenge = await this.createPhoneOtpChallenge(user.id, phone, email, audit, phoneValidation);
     await this.recordAuthEvent('identity.auth.registration_started', {
       ...audit,
       userId: user.id,
       entityRef: challenge.id,
       target: email,
-      details: { phoneHash: sha256(phone) }
+      details: {
+        phoneHash: sha256(phone),
+        phoneValidation: phoneValidationMetadata(phoneValidation),
+        emailValidation: emailValidationMetadata(emailValidation)
+      }
     });
 
     return {
@@ -614,7 +759,7 @@ export class ModuleService {
     };
   }
 
-  private async createPhoneOtpChallenge(userId: string, phone: string, email: string, audit?: AuthAuditContext) {
+  private async createPhoneOtpChallenge(userId: string, phone: string, email: string, audit?: AuthAuditContext, phoneValidation?: PhoneValidationResult) {
     await this.repository.replacePendingChallenges({ userId, purpose: phoneOtpPurpose, target: phone });
     const code = randomCode();
     const challenge = await this.repository.createChallenge({
@@ -623,7 +768,11 @@ export class ModuleService {
       target: phone,
       codeHash: sha256(code),
       expiresAt: new Date(Date.now() + phoneOtpMinutes * 60 * 1000),
-      metadata: { email, delivery: { channel: 'sms', status: 'pending' } }
+      metadata: {
+        email,
+        delivery: { channel: 'sms', status: 'pending' },
+        ...(phoneValidation ? { phoneValidation: phoneValidationMetadata(phoneValidation) } : {})
+      }
     });
 
     try {
@@ -672,14 +821,21 @@ export class ModuleService {
     if (!existing.user) throw requestError('OTP challenge is not linked to a user.', 400);
     assertResendAvailable(existing.createdAt);
 
+    const phoneValidation = await this.validateAuthPhoneDelivery({
+      phone: existing.target,
+      userId: existing.user.id,
+      entityRef: existing.id,
+      purpose: 'phone_otp_resend',
+      audit
+    });
     await this.repository.updateChallenge(existing.id, { status: 'REPLACED', consumedAt: new Date() });
-    const next = await this.createPhoneOtpChallenge(existing.user.id, existing.target, existing.user.email, audit);
+    const next = await this.createPhoneOtpChallenge(existing.user.id, existing.target, existing.user.email, audit, phoneValidation);
     await this.recordAuthEvent('identity.auth.phone_otp_resent', {
       ...audit,
       userId: existing.user.id,
       entityRef: next.id,
       target: existing.target,
-      details: { previousChallengeId: existing.id }
+      details: { previousChallengeId: existing.id, phoneValidation: phoneValidationMetadata(phoneValidation) }
     });
     return {
       challengeId: next.id,
@@ -690,6 +846,13 @@ export class ModuleService {
   }
 
   private async createActivationChallenge(userId: string, email: string, metadata: Record<string, unknown>, audit?: AuthAuditContext) {
+    const emailValidation = await this.validateAuthEmailDelivery({
+      email,
+      userId,
+      purpose: 'email_activation',
+      audit,
+      unavailableMessage: 'Could not verify this email address. Please try again later.'
+    });
     await this.repository.replacePendingChallenges({ userId, purpose: emailActivationPurpose, target: email });
     const activationCode = randomToken(8);
     const activation = await this.repository.createChallenge({
@@ -717,7 +880,8 @@ export class ModuleService {
           delivery: {
             channel: 'email',
             status: 'sent',
-            ...deliveryMetadata(receipt)
+            ...deliveryMetadata(receipt),
+            emailValidation: emailValidationMetadata(emailValidation)
           }
         })
       });
@@ -726,7 +890,7 @@ export class ModuleService {
         userId,
         entityRef: activation.id,
         target: email,
-        details: { provider: receipt.provider, messageId: receipt.messageId }
+        details: { provider: receipt.provider, messageId: receipt.messageId, emailValidation: emailValidationMetadata(emailValidation) }
       });
     } catch (error) {
       await this.markChallengeDeliveryFailed(activation.id, activation.metadata, error);
@@ -982,7 +1146,7 @@ export class ModuleService {
       });
       return {
         ok: true,
-        message: 'If an account exists for this email, password reset instructions have been sent.'
+        message: passwordResetRequestedMessage
       };
     }
 
@@ -992,18 +1156,32 @@ export class ModuleService {
       target: email,
       details: { accountFound: true }
     });
-    const challenge = await this.createPasswordResetChallenge(user.id, email, audit);
+    try {
+      await this.createPasswordResetChallenge(user.id, email, audit);
+    } catch (error) {
+      await this.recordAuthEvent('identity.auth.password_reset_request_suppressed_failure', {
+        ...audit,
+        userId: user.id,
+        target: email,
+        severity: AuditSeverity.ERROR,
+        details: { error: error instanceof Error ? error.message : 'Password reset request failed.' }
+      });
+    }
 
     return {
       ok: true,
-      message: 'If an account exists for this email, password reset instructions have been sent.',
-      challengeId: challenge.id,
-      expiresAt: challenge.expiresAt.toISOString(),
-      resendAvailableAt: challengeResendAvailableAt(challenge.createdAt, resendCooldownSeconds)
+      message: passwordResetRequestedMessage
     };
   }
 
   private async createPasswordResetChallenge(userId: string, email: string, audit?: AuthAuditContext) {
+    const emailValidation = await this.validateAuthEmailDelivery({
+      email,
+      userId,
+      purpose: 'password_reset',
+      audit,
+      unavailableMessage: 'Could not send password reset email. Please try again later.'
+    });
     await this.repository.replacePendingChallenges({ userId, purpose: passwordResetPurpose, target: email });
     const code = randomCode();
     const challenge = await this.repository.createChallenge({
@@ -1019,7 +1197,12 @@ export class ModuleService {
     });
 
     try {
-      const receipt = await this.notifications.sendPasswordReset({ to: email, code, expiresInMinutes: passwordResetMinutes });
+      const receipt = await this.notifications.sendPasswordReset({
+        to: email,
+        code,
+        expiresInMinutes: passwordResetMinutes,
+        actionUrl: passwordResetActionUrl(challenge.id, code)
+      });
       await this.repository.updateChallenge(challenge.id, {
         metadata: inputJson({
           ...metadataObject(challenge.metadata),
@@ -1027,7 +1210,8 @@ export class ModuleService {
           delivery: {
             channel: 'email',
             status: 'sent',
-            ...deliveryMetadata(receipt)
+            ...deliveryMetadata(receipt),
+            emailValidation: emailValidationMetadata(emailValidation)
           }
         })
       });
@@ -1036,7 +1220,7 @@ export class ModuleService {
         userId,
         entityRef: challenge.id,
         target: email,
-        details: { provider: receipt.provider, messageId: receipt.messageId }
+        details: { provider: receipt.provider, messageId: receipt.messageId, emailValidation: emailValidationMetadata(emailValidation) }
       });
     } catch (error) {
       await this.markChallengeDeliveryFailed(challenge.id, challenge.metadata, error);
@@ -1075,7 +1259,7 @@ export class ModuleService {
     });
     return {
       ok: true,
-      message: 'If an account exists for this email, password reset instructions have been sent.',
+      message: passwordResetRequestedMessage,
       challengeId: next.id,
       expiresAt: next.expiresAt.toISOString(),
       resendAvailableAt: challengeResendAvailableAt(next.createdAt, resendCooldownSeconds)

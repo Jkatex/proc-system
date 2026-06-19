@@ -1,5 +1,4 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '@/i18n';
@@ -157,7 +156,6 @@ describe('RegisterProcurexPage', () => {
   });
 
   it('shows the language switcher and translates registration copy to Swahili', async () => {
-    const user = userEvent.setup();
     render(
       <MemoryRouter>
         <RegisterProcurexPage />
@@ -171,10 +169,9 @@ describe('RegisterProcurexPage', () => {
     expect(actionGroup).toContainElement(signInButton);
     expect(Boolean(languageSwitcher.compareDocumentPosition(signInButton) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
 
-    await user.click(screen.getByRole('combobox', { name: 'Language' }));
-    await user.click(screen.getByRole('option', { name: 'Swahili' }));
+    fireEvent.change(languageSwitcher, { target: { value: 'sw' } });
 
-    expect(screen.getByRole('heading', { name: 'Jiunge Nasi' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Jiunge Nasi' })).toBeInTheDocument();
     expect(screen.getByPlaceholderText('wewe@kampuni.co.tz')).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Lugha' })).toBeInTheDocument();
   });

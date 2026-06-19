@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { authApi } from '@/features/auth/api';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 import { useBodyPageMetadata } from '@/shared/hooks/useBodyPageMetadata';
@@ -43,9 +43,11 @@ function formatCountdown(seconds: number) {
 export function ForgotPasswordProcurexPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const initialChallengeId = searchParams.get('challengeId') ?? '';
-  const initialCode = searchParams.get('code') ?? '';
+  const hashParams = new URLSearchParams(location.hash.replace(/^#/, ''));
+  const initialCode = searchParams.get('code') ?? hashParams.get('code') ?? '';
   const [step, setStep] = useState<ResetStep>(initialChallengeId ? 'reset' : 'request');
   const [email, setEmail] = useState('');
   const [challengeId, setChallengeId] = useState(initialChallengeId);
@@ -90,11 +92,6 @@ export function ForgotPasswordProcurexPage() {
     try {
       const response = await authApi.forgotPassword({ email: email.trim(), turnstileToken });
       setMessage(authAlert('auth.forgotPassword.messages.resetRequested', 'info'));
-      if (response.challengeId) {
-        setChallengeId(response.challengeId);
-        setResendAvailableAt(response.resendAvailableAt ?? '');
-        setStep('reset');
-      }
     } catch (error) {
       setMessage(authAlertFromError(error, 'forgot-password'));
     } finally {

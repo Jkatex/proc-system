@@ -1,6 +1,8 @@
 import { AccountType, PublicPageKey, PublicPageStatus, RiskLevel, TrustTier, VerificationStatus } from '@prisma/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ModuleService } from '../modules/identity/service.js';
+import type { EmailValidationProvider, EmailValidationResult } from '../modules/identity/emailValidation.js';
+import type { PhoneValidationProvider, PhoneValidationResult } from '../modules/identity/phoneValidation.js';
 import type { RegistryLookupRequest, RegistryProvider, RegistryProviderRecord } from '../modules/identity/registryProviders.js';
 
 class FakeIdentityRepository {
@@ -441,8 +443,8 @@ class FakeIdentityRepository {
 
 class FakeIdentityNotifications {
   phoneOtps: Array<{ to: string; code: string }> = [];
-  activations: Array<{ to: string; code: string }> = [];
-  resets: Array<{ to: string; code: string }> = [];
+  activations: Array<{ to: string; code: string; actionUrl?: string }> = [];
+  resets: Array<{ to: string; code: string; actionUrl?: string }> = [];
   failNext = false;
 
   private maybeFail() {
@@ -457,13 +459,13 @@ class FakeIdentityNotifications {
     return Promise.resolve({ provider: 'fake-sms', messageId: `sms-${this.phoneOtps.length}` });
   }
 
-  sendEmailActivation(input: { to: string; code: string }) {
+  sendEmailActivation(input: { to: string; code: string; actionUrl?: string }) {
     this.maybeFail();
     this.activations.push(input);
     return Promise.resolve({ provider: 'fake-email', messageId: `activation-${this.activations.length}` });
   }
 
-  sendPasswordReset(input: { to: string; code: string }) {
+  sendPasswordReset(input: { to: string; code: string; actionUrl?: string }) {
     this.maybeFail();
     this.resets.push(input);
     return Promise.resolve({ provider: 'fake-email', messageId: `reset-${this.resets.length}` });
@@ -486,12 +488,86 @@ class FakeRegistryProvider implements RegistryProvider {
   }
 }
 
-function makeService(repository = new FakeIdentityRepository(), notifications = new FakeIdentityNotifications(), registryProvider?: RegistryProvider) {
+class FakeEmailValidationProvider implements EmailValidationProvider {
+  calls: string[] = [];
+  result: EmailValidationResult = {
+    provider: 'fake-email-validation',
+    configured: true,
+    accepted: true,
+    reasons: [],
+    score: 0.97,
+    checks: {
+      formatValid: true,
+      mxFound: true,
+      smtpCheck: true,
+      disposable: false,
+      role: false,
+      free: false
+    }
+  };
+  failNext = false;
+
+  validate(input: { email: string }) {
+    this.calls.push(input.email);
+    if (this.failNext) {
+      this.failNext = false;
+      const error = new Error('mailboxlayer unavailable') as Error & { providerFailure?: true };
+      error.providerFailure = true;
+      return Promise.reject(error);
+    }
+    return Promise.resolve(this.result);
+  }
+}
+
+class FakePhoneValidationProvider implements PhoneValidationProvider {
+  calls: string[] = [];
+  result: PhoneValidationResult = {
+    provider: 'fake-phone-validation',
+    configured: true,
+    accepted: true,
+    reasons: [],
+    checks: {
+      valid: true,
+      reachable: true
+    },
+    providerMetadata: {
+      type: 'basic'
+    }
+  };
+  failNext = false;
+
+  validate(input: { phone: string }) {
+    this.calls.push(input.phone);
+    if (this.failNext) {
+      this.failNext = false;
+      const error = new Error('sendchamp unavailable') as Error & { providerFailure?: true };
+      error.providerFailure = true;
+      return Promise.reject(error);
+    }
+    return Promise.resolve(this.result);
+  }
+}
+
+function resetChallengeIdFromEmail(input: { actionUrl?: string }) {
+  if (!input.actionUrl) throw new Error('Expected reset email to include an action URL.');
+  const url = new URL(input.actionUrl);
+  return url.searchParams.get('challengeId') ?? '';
+}
+
+function makeService(
+  repository = new FakeIdentityRepository(),
+  notifications = new FakeIdentityNotifications(),
+  registryProvider?: RegistryProvider,
+  emailValidationProvider: EmailValidationProvider = new FakeEmailValidationProvider(),
+  phoneValidationProvider: PhoneValidationProvider = new FakePhoneValidationProvider()
+) {
   return {
     repository,
     notifications,
     registryProvider,
-    service: new ModuleService(repository as any, notifications, registryProvider)
+    emailValidationProvider,
+    phoneValidationProvider,
+    service: new ModuleService(repository as any, notifications, registryProvider, undefined, emailValidationProvider, phoneValidationProvider)
   };
 }
 
@@ -550,6 +626,37 @@ describe('identity production auth', () => {
     expect(session.user.verificationStatus).toBe(VerificationStatus.NOT_STARTED);
   });
 
+  it('validates email deliverability before sending activation emails and resends', async () => {
+    const validator = new FakeEmailValidationProvider();
+    const { repository, notifications, service } = makeService(new FakeIdentityRepository(), new FakeIdentityNotifications(), undefined, validator);
+    const registration = await service.startRegistration({ email: 'activation@example.test', phone: '+255700000062' });
+
+    const otp = await service.verifyOtp(registration.challengeId, notifications.phoneOtps[0].code);
+    expect(notifications.activations).toHaveLength(1);
+    expect(validator.calls.filter((email) => email === 'activation@example.test')).toHaveLength(2);
+
+    repository.challenges.get(otp.activationChallengeId).createdAt = new Date(Date.now() - 31_000);
+    await service.resendActivation(otp.activationChallengeId);
+
+    expect(notifications.activations).toHaveLength(2);
+    expect(validator.calls.filter((email) => email === 'activation@example.test')).toHaveLength(3);
+  });
+
+  it('rejects activation email delivery when Mailboxlayer rejects the address', async () => {
+    const validator = new FakeEmailValidationProvider();
+    const { notifications, service } = makeService(new FakeIdentityRepository(), new FakeIdentityNotifications(), undefined, validator);
+    const registration = await service.startRegistration({ email: 'activation-reject@example.test', phone: '+255700000063' });
+    validator.result = {
+      ...validator.result,
+      accepted: false,
+      reasons: ['Disposable email addresses are not allowed.'],
+      checks: { ...validator.result.checks, disposable: true }
+    };
+
+    await expect(service.verifyOtp(registration.challengeId, notifications.phoneOtps[0].code)).rejects.toMatchObject({ status: 400 });
+    expect(notifications.activations).toHaveLength(0);
+  });
+
   it('persists preferred language and records an audit event', async () => {
     const { repository, notifications, service } = makeService();
     const registration = await service.startRegistration({ email: 'language@example.test', phone: '+255 700 000 050' });
@@ -575,6 +682,106 @@ describe('identity production auth', () => {
     await expect(service.startRegistration({ email: 'second@example.test', phone: '+255 712 345 678' })).rejects.toMatchObject({
       status: 409
     });
+  });
+
+  it('validates registration emails before persisting a user', async () => {
+    const repository = new FakeIdentityRepository();
+    const validator = new FakeEmailValidationProvider();
+    validator.result = {
+      provider: 'fake-email-validation',
+      configured: true,
+      accepted: false,
+      reasons: ['Disposable email addresses are not allowed.'],
+      score: 0.12,
+      didYouMean: 'owner@example.com',
+      checks: {
+        formatValid: true,
+        mxFound: true,
+        smtpCheck: true,
+        disposable: true,
+        role: false,
+        free: false
+      }
+    };
+    const { service } = makeService(repository, new FakeIdentityNotifications(), undefined, validator);
+
+    await expect(service.startRegistration({ email: 'owner@mailinator.test', phone: '+255700000060' })).rejects.toMatchObject({
+      status: 400
+    });
+
+    expect(repository.usersByEmail.has('owner@mailinator.test')).toBe(false);
+    expect(repository.auditEvents.some((event) => event.event === 'identity.auth.registration_start.email_validation_rejected')).toBe(true);
+    expect(JSON.stringify(repository.auditEvents)).not.toContain('owner@mailinator.test');
+  });
+
+  it('returns a provider error when email validation is unavailable', async () => {
+    const repository = new FakeIdentityRepository();
+    const validator = new FakeEmailValidationProvider();
+    validator.failNext = true;
+    const { service } = makeService(repository, new FakeIdentityNotifications(), undefined, validator);
+
+    await expect(service.startRegistration({ email: 'provider-fail@example.test', phone: '+255700000061' })).rejects.toMatchObject({
+      status: 502
+    });
+
+    expect(repository.usersByEmail.has('provider-fail@example.test')).toBe(false);
+    expect(repository.auditEvents.some((event) => event.event === 'identity.auth.registration_start.email_validation_failed')).toBe(true);
+  });
+
+  it('validates phone numbers with Number Insight before creating OTP challenges', async () => {
+    const phoneValidator = new FakePhoneValidationProvider();
+    const { repository, service } = makeService(
+      new FakeIdentityRepository(),
+      new FakeIdentityNotifications(),
+      undefined,
+      new FakeEmailValidationProvider(),
+      phoneValidator
+    );
+
+    const registration = await service.startRegistration({ email: 'phone-insight@example.test', phone: '+255 700 000 065' });
+
+    expect(phoneValidator.calls).toEqual(['+255700000065']);
+    expect(repository.challenges.get(registration.challengeId).metadata.phoneValidation).toMatchObject({
+      provider: 'fake-phone-validation',
+      accepted: true
+    });
+  });
+
+  it('blocks registration when Number Insight rejects the phone number', async () => {
+    const repository = new FakeIdentityRepository();
+    const phoneValidator = new FakePhoneValidationProvider();
+    phoneValidator.result = {
+      ...phoneValidator.result,
+      accepted: false,
+      reasons: ['Phone number is invalid.'],
+      checks: { valid: false, reachable: true }
+    };
+    const { service } = makeService(repository, new FakeIdentityNotifications(), undefined, new FakeEmailValidationProvider(), phoneValidator);
+
+    await expect(service.startRegistration({ email: 'invalid-phone@example.test', phone: '+255700000066' })).rejects.toMatchObject({
+      status: 400
+    });
+
+    expect(repository.usersByEmail.has('invalid-phone@example.test')).toBe(false);
+    expect(repository.challenges.size).toBe(0);
+    expect(repository.auditEvents.some((event) => event.event === 'identity.auth.registration_start.phone_validation_rejected')).toBe(true);
+    expect(JSON.stringify(repository.auditEvents)).not.toContain('+255700000066');
+  });
+
+  it('returns a provider error when Number Insight is unavailable', async () => {
+    const repository = new FakeIdentityRepository();
+    const phoneValidator = new FakePhoneValidationProvider();
+    phoneValidator.failNext = true;
+    const { service } = makeService(repository, new FakeIdentityNotifications(), undefined, new FakeEmailValidationProvider(), phoneValidator);
+
+    await expect(service.startRegistration({ email: 'phone-provider-fail@example.test', phone: '+255700000067' })).rejects.toMatchObject({
+      status: 502
+    });
+
+    expect(repository.usersByEmail.has('phone-provider-fail@example.test')).toBe(false);
+    expect(repository.challenges.size).toBe(0);
+    expect(repository.auditEvents.some((event) => event.event === 'identity.auth.registration_start.phone_validation_failed')).toBe(true);
+    expect(JSON.stringify(repository.auditEvents)).not.toContain('sendchamp_live_');
   });
 
   it('rejects duplicate active account emails', async () => {
@@ -672,7 +879,7 @@ describe('identity production auth', () => {
   });
 
   it('resends OTP after cooldown by replacing the previous pending challenge', async () => {
-    const { repository, notifications, service } = makeService();
+    const { repository, notifications, phoneValidationProvider, service } = makeService();
     const registration = await service.startRegistration({ email: 'resend@example.test', phone: '+255700000016' });
 
     await expect(service.resendOtp(registration.challengeId)).rejects.toMatchObject({ status: 429 });
@@ -684,6 +891,7 @@ describe('identity production auth', () => {
     expect(repository.challenges.get(registration.challengeId).status).toBe('REPLACED');
     expect(repository.challenges.get(resent.challengeId).status).toBe('PENDING');
     expect(notifications.phoneOtps).toHaveLength(2);
+    expect((phoneValidationProvider as FakePhoneValidationProvider).calls).toEqual(['+255700000016', '+255700000016']);
   });
 
   it('sends password reset email and accepts the delivered reset code', async () => {
@@ -694,10 +902,12 @@ describe('identity production auth', () => {
     await service.setPassword('reset@example.test', 'Strong123!', legalAcceptance());
 
     const reset = await service.forgotPassword('reset@example.test');
-    expect(reset.challengeId).toBeTruthy();
+    expect(reset).not.toHaveProperty('challengeId');
     expect(notifications.resets).toHaveLength(1);
+    expect(notifications.resets[0].actionUrl).toContain('/forgot-password?challengeId=');
+    expect(notifications.resets[0].actionUrl).toContain(`#code=${notifications.resets[0].code}`);
 
-    await service.resetPassword(reset.challengeId!, notifications.resets[0].code, 'Better123!');
+    await service.resetPassword(resetChallengeIdFromEmail(notifications.resets[0]), notifications.resets[0].code, 'Better123!');
     const session = await service.signIn('reset@example.test', 'Better123!');
 
     expect(session.user.email).toBe('reset@example.test');
@@ -711,10 +921,25 @@ describe('identity production auth', () => {
     await service.setPassword('revoke@example.test', 'Strong123!', legalAcceptance());
     const oldSession = await service.signIn('revoke@example.test', 'Strong123!');
 
-    const reset = await service.forgotPassword('revoke@example.test');
-    await service.resetPassword(reset.challengeId!, notifications.resets[0].code, 'Better123!');
+    await service.forgotPassword('revoke@example.test');
+    await service.resetPassword(resetChallengeIdFromEmail(notifications.resets[0]), notifications.resets[0].code, 'Better123!');
 
     await expect(service.sessionFromToken(oldSession.token)).rejects.toMatchObject({ status: 401 });
+  });
+
+  it('keeps forgot-password responses generic and suppresses delivery failures', async () => {
+    const { notifications, service } = makeService();
+    const missing = await service.forgotPassword('missing@example.test');
+
+    const registration = await service.startRegistration({ email: 'suppressed@example.test', phone: '+255700000064' });
+    const otp = await service.verifyOtp(registration.challengeId, notifications.phoneOtps[0].code);
+    await service.activateEmail(otp.activationChallengeId, notifications.activations.at(-1)!.code);
+    await service.setPassword('suppressed@example.test', 'Strong123!', legalAcceptance());
+    notifications.failNext = true;
+    const existing = await service.forgotPassword('suppressed@example.test');
+
+    expect(existing).toEqual(missing);
+    expect(existing).not.toHaveProperty('challengeId');
   });
 
   it('records auth audit events without sensitive secrets', async () => {

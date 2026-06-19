@@ -1,5 +1,4 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '@/i18n';
@@ -48,9 +47,7 @@ describe('ForgotPasswordProcurexPage', () => {
   it('requests a reset code and shows the response as an informational message', async () => {
     mockedAuthApi.forgotPassword.mockResolvedValueOnce({
       ok: true,
-      message: 'If an account exists for this email, password reset instructions have been sent.',
-      challengeId: 'challenge-1',
-      expiresAt: '2026-06-06T00:30:00.000Z'
+      message: 'If an account exists for this email, password reset instructions have been sent.'
     });
 
     renderForgotPassword();
@@ -59,12 +56,13 @@ describe('ForgotPasswordProcurexPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Complete security check' }));
     fireEvent.click(screen.getByRole('button', { name: 'Send Reset Instructions' }));
 
-    await screen.findByRole('heading', { name: 'Create New Password' });
+    await waitFor(() => expect(mockedAuthApi.forgotPassword).toHaveBeenCalledWith({ email: 'reset@example.test', turnstileToken: 'turnstile-token' }));
+    expect(screen.getByRole('heading', { name: 'Reset Password' })).toBeInTheDocument();
     expect(mockedAuthApi.forgotPassword).toHaveBeenCalledWith({ email: 'reset@example.test', turnstileToken: 'turnstile-token' });
     expect(screen.getByRole('status')).toHaveClass('procurex-notification-card', 'tone-info');
   });
 
-  it('accepts challenge and code query parameters and resets the password', async () => {
+  it('accepts challenge query and code hash parameters and resets the password', async () => {
     mockedAuthApi.resetPassword.mockResolvedValueOnce({
       ok: true,
       user: {
@@ -78,7 +76,7 @@ describe('ForgotPasswordProcurexPage', () => {
       }
     });
 
-    renderForgotPassword('/forgot-password?challengeId=query-challenge&code=123456');
+    renderForgotPassword('/forgot-password?challengeId=query-challenge#code=123456');
 
     expect(screen.getByLabelText('Reset Code *')).toHaveValue('123456');
     expect(screen.getByLabelText('Reset Code *')).toHaveAttribute('autocomplete', 'one-time-code');
@@ -123,7 +121,6 @@ describe('ForgotPasswordProcurexPage', () => {
   });
 
   it('shows the language switcher and translates reset request copy to Swahili', async () => {
-    const user = userEvent.setup();
     renderForgotPassword();
 
     const actionGroup = document.querySelector('.auth-header-actions-new');
@@ -133,10 +130,9 @@ describe('ForgotPasswordProcurexPage', () => {
     expect(actionGroup).toContainElement(backButton);
     expect(Boolean(languageSwitcher.compareDocumentPosition(backButton) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
 
-    await user.click(screen.getByRole('combobox', { name: 'Language' }));
-    await user.click(screen.getByRole('option', { name: 'Swahili' }));
+    fireEvent.change(languageSwitcher, { target: { value: 'sw' } });
 
-    expect(screen.getByRole('heading', { name: 'Weka Upya Nenosiri' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Weka Upya Nenosiri' })).toBeInTheDocument();
     expect(screen.getByLabelText('Barua Pepe *')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Tuma Maelekezo ya Kuweka Upya' })).toBeInTheDocument();
   });
@@ -144,7 +140,7 @@ describe('ForgotPasswordProcurexPage', () => {
   it('shows an incorrect reset code alert', async () => {
     mockedAuthApi.resetPassword.mockRejectedValueOnce(apiError(400, 'Password reset code is incorrect.'));
 
-    renderForgotPassword('/forgot-password?challengeId=query-challenge&code=123456');
+    renderForgotPassword('/forgot-password?challengeId=query-challenge#code=123456');
 
     const passwords = screen.getAllByLabelText(/Password \*/);
     fireEvent.change(passwords[0], { target: { value: 'Better123!' } });
