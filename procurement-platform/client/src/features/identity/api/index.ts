@@ -1,4 +1,5 @@
 import { apiClient } from '@/shared/api/http';
+import type { TanzaniaLocationSelection } from '@procurex/shared';
 import type {
   BusinessRegistrationSource,
   EntityType,
@@ -22,6 +23,7 @@ export type VerificationDraftInput = {
   signatureKeyphrase?: string;
   signatureConsentVersion?: string;
   signatureConsentTitle?: string;
+  location?: TanzaniaLocationSelection;
   profile?: Record<string, unknown>;
   documents?: Record<string, unknown>[];
 };
@@ -29,7 +31,7 @@ export type VerificationDraftInput = {
 export type VerificationSubmitInput = Required<
   Pick<
     VerificationDraftInput,
-    'entityType' | 'registrySource' | 'registryNumber' | 'registryVerified' | 'registryRecordId' | 'signatureName' | 'signatureConsent'
+    'entityType' | 'registrySource' | 'registryNumber' | 'registryVerified' | 'registryRecordId' | 'signatureName' | 'signatureConsent' | 'location'
   >
 > &
   VerificationDraftInput;

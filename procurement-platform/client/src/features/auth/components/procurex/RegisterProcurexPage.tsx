@@ -4,7 +4,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '@/features/auth/api';
 import { useCurrentLegalVersions } from '@/features/public/hooks';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
+import { TanzaniaLocationSelector } from '@/shared/components/TanzaniaLocationSelector';
 import { useBodyPageMetadata } from '@/shared/hooks/useBodyPageMetadata';
+import { isValidTanzaniaLocation, type TanzaniaLocationSelection } from '@procurex/shared';
 import { AuthAlert, authAlert, authAlertFromError, type AuthAlertMessage } from './AuthAlert';
 import { TurnstileWidget } from './TurnstileWidget';
 
@@ -49,6 +51,7 @@ export function RegisterProcurexPage() {
   const [email, setEmail] = useState('');
   const [phoneCountry, setPhoneCountry] = useState('+255');
   const [phone, setPhone] = useState('');
+  const [location, setLocation] = useState<Partial<TanzaniaLocationSelection>>({});
   const [otp, setOtp] = useState('');
   const [otpChallengeId, setOtpChallengeId] = useState('');
   const [activationChallengeId, setActivationChallengeId] = useState('');
@@ -152,7 +155,8 @@ export function RegisterProcurexPage() {
     setLoading(true);
     setStatus(null);
     try {
-      const result = await authApi.startRegistration({ email, phone: normalizedPhone(), turnstileToken });
+      const selectedLocation = isValidTanzaniaLocation(location) ? location : undefined;
+      const result = await authApi.startRegistration({ email, phone: normalizedPhone(), turnstileToken, ...(selectedLocation ? { location: selectedLocation } : {}) });
       setOtpChallengeId(result.challengeId);
       setChallengeExpiresAt(result.expiresAt);
       setResendAvailableAt(result.resendAvailableAt ?? '');
@@ -329,6 +333,11 @@ export function RegisterProcurexPage() {
                       <input id="register-phone" className="form-input-new" type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder={t('auth.register.account.phonePlaceholder')} required />
                     </div>
                     <span className="form-hint-new">{t('auth.register.account.phoneHint')}</span>
+                  </div>
+                  <div className="form-group-new">
+                    <span className="form-label-new">Location in Tanzania</span>
+                    <TanzaniaLocationSelector idPrefix="register-location" value={location} onChange={setLocation} />
+                    <span className="form-hint-new">Optional during registration. You will confirm a complete location during verification.</span>
                   </div>
                   <TurnstileWidget action="registration_start" resetKey={turnstileResetKey} onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
                   <button className="btn-continue-new" type="submit" disabled={loading || !turnstileToken}>

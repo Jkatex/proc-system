@@ -1,5 +1,6 @@
 import { apiClient } from '@/shared/api/http';
 import type { SessionUser } from '@/shared/types/domain';
+import type { TanzaniaLocationSelection } from '@procurex/shared';
 
 export type AuthSessionResponse = {
   token: string;
@@ -21,7 +22,7 @@ export type ForgotPasswordResponse = {
 };
 
 export const authApi = {
-  async startRegistration(input: { email: string; phone: string; turnstileToken: string }) {
+  async startRegistration(input: { email: string; phone: string; turnstileToken: string; location?: TanzaniaLocationSelection }) {
     const response = await apiClient.post<{
       user: SessionUser;
       challengeId: string;

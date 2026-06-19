@@ -44,6 +44,12 @@ const registryRecord = {
   }
 };
 
+const testLocation = {
+  region: 'Dar es Salaam',
+  district: 'Ilala',
+  ward: 'Kariakoo'
+};
+
 const inactiveSignatureStatus: SigningCredentialStatus = {
   hasCredential: false,
   status: 'NONE',
@@ -76,6 +82,7 @@ function verificationMe() {
         registryNumber: registryRecord.registryNumber,
         registryVerified: true,
         registryRecord,
+        location: testLocation,
         signatureName: registryRecord.name,
         signatureTitle: 'Owner',
         signatureConsent: false
@@ -174,6 +181,15 @@ describe('IdentityVerificationProcurexPage signature step', () => {
 
     await user.click(screen.getByLabelText(/Confirm digital signature consent/));
     expect(screen.getByRole('button', { name: 'Submit verification' })).toBeEnabled();
+  });
+
+  it('pre-fills the Tanzania location selector from the verification payload', async () => {
+    renderPage(activeSignatureStatus);
+    await openStep3();
+
+    expect(screen.getByLabelText('Region *')).toHaveValue(testLocation.region);
+    expect(screen.getByLabelText('District *')).toHaveValue(testLocation.district);
+    expect(screen.getByLabelText('Ward/shehia *')).toHaveValue(testLocation.ward);
   });
 
   it('confirms before revoking a forgotten signature keyphrase', async () => {

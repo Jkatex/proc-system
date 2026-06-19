@@ -7,8 +7,10 @@ import { useNotifications } from '@/features/notifications/hooks';
 import type { VerificationProfile } from '@/features/identity/types';
 import { notificationFromApiError } from '@/shared/api/errors';
 import { NotificationCard } from '@/shared/components/NotificationCard';
+import { TanzaniaLocationSelector } from '@/shared/components/TanzaniaLocationSelector';
 import { useBodyPageMetadata } from '@/shared/hooks/useBodyPageMetadata';
 import type { CreateNotificationInput } from '@/shared/types/notifications';
+import { getTanzaniaRegions, isValidTanzaniaLocation, type TanzaniaLocationSelection } from '@procurex/shared';
 
 type ProfileTab = 'overview' | 'account' | 'entity' | 'classification' | 'documents' | 'settings' | 'system';
 
@@ -17,6 +19,7 @@ type ProfileForm = {
   emailAddress: string;
   phoneNumber: string;
   country: string;
+  location: Partial<TanzaniaLocationSelection>;
   preferredLanguage: string;
   displayName: string;
   professionalTitle: string;
@@ -55,7 +58,7 @@ const tabs: Array<{ key: ProfileTab; label: string }> = [
 ];
 
 const tenderCategories = ['Goods', 'Works', 'Non Consultancy', 'Consultancy', 'Medical Supplies', 'ICT Equipment', 'Construction Works', 'Office Supplies'];
-const regions = ['Dar es Salaam', 'Arusha', 'Dodoma', 'Mwanza', 'Mbeya', 'Morogoro', 'Tanga', 'Zanzibar', 'Nationwide'];
+const regionsOfOperation = ['Nationwide', ...getTanzaniaRegions()];
 
 const appDrawerItems = [
   {
@@ -114,6 +117,7 @@ const defaultProfile: ProfileForm = {
   emailAddress: '',
   phoneNumber: '',
   country: 'Tanzania',
+  location: {},
   preferredLanguage: 'English',
   displayName: '',
   professionalTitle: '',
@@ -269,6 +273,7 @@ export function AccountProfileProcurexPage() {
     profile.emailAddress,
     profile.phoneNumber,
     profile.country,
+    isValidTanzaniaLocation(profile.location) ? profile.location.ward : '',
     profile.displayName || profile.companyName,
     profile.tinNumber || verification?.registryNumber,
     profile.businessCategory,
@@ -299,6 +304,7 @@ export function AccountProfileProcurexPage() {
           emailAddress: stringValue(savedProfile.emailAddress, response.user.email),
           phoneNumber: stringValue(savedProfile.phoneNumber, response.user.phone ?? ''),
           country: stringValue(savedProfile.country, 'Tanzania'),
+          location: isValidTanzaniaLocation(savedProfile.location) ? savedProfile.location : isValidTanzaniaLocation(response.user.location) ? response.user.location : {},
           preferredLanguage: stringValue(savedProfile.preferredLanguage, 'English'),
           displayName: stringValue(savedProfile.displayName, stringValue(registry.name, response.user.displayName)),
           professionalTitle: stringValue(savedProfile.professionalTitle),
@@ -363,8 +369,12 @@ export function AccountProfileProcurexPage() {
     setStatusMessage(null);
 
     try {
+      const { location: profileLocation, ...profileWithoutLocation } = profile;
       const saved = await identityApi.updateProfile({
-        profile,
+        profile: {
+          ...profileWithoutLocation,
+          ...(isValidTanzaniaLocation(profileLocation) ? { location: profileLocation } : {})
+        },
         documents: Object.entries(documents)
           .filter(([, name]) => name)
           .map(([type, name]) => ({
@@ -580,6 +590,17 @@ export function AccountProfileProcurexPage() {
                     ))}
                   </select>
                 </label>
+                <div className="form-group iam-profile-field wide">
+                  <span className="form-label">Primary Location</span>
+                  <TanzaniaLocationSelector
+                    idPrefix="profile-location"
+                    value={profile.location}
+                    onChange={(nextLocation) => updateProfileField('location', nextLocation)}
+                    groupClassName="form-group iam-profile-field"
+                    labelClassName="form-label"
+                    inputClassName="form-input"
+                  />
+                </div>
                 <label className="form-group iam-profile-field">
                   <span className="form-label">Preferred Language</span>
                   <select className="form-input" value={profile.preferredLanguage} onChange={(event) => updateProfileField('preferredLanguage', event.target.value)}>
@@ -664,7 +685,7 @@ export function AccountProfileProcurexPage() {
                 <div className="form-group iam-profile-field wide">
                   <span className="form-label">Regions of Operation</span>
                   <div className="iam-multi-list" role="group" aria-label="Regions of Operation">
-                    {regions.map((region) => (
+                    {regionsOfOperation.map((region) => (
                       <label className="iam-multi-option" key={region}>
                         <input type="checkbox" checked={profile.regionsOfOperation.includes(region)} onChange={() => toggleListValue('regionsOfOperation', region)} />
                         <span>{region}</span>

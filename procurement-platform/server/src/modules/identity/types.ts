@@ -33,6 +33,11 @@ export type SessionUserDto = {
     preferredLanguage: 'en' | 'sw';
     timezone: string;
   };
+  location?: {
+    region: string;
+    district: string;
+    ward: string;
+  };
 };
 
 export type AuthSessionDto = {

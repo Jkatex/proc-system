@@ -8,7 +8,7 @@ import {
   VerificationStatus,
   type Prisma
 } from '@prisma/client';
-import type { PermissionName, ScreeningStatus } from '@procurex/shared';
+import { isValidTanzaniaLocation, type PermissionName, type ScreeningStatus, type TanzaniaLocationSelection } from '@procurex/shared';
 import { assertPermission, computeAccessContext } from '../../security/accessPolicy.js';
 import { randomBytes, scrypt as scryptCallback, timingSafeEqual, createHash } from 'node:crypto';
 import { promisify } from 'node:util';
@@ -60,6 +60,7 @@ const passwordResetRequestedMessage = 'If an account exists for this email, pass
 type RegistrationStartInput = {
   email: string;
   phone: string;
+  location?: TanzaniaLocationSelection;
 };
 
 type LegalAcceptanceInput = {
@@ -85,6 +86,7 @@ type VerificationPayloadInput = {
   signatureKeyphrase?: string;
   signatureConsentVersion?: string;
   signatureConsentTitle?: string;
+  location?: TanzaniaLocationSelection;
   profile?: Record<string, unknown>;
   documents?: Record<string, unknown>[];
 };
@@ -198,6 +200,24 @@ function inputJson(value: Record<string, unknown>): Prisma.InputJsonObject {
   return value as Prisma.InputJsonObject;
 }
 
+function assertValidTanzaniaLocation(location: unknown, required: true): TanzaniaLocationSelection;
+function assertValidTanzaniaLocation(location: unknown, required?: false): TanzaniaLocationSelection | undefined;
+function assertValidTanzaniaLocation(location: unknown, required = false): TanzaniaLocationSelection | undefined {
+  if (location === undefined || location === null) {
+    if (required) throw requestError('Select a valid Tanzania region, district, and ward/shehia.', 400);
+    return undefined;
+  }
+  if (!isValidTanzaniaLocation(location)) {
+    throw requestError('Select a valid Tanzania region, district, and ward/shehia.', 400);
+  }
+  return location;
+}
+
+function userLocation(user: { metadata?: unknown }) {
+  const location = metadataObject(user.metadata).location;
+  return isValidTanzaniaLocation(location) ? location : undefined;
+}
+
 function supportedLanguage(value: unknown): 'en' | 'sw' {
   return value === 'sw' ? 'sw' : 'en';
 }
@@ -298,7 +318,8 @@ function toSessionUser(user: UserWithDefaultOrg): SessionUserDto {
     riskLevel: access.riskLevel,
     featureGates: access.featureGates,
     screeningStatus: access.screeningStatus,
-    preferences: preferenceDto(user.preference)
+    preferences: preferenceDto(user.preference),
+    location: userLocation(user)
   };
 }
 
@@ -328,7 +349,8 @@ function toSessionUserFromSession(session: SessionWithUser): SessionUserDto {
     riskLevel: access.riskLevel,
     featureGates: access.featureGates,
     screeningStatus: access.screeningStatus,
-    preferences: preferenceDto(session.user.preference)
+    preferences: preferenceDto(session.user.preference),
+    location: userLocation(session.user)
   };
 }
 
@@ -716,6 +738,7 @@ export class ModuleService {
   async startRegistration(input: RegistrationStartInput, audit?: AuthAuditContext) {
     const email = normalizeEmail(input.email);
     const phone = normalizePhone(input.phone);
+    const location = assertValidTanzaniaLocation(input.location);
     assertValidE164Phone(phone);
 
     const existing = await this.repository.findUserByEmail(email);
@@ -732,11 +755,19 @@ export class ModuleService {
     const phoneValidation = await this.validateAuthPhoneDelivery({ phone, purpose: 'registration_start', audit });
     const emailValidation = await this.validateAuthEmailDelivery({ email, purpose: 'registration_start', audit });
 
-    const user = await this.repository.upsertRegistrationUser({
+    let user = await this.repository.upsertRegistrationUser({
       email,
       phone,
       displayName: existing?.displayName ?? displayNameFromEmail(email)
     });
+    if (location) {
+      user = await this.repository.updateUser(user.id, {
+        metadata: inputJson({
+          ...metadataObject(user.metadata),
+          location
+        })
+      });
+    }
     const challenge = await this.createPhoneOtpChallenge(user.id, phone, email, audit, phoneValidation);
     await this.recordAuthEvent('identity.auth.registration_started', {
       ...audit,
@@ -1589,6 +1620,7 @@ export class ModuleService {
   async saveVerificationDraft(token: string | undefined, input: VerificationPayloadInput, audit?: AuthAuditContext) {
     const { user } = await this.requireSession(token);
     const existing = await this.repository.latestVerificationProfile(user.id);
+    assertValidTanzaniaLocation(input.location);
     const { signatureKeyphrase: _signatureKeyphrase, ...safeInput } = input;
     const payload = inputJson({
       ...metadataObject(existing?.payload),
@@ -1628,9 +1660,13 @@ export class ModuleService {
   async updateProfile(token: string | undefined, input: { profile: Record<string, unknown>; documents?: Record<string, unknown>[] }) {
     const { user } = await this.requireSession(token);
     const existing = await this.repository.latestVerificationProfile(user.id);
+    const profileInput = { ...input.profile };
+    if (profileInput.location !== undefined) {
+      profileInput.location = assertValidTanzaniaLocation(profileInput.location);
+    }
     const payload = inputJson({
       ...metadataObject(existing?.payload),
-      profile: input.profile,
+      profile: profileInput,
       documents: input.documents ?? metadataObject(existing?.payload).documents ?? [],
       profileSavedAt: new Date().toISOString()
     });
@@ -1679,6 +1715,7 @@ export class ModuleService {
     const signingCredential = await this.repository.findActiveSigningCredential(fullUser.id);
     if (!signingCredential) throw requestError('Create a digital signature keyphrase before submitting verification.', 409);
     if (!input.signatureKeyphrase) throw requestError('Digital signature keyphrase is required.', 409);
+    const location = assertValidTanzaniaLocation(input.location, true);
 
     const userMetadata = metadataObject(fullUser.metadata);
     const duplicateCount = await this.repository.countApprovedRegistryDuplicates({
@@ -1719,6 +1756,7 @@ export class ModuleService {
     const { signatureKeyphrase: _signatureKeyphrase, ...safeInput } = input;
     const basePayload = {
       ...safeInput,
+      location,
       registryRecord: registryPayload(registry),
       verifiedName: registry.name,
       reviewReasons,

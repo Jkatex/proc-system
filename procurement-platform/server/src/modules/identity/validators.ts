@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isValidTanzaniaLocation } from '@procurex/shared';
 
 export const moduleStatusQuerySchema = z.object({}).passthrough();
 
@@ -12,11 +13,21 @@ const passwordSchema = z
 
 const turnstileTokenSchema = z.string().min(1).max(4096);
 const signatureKeyphraseSchema = z.string().min(6).max(128);
+const tanzaniaLocationSchema = z
+  .object({
+    region: z.string().min(1).max(80),
+    district: z.string().min(1).max(120),
+    ward: z.string().min(1).max(120)
+  })
+  .refine((location) => isValidTanzaniaLocation(location), {
+    message: 'Select a valid Tanzania region, district, and ward/shehia.'
+  });
 
 export const startRegistrationSchema = z.object({
   email: z.string().email(),
   phone: z.string().min(7).max(32),
-  turnstileToken: turnstileTokenSchema
+  turnstileToken: turnstileTokenSchema,
+  location: tanzaniaLocationSchema.optional()
 });
 
 export const verifyOtpSchema = z.object({
@@ -80,6 +91,7 @@ export const verificationDraftSchema = z.object({
   signatureKeyphrase: signatureKeyphraseSchema.optional(),
   signatureConsentVersion: z.string().max(64).optional(),
   signatureConsentTitle: z.string().max(200).optional(),
+  location: tanzaniaLocationSchema.optional(),
   profile: z.record(z.unknown()).optional(),
   documents: z.array(z.record(z.unknown())).optional()
 });
@@ -92,7 +104,8 @@ export const verificationSubmitSchema = verificationDraftSchema.extend({
   registryRecordId: z.string().uuid(),
   signatureName: z.string().min(2),
   signatureConsent: z.literal(true),
-  signatureKeyphrase: signatureKeyphraseSchema
+  signatureKeyphrase: signatureKeyphraseSchema,
+  location: tanzaniaLocationSchema
 });
 
 export const signatureRequestSchema = z
@@ -108,10 +121,21 @@ export const signatureKeyphraseOnlySchema = z
   })
   .strict();
 
-export const profileUpdateSchema = z.object({
-  profile: z.record(z.unknown()).default({}),
-  documents: z.array(z.record(z.unknown())).optional()
-});
+export const profileUpdateSchema = z
+  .object({
+    profile: z.record(z.unknown()).default({}),
+    documents: z.array(z.record(z.unknown())).optional()
+  })
+  .superRefine((input, context) => {
+    if (input.profile.location === undefined) return;
+    if (!isValidTanzaniaLocation(input.profile.location)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['profile', 'location'],
+        message: 'Select a valid Tanzania region, district, and ward/shehia.'
+      });
+    }
+  });
 
 export const preferencesPatchSchema = z.object({
   preferredLanguage: z.enum(['en', 'sw']),

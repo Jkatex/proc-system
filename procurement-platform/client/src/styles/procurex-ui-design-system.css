@@ -30026,3 +30026,15 @@ body[data-page="admin-audit"] {
         grid-template-columns: 1fr;
     }
 }
+.tanzania-location-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    width: 100%;
+}
+
+@media (max-width: 760px) {
+    .tanzania-location-grid {
+        grid-template-columns: 1fr;
+    }
+}

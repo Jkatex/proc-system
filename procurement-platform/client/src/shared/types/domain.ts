@@ -20,6 +20,11 @@ export type SessionUser = {
     preferredLanguage: 'en' | 'sw';
     timezone: string;
   };
+  location?: {
+    region: string;
+    district: string;
+    ward: string;
+  };
   verificationStatus: 'NOT_STARTED' | 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED';
 };
 

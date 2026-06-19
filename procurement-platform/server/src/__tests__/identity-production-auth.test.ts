@@ -581,6 +581,12 @@ function legalAcceptance() {
   } as const;
 }
 
+const testLocation = {
+  region: 'Dar es Salaam',
+  district: 'Ilala',
+  ward: 'Kariakoo'
+} as const;
+
 async function requestSignatureForSession(service: ModuleService, token: string, keyphrase = 'Signing123') {
   await service.requestSignature(token, { keyphrase, repeatedKeyphrase: keyphrase });
   return keyphrase;
@@ -682,6 +688,56 @@ describe('identity production auth', () => {
     await expect(service.startRegistration({ email: 'second@example.test', phone: '+255 712 345 678' })).rejects.toMatchObject({
       status: 409
     });
+  });
+
+  it('stores an optional Tanzania registration location in user metadata', async () => {
+    const { repository, service } = makeService();
+
+    const registration = await service.startRegistration({
+      email: 'located@example.test',
+      phone: '+255700000068',
+      location: testLocation
+    });
+
+    expect(registration.user.location).toEqual(testLocation);
+    expect(repository.users.get(registration.user.id).metadata.location).toEqual(testLocation);
+  });
+
+  it('rejects invalid Tanzania registration locations', async () => {
+    const { service } = makeService();
+
+    await expect(
+      service.startRegistration({
+        email: 'bad-location@example.test',
+        phone: '+255700000069',
+        location: { region: 'Dar es Salaam', district: 'Dodoma', ward: 'Kariakoo' }
+      })
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('validates and persists account profile Tanzania locations', async () => {
+    const { notifications, service } = makeService();
+    const registration = await service.startRegistration({ email: 'profile-location@example.test', phone: '+255700000070' });
+    const otp = await service.verifyOtp(registration.challengeId, notifications.phoneOtps[0].code);
+    await service.activateEmail(otp.activationChallengeId, notifications.activations[0].code);
+    await service.setPassword('profile-location@example.test', 'Strong123!', legalAcceptance());
+    const session = await service.signIn('profile-location@example.test', 'Strong123!');
+
+    const saved = await service.updateProfile(session.token, {
+      profile: {
+        displayName: 'Profile Location Business',
+        location: testLocation
+      }
+    });
+
+    expect(saved.payload.profile).toMatchObject({ location: testLocation });
+    await expect(
+      service.updateProfile(session.token, {
+        profile: {
+          location: { region: 'Dar es Salaam', district: 'Dodoma', ward: 'Kariakoo' }
+        }
+      })
+    ).rejects.toMatchObject({ status: 400 });
   });
 
   it('validates registration emails before persisting a user', async () => {
@@ -1086,7 +1142,8 @@ describe('identity production auth', () => {
       registryRecordId: registry.id,
       signatureName: 'Walkthrough Owner',
       signatureConsent: true,
-      signatureKeyphrase: keyphrase
+      signatureKeyphrase: keyphrase,
+      location: testLocation
     });
 
     expect(registry.status).toBe('MATCHED');
@@ -1137,11 +1194,14 @@ describe('identity production auth', () => {
       registryVerified: true as const,
       registryRecordId: registry.id,
       signatureName: 'Keyphrase Owner',
-      signatureConsent: true as const
+      signatureConsent: true as const,
+      location: testLocation
     };
 
     await expect(service.submitVerification(session.token, { ...input, signatureKeyphrase: 'Signing123' })).rejects.toMatchObject({ status: 409 });
     const keyphrase = await requestSignatureForSession(service, session.token);
+    const { location: _location, ...missingLocationInput } = input;
+    await expect(service.submitVerification(session.token, { ...missingLocationInput, signatureKeyphrase: keyphrase })).rejects.toMatchObject({ status: 400 });
     await expect(service.submitVerification(session.token, { ...input, signatureKeyphrase: 'Wrong123' })).rejects.toMatchObject({ status: 403 });
     await expect(service.submitVerification(session.token, { ...input, signatureKeyphrase: keyphrase })).resolves.toMatchObject({ autoApproved: true });
   });
@@ -1176,6 +1236,7 @@ describe('identity production auth', () => {
       signatureName: 'Access Owner',
       signatureConsent: true,
       signatureKeyphrase: keyphrase,
+      location: testLocation,
       profile: { displayName: 'Access Business' },
       documents: [{ type: 'registry', status: 'fetched' }]
     });
@@ -1220,7 +1281,8 @@ describe('identity production auth', () => {
       registryRecordId: registry.id,
       signatureName: 'Blocked Owner',
       signatureConsent: true,
-      signatureKeyphrase: keyphrase
+      signatureKeyphrase: keyphrase,
+      location: testLocation
     });
 
     expect(result.autoApproved).toBe(false);
@@ -1262,7 +1324,8 @@ describe('identity production auth', () => {
       registryRecordId: firstRegistry.id,
       signatureName: 'First Owner',
       signatureConsent: true,
-      signatureKeyphrase: firstKeyphrase
+      signatureKeyphrase: firstKeyphrase,
+      location: testLocation
     });
 
     const second = await service.startRegistration({ email: 'duplicate-two@example.test', phone: '+255700000022' });
@@ -1281,7 +1344,8 @@ describe('identity production auth', () => {
       registryRecordId: secondRegistry.id,
       signatureName: 'Second Owner',
       signatureConsent: true,
-      signatureKeyphrase: secondKeyphrase
+      signatureKeyphrase: secondKeyphrase,
+      location: testLocation
     });
 
     expect(result.autoApproved).toBe(false);
@@ -1317,7 +1381,8 @@ describe('identity production auth', () => {
       registryRecordId: registry.id,
       signatureName: 'Pending Owner',
       signatureConsent: true,
-      signatureKeyphrase: keyphrase
+      signatureKeyphrase: keyphrase,
+      location: testLocation
     });
 
     const admin = await service.startRegistration({ email: 'admin@example.test', phone: '+255700000024' });

@@ -155,6 +155,41 @@ describe('RegisterProcurexPage', () => {
     expect(screen.getByRole('heading', { name: 'Join Us' })).toBeInTheDocument();
   });
 
+  it('sends an optional Tanzania location and resets child selections when region changes', async () => {
+    mockedAuthApi.startRegistration.mockResolvedValueOnce({ user: {}, challengeId: 'otp-challenge', expiresAt: '2026-06-06T00:00:00.000Z' } as never);
+
+    render(
+      <MemoryRouter>
+        <RegisterProcurexPage />
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByLabelText('Region'), { target: { value: 'Dar es Salaam' } });
+    fireEvent.change(screen.getByLabelText('District'), { target: { value: 'Ilala' } });
+    fireEvent.change(screen.getByLabelText('Ward/shehia'), { target: { value: 'Kariakoo' } });
+
+    fireEvent.change(screen.getByLabelText('Region'), { target: { value: 'Dodoma' } });
+    expect(screen.getByLabelText('District')).toHaveValue('');
+    expect(screen.getByLabelText('Ward/shehia')).toHaveValue('');
+
+    fireEvent.change(screen.getByLabelText('Region'), { target: { value: 'Dar es Salaam' } });
+    fireEvent.change(screen.getByLabelText('District'), { target: { value: 'Ilala' } });
+    fireEvent.change(screen.getByLabelText('Ward/shehia'), { target: { value: 'Kariakoo' } });
+    fireEvent.change(document.querySelector<HTMLInputElement>('input[type="email"]')!, { target: { value: 'located@example.test' } });
+    fireEvent.change(document.querySelector<HTMLInputElement>('input[type="tel"]')!, { target: { value: '+255700000004' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Complete security check' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    await waitFor(() =>
+      expect(mockedAuthApi.startRegistration).toHaveBeenCalledWith({
+        email: 'located@example.test',
+        phone: '+255700000004',
+        turnstileToken: 'turnstile-token',
+        location: { region: 'Dar es Salaam', district: 'Ilala', ward: 'Kariakoo' }
+      })
+    );
+  });
+
   it('shows the language switcher and translates registration copy to Swahili', async () => {
     render(
       <MemoryRouter>

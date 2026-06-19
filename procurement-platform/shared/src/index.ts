@@ -42,3 +42,5 @@ export type FeatureGateName =
 
 export type FeatureGateMap = Record<FeatureGateName, boolean>;
 
+export * from './tanzaniaAdministrativeAreas.js';
+

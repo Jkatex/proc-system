@@ -7,8 +7,10 @@ import { useNotifications } from '@/features/notifications/hooks';
 import type { BusinessRegistrationSource, EntityType, RegistryRecord, SigningCredentialStatus, VerificationSubmitResult } from '@/features/identity/types';
 import { apiErrorMessage, notificationFromApiError } from '@/shared/api/errors';
 import { NotificationCard } from '@/shared/components/NotificationCard';
+import { TanzaniaLocationSelector } from '@/shared/components/TanzaniaLocationSelector';
 import { useBodyPageMetadata } from '@/shared/hooks/useBodyPageMetadata';
 import type { CreateNotificationInput, NotificationTone } from '@/shared/types/notifications';
+import { isValidTanzaniaLocation, type TanzaniaLocationSelection } from '@procurex/shared';
 
 type EkycStep = 1 | 2 | 3 | 4;
 type SignatureVerificationState = 'idle' | 'checking' | 'valid' | 'invalid';
@@ -109,6 +111,7 @@ export function IdentityVerificationProcurexPage() {
   const [registryNumber, setRegistryNumber] = useState('');
   const [registryRecord, setRegistryRecord] = useState<RegistryRecord | null>(null);
   const [registryVerified, setRegistryVerified] = useState(false);
+  const [location, setLocation] = useState<Partial<TanzaniaLocationSelection>>({});
   const [signatureName, setSignatureName] = useState('');
   const [signatureTitle, setSignatureTitle] = useState('');
   const [signatureConsent, setSignatureConsent] = useState(false);
@@ -130,6 +133,7 @@ export function IdentityVerificationProcurexPage() {
   const canVerifySignature = Boolean(signatureStatus?.hasCredential) && signatureKeyphrase.length >= 6 && signatureVerificationState !== 'checking';
   const canSubmit =
     canContinueRegistry &&
+    isValidTanzaniaLocation(location) &&
     signatureName.trim().length > 1 &&
     signatureConsent &&
     Boolean(signatureStatus?.hasCredential) &&
@@ -156,6 +160,8 @@ export function IdentityVerificationProcurexPage() {
         if (typeof payload.signatureName === 'string') setSignatureName(payload.signatureName);
         if (typeof payload.signatureTitle === 'string') setSignatureTitle(payload.signatureTitle);
         if (typeof payload.signatureConsent === 'boolean') setSignatureConsent(payload.signatureConsent);
+        if (isValidTanzaniaLocation(payload.location)) setLocation(payload.location);
+        else if (isValidTanzaniaLocation(response.user.location)) setLocation(response.user.location);
         if (savedRecord?.id) setRegistryRecord(savedRecord);
       } catch (error) {
         if (active) setMessage(notificationFromApiError(error, { title: 'Verification profile could not load', fallback: 'Could not load your verification profile.' }));
@@ -270,7 +276,8 @@ export function IdentityVerificationProcurexPage() {
         signatureTitle,
         signatureConsent,
         signatureConsentVersion,
-        signatureConsentTitle
+        signatureConsentTitle,
+        ...(isValidTanzaniaLocation(location) ? { location } : {})
       });
       if (authUser && authUser.verificationStatus === 'NOT_STARTED') {
         dispatch(setSessionUser({ ...authUser, verificationStatus: 'DRAFT' }));
@@ -313,7 +320,7 @@ export function IdentityVerificationProcurexPage() {
     event.preventDefault();
 
     if (!registryRecord || !canSubmit) {
-      setMessage(identityNotification('warning', 'Verification incomplete', 'Complete registry confirmation, verify the signing keyphrase, and confirm consent before submitting.', 'ProcureX needs confirmed registry data and a verified digital signature before it can review the account.'));
+      setMessage(identityNotification('warning', 'Verification incomplete', 'Complete registry confirmation, select your region, district, and ward/shehia, verify the signing keyphrase, and confirm consent before submitting.', 'ProcureX needs confirmed registry data, location, and a verified digital signature before it can review the account.'));
       return;
     }
 
@@ -334,9 +341,11 @@ export function IdentityVerificationProcurexPage() {
         signatureKeyphrase,
         signatureConsentVersion,
         signatureConsentTitle,
+        location: location as TanzaniaLocationSelection,
         profile: {
           displayName: registryRecord.name,
           country: 'Tanzania',
+          location,
           preferredLanguage: 'English'
         },
         documents: [
@@ -640,6 +649,11 @@ export function IdentityVerificationProcurexPage() {
                     <span className={`signature-status-pill ${signatureVerificationState}`}>
                       {signatureVerificationState === 'valid' ? 'Verified' : signatureVerificationState === 'invalid' ? 'Check failed' : signatureVerificationState === 'checking' ? 'Checking' : 'Not verified'}
                     </span>
+                  </div>
+
+                  <div className="form-group-new">
+                    <span className="form-label-new">Location in Tanzania *</span>
+                    <TanzaniaLocationSelector idPrefix="verification-location" value={location} onChange={setLocation} required />
                   </div>
 
                   <div className="ekyc-grid two">
