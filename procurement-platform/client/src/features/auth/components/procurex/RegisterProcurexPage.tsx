@@ -2,10 +2,11 @@ import { Fragment, FormEvent, useEffect, useMemo, useRef, useState, type Clipboa
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '@/features/auth/api';
+import { useNotifications } from '@/features/notifications/hooks';
 import { useCurrentLegalVersions } from '@/features/public/hooks';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 import { useBodyPageMetadata } from '@/shared/hooks/useBodyPageMetadata';
-import { AuthAlert, authAlert, authAlertFromError, authAlertText, type AuthAlertMessage } from './AuthAlert';
+import { AuthAlert, authAlert, authAlertFromError, authAlertText, authAlertToNotification, type AuthAlertMessage } from './AuthAlert';
 import { TurnstileWidget } from './TurnstileWidget';
 
 type RegisterStep = 1 | 2 | 3 | 4 | 5;
@@ -54,6 +55,7 @@ function temporaryEmailCodeAlert(code?: string) {
 export function RegisterProcurexPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { notify } = useNotifications();
   useBodyPageMetadata('register');
   const [step, setStep] = useState<RegisterStep>(1);
   const [email, setEmail] = useState('');
@@ -156,6 +158,11 @@ export function RegisterProcurexPage() {
     return false;
   }
 
+  function showTemporaryCodeToast(message: AuthAlertMessage | null) {
+    if (!message) return;
+    notify(authAlertToNotification(message, t));
+  }
+
   async function submitAccountInfo(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!requireSecurityCheck()) return;
@@ -168,7 +175,7 @@ export function RegisterProcurexPage() {
       setResendAvailableAt(result.resendAvailableAt ?? '');
       setOtp('');
       setStep(2);
-      setStatus(temporaryPhoneCodeAlert(result.devCode));
+      showTemporaryCodeToast(temporaryPhoneCodeAlert(result.devCode));
     } catch (error) {
       setStatus(authAlertFromError(error, 'registration'));
     } finally {
@@ -188,7 +195,7 @@ export function RegisterProcurexPage() {
       setResendAvailableAt(result.resendAvailableAt ?? '');
       setActivationCode('');
       setStep(3);
-      setStatus(temporaryEmailCodeAlert(result.devCode));
+      showTemporaryCodeToast(temporaryEmailCodeAlert(result.devCode));
     } catch (error) {
       setStatus(authAlertFromError(error, 'otp'));
     } finally {
@@ -207,7 +214,9 @@ export function RegisterProcurexPage() {
       setChallengeExpiresAt(result.expiresAt);
       setResendAvailableAt(result.resendAvailableAt ?? '');
       setOtp('');
-      setStatus(temporaryPhoneCodeAlert(result.devCode) ?? authAlert('auth.register.messages.otpResent', 'success'));
+      const temporaryCode = temporaryPhoneCodeAlert(result.devCode);
+      if (temporaryCode) showTemporaryCodeToast(temporaryCode);
+      else setStatus(authAlert('auth.register.messages.otpResent', 'success'));
     } catch (error) {
       setStatus(authAlertFromError(error, 'resend-otp'));
     } finally {
@@ -241,7 +250,9 @@ export function RegisterProcurexPage() {
       setActivationExpiresAt(result.expiresAt);
       setResendAvailableAt(result.resendAvailableAt ?? '');
       setActivationCode('');
-      setStatus(temporaryEmailCodeAlert(result.devCode) ?? authAlert('auth.register.messages.activationResent', 'success'));
+      const temporaryCode = temporaryEmailCodeAlert(result.devCode);
+      if (temporaryCode) showTemporaryCodeToast(temporaryCode);
+      else setStatus(authAlert('auth.register.messages.activationResent', 'success'));
     } catch (error) {
       setStatus(authAlertFromError(error, 'resend-activation'));
     } finally {

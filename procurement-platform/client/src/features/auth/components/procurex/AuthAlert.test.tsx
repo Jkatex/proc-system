@@ -1,7 +1,7 @@
 import { act, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '@/i18n';
-import { AuthAlert, authAlert, authAlertFromError, authAlertText } from './AuthAlert';
+import { AuthAlert, authAlert, authAlertFromError, authAlertText, authAlertToNotification } from './AuthAlert';
 
 function apiError(status: number, message: string) {
   return { response: { status, data: { message } }, message };
@@ -93,5 +93,17 @@ describe('AuthAlert', () => {
       vi.advanceTimersByTime(23_500);
     });
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('maps temporary code alerts to long-lived floating toast notifications', () => {
+    const notification = authAlertToNotification(authAlertText('Temporary phone verification code: 123456', 'info', 30_000), i18n.t);
+
+    expect(notification).toMatchObject({
+      tone: 'info',
+      title: 'Information',
+      message: 'Temporary phone verification code: 123456',
+      dismissible: true,
+      autoDismissMs: 30_000
+    });
   });
 });

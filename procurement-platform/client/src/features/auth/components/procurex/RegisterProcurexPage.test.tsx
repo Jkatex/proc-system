@@ -1,8 +1,12 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { store } from '@/app/store';
 import i18n from '@/i18n';
 import { authApi } from '@/features/auth/api';
+import { NotificationToastHost } from '@/features/notifications/NotificationToastHost';
+import { clearNotifications } from '@/features/notifications/slice';
 import { useCurrentLegalVersions } from '@/features/public/hooks';
 import { RegisterProcurexPage } from './RegisterProcurexPage';
 
@@ -43,9 +47,21 @@ function fillVisibleInput(type: string, value: string, index = 0) {
   fireEvent.change(inputs[index], { target: { value } });
 }
 
+function renderRegisterPage() {
+  return render(
+    <Provider store={store}>
+      <MemoryRouter>
+        <RegisterProcurexPage />
+        <NotificationToastHost />
+      </MemoryRouter>
+    </Provider>
+  );
+}
+
 describe('RegisterProcurexPage', () => {
   beforeEach(async () => {
     window.localStorage.clear();
+    store.dispatch(clearNotifications());
     await i18n.changeLanguage('en');
     mockedAuthApi.startRegistration.mockReset();
     mockedAuthApi.verifyOtp.mockReset();
@@ -94,11 +110,7 @@ describe('RegisterProcurexPage', () => {
     mockedAuthApi.activateEmail.mockResolvedValueOnce({ user: {} } as never);
     mockedAuthApi.setPassword.mockResolvedValueOnce({ user: {} } as never);
 
-    render(
-      <MemoryRouter>
-        <RegisterProcurexPage />
-      </MemoryRouter>
-    );
+    renderRegisterPage();
 
     fireEvent.change(document.querySelector<HTMLInputElement>('input[type="email"]')!, { target: { value: 'legal@example.test' } });
     fireEvent.change(document.querySelector<HTMLInputElement>('input[type="tel"]')!, { target: { value: '+255700000004' } });
@@ -106,7 +118,8 @@ describe('RegisterProcurexPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
     await screen.findByRole('heading', { name: 'Verify Your Number' });
-    expect(screen.getByText('Temporary phone verification code: 123456')).toBeInTheDocument();
+    const phoneCodeToast = await screen.findByText('Temporary phone verification code: 123456');
+    expect(phoneCodeToast.closest('.procurex-toast-host')).toBeInTheDocument();
     expect(document.querySelector<HTMLInputElement>('.otp-input-new')!).toHaveAttribute('autocomplete', 'one-time-code');
     expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument();
     expect(mockedAuthApi.startRegistration).toHaveBeenCalledWith({ email: 'legal@example.test', phone: '+255700000004', turnstileToken: 'turnstile-token' });
@@ -116,7 +129,8 @@ describe('RegisterProcurexPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Verify' }));
 
     await screen.findByRole('heading', { name: 'Activate Your Email' });
-    expect(screen.getByText('Temporary email activation code: email-dev-code')).toBeInTheDocument();
+    const emailCodeToast = await screen.findByText('Temporary email activation code: email-dev-code');
+    expect(emailCodeToast.closest('.procurex-toast-host')).toBeInTheDocument();
     expect(screen.getByLabelText('Activation Code *')).toHaveAttribute('autocomplete', 'one-time-code');
     fillVisibleInput('text', '87654321');
     fireEvent.click(screen.getByRole('button', { name: 'Continue to Password Setup' }));
@@ -147,11 +161,7 @@ describe('RegisterProcurexPage', () => {
   });
 
   it('does not expose mock sign-up shortcuts', () => {
-    render(
-      <MemoryRouter>
-        <RegisterProcurexPage />
-      </MemoryRouter>
-    );
+    renderRegisterPage();
 
     expect(document.querySelector('.mock-fill-btn')).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Join Us' })).toBeInTheDocument();
@@ -160,11 +170,7 @@ describe('RegisterProcurexPage', () => {
   it('does not collect Tanzania location during registration', async () => {
     mockedAuthApi.startRegistration.mockResolvedValueOnce({ user: {}, challengeId: 'otp-challenge', expiresAt: '2026-06-06T00:00:00.000Z' } as never);
 
-    render(
-      <MemoryRouter>
-        <RegisterProcurexPage />
-      </MemoryRouter>
-    );
+    renderRegisterPage();
 
     expect(screen.queryByText('Location in Tanzania')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Region')).not.toBeInTheDocument();
@@ -187,11 +193,7 @@ describe('RegisterProcurexPage', () => {
   });
 
   it('shows the language switcher and translates registration copy to Swahili', async () => {
-    render(
-      <MemoryRouter>
-        <RegisterProcurexPage />
-      </MemoryRouter>
-    );
+    renderRegisterPage();
 
     const actionGroup = document.querySelector('.auth-header-actions-new');
     const languageSwitcher = screen.getByRole('combobox', { name: 'Language' });
@@ -208,11 +210,7 @@ describe('RegisterProcurexPage', () => {
   });
 
   it('blocks registration submit until the security check is complete', async () => {
-    render(
-      <MemoryRouter>
-        <RegisterProcurexPage />
-      </MemoryRouter>
-    );
+    renderRegisterPage();
 
     fireEvent.change(document.querySelector<HTMLInputElement>('input[type="email"]')!, { target: { value: 'secure@example.test' } });
     fireEvent.change(document.querySelector<HTMLInputElement>('input[type="tel"]')!, { target: { value: '+255700000004' } });
@@ -225,11 +223,7 @@ describe('RegisterProcurexPage', () => {
   it('shows a delivery unavailable alert when SMS cannot be sent', async () => {
     mockedAuthApi.startRegistration.mockRejectedValueOnce(apiError(502, 'Could not send verification SMS. Please try again later.'));
 
-    render(
-      <MemoryRouter>
-        <RegisterProcurexPage />
-      </MemoryRouter>
-    );
+    renderRegisterPage();
 
     fireEvent.change(document.querySelector<HTMLInputElement>('input[type="email"]')!, { target: { value: 'delivery@example.test' } });
     fireEvent.change(document.querySelector<HTMLInputElement>('input[type="tel"]')!, { target: { value: '+255700000004' } });
@@ -243,11 +237,7 @@ describe('RegisterProcurexPage', () => {
     mockedAuthApi.startRegistration.mockResolvedValueOnce({ user: {}, challengeId: 'otp-challenge', expiresAt: '2026-06-06T00:00:00.000Z' } as never);
     mockedAuthApi.verifyOtp.mockRejectedValueOnce(apiError(400, 'OTP code is incorrect.'));
 
-    render(
-      <MemoryRouter>
-        <RegisterProcurexPage />
-      </MemoryRouter>
-    );
+    renderRegisterPage();
 
     fireEvent.change(document.querySelector<HTMLInputElement>('input[type="email"]')!, { target: { value: 'otp@example.test' } });
     fireEvent.change(document.querySelector<HTMLInputElement>('input[type="tel"]')!, { target: { value: '+255700000004' } });
