@@ -4,10 +4,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '@/features/auth/api';
 import { useCurrentLegalVersions } from '@/features/public/hooks';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
-import { TanzaniaLocationSelector } from '@/shared/components/TanzaniaLocationSelector';
 import { useBodyPageMetadata } from '@/shared/hooks/useBodyPageMetadata';
-import { isValidTanzaniaLocation, type TanzaniaLocationSelection } from '@procurex/shared';
-import { AuthAlert, authAlert, authAlertFromError, type AuthAlertMessage } from './AuthAlert';
+import { AuthAlert, authAlert, authAlertFromError, authAlertText, type AuthAlertMessage } from './AuthAlert';
 import { TurnstileWidget } from './TurnstileWidget';
 
 type RegisterStep = 1 | 2 | 3 | 4 | 5;
@@ -43,6 +41,16 @@ function formatCountdown(seconds: number) {
   return minutes > 0 ? `${minutes}:${String(remainingSeconds).padStart(2, '0')}` : `${remainingSeconds}s`;
 }
 
+const temporaryCodeAlertMs = 30_000;
+
+function temporaryPhoneCodeAlert(code?: string) {
+  return code ? authAlertText(`Temporary phone verification code: ${code}`, 'info', temporaryCodeAlertMs) : null;
+}
+
+function temporaryEmailCodeAlert(code?: string) {
+  return code ? authAlertText(`Temporary email activation code: ${code}`, 'info', temporaryCodeAlertMs) : null;
+}
+
 export function RegisterProcurexPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -51,7 +59,6 @@ export function RegisterProcurexPage() {
   const [email, setEmail] = useState('');
   const [phoneCountry, setPhoneCountry] = useState('+255');
   const [phone, setPhone] = useState('');
-  const [location, setLocation] = useState<Partial<TanzaniaLocationSelection>>({});
   const [otp, setOtp] = useState('');
   const [otpChallengeId, setOtpChallengeId] = useState('');
   const [activationChallengeId, setActivationChallengeId] = useState('');
@@ -155,13 +162,13 @@ export function RegisterProcurexPage() {
     setLoading(true);
     setStatus(null);
     try {
-      const selectedLocation = isValidTanzaniaLocation(location) ? location : undefined;
-      const result = await authApi.startRegistration({ email, phone: normalizedPhone(), turnstileToken, ...(selectedLocation ? { location: selectedLocation } : {}) });
+      const result = await authApi.startRegistration({ email, phone: normalizedPhone(), turnstileToken });
       setOtpChallengeId(result.challengeId);
       setChallengeExpiresAt(result.expiresAt);
       setResendAvailableAt(result.resendAvailableAt ?? '');
       setOtp('');
       setStep(2);
+      setStatus(temporaryPhoneCodeAlert(result.devCode));
     } catch (error) {
       setStatus(authAlertFromError(error, 'registration'));
     } finally {
@@ -181,6 +188,7 @@ export function RegisterProcurexPage() {
       setResendAvailableAt(result.resendAvailableAt ?? '');
       setActivationCode('');
       setStep(3);
+      setStatus(temporaryEmailCodeAlert(result.devCode));
     } catch (error) {
       setStatus(authAlertFromError(error, 'otp'));
     } finally {
@@ -199,7 +207,7 @@ export function RegisterProcurexPage() {
       setChallengeExpiresAt(result.expiresAt);
       setResendAvailableAt(result.resendAvailableAt ?? '');
       setOtp('');
-      setStatus(authAlert('auth.register.messages.otpResent', 'success'));
+      setStatus(temporaryPhoneCodeAlert(result.devCode) ?? authAlert('auth.register.messages.otpResent', 'success'));
     } catch (error) {
       setStatus(authAlertFromError(error, 'resend-otp'));
     } finally {
@@ -233,7 +241,7 @@ export function RegisterProcurexPage() {
       setActivationExpiresAt(result.expiresAt);
       setResendAvailableAt(result.resendAvailableAt ?? '');
       setActivationCode('');
-      setStatus(authAlert('auth.register.messages.activationResent', 'success'));
+      setStatus(temporaryEmailCodeAlert(result.devCode) ?? authAlert('auth.register.messages.activationResent', 'success'));
     } catch (error) {
       setStatus(authAlertFromError(error, 'resend-activation'));
     } finally {
@@ -333,11 +341,6 @@ export function RegisterProcurexPage() {
                       <input id="register-phone" className="form-input-new" type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder={t('auth.register.account.phonePlaceholder')} required />
                     </div>
                     <span className="form-hint-new">{t('auth.register.account.phoneHint')}</span>
-                  </div>
-                  <div className="form-group-new">
-                    <span className="form-label-new">Location in Tanzania</span>
-                    <TanzaniaLocationSelector idPrefix="register-location" value={location} onChange={setLocation} />
-                    <span className="form-hint-new">Optional during registration. You will confirm a complete location during verification.</span>
                   </div>
                   <TurnstileWidget action="registration_start" resetKey={turnstileResetKey} onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
                   <button className="btn-continue-new" type="submit" disabled={loading || !turnstileToken}>

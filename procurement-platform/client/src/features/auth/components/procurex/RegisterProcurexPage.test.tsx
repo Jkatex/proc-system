@@ -89,8 +89,8 @@ describe('RegisterProcurexPage', () => {
   });
 
   it('links to legal pages and sends accepted legal version IDs when creating the account', async () => {
-    mockedAuthApi.startRegistration.mockResolvedValueOnce({ user: {}, challengeId: 'otp-challenge', expiresAt: '2026-06-06T00:00:00.000Z' } as never);
-    mockedAuthApi.verifyOtp.mockResolvedValueOnce({ activationChallengeId: 'activation-challenge', expiresAt: '2026-06-06T00:00:00.000Z' });
+    mockedAuthApi.startRegistration.mockResolvedValueOnce({ user: {}, challengeId: 'otp-challenge', expiresAt: '2026-06-06T00:00:00.000Z', devCode: '123456' } as never);
+    mockedAuthApi.verifyOtp.mockResolvedValueOnce({ activationChallengeId: 'activation-challenge', expiresAt: '2026-06-06T00:00:00.000Z', devCode: 'email-dev-code' });
     mockedAuthApi.activateEmail.mockResolvedValueOnce({ user: {} } as never);
     mockedAuthApi.setPassword.mockResolvedValueOnce({ user: {} } as never);
 
@@ -106,6 +106,7 @@ describe('RegisterProcurexPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
     await screen.findByRole('heading', { name: 'Verify Your Number' });
+    expect(screen.getByText('Temporary phone verification code: 123456')).toBeInTheDocument();
     expect(document.querySelector<HTMLInputElement>('.otp-input-new')!).toHaveAttribute('autocomplete', 'one-time-code');
     expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument();
     expect(mockedAuthApi.startRegistration).toHaveBeenCalledWith({ email: 'legal@example.test', phone: '+255700000004', turnstileToken: 'turnstile-token' });
@@ -115,6 +116,7 @@ describe('RegisterProcurexPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Verify' }));
 
     await screen.findByRole('heading', { name: 'Activate Your Email' });
+    expect(screen.getByText('Temporary email activation code: email-dev-code')).toBeInTheDocument();
     expect(screen.getByLabelText('Activation Code *')).toHaveAttribute('autocomplete', 'one-time-code');
     fillVisibleInput('text', '87654321');
     fireEvent.click(screen.getByRole('button', { name: 'Continue to Password Setup' }));
@@ -155,7 +157,7 @@ describe('RegisterProcurexPage', () => {
     expect(screen.getByRole('heading', { name: 'Join Us' })).toBeInTheDocument();
   });
 
-  it('sends an optional Tanzania location and resets child selections when region changes', async () => {
+  it('does not collect Tanzania location during registration', async () => {
     mockedAuthApi.startRegistration.mockResolvedValueOnce({ user: {}, challengeId: 'otp-challenge', expiresAt: '2026-06-06T00:00:00.000Z' } as never);
 
     render(
@@ -164,17 +166,12 @@ describe('RegisterProcurexPage', () => {
       </MemoryRouter>
     );
 
-    fireEvent.change(screen.getByLabelText('Region'), { target: { value: 'Dar es Salaam' } });
-    fireEvent.change(screen.getByLabelText('District'), { target: { value: 'Ilala' } });
-    fireEvent.change(screen.getByLabelText('Ward/shehia'), { target: { value: 'Kariakoo' } });
+    expect(screen.queryByText('Location in Tanzania')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Region')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('District')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Ward/shehia')).not.toBeInTheDocument();
+    expect(screen.queryByText('Optional during registration. You will confirm a complete location during verification.')).not.toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Region'), { target: { value: 'Dodoma' } });
-    expect(screen.getByLabelText('District')).toHaveValue('');
-    expect(screen.getByLabelText('Ward/shehia')).toHaveValue('');
-
-    fireEvent.change(screen.getByLabelText('Region'), { target: { value: 'Dar es Salaam' } });
-    fireEvent.change(screen.getByLabelText('District'), { target: { value: 'Ilala' } });
-    fireEvent.change(screen.getByLabelText('Ward/shehia'), { target: { value: 'Kariakoo' } });
     fireEvent.change(document.querySelector<HTMLInputElement>('input[type="email"]')!, { target: { value: 'located@example.test' } });
     fireEvent.change(document.querySelector<HTMLInputElement>('input[type="tel"]')!, { target: { value: '+255700000004' } });
     fireEvent.click(screen.getByRole('button', { name: 'Complete security check' }));
@@ -184,8 +181,7 @@ describe('RegisterProcurexPage', () => {
       expect(mockedAuthApi.startRegistration).toHaveBeenCalledWith({
         email: 'located@example.test',
         phone: '+255700000004',
-        turnstileToken: 'turnstile-token',
-        location: { region: 'Dar es Salaam', district: 'Ilala', ward: 'Kariakoo' }
+        turnstileToken: 'turnstile-token'
       })
     );
   });
