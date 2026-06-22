@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppSelector } from '@/app/store';
 import { demoUsers } from '@/shared/data/fixtures';
+import { ProcurexWorkspaceChrome } from '@/shared/components/procurex/ProcurexWorkspaceChrome';
 import { useMarketplaceData } from '../../hooks';
 import type { MarketplaceTenderRow } from '../../types';
 import {
@@ -75,89 +76,91 @@ export function MarketplaceProcurexPage() {
   }
 
   return (
-    <div className="procurement-app-page" data-marketplace-root>
-      <main className="procurement-market-shell">
-        <MarketplaceHero organization={organization} canCreateTender={canCreateTender} />
+    <ProcurexWorkspaceChrome title="Procurement">
+      <div className="procurement-app-page" data-marketplace-root>
+        <main className="procurement-market-shell">
+          <MarketplaceHero organization={organization} canCreateTender={canCreateTender} />
 
-        {isLoading ? <div className="scope-empty">Loading marketplace...</div> : null}
-        {isError ? <div className="scope-empty">Marketplace data could not be loaded. Try refreshing the page.</div> : null}
+          {isLoading ? <div className="scope-empty">Loading marketplace...</div> : null}
+          {isError ? <div className="scope-empty">Marketplace data could not be loaded. Try refreshing the page.</div> : null}
 
-        {data ? (
-          <>
-            <MarketplaceSummary tenders={data.tenders} myTenders={data.myTenders} myBids={data.myBids} />
+          {data ? (
+            <>
+              <MarketplaceSummary tenders={data.tenders} myTenders={data.myTenders} myBids={data.myBids} />
 
-            <section className="supplier-detail-tabbed-view marketplace-tabbed-view">
-              <MarketplaceTabs activeTab={activeTab} onTabChange={selectTab} />
-              <div className="supplier-detail-tab-panels marketplace-tab-panels">
-                {activeTab === 'marketplace' ? (
-                  <section className="supplier-detail-tab-panel" role="tabpanel" aria-label="Marketplace tenders">
-                    <MarketplaceFilters
-                      query={filters.query}
-                      type={filters.type}
-                      budget={filters.budget}
-                      status={filters.status}
-                      sort={filters.sort}
-                      onQueryChange={(value) => updateFilter('query', value)}
-                      onTypeChange={(value) => updateFilter('type', value)}
-                      onBudgetChange={(value) => updateFilter('budget', value)}
-                      onStatusChange={(value) => updateFilter('status', value)}
-                      onSortChange={(value) => updateFilter('sort', value)}
-                    />
-                    <MarketplaceCategoryGrid tenders={data.tenders} onSelectType={(value) => updateFilter('type', value)} />
-                    <TenderListPanel tenders={visibleTenders} savedTenderIds={savedTenderIds} onToggleSaved={toggleSaved} />
-                  </section>
-                ) : null}
+              <section className="supplier-detail-tabbed-view marketplace-tabbed-view">
+                <MarketplaceTabs activeTab={activeTab} onTabChange={selectTab} />
+                <div className="supplier-detail-tab-panels marketplace-tab-panels">
+                  {activeTab === 'marketplace' ? (
+                    <section className="supplier-detail-tab-panel" role="tabpanel" aria-label="Marketplace tenders">
+                      <MarketplaceFilters
+                        query={filters.query}
+                        type={filters.type}
+                        budget={filters.budget}
+                        status={filters.status}
+                        sort={filters.sort}
+                        onQueryChange={(value) => updateFilter('query', value)}
+                        onTypeChange={(value) => updateFilter('type', value)}
+                        onBudgetChange={(value) => updateFilter('budget', value)}
+                        onStatusChange={(value) => updateFilter('status', value)}
+                        onSortChange={(value) => updateFilter('sort', value)}
+                      />
+                      <MarketplaceCategoryGrid tenders={data.tenders} onSelectType={(value) => updateFilter('type', value)} />
+                      <TenderListPanel tenders={visibleTenders} savedTenderIds={savedTenderIds} onToggleSaved={toggleSaved} />
+                    </section>
+                  ) : null}
 
-                {activeTab === 'my-tenders' ? (
-                  <section className="supplier-detail-tab-panel" role="tabpanel" aria-label="My tenders">
-                    <MarketplaceSection
-                      title="Draft Tenders"
-                      kicker="Tender creation"
-                      rows={data.myTenders.filter((row) => row.section === 'draft')}
-                      empty="No tender creation drafts for this account."
-                      renderRow={(row) => <MyTenderRowCard key={row.id} row={row} />}
-                    />
-                    <MarketplaceSection
-                      title="Completed / Posted Tenders"
-                      kicker="Published by you"
-                      rows={data.myTenders.filter((row) => row.section === 'posted')}
-                      empty="No posted tenders for this account."
-                      renderRow={(row) => <MyTenderRowCard key={row.id} row={row} />}
-                    />
-                    <MarketplaceSection
-                      title="Closed / Completed Tenders"
-                      kicker="Tender history"
-                      rows={data.myTenders.filter((row) => row.section === 'completed')}
-                      empty="No closed or completed tenders for this account."
-                      renderRow={(row) => <MyTenderRowCard key={row.id} row={row} />}
-                    />
-                  </section>
-                ) : null}
+                  {activeTab === 'my-tenders' ? (
+                    <section className="supplier-detail-tab-panel" role="tabpanel" aria-label="My tenders">
+                      <MarketplaceSection
+                        title="Draft Tenders"
+                        kicker="Tender creation"
+                        rows={data.myTenders.filter((row) => row.section === 'draft')}
+                        empty="No tender creation drafts for this account."
+                        renderRow={(row) => <MyTenderRowCard key={row.id} row={row} />}
+                      />
+                      <MarketplaceSection
+                        title="Completed / Posted Tenders"
+                        kicker="Published by you"
+                        rows={data.myTenders.filter((row) => row.section === 'posted')}
+                        empty="No posted tenders for this account."
+                        renderRow={(row) => <MyTenderRowCard key={row.id} row={row} />}
+                      />
+                      <MarketplaceSection
+                        title="Closed / Completed Tenders"
+                        kicker="Tender history"
+                        rows={data.myTenders.filter((row) => row.section === 'completed')}
+                        empty="No closed or completed tenders for this account."
+                        renderRow={(row) => <MyTenderRowCard key={row.id} row={row} />}
+                      />
+                    </section>
+                  ) : null}
 
-                {activeTab === 'my-bids' ? (
-                  <section className="supplier-detail-tab-panel" role="tabpanel" aria-label="My bids">
-                    <MarketplaceSection
-                      title="Draft Bid Submissions"
-                      kicker="Bid preparation"
-                      rows={data.myBids.filter((row) => row.section === 'draft')}
-                      empty="No draft bid submissions for this account."
-                      renderRow={(row) => <MyBidRowCard key={row.id} row={row} />}
-                    />
-                    <MarketplaceSection
-                      title="Submitted / Completed Bid Submissions"
-                      kicker="Bid records"
-                      rows={data.myBids.filter((row) => row.section === 'submitted')}
-                      empty="No submitted bid records for this account."
-                      renderRow={(row) => <MyBidRowCard key={row.id} row={row} />}
-                    />
-                  </section>
-                ) : null}
-              </div>
-            </section>
-          </>
-        ) : null}
-      </main>
-    </div>
+                  {activeTab === 'my-bids' ? (
+                    <section className="supplier-detail-tab-panel" role="tabpanel" aria-label="My bids">
+                      <MarketplaceSection
+                        title="Draft Bid Submissions"
+                        kicker="Bid preparation"
+                        rows={data.myBids.filter((row) => row.section === 'draft')}
+                        empty="No draft bid submissions for this account."
+                        renderRow={(row) => <MyBidRowCard key={row.id} row={row} />}
+                      />
+                      <MarketplaceSection
+                        title="Submitted / Completed Bid Submissions"
+                        kicker="Bid records"
+                        rows={data.myBids.filter((row) => row.section === 'submitted')}
+                        empty="No submitted bid records for this account."
+                        renderRow={(row) => <MyBidRowCard key={row.id} row={row} />}
+                      />
+                    </section>
+                  ) : null}
+                </div>
+              </section>
+            </>
+          ) : null}
+        </main>
+      </div>
+    </ProcurexWorkspaceChrome>
   );
 }
 

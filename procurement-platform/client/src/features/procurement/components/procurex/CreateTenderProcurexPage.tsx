@@ -5,6 +5,7 @@ import { useNotifications } from '@/features/notifications/hooks';
 import { createEmptyConsultancyRequirements, createEmptyServiceRequirements, createEmptyTenderDraft, createEmptyWorksRequirements, createTenderSetup, getSuggestedCriteria } from '../../createTenderConfig';
 import { publishSimulatedTender, saveCreateTenderDraft, submitCreateTenderForEvaluation } from '../../slice';
 import { NotificationCard } from '@/shared/components/NotificationCard';
+import { ProcurexWorkspaceChrome } from '@/shared/components/procurex/ProcurexWorkspaceChrome';
 import type {
   CreateTenderConfirmationId,
   CreateTenderConsultancyAssignmentActivityRow,
@@ -42,12 +43,6 @@ import type {
 } from '../../types';
 
 const steps = ['Basic Information', 'Procurement Planning', 'Tender Requirements', 'Evaluation Criteria and Weights', 'Review Tender', 'Tender Review and Publication'];
-const confirmationLabels: Record<CreateTenderConfirmationId, string> = {
-  accuracy: 'Tender details and dates are accurate.',
-  compliance: 'The procurement method and requirements comply with internal rules.',
-  evaluation: 'Evaluation criteria and weights are complete and balanced.',
-  publication: 'This tender can be submitted for system evaluation and publication.'
-};
 
 const goodsUnitOptions = ['Pcs', 'Unit', 'Set', 'Lot', 'Kg', 'Litre', 'Meter', 'Sqm', 'Day', 'Month'];
 const evaluationTypes = [
@@ -546,38 +541,39 @@ export function CreateTenderProcurexPage() {
   }
 
   return (
-    <div className="procurement-app-page tender-wizard-page" data-create-tender-root>
-      <section className="journey-hero compact">
-        <div>
-          <span className="badge badge-info">Procurement design</span>
-          <h1>Create Tender Wizard</h1>
-          <p>Build a tender package that matches the procurement nature, then publish it directly to the marketplace.</p>
-        </div>
-        <div className="hero-action-stack">
-          <button className="btn btn-secondary save-draft-button" type="button" onClick={saveDraft} disabled={!canSaveDraft}>
-            Save Draft
-          </button>
-        </div>
-      </section>
+    <ProcurexWorkspaceChrome title="Create Tender">
+      <div className="procurement-app-page tender-wizard-page" data-create-tender-root>
+        <section className="journey-hero compact">
+          <div>
+            <span className="badge badge-info">Procurement design</span>
+            <h1>Create Tender Wizard</h1>
+            <p>Build a tender package that matches the procurement nature, then publish it directly to the marketplace.</p>
+          </div>
+          <div className="hero-action-stack">
+            <button className="btn btn-secondary save-draft-button" type="button" onClick={saveDraft} disabled={!canSaveDraft}>
+              Save Draft
+            </button>
+          </div>
+        </section>
 
-      <main className="wizard-shell" data-create-tender-wizard>
-        <nav className="wizard-step-progress" aria-label="Tender progress">
-          {steps.map((step, index) => {
-            const stateClass = index === activeStep ? 'active' : index < activeStep ? 'completed' : '';
-            return (
-              <button
-                key={step}
-                type="button"
-                className={`wizard-progress-step ${stateClass}`}
-                onClick={() => goToStep(index)}
-                aria-current={index === activeStep ? 'step' : undefined}
-              >
-                <strong>{String(index + 1).padStart(2, '0')}</strong>
-                <span>{step}</span>
-              </button>
-            );
-          })}
-        </nav>
+        <main className="wizard-shell" data-create-tender-wizard>
+          <nav className="wizard-step-progress" aria-label="Tender progress">
+            {steps.map((step, index) => {
+              const stateClass = index === activeStep ? 'active' : index < activeStep ? 'completed' : '';
+              return (
+                <button
+                  key={step}
+                  type="button"
+                  className={`wizard-progress-step ${stateClass}`}
+                  onClick={() => goToStep(index)}
+                  aria-current={index === activeStep ? 'step' : undefined}
+                >
+                  <strong>{String(index + 1).padStart(2, '0')}</strong>
+                  <span>{step}</span>
+                </button>
+              );
+            })}
+          </nav>
 
         <div className="wizard-workspace">
           <section className={`journey-panel active ${activeStep === 3 ? 'evaluation-criteria-panel' : ''}`}>
@@ -673,8 +669,9 @@ export function CreateTenderProcurexPage() {
             </footer>
           </section>
         </div>
-      </main>
-    </div>
+        </main>
+      </div>
+    </ProcurexWorkspaceChrome>
   );
 }
 
@@ -4884,23 +4881,6 @@ function formatReviewLabel(value: string) {
     .replace(/[_-]+/g, ' ')
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
-function SummaryList({ title, items }: { title: string; items: string[] }) {
-  return (
-    <section className="planning-section wizard-section summary-list-section">
-      <h3>{title}</h3>
-      {items.length ? (
-        <ul className="wizard-compact-list">
-          {items.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      ) : (
-        <p>Not provided yet.</p>
-      )}
-    </section>
-  );
 }
 
 function normalizeDraftForType(draft: CreateTenderDraft, typeId: CreateTenderProcurementTypeId): CreateTenderDraft {

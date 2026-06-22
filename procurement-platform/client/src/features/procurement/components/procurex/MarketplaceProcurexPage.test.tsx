@@ -2,12 +2,17 @@ import { ThemeProvider } from '@mui/material';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import '@/i18n';
 import { store } from '@/app/store';
 import { procurexTheme } from '@/styles/mui-theme';
 import { MarketplaceProcurexPage } from './MarketplaceProcurexPage';
+
+function LocationProbe() {
+  const location = useLocation();
+  return <span data-testid="location">{location.pathname}</span>;
+}
 
 function renderMarketplace(route = '/procurement/marketplace') {
   return render(
@@ -15,6 +20,7 @@ function renderMarketplace(route = '/procurement/marketplace') {
       <ThemeProvider theme={procurexTheme}>
         <MemoryRouter initialEntries={[route]}>
           <MarketplaceProcurexPage />
+          <LocationProbe />
         </MemoryRouter>
       </ThemeProvider>
     </Provider>
@@ -22,6 +28,25 @@ function renderMarketplace(route = '/procurement/marketplace') {
 }
 
 describe('MarketplaceProcurexPage', () => {
+  it('opens the top-right ProcureX apps drawer and navigates to an app', async () => {
+    const user = userEvent.setup();
+    renderMarketplace();
+
+    const appsButton = screen.getByRole('button', { name: 'Open apps' });
+    await user.click(appsButton);
+
+    const drawer = screen.getByText('ProcureX Apps').closest<HTMLElement>('[data-app-menu]');
+    expect(appsButton).toHaveAttribute('aria-expanded', 'true');
+    expect(drawer).toHaveClass('open');
+    expect(within(drawer!).getByText('Procurement Planning')).toBeInTheDocument();
+
+    await user.click(within(drawer!).getByRole('button', { name: /Communication Center Messages, clarifications, alerts/i }));
+
+    expect(screen.getByTestId('location')).toHaveTextContent('/communication');
+    expect(appsButton).toHaveAttribute('aria-expanded', 'false');
+    expect(drawer).not.toHaveClass('open');
+  });
+
   it('renders open tender browse data from fixtures', async () => {
     renderMarketplace();
 
