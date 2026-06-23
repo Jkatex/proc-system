@@ -420,14 +420,14 @@ describe('CreateTenderProcurexPage', () => {
     await user.click(screen.getByRole('button', { name: 'Add Pricing Section' }));
     fireEvent.change(screen.getByLabelText('Section 1'), { target: { value: 'Preliminaries' } });
     fireEvent.change(screen.getByLabelText('Description 1'), { target: { value: 'Mobilization and site setup' } });
-    fireEvent.change(screen.getByLabelText('Amount 1'), { target: { value: '1000000' } });
+    expect(screen.queryByLabelText('Amount 1')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Add BOQ Line' }));
     fireEvent.change(screen.getByLabelText('BOQ description 1'), { target: { value: 'Concrete works' } });
     await user.selectOptions(screen.getByLabelText('BOQ unit 1'), 'Sqm');
     fireEvent.change(screen.getByLabelText('BOQ quantity 1'), { target: { value: '10' } });
-    fireEvent.change(screen.getByLabelText('BOQ rate 1'), { target: { value: '2500' } });
-    expect(screen.getByText('25,000')).toBeInTheDocument();
+    expect(screen.queryByLabelText('BOQ rate 1')).not.toBeInTheDocument();
+    expect(screen.queryByText('25,000')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Add BOQ Line' }));
     await user.click(screen.getByRole('button', { name: 'Remove BOQ line 2' }));
     expect(screen.queryByLabelText('BOQ description 2')).not.toBeInTheDocument();
@@ -499,7 +499,7 @@ describe('CreateTenderProcurexPage', () => {
     fireEvent.change(screen.getByLabelText('BOQ description 1'), { target: { value: 'Drain channel' } });
     await user.selectOptions(screen.getByLabelText('BOQ unit 1'), 'Meter');
     fireEvent.change(screen.getByLabelText('BOQ quantity 1'), { target: { value: '20' } });
-    fireEvent.change(screen.getByLabelText('BOQ rate 1'), { target: { value: '15000' } });
+    expect(screen.queryByLabelText('BOQ rate 1')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Add Financial Requirement' }));
     await user.selectOptions(screen.getByLabelText('Requirement type 1'), 'Access to Credit');
     fireEvent.change(screen.getByLabelText('Minimum value 1'), { target: { value: '250000000' } });
@@ -517,6 +517,7 @@ describe('CreateTenderProcurexPage', () => {
     expect(screen.getByText('Drainage works')).toBeInTheDocument();
     expect(screen.getByText('Material specifications - materials.pdf')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Bill of Quantities' })).toBeInTheDocument();
+    expect(screen.getByText('Unpriced schedule')).toBeInTheDocument();
     expect(screen.getByText('Drain channel')).toBeInTheDocument();
     expect(screen.getByText(/Access to Credit - minimum 250000000/)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Regulatory license requirements' })).toBeInTheDocument();
@@ -537,8 +538,8 @@ describe('CreateTenderProcurexPage', () => {
     expect(screen.getByRole('columnheader', { name: /description/i })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: /^unit$/i })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: /qty/i })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: /unit price/i })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: /total/i })).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: /unit price/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: /^total$/i })).not.toBeInTheDocument();
     expect(screen.getByText('Import Excel')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Download Excel Template' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Sample Requirements' })).toBeInTheDocument();
@@ -552,9 +553,9 @@ describe('CreateTenderProcurexPage', () => {
     await user.type(screen.getByLabelText('Item 1 description'), 'Solar panel kit');
     await user.selectOptions(screen.getByLabelText('Item 1 unit'), 'Pcs');
     await user.type(screen.getByLabelText('Item 1 quantity'), '2');
-    await user.type(screen.getByLabelText('Item 1 unit price'), '12500');
+    expect(screen.queryByLabelText('Item 1 unit price')).not.toBeInTheDocument();
 
-    expect(screen.getByText('25,000')).toBeInTheDocument();
+    expect(screen.queryByText('25,000')).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Solar panel kit' })).toBeInTheDocument();
     expect(screen.getByText('No specifications added for this item yet.')).toBeInTheDocument();
   });
@@ -712,6 +713,7 @@ describe('CreateTenderProcurexPage', () => {
     expect(screen.getByRole('heading', { name: 'Other eligibility' })).toBeInTheDocument();
     expect(screen.getByText(/Tax clearance certificate/)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Deliverables and attachments' })).toBeInTheDocument();
+    expect(screen.getByText('Unpriced schedule')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Evaluation criteria and timeline' })).toBeInTheDocument();
     expect(screen.getByText('Technical Compliance')).toBeInTheDocument();
     expect(screen.getByText('Conformity to technical specifications')).toBeInTheDocument();
@@ -1128,7 +1130,7 @@ describe('CreateTenderProcurexPage', () => {
     await fillBasicStep(user, 'Session Saved Generator Tender');
     await user.click(screen.getByRole('button', { name: 'Save Draft' }));
 
-    expect(screen.getByText('Draft saved for this session.')).toBeInTheDocument();
+    expect(store.getState().notifications.items.some((notification) => notification.message === 'Your tender draft was saved for this session.')).toBe(true);
     unmount();
 
     render(
@@ -1164,7 +1166,7 @@ describe('CreateTenderProcurexPage', () => {
     expect(screen.getByRole('button', { name: 'Submit Tender for Evaluation' })).toBeDisabled();
 
     await user.click(screen.getByRole('button', { name: 'Download Tender PDF' }));
-    expect(screen.getByText('Tender PDF generator is not available in this frontend yet.')).toBeInTheDocument();
+    expect(store.getState().notifications.items.some((notification) => notification.message === 'Tender PDF generator is not available in this frontend yet.')).toBe(true);
 
     for (const checkbox of screen.getAllByRole('checkbox')) {
       await user.click(checkbox);

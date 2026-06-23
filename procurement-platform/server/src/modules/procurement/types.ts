@@ -1,3 +1,5 @@
+import type { TenderType } from '@prisma/client';
+
 export const moduleDefinition = {
   key: 'procurement',
   name: 'Procurement',
@@ -160,20 +162,19 @@ export type ProcurementPlanningListDto = {
 
 export type MarketplaceTenderRow = {
   id: string;
-  reference: string;
   title: string;
   organization: string;
+  ownerOrganization: string;
   type: string;
-  status: string;
-  budget: number;
-  currency: string;
-  closingDate: string;
-  location: string;
+  category: string;
   description: string;
+  location: string;
+  budget: number;
+  status: string;
+  reference: string;
+  publishedAt: string;
+  closingDate: string;
   createdByCurrentUser: boolean;
-  categories: string[];
-  hasDraftBid: boolean;
-  hasSubmittedBid: boolean;
 };
 
 export type MyTenderRow = {
@@ -190,11 +191,11 @@ export type MyTenderRow = {
 
 export type MyBidRow = {
   id: string;
+  tenderId: string;
   title: string;
   section: 'draft' | 'submitted';
   status: string;
   tender: MarketplaceTenderRow;
-  tenderReference: string;
   amount?: string;
   receiptHash?: string;
   lastActivity: string;
@@ -202,10 +203,56 @@ export type MyBidRow = {
   nav: string;
 };
 
+export const marketplaceSortValues = ['deadline', 'newest', 'budget-desc', 'budget-asc'] as const;
+export const marketplaceBudgetBandValues = ['under-hundred-million', 'hundred-million-plus', 'billion-plus'] as const;
+
+export type MarketplaceSort = (typeof marketplaceSortValues)[number];
+export type MarketplaceBudgetBand = (typeof marketplaceBudgetBandValues)[number];
+
+export type MarketplaceQuery = {
+  search: string;
+  type: string;
+  budgetBand: '' | MarketplaceBudgetBand;
+  status: string;
+  sort: MarketplaceSort;
+  page: number;
+  limit: number;
+};
+
+export type CreateTenderInput = {
+  title: string;
+  type: TenderType;
+  description: string;
+  budget: number;
+  currency: string;
+  location: string;
+  closingDate: string;
+  categories: string[];
+  requirements: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+  reference?: string;
+};
+
+export type ProcurementMarketplaceSummary = {
+  total: number;
+  matching: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  openCount: number;
+  myTenderCount: number;
+  myBidCount: number;
+  totalBudget: number;
+  byStatus: PlanningBreakdownDto[];
+  byType: PlanningBreakdownDto[];
+  byCategory: PlanningBreakdownDto[];
+};
+
 export type ProcurementMarketplacePayload = {
   tenders: MarketplaceTenderRow[];
   myTenders: MyTenderRow[];
   myBids: MyBidRow[];
+  summary: ProcurementMarketplaceSummary;
 };
 
 export type TenderDetailDto = MarketplaceTenderRow & {
@@ -213,7 +260,7 @@ export type TenderDetailDto = MarketplaceTenderRow & {
   ownerUserId: string | null;
   method: string;
   visibility: string;
-  publishedAt: string | null;
+  publishedAt: string;
   requirements: Record<string, unknown>;
   requirementRows: Array<{ id: string; section: string; payload: Record<string, unknown> }>;
   milestones: Array<{ id: string; name: string; dueDate: string | null; payload: Record<string, unknown> }>;

@@ -1,7 +1,9 @@
 import type { RequestHandler } from 'express';
 import { ModuleService } from './service.js';
 import {
+  createTenderBodySchema,
   moduleStatusQuerySchema,
+  marketplaceQuerySchema,
   patchPlanLineBodySchema,
   planLineBodySchema,
   planLineParamsSchema,
@@ -42,7 +44,19 @@ export class ModuleController {
 
   marketplace: RequestHandler = async (req, res, next) => {
     try {
-      res.json(await this.service.marketplace(bearerToken(req)));
+      const query = marketplaceQuerySchema.safeParse(req.query);
+      if (!query.success) throw requestError('Invalid marketplace query parameters.');
+      res.json(await this.service.marketplace(bearerToken(req), query.data));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  createTender: RequestHandler = async (req, res, next) => {
+    try {
+      const body = createTenderBodySchema.safeParse(req.body);
+      if (!body.success) throw requestError('Invalid tender creation payload.');
+      res.status(201).json(await this.service.createTender(bearerToken(req), body.data));
     } catch (error) {
       next(error);
     }
@@ -55,6 +69,16 @@ export class ModuleController {
       const tender = await this.service.getTenderDetail(params.data.tenderId, bearerToken(req));
       if (!tender) throw requestError('Tender was not found.', 404);
       res.json(tender);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  publishTender: RequestHandler = async (req, res, next) => {
+    try {
+      const params = tenderParamsSchema.safeParse(req.params);
+      if (!params.success) throw requestError('Invalid tender id.');
+      res.json(await this.service.publishTender(params.data.tenderId, bearerToken(req)));
     } catch (error) {
       next(error);
     }

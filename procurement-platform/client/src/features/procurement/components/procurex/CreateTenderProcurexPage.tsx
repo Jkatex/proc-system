@@ -158,15 +158,8 @@ function createRegulatoryLicenseRow(licenseName: string): CreateTenderRegulatory
   };
 }
 
-function getLineItemTotal(item: CreateTenderLineItem) {
-  const quantity = Number(item.quantity);
-  const unitPrice = Number(item.unitPrice);
-  if (!Number.isFinite(quantity) || !Number.isFinite(unitPrice) || !item.quantity || !item.unitPrice) return '';
-  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(quantity * unitPrice);
-}
-
 function downloadGoodsQuantityTemplate() {
-  const csv = ['Item,Description,Unit,Qty,Unit Price,Total', '1,,,,,'].join('\n');
+  const csv = ['Item,Description,Unit,Qty', '1,,,'].join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -218,8 +211,7 @@ function parseGoodsQuantityCsv(text: string): CreateTenderLineItem[] {
     id: `item-import-${Date.now()}-${index}`,
     description: row[1] || row[0] || '',
     unit: row[2] || '',
-    quantity: row[3] || '',
-    unitPrice: row[4] || ''
+    quantity: row[3] || ''
   }));
 }
 
@@ -249,13 +241,6 @@ function parseProductSpecificationCsv(text: string, items: CreateTenderLineItem[
     .filter(Boolean) as CreateTenderProductSpecificationRow[];
 }
 
-function getWorksBoqTotal(row: CreateTenderWorksBoqRow) {
-  const quantity = Number(row.quantity);
-  const rate = Number(row.rate);
-  if (!Number.isFinite(quantity) || !Number.isFinite(rate) || !row.quantity || !row.rate) return '';
-  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(quantity * rate);
-}
-
 function getServiceBoqTotal(row: CreateTenderServiceBoqRow) {
   const quantity = Number(row.quantity);
   const rate = Number(row.rate);
@@ -264,7 +249,7 @@ function getServiceBoqTotal(row: CreateTenderServiceBoqRow) {
 }
 
 function downloadWorksBoqTemplate() {
-  const csv = ['No.,Description,Unit,Quantity,Rate,Total amount', '1,,,,,'].join('\n');
+  const csv = ['No.,Description,Unit,Quantity', '1,,,'].join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -286,7 +271,7 @@ function parseWorksBoqCsv(text: string): CreateTenderWorksBoqRow[] {
     description: row[1] || row[0] || '',
     unit: row[2] || '',
     quantity: row[3] || '',
-    rate: row[4] || ''
+    rate: ''
   }));
 }
 
@@ -1393,7 +1378,7 @@ function RequirementsStep({
         <section className="planning-section wizard-section goods-requirements-section">
           <div>
             <h3>Quantity Schedule / BOQ</h3>
-            <span className="form-hint">Editable table with row numbering and calculated totals.</span>
+            <span className="form-hint">Define the items and quantities bidders must price in their submissions.</span>
           </div>
           <div className="form-label">Quantity lines</div>
           <div className="requirement-table-wrap goods-quantity-table-wrap">
@@ -1404,8 +1389,6 @@ function RequirementsStep({
                   <th>Description</th>
                   <th>Unit</th>
                   <th>Qty</th>
-                  <th>Unit Price</th>
-                  <th>Total</th>
                   <th aria-label="Actions"></th>
                 </tr>
               </thead>
@@ -1439,15 +1422,6 @@ function RequirementsStep({
                           onChange={(event) => onUpdateLineItem(item.id, { quantity: event.target.value })}
                         />
                       </td>
-                      <td>
-                        <input
-                          aria-label={`Item ${index + 1} unit price`}
-                          inputMode="decimal"
-                          value={item.unitPrice ?? ''}
-                          onChange={(event) => onUpdateLineItem(item.id, { unitPrice: event.target.value })}
-                        />
-                      </td>
-                      <td aria-label={`Item ${index + 1} total`}>{getLineItemTotal(item)}</td>
                       <td className="requirement-table-action-cell">
                         <button className="boq-row-action icon-delete-btn" type="button" aria-label={`Delete item ${index + 1}`} onClick={() => onRemoveLineItem(item.id)}>
                           x
@@ -1457,7 +1431,7 @@ function RequirementsStep({
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={7}>
+                    <td colSpan={5}>
                       <div className="scope-empty goods-table-empty">No items added yet.</div>
                     </td>
                   </tr>
@@ -3563,7 +3537,6 @@ function WorksRequirementsStep({
                     <tr>
                       <th>Section</th>
                       <th>Description</th>
-                      <th>Amount</th>
                       <th aria-label="Actions"></th>
                     </tr>
                   </thead>
@@ -3573,7 +3546,6 @@ function WorksRequirementsStep({
                         <tr key={row.id}>
                           <td><input className="form-input" value={row.section} onChange={(event) => updateLumpSumPricingRow(row.id, { section: event.target.value })} aria-label={`Section ${index + 1}`} /></td>
                           <td><textarea className="form-input" value={row.description} onChange={(event) => updateLumpSumPricingRow(row.id, { description: event.target.value })} aria-label={`Description ${index + 1}`} /></td>
-                          <td><input className="form-input" inputMode="decimal" value={row.amount} onChange={(event) => updateLumpSumPricingRow(row.id, { amount: event.target.value })} aria-label={`Amount ${index + 1}`} /></td>
                           <td className="requirement-table-action-cell">
                             <button className="boq-row-action icon-delete-btn" type="button" aria-label={`Remove pricing section ${index + 1}`} onClick={() => patchWorks({ lumpSumPricingRows: works.lumpSumPricingRows.filter((item) => item.id !== row.id) })}>x</button>
                           </td>
@@ -3581,7 +3553,7 @@ function WorksRequirementsStep({
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={4}><div className="scope-empty">No summary pricing sections added yet.</div></td>
+                        <td colSpan={3}><div className="scope-empty">No summary pricing sections added yet.</div></td>
                       </tr>
                     )}
                   </tbody>
@@ -3602,8 +3574,6 @@ function WorksRequirementsStep({
                     <th>Description</th>
                     <th>Unit</th>
                     <th>Quantity</th>
-                    <th>Rate</th>
-                    <th>Total amount</th>
                     <th aria-label="Actions"></th>
                   </tr>
                 </thead>
@@ -3620,8 +3590,6 @@ function WorksRequirementsStep({
                           </select>
                         </td>
                         <td><input className="form-input" inputMode="decimal" value={row.quantity} onChange={(event) => updateWorksBoqRow(row.id, { quantity: event.target.value })} aria-label={`BOQ quantity ${index + 1}`} /></td>
-                        <td><input className="form-input" inputMode="decimal" value={row.rate} onChange={(event) => updateWorksBoqRow(row.id, { rate: event.target.value })} aria-label={`BOQ rate ${index + 1}`} /></td>
-                        <td><span className="requirement-auto-value">{getWorksBoqTotal(row)}</span></td>
                         <td className="requirement-table-action-cell">
                           <button className="boq-row-action icon-delete-btn" type="button" aria-label={`Remove BOQ line ${index + 1}`} onClick={() => patchWorks({ boqRows: works.boqRows.filter((item) => item.id !== row.id) })}>x</button>
                         </td>
@@ -3629,7 +3597,7 @@ function WorksRequirementsStep({
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={7}><div className="scope-empty">No BOQ lines added yet.</div></td>
+                      <td colSpan={5}><div className="scope-empty">No BOQ lines added yet.</div></td>
                     </tr>
                   )}
                 </tbody>
@@ -4259,11 +4227,8 @@ function ReviewStep({
         { label: 'Expiry validation', value: row.expiryRequired ? 'Yes' : 'No' }
       ])
     : draft.selectedLicenses.map((license) => [{ label: 'License', value: license }]);
-  const commercialTotal = draft.commercialItems.reduce((sum, item) => sum + Number(item.quantity || 0) * Number(item.unitPrice || 0), 0);
   const serviceBoqTotal = services.serviceBoqRows.reduce((sum, row) => sum + Number(row.quantity || 0) * Number(row.rate || 0), 0);
-  const worksBoqTotal = works.boqRows.reduce((sum, row) => sum + Number(row.quantity || 0) * Number(row.rate || 0), 0);
-  const worksLumpSumTotal = works.lumpSumPricingRows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
-  const reviewCommercialTotal = selectedType.id === 'works' ? worksBoqTotal + worksLumpSumTotal : selectedType.id === 'services' ? serviceBoqTotal : commercialTotal;
+  const reviewCommercialBadge = selectedType.id === 'works' || selectedType.id === 'goods' ? 'Unpriced schedule' : formatReviewMoney(serviceBoqTotal, draft.currency);
 
   return (
     <div className="wizard-step-surface review-step-surface">
@@ -4368,9 +4333,9 @@ function ReviewStep({
           <div className="scope-list-heading">
             <div>
               <h3>{getReviewCommercialTitle(selectedType.id)}</h3>
-              <span className="form-hint">Commercial schedule and estimated amount.</span>
+              <span className="form-hint">{selectedType.id === 'works' || selectedType.id === 'goods' ? 'Commercial schedule bidders will price during submission.' : 'Commercial schedule and estimated amount.'}</span>
             </div>
-            <span className="badge badge-info">{formatReviewMoney(reviewCommercialTotal, draft.currency)}</span>
+            <span className="badge badge-info">{reviewCommercialBadge}</span>
           </div>
           {selectedType.id === 'works' ? (
             works.boqRows.length || works.lumpSumPricingRows.length ? (
@@ -4379,15 +4344,13 @@ function ReviewStep({
                   { label: 'Code', value: `LS-${index + 1}` },
                   { label: 'Requirement', value: row.section || 'Pricing section' },
                   { label: 'Qty / Duration', value: row.description },
-                  { label: 'Unit', value: 'Lump sum' },
-                  { label: 'Rate / Fee', value: row.amount }
+                  { label: 'Unit', value: 'Lump sum' }
                 ]),
                 ...works.boqRows.map((row, index) => [
                   { label: 'Code', value: String(index + 1) },
                   { label: 'Requirement', value: row.description || 'BOQ line' },
                   { label: 'Qty / Duration', value: row.quantity },
-                  { label: 'Unit', value: row.unit },
-                  { label: 'Rate / Fee', value: row.rate }
+                  { label: 'Unit', value: row.unit }
                 ])
               ])
             ) : (
@@ -4413,8 +4376,7 @@ function ReviewStep({
                 { label: 'Code', value: String(index + 1) },
                 { label: 'Requirement', value: item.description || 'Item' },
                 { label: 'Qty / Duration', value: item.quantity },
-                { label: 'Unit', value: item.unit },
-                { label: 'Rate / Fee', value: item.unitPrice || '' }
+                { label: 'Unit', value: item.unit }
               ])
             )
           ) : (

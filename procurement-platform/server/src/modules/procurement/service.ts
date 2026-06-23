@@ -1,7 +1,10 @@
+import { TenderStatus } from '@prisma/client';
 import { ModuleRepository } from './repository.js';
 import { ModuleService as IdentityService } from '../identity/service.js';
 import {
+  type CreateTenderInput,
   moduleDefinition,
+  type MarketplaceQuery,
   type ProcurementMarketplacePayload,
   type ModuleStatus,
   type ProcurementPlanDto,
@@ -16,6 +19,12 @@ import {
   type TenderDetailDto,
   type UpdateProcurementPlanInput
 } from './types.js';
+
+function requestError(message: string, status = 400) {
+  const error = new Error(message) as Error & { status?: number };
+  error.status = status;
+  return error;
+}
 
 export class ModuleService {
   constructor(
@@ -40,12 +49,12 @@ export class ModuleService {
     }
   }
 
-  async marketplace(token?: string): Promise<ProcurementMarketplacePayload> {
+  async marketplace(token?: string, query: MarketplaceQuery = defaultMarketplaceQuery): Promise<ProcurementMarketplacePayload> {
     try {
       const context = await this.contextFromToken(token);
-      return await this.repository.getMarketplaceData(context);
+      return await this.repository.getMarketplaceData(context, query);
     } catch (error) {
-      if (isDatabaseUnavailable(error)) return { tenders: [], myTenders: [], myBids: [] };
+      if (isDatabaseUnavailable(error)) return emptyMarketplace(query);
       throw error;
     }
   }
@@ -53,6 +62,24 @@ export class ModuleService {
   async getTenderDetail(tenderId: string, token?: string): Promise<TenderDetailDto | null> {
     const context = await this.contextFromToken(token);
     return this.repository.getTenderDetail(tenderId, context);
+  }
+
+  async createTender(token: string | undefined, input: CreateTenderInput): Promise<TenderDetailDto> {
+    const session = await this.identity.requirePermission(token, 'procurement.create');
+    const organizationId = requireOrganization(session.user.organizationId);
+    return this.repository.createTender(input, { organizationId, userId: session.user.id });
+  }
+
+  async publishTender(tenderId: string, token: string | undefined): Promise<TenderDetailDto> {
+    const session = await this.identity.requirePermission(token, 'procurement.publish');
+    const organizationId = requireOrganization(session.user.organizationId);
+    const tender = await this.repository.getTenderForPublication(tenderId);
+    if (!tender) throw requestError('Tender was not found.', 404);
+    if (tender.buyerOrgId !== organizationId) throw requestError('Only the owner organization can publish this tender.', 403);
+    assertTenderPublishable(tender);
+    const published = await this.repository.publishTender(tenderId, organizationId);
+    if (!published) throw requestError('Tender was not found.', 404);
+    return published;
   }
 
   async planning(query: ProcurementPlanningQuery): Promise<ProcurementPlanningListDto> {
@@ -177,6 +204,64 @@ const defaultWelcomePayload: PublicWelcomePayload = {
     }
   ]
 };
+
+const defaultMarketplaceQuery: MarketplaceQuery = {
+  search: '',
+  type: '',
+  budgetBand: '',
+  status: '',
+  sort: 'deadline',
+  page: 1,
+  limit: 50
+};
+
+function emptyMarketplace(query: MarketplaceQuery): ProcurementMarketplacePayload {
+  return {
+    tenders: [],
+    myTenders: [],
+    myBids: [],
+    summary: {
+      total: 0,
+      matching: 0,
+      page: query.page,
+      limit: query.limit,
+      totalPages: 1,
+      openCount: 0,
+      myTenderCount: 0,
+      myBidCount: 0,
+      totalBudget: 0,
+      byStatus: [],
+      byType: [],
+      byCategory: []
+    }
+  };
+}
+
+function requireOrganization(organizationId?: string) {
+  if (!organizationId) throw requestError('An organization profile is required.', 409);
+  return organizationId;
+}
+
+function assertTenderPublishable(tender: {
+  title: string;
+  type: unknown;
+  description: string | null;
+  budget: unknown;
+  status: TenderStatus;
+  location: string | null;
+  closingDate: Date | null;
+}) {
+  if (tender.status !== TenderStatus.DRAFT && tender.status !== TenderStatus.REVIEW) {
+    throw requestError('Only draft or review tenders can be published.', 409);
+  }
+  if (!tender.title.trim()) throw requestError('Tender title is required before publishing.', 400);
+  if (!tender.type) throw requestError('Tender type is required before publishing.', 400);
+  if (!tender.description?.trim()) throw requestError('Tender description is required before publishing.', 400);
+  if (Number(tender.budget ?? 0) <= 0) throw requestError('Tender budget is required before publishing.', 400);
+  if (!tender.location?.trim()) throw requestError('Tender location is required before publishing.', 400);
+  if (!tender.closingDate) throw requestError('Tender closing date is required before publishing.', 400);
+  if (tender.closingDate.getTime() <= Date.now()) throw requestError('Tender closing date must be in the future.', 400);
+}
 
 function emptyPlanningList(query: ProcurementPlanningQuery): ProcurementPlanningListDto {
   return {

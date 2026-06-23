@@ -1,9 +1,22 @@
 import { z } from 'zod';
-import { planningSortValues } from './types.js';
+import { TenderType } from '@prisma/client';
+import { marketplaceBudgetBandValues, marketplaceSortValues, planningSortValues } from './types.js';
 
 export const moduleStatusQuerySchema = z.object({}).passthrough();
 
 export const publicWelcomeQuerySchema = z.object({}).passthrough();
+
+export const marketplaceQuerySchema = z
+  .object({
+    search: z.string().trim().max(160).optional().default(''),
+    type: z.string().trim().max(80).optional().default(''),
+    budgetBand: z.enum(marketplaceBudgetBandValues).or(z.literal('')).optional().default(''),
+    status: z.string().trim().max(80).optional().default(''),
+    sort: z.enum(marketplaceSortValues).optional().default('deadline'),
+    page: z.coerce.number().int().min(1).max(10000).optional().default(1),
+    limit: z.coerce.number().int().min(1).max(100).optional().default(50)
+  })
+  .strict();
 
 const uuidSchema = z.string().trim().uuid();
 const optionalUuidSchema = z.union([z.literal(''), uuidSchema]).optional().default('');
@@ -49,6 +62,23 @@ function hasChronologicalPlanningDates(line: PlanLineDateInput) {
   );
 }
 
+function normalizedTenderType(value: unknown) {
+  const normalized = String(value ?? '')
+    .trim()
+    .replace(/([a-z])([A-Z])/g, '$1_$2')
+    .replace(/[\s-]+/g, '_')
+    .replace(/_+/g, '_')
+    .toUpperCase();
+
+  if (normalized === 'GOODS') return TenderType.GOODS;
+  if (normalized === 'WORKS') return TenderType.WORKS;
+  if (normalized === 'SERVICE' || normalized === 'SERVICES' || normalized === 'NON_CONSULTANCY' || normalized === 'NON_CONSULTANCY_SERVICES') {
+    return TenderType.SERVICE;
+  }
+  if (normalized === 'CONSULTANCY') return TenderType.CONSULTANCY;
+  return normalized;
+}
+
 export const planningQuerySchema = z
   .object({
     organizationId: optionalUuidSchema,
@@ -78,6 +108,37 @@ export const planLineParamsSchema = z
 export const tenderParamsSchema = z
   .object({
     tenderId: uuidSchema
+  })
+  .strict();
+
+const tenderTypeInputSchema = z.preprocess((value) => normalizedTenderType(value), z.nativeEnum(TenderType));
+const requiredDateSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(40)
+  .refine((value) => Number.isFinite(Date.parse(value)), {
+    message: 'Date must be parseable.'
+  });
+
+export const createTenderBodySchema = z
+  .object({
+    title: z.string().trim().min(1).max(220),
+    type: tenderTypeInputSchema,
+    description: z.string().trim().min(1).max(5000),
+    budget: z.coerce.number().positive().max(999999999999999.99),
+    currency: z
+      .string()
+      .trim()
+      .min(3)
+      .max(8)
+      .transform((value) => value.toUpperCase()),
+    location: z.string().trim().min(1).max(180),
+    closingDate: requiredDateSchema,
+    categories: z.array(z.string().trim().min(1).max(120)).max(20).optional().default([]),
+    requirements: metadataSchema,
+    metadata: metadataSchema,
+    reference: z.string().trim().min(1).max(80).optional()
   })
   .strict();
 
