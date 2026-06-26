@@ -1,13 +1,20 @@
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/app/store';
-import { setSessionUser, signOut } from '@/features/auth/slice';
+import { setSessionUser } from '@/features/auth/slice';
 import { identityApi } from '@/features/identity/api';
 import { useNotifications } from '@/features/notifications/hooks';
 import type { VerificationProfile } from '@/features/identity/types';
 import { notificationFromApiError } from '@/shared/api/errors';
+import { AccountMenu } from '@/shared/components/AccountMenu';
 import { NotificationCard } from '@/shared/components/NotificationCard';
 import { TanzaniaLocationSelector } from '@/shared/components/TanzaniaLocationSelector';
+import {
+  PlatformAppsButton,
+  PlatformAppsDrawer,
+  resolvePlatformAppRoute,
+  type PlatformAppPageKey
+} from '@/shared/components/procurex/PlatformAppsDrawer';
 import { useBodyPageMetadata } from '@/shared/hooks/useBodyPageMetadata';
 import type { CreateNotificationInput } from '@/shared/types/notifications';
 import { getTanzaniaRegions, isValidTanzaniaLocation, type TanzaniaLocationSelection } from '@procurex/shared';
@@ -59,58 +66,6 @@ const tabs: Array<{ key: ProfileTab; label: string }> = [
 
 const tenderCategories = ['Goods', 'Works', 'Non Consultancy', 'Consultancy', 'Medical Supplies', 'ICT Equipment', 'Construction Works', 'Office Supplies'];
 const regionsOfOperation = ['Nationwide', ...getTanzaniaRegions()];
-
-const appDrawerItems = [
-  {
-    className: 'app-menu-iam',
-    label: 'Registration and Verification',
-    description: 'Account and identity verification',
-    route: '/identity/profile',
-    icon: 'user'
-  },
-  {
-    className: 'app-menu-procurement',
-    label: 'Procurement Planning',
-    description: 'APP, SPP, budgets, approvals',
-    route: '/tender-planning',
-    icon: 'plan'
-  },
-  {
-    className: 'app-menu-procurement',
-    label: 'Procurement',
-    description: 'Marketplace, create tender, bid',
-    route: '/procurement/marketplace',
-    icon: 'market'
-  },
-  {
-    className: 'app-menu-communication',
-    label: 'Communication Center',
-    description: 'Messages, clarifications, alerts',
-    route: '/communication',
-    icon: 'message'
-  },
-  {
-    className: 'app-menu-evaluation',
-    label: 'Evaluation',
-    description: 'Evaluate bids on your tenders',
-    route: '/evaluation',
-    icon: 'check'
-  },
-  {
-    className: 'app-menu-awarding',
-    label: 'Awarding and Contract',
-    description: 'Awards, negotiations, signatures',
-    route: '/awards-contracts',
-    icon: 'award'
-  },
-  {
-    className: 'app-menu-contracts',
-    label: 'Records and History',
-    description: 'Past tenders, bids, awards',
-    route: '/records',
-    icon: 'record'
-  }
-] as const;
 
 const defaultProfile: ProfileForm = {
   fullName: '',
@@ -168,83 +123,6 @@ function statusBadge(status?: string) {
   return 'badge badge-info';
 }
 
-function initials(name?: string) {
-  return (name || 'ProcureX User')
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('');
-}
-
-function appDrawerIcon(icon: (typeof appDrawerItems)[number]['icon']) {
-  if (icon === 'plan') {
-    return (
-      <>
-        <path d="M4 4h16v16H4z" />
-        <path d="M8 8h8" />
-        <path d="M8 12h8" />
-        <path d="M8 16h5" />
-      </>
-    );
-  }
-  if (icon === 'market') {
-    return (
-      <>
-        <path d="M3 9h18l-2-5H5z" />
-        <path d="M5 9v11h14V9" />
-        <path d="M9 13h6" />
-        <path d="M9 17h4" />
-      </>
-    );
-  }
-  if (icon === 'message') {
-    return (
-      <>
-        <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
-        <path d="M8 9h8" />
-        <path d="M8 13h5" />
-      </>
-    );
-  }
-  if (icon === 'check') {
-    return (
-      <>
-        <path d="M9 11l2 2 4-4" />
-        <path d="M8 4h8" />
-        <path d="M8 20h8" />
-        <path d="M5 7h14v10H5z" />
-      </>
-    );
-  }
-  if (icon === 'award') {
-    return (
-      <>
-        <circle cx="12" cy="8" r="4" />
-        <path d="M8.5 11.5L7 21l5-3 5 3-1.5-9.5" />
-        <path d="M10.5 8l1 1 2-2" />
-      </>
-    );
-  }
-  if (icon === 'record') {
-    return (
-      <>
-        <path d="M8 3h8l3 3v15H5V3z" />
-        <path d="M15 3v4h4" />
-        <path d="M8 12h8" />
-        <path d="M8 16h6" />
-      </>
-    );
-  }
-  return (
-    <>
-      <path d="M20 21a8 8 0 0 0-16 0" />
-      <circle cx="12" cy="7" r="4" />
-      <path d="M16 11l2 2 4-4" />
-    </>
-  );
-}
-
 function reviewReasons(profile: VerificationProfile | null) {
   const reasons = objectValue(profile?.payload).reviewReasons;
   return Array.isArray(reasons) ? reasons.map(String) : [];
@@ -261,9 +139,32 @@ export function AccountProfileProcurexPage() {
   const [documents, setDocuments] = useState<DocumentForm>(defaultDocuments);
   const [statusMessage, setStatusMessage] = useState<CreateNotificationInput | null>(null);
   const [loading, setLoading] = useState(false);
-  const [appMenuOpen, setAppMenuOpen] = useState(false);
+  const [appsOpen, setAppsOpen] = useState(false);
+  const headerRef = useRef<HTMLElement | null>(null);
 
   useBodyPageMetadata('verification-status');
+
+  useEffect(() => {
+    function handleDocumentClick(event: PointerEvent) {
+      if (!headerRef.current?.contains(event.target as Node)) setAppsOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setAppsOpen(false);
+    }
+
+    document.addEventListener('pointerdown', handleDocumentClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handleDocumentClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  function selectPlatformApp(pageKey: PlatformAppPageKey) {
+    setAppsOpen(false);
+    navigate(resolvePlatformAppRoute(pageKey));
+  }
 
   const payload = useMemo(() => objectValue(verification?.payload), [verification]);
   const registryRecord = objectValue(payload.registryRecord);
@@ -402,7 +303,7 @@ export function AccountProfileProcurexPage() {
 
   return (
     <>
-      <header className="app-topbar">
+      <header className="app-topbar" ref={headerRef}>
         <div className="app-topbar-left">
           <button className="app-brand-button" type="button" onClick={() => navigate('/apps')}>
             <span className="platform-logo">
@@ -413,69 +314,13 @@ export function AccountProfileProcurexPage() {
         </div>
 
         <div className="app-topbar-actions">
-          <button
-            className="icon-menu-btn"
-            type="button"
-            aria-label="Open apps"
-            aria-expanded={appMenuOpen}
-            onClick={() => setAppMenuOpen((open) => !open)}
-          >
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-          </button>
-          <button
-            className="profile-button"
-            type="button"
-            aria-label="Sign out"
-            onClick={() => {
-              dispatch(signOut());
-              navigate('/sign-in');
-            }}
-          >
-            <span>{initials(user?.displayName)}</span>
-          </button>
-        </div>
-
-        <div className={`app-drawer-menu ${appMenuOpen ? 'open' : ''}`}>
-          <div className="app-menu-header">
-            <div className="app-menu-brand">
-              <span className="platform-logo platform-logo-sm">
-                <img className="platform-logo-image" src="/assets/logo.svg" alt="ProcureX" />
-              </span>
-              <strong>ProcureX Apps</strong>
-            </div>
-            <span>{user?.organization ?? 'ProcureX account tools'}</span>
+          <PlatformAppsButton expanded={appsOpen} onClick={() => setAppsOpen((open) => !open)} />
+          <div className="profile-menu-wrap">
+            <AccountMenu buttonClassName="profile-button" />
           </div>
-
-          {appDrawerItems.map((item) => (
-            <button
-              className={`app-menu-card ${item.className}`}
-              type="button"
-              key={item.label}
-              onClick={() => {
-                setAppMenuOpen(false);
-                navigate(item.route);
-              }}
-            >
-              <span className="app-menu-icon">
-                <svg className="app-menu-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  {appDrawerIcon(item.icon)}
-                </svg>
-              </span>
-              <span>
-                <strong>{item.label}</strong>
-                <em>{item.description}</em>
-              </span>
-            </button>
-          ))}
         </div>
+
+        <PlatformAppsDrawer open={appsOpen} organizationLabel={user?.organization ?? 'ProcureX account tools'} onSelect={selectPlatformApp} />
       </header>
 
       <div className="main-layout">

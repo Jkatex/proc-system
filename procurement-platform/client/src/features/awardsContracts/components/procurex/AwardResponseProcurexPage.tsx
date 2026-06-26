@@ -3,14 +3,20 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { awardsContractsApi } from '../../api';
 import type { LifecycleAction } from '../../types';
 import { ActionFormPanel, lifecycleStatusOptions, option } from './AwardContractActionForms';
+import { AwardContractAccessProvider } from './AwardContractRoleAccess';
 import {
+  ActionWorkspace,
   AwardHero,
   AwardSidebar,
   formatMoney,
+  LifecycleActionCard,
   ProcurexAwardFrame,
+  RecordRegister,
   SimpleTable,
   StatusBadge,
-  TopSummary
+  TopSummary,
+  WorkflowSectionTabs,
+  type WorkflowSection
 } from './AwardsContractsProcurexShared';
 
 function getAwardId(search: string) {
@@ -26,15 +32,17 @@ const preContractDocuments = [
   'Bank details'
 ];
 
+type AwardResponseGroupId = 'awards' | 'response' | 'documents' | 'registers';
+
 export function AwardResponseProcurexPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const selectedAwardId = useMemo(() => getAwardId(location.search), [location.search]);
   const [awards, setAwards] = useState<LifecycleAction[]>([]);
   const [responses, setResponses] = useState<Record<string, string>>({});
+  const [activeGroup, setActiveGroup] = useState<AwardResponseGroupId>('awards');
 
   useEffect(() => {
-    if (import.meta.env.MODE === 'test') return;
     let active = true;
     awardsContractsApi.dashboard()
       .then((data) => {
@@ -49,6 +57,20 @@ export function AwardResponseProcurexPage() {
   }, []);
 
   const activeAward = awards.find((award) => award.awardId === selectedAwardId || award.id === selectedAwardId) ?? awards[0] ?? null;
+  const access = {
+    viewerRole: activeAward?.roleContext ?? 'NONE',
+    canManageBuyerActions: activeAward?.roleContext === 'BUYER',
+    canSubmitSupplierActions: activeAward?.roleContext === 'SUPPLIER',
+    canSignBuyer: activeAward?.roleContext === 'BUYER',
+    canSignSupplier: activeAward?.roleContext === 'SUPPLIER',
+    readOnlyReason: activeAward?.roleContext === 'BUYER' ? 'Supplier actions are read-only for the buyer.' : null
+  } as const;
+  const sections: Array<WorkflowSection<AwardResponseGroupId>> = [
+    { id: 'awards', label: 'Awards', description: 'Received award list.', count: awards.length },
+    { id: 'response', label: 'Response', description: 'Accept, clarify, or decline.', count: activeAward ? 1 : 0 },
+    { id: 'documents', label: 'Documents', description: 'Pre-contract checklist.', count: preContractDocuments.length },
+    { id: 'registers', label: 'Registers', description: 'Saved response state.', count: Object.keys(responses).length }
+  ];
 
   function selectAward(award: LifecycleAction) {
     navigate(`/awards-contracts/award-response?award=${award.awardId ?? award.id}`);
@@ -101,43 +123,62 @@ export function AwardResponseProcurexPage() {
           <section className="procurement-panel evaluation-panel awarding-tabs-panel">
             <div className="panel-heading">
               <div>
-                <span className="section-kicker">Awards received</span>
-                <h2>Select an award and respond before contract preparation continues</h2>
+                <span className="section-kicker">Supplier award workspace</span>
+                <h2>Select an award, respond, and prepare contract documents</h2>
               </div>
+              <StatusBadge value={sections.find((section) => section.id === activeGroup)?.label ?? 'Awards'} />
             </div>
-            <div className="supplier-detail-tabs awarding-contract-tabs" role="tablist" aria-label="Supplier awards received">
-              {awards.length === 0 ? <div className="scope-empty">No supplier awards have been received yet.</div> : null}
-              {awards.map((award) => (
-                <button
-                  className={`supplier-detail-tab${award.id === activeAward?.id ? ' active' : ''}`}
-                  type="button"
-                  role="tab"
-                  aria-selected={award.id === activeAward?.id}
-                  onClick={() => selectAward(award)}
-                  key={award.id}
-                >
-                  {award.title}
-                </button>
-              ))}
-            </div>
+            <WorkflowSectionTabs sections={sections} active={activeGroup} onSelect={setActiveGroup} label="Supplier award response sections" />
           </section>
 
           {!activeAward ? (
-            <section className="procurement-panel evaluation-panel">
+          <AwardContractAccessProvider access={access}>
+          <section className="procurement-panel evaluation-panel">
               <div className="panel-heading">
                 <div><span className="section-kicker">Award detail</span><h2>No award selected</h2></div>
                 <StatusBadge value="No records" />
               </div>
               <div className="scope-empty">Award response details will appear here after your organization receives an award.</div>
-            </section>
+          </section>
+          </AwardContractAccessProvider>
           ) : (
             <>
-              <section className="procurement-panel evaluation-panel">
-                <div className="panel-heading">
-                  <div><span className="section-kicker">Supplier actions</span><h2>Record your award response</h2></div>
-                  <StatusBadge value={activeAward.status} />
-                </div>
-                <p data-award-response-status>{responses[activeAward.id] || activeAward.requiredAction}</p>
+              {activeGroup === 'awards' ? (
+                <section className="procurement-panel evaluation-panel">
+                  <div className="panel-heading">
+                    <div><span className="section-kicker">Awards received</span><h2>Choose the award notice to work on</h2></div>
+                    <StatusBadge value={`${awards.length} awards`} />
+                  </div>
+                  {awards.length === 0 ? <div className="scope-empty">No supplier awards have been received yet.</div> : (
+                    <div className="award-lifecycle-card-grid">
+                      {awards.map((award) => (
+                        <LifecycleActionCard row={award} actionLabel={award.id === activeAward.id ? 'Selected' : 'Select'} onAction={selectAward} key={award.id} />
+                      ))}
+                    </div>
+                  )}
+                </section>
+              ) : null}
+
+              {activeGroup === 'response' ? (
+                <section className="procurement-panel evaluation-panel">
+                  <ActionWorkspace
+                    kicker="Supplier actions"
+                    title="Record your award response"
+                    badge={activeAward.status}
+                    context={
+                      <>
+                        <TopSummary
+                          items={[
+                            { label: 'Award', value: activeAward.title },
+                            { label: 'Buyer', value: activeAward.otherParty },
+                            { label: 'Value', value: activeAward.amount === null ? 'Not priced' : formatMoney(activeAward.amount, activeAward.currency) },
+                            { label: 'Required action', value: activeAward.requiredAction }
+                          ]}
+                        />
+                        <p className="award-workspace-note" data-award-response-status>{responses[activeAward.id] || activeAward.requiredAction}</p>
+                      </>
+                    }
+                  >
                 <ActionFormPanel
                   title="Supplier award response"
                   badge="Supplier"
@@ -154,24 +195,30 @@ export function AwardResponseProcurexPage() {
                   }}
                   onSubmit={(payload) => recordResponse(activeAward, payload)}
                 />
-              </section>
+                  </ActionWorkspace>
+                </section>
+              ) : null}
 
-              <section className="procurement-panel evaluation-panel">
-                <div className="panel-heading">
-                  <div><span className="section-kicker">Documents required</span><h2>Pre-contract checklist</h2></div>
-                  <StatusBadge value="Pending Review" />
-                </div>
-                <SimpleTable headers={['Document', 'Owner', 'Status', 'Action']}>
-                  {preContractDocuments.map((document) => (
-                    <tr key={document}>
-                      <td><strong>{document}</strong></td>
-                      <td>Supplier Representative</td>
-                      <td><StatusBadge value="Required" /></td>
-                      <td>{activeAward.contractId ? 'Use form below' : 'Available after contract draft'}</td>
-                    </tr>
-                  ))}
-                </SimpleTable>
-                {activeAward.contractId ? (
+              {activeGroup === 'documents' ? (
+                <section className="procurement-panel evaluation-panel">
+                  <ActionWorkspace
+                    kicker="Documents required"
+                    title="Pre-contract checklist"
+                    badge="Pending Review"
+                    context={
+                      <SimpleTable headers={['Document', 'Owner', 'Status', 'Action']}>
+                        {preContractDocuments.map((document) => (
+                          <tr key={document}>
+                            <td><strong>{document}</strong></td>
+                            <td>Supplier Representative</td>
+                            <td><StatusBadge value="Required" /></td>
+                            <td>{activeAward.contractId ? 'Use form' : 'Available after contract draft'}</td>
+                          </tr>
+                        ))}
+                      </SimpleTable>
+                    }
+                  >
+                    {activeAward.contractId ? (
                   <ActionFormPanel
                     title="Pre-contract required document"
                     badge="Document"
@@ -196,8 +243,24 @@ export function AwardResponseProcurexPage() {
                     }}
                     onSubmit={(payload) => awardsContractsApi.upsertRequiredDocument(activeAward.contractId as string, payload)}
                   />
-                ) : null}
-              </section>
+                    ) : <div className="scope-empty">Required document submission becomes available after contract draft creation.</div>}
+                  </ActionWorkspace>
+                </section>
+              ) : null}
+
+              {activeGroup === 'registers' ? (
+                <section className="procurement-panel evaluation-panel">
+                  <div className="panel-heading">
+                    <div><span className="section-kicker">Registers</span><h2>Supplier response activity</h2></div>
+                    <StatusBadge value={`${Object.keys(responses).length} records`} />
+                  </div>
+                  <RecordRegister
+                    title="Supplier response activity"
+                    records={Object.entries(responses).map(([id, note]) => ({ id, title: activeAward.title, status: note.replace(/^Current supplier response:\s*/, ''), note }))}
+                    emptyMessage="No response has been submitted in this session yet."
+                  />
+                </section>
+              ) : null}
             </>
           )}
         </main>

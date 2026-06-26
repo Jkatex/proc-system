@@ -213,10 +213,16 @@ const contractInclude = {
   inspections: {
     orderBy: { createdAt: 'desc' }
   },
+  goodsInspections: {
+    orderBy: { createdAt: 'desc' }
+  },
   paymentSchedules: {
     orderBy: [{ dueDate: 'asc' }, { createdAt: 'asc' }]
   },
   invoices: {
+    orderBy: { createdAt: 'desc' }
+  },
+  purchaseOrders: {
     orderBy: { createdAt: 'desc' }
   },
   payments: {
@@ -334,6 +340,36 @@ function assertContractManager(record: { buyerOrgId: string }, context: AwardCon
   }
 }
 
+function assertContractSupplier(record: { supplierOrgId: string | null }, context: AwardContractRequestContext) {
+  if (context.isAdmin) return;
+  if (!context.organizationId || !record.supplierOrgId || record.supplierOrgId !== context.organizationId) {
+    throw requestError('Supplier contract access is required.', 403);
+  }
+}
+
+function workflowAccess(record: { buyerOrgId: string; supplierOrgId: string | null }, context: AwardContractRequestContext) {
+  const viewerRole =
+    context.isAdmin ? 'ADMIN'
+      : context.organizationId && record.buyerOrgId === context.organizationId ? 'BUYER'
+        : context.organizationId && record.supplierOrgId === context.organizationId ? 'SUPPLIER'
+          : 'NONE';
+  return {
+    viewerRole,
+    canManageBuyerActions: viewerRole === 'BUYER' || viewerRole === 'ADMIN',
+    canSubmitSupplierActions: viewerRole === 'SUPPLIER' || viewerRole === 'ADMIN',
+    canSignBuyer: viewerRole === 'BUYER' || viewerRole === 'ADMIN',
+    canSignSupplier: viewerRole === 'SUPPLIER' || viewerRole === 'ADMIN',
+    readOnlyReason:
+      viewerRole === 'NONE'
+        ? 'This record belongs to another organization.'
+        : viewerRole === 'BUYER'
+          ? 'Supplier actions are read-only for the buyer.'
+          : viewerRole === 'SUPPLIER'
+            ? 'Buyer actions are read-only for the supplier.'
+            : null
+  } as const;
+}
+
 function objectPayload(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 }
@@ -372,8 +408,28 @@ function commitmentNo() {
   return `BC-${new Date().getUTCFullYear()}-${randomBytes(4).toString('hex').toUpperCase()}`;
 }
 
+function awardReference() {
+  return `PX-AWD-${new Date().getUTCFullYear()}-${randomBytes(4).toString('hex').toUpperCase()}`;
+}
+
+function awardNoticeReference() {
+  return `PX-NOT-${new Date().getUTCFullYear()}-${randomBytes(4).toString('hex').toUpperCase()}`;
+}
+
 function invoiceReference() {
   return `INV-${new Date().getUTCFullYear()}-${randomBytes(4).toString('hex').toUpperCase()}`;
+}
+
+function purchaseOrderReference() {
+  return `PX-PO-${new Date().getUTCFullYear()}-${randomBytes(4).toString('hex').toUpperCase()}`;
+}
+
+function goodsInspectionReference() {
+  return `PX-GI-${new Date().getUTCFullYear()}-${randomBytes(4).toString('hex').toUpperCase()}`;
+}
+
+function acceptanceCertificateReference() {
+  return `PX-ACPT-${new Date().getUTCFullYear()}-${randomBytes(4).toString('hex').toUpperCase()}`;
 }
 
 function confirmationReference() {
@@ -413,6 +469,7 @@ function recommendationWhere(query: AwardRecommendationQuery, context: AwardCont
   if (query.search) {
     filters.push({
       OR: [
+        { reference: displaySearch(query.search) },
         { reason: displaySearch(query.search) },
         { workspace: { tender: { title: { contains: query.search, mode: 'insensitive' } } } },
         { workspace: { tender: { reference: { contains: query.search, mode: 'insensitive' } } } },
@@ -450,6 +507,7 @@ function andWhere<T extends object>(filters: T[]): T {
 function listRecommendationDto(record: RecommendationRecord): AwardRecommendationListItemDto {
   return {
     id: record.id,
+    reference: record.reference,
     tenderId: record.workspace.tenderId,
     tenderReference: record.workspace.tender.reference,
     tenderTitle: record.workspace.tender.title,
@@ -470,6 +528,7 @@ function listRecommendationDto(record: RecommendationRecord): AwardRecommendatio
 function noticeDto(record: NonNullable<RecommendationRecord['notice']>) {
   return {
     id: record.id,
+    reference: record.reference,
     status: record.status,
     buyerOrgId: record.buyerOrgId,
     supplierOrgId: record.supplierOrgId,
@@ -665,7 +724,7 @@ function recommendationAction(record: AwardRecommendationListItemDto, roleContex
     if (record.status === RecommendationStatus.RECOMMENDED || record.status === RecommendationStatus.DRAFT) {
       return {
         stage: 'Award approval',
-        requiredAction: 'Approve award recommendation',
+        requiredAction: 'Approve award',
         dueDate: daysFromNow(2),
         riskLevel: 'Medium' as const,
         nextRoute: `/awards-contracts/recommendation?recommendation=${record.id}`
@@ -733,7 +792,7 @@ function contractAction(record: ContractRecord, roleContext: 'BUYER' | 'SUPPLIER
   if (record.status === ContractStatus.NEGOTIATION) {
     return {
       stage: 'Negotiation',
-      requiredAction: 'Resolve clause negotiation',
+      requiredAction: roleContext === 'BUYER' ? 'Complete contract owner approval' : 'Review contract terms',
       dueDate: daysFromNow(2),
       riskLevel: 'Medium' as const,
       nextRoute: `/awards-contracts/negotiation?contract=${record.id}&tab=negotiation`
@@ -900,12 +959,7 @@ function defaultRequiredDocuments(procurementType: string) {
 
 function defaultWorkflowApprovals() {
   return [
-    ['buyer-review', 'Buyer Reviewer'],
-    ['supplier-review', 'Supplier Representative'],
-    ['legal-review', 'Legal Officer'],
-    ['finance-review', 'Finance Officer'],
-    ['technical-review', 'Technical Officer'],
-    ['final-approval', 'Contract Manager']
+    ['contract-owner-approval', 'Contract Owner']
   ].map(([stepKey, role]) => ({
     stepKey,
     role,
@@ -920,9 +974,14 @@ function riskLevelFromScore(score: number) {
   return ContractRiskLevel.LOW;
 }
 
-function contractDetailDto(record: ContractRecord, audit: Array<{ event: string; actorUserId: string | null; createdAt: Date }> = []): ContractDetailDto {
+function contractDetailDto(
+  record: ContractRecord,
+  audit: Array<{ event: string; actorUserId: string | null; createdAt: Date }> = [],
+  context: AwardContractRequestContext = {}
+): ContractDetailDto {
   return {
     ...contractListDto(record),
+    access: workflowAccess(record, context),
     awardId: record.awardId,
     noticeId: record.awardNotice?.id ?? null,
     payload: objectPayload(record.payload),
@@ -1035,7 +1094,7 @@ function contractDetailDto(record: ContractRecord, audit: Array<{ event: string;
       }
     })),
     inspections: record.inspections.map((inspection) => lifecycleItemDto({ ...inspection, status: inspection.result, category: inspection.inspectionType })),
-    goodsInspections: [],
+    goodsInspections: record.goodsInspections.map((inspection) => workflowRecordDto(inspection as unknown as Record<string, unknown>)),
     paymentSchedules: record.paymentSchedules.map((payment) => lifecycleItemDto({
       ...payment,
       category: 'payment',
@@ -1047,6 +1106,7 @@ function contractDetailDto(record: ContractRecord, audit: Array<{ event: string;
         currency: payment.currency
       }
     })),
+    purchaseOrders: record.purchaseOrders.map((purchaseOrder) => workflowRecordDto(purchaseOrder as unknown as Record<string, unknown>)),
     invoices: record.invoices.map((invoice) => workflowRecordDto(invoice as unknown as Record<string, unknown>)),
     payments: record.payments.map(paymentDto),
     threeWayMatches: [],
@@ -1173,6 +1233,8 @@ export class ModuleRepository {
         awardId: recommendation.id,
         noticeId: recommendation.notice?.id ?? null,
         contractId: listItem.contractId,
+        reference: recommendation.reference,
+        noticeReference: recommendation.notice?.reference ?? null,
         title: recommendation.workspace.tender.title,
         otherParty: roleContext === 'BUYER' ? listItem.supplierName ?? 'Supplier pending' : listItem.buyerName,
         currentStage: action.stage,
@@ -1205,6 +1267,8 @@ export class ModuleRepository {
         awardId: contract.awardId,
         noticeId: contract.awardNotice?.id ?? null,
         contractId: contract.id,
+        reference: contract.reference,
+        noticeReference: null,
         title: contract.title,
         otherParty: roleContext === 'BUYER' ? contract.supplierOrg?.name ?? 'Supplier pending' : contract.buyerOrg.name,
         currentStage: action.stage,
@@ -1298,6 +1362,7 @@ export class ModuleRepository {
 
     return {
       ...listRecommendationDto(record),
+      access: workflowAccess({ buyerOrgId: record.workspace.buyerOrgId, supplierOrgId: record.supplierOrgId }, context),
       reason: record.reason ?? '',
       notice: record.notice ? noticeDto(record.notice) : null,
       contract,
@@ -1336,6 +1401,7 @@ export class ModuleRepository {
       if (!recommendation.supplierOrgId || !recommendation.bidId) throw requestError('Award recommendation must reference a supplier bid.', 409);
 
       await this.upsertApprovalStep(tx, recommendation.id, context.userId, ApprovalStatus.APPROVED, 'approved', input.note);
+      await this.upsertSingleUserAwardApproval(tx, recommendation.id, context, ApprovalStatus.APPROVED, input.note);
       await tx.awardRecommendation.update({
         where: { id: recommendation.id },
         data: {
@@ -1353,6 +1419,7 @@ export class ModuleRepository {
           respondedAt: null
         },
         create: {
+          reference: awardNoticeReference(),
           recommendationId: recommendation.id,
           buyerOrgId: recommendation.workspace.buyerOrgId,
           supplierOrgId: recommendation.supplierOrgId,
@@ -1366,7 +1433,11 @@ export class ModuleRepository {
       });
       await tx.tender.update({ where: { id: recommendation.workspace.tenderId }, data: { status: TenderStatus.AWARDED } });
       await tx.bid.update({ where: { id: recommendation.bidId }, data: { status: BidStatus.AWARDED } });
-      await this.audit(tx, recommendation.workspace.buyerOrgId, context.userId, 'award.recommendation.approved', 'award_recommendation', recommendation.id, { note: input.note });
+      await this.audit(tx, recommendation.workspace.buyerOrgId, context.userId, 'award.single_user_approval.approved', 'award_recommendation', recommendation.id, {
+        note: input.note,
+        actorUserId: context.userId ?? null,
+        organizationId: context.organizationId ?? null
+      });
     });
 
     return this.getRecommendation(id, context);
@@ -1382,6 +1453,7 @@ export class ModuleRepository {
       assertBuyerAccess(recommendation, context);
 
       await this.upsertApprovalStep(tx, recommendation.id, context.userId, ApprovalStatus.RETURNED, 'returned', input.note);
+      await this.upsertSingleUserAwardApproval(tx, recommendation.id, context, ApprovalStatus.RETURNED, input.note);
       await tx.awardRecommendation.update({
         where: { id: recommendation.id },
         data: {
@@ -1395,7 +1467,11 @@ export class ModuleRepository {
           data: { status: AwardNoticeStatus.CANCELLED }
         });
       }
-      await this.audit(tx, recommendation.workspace.buyerOrgId, context.userId, 'award.recommendation.returned', 'award_recommendation', recommendation.id, { note: input.note });
+      await this.audit(tx, recommendation.workspace.buyerOrgId, context.userId, 'award.single_user_approval.returned', 'award_recommendation', recommendation.id, {
+        note: input.note,
+        actorUserId: context.userId ?? null,
+        organizationId: context.organizationId ?? null
+      });
     });
 
     return this.getRecommendation(id, context);
@@ -1440,12 +1516,13 @@ export class ModuleRepository {
       const route = await tx.awardApprovalRoute.findFirst({ where: { id: input.routeId, recommendationId: id } });
       if (!route) throw requestError('Award approval route was not found.', 404);
       const status = (input.status ?? ApprovalStatus.PENDING) as ApprovalStatus;
+      const actorUserId = this.approvalActorUserId(input.actorUserId, context);
       await tx.awardApprovalStep.upsert({
         where: { routeId_stepKey: { routeId: input.routeId, stepKey: input.stepKey } },
         update: {
           stepOrder: input.stepOrder,
           role: input.role,
-          actorUserId: input.actorUserId || context.userId || null,
+          actorUserId,
           status,
           dueDate: toDate(input.dueDate),
           decidedAt: terminalApprovalStatuses.includes(status) ? new Date() : null,
@@ -1458,7 +1535,7 @@ export class ModuleRepository {
           stepOrder: input.stepOrder,
           stepKey: input.stepKey,
           role: input.role,
-          actorUserId: input.actorUserId || context.userId || null,
+          actorUserId,
           status,
           dueDate: toDate(input.dueDate),
           decidedAt: terminalApprovalStatuses.includes(status) ? new Date() : null,
@@ -1470,7 +1547,7 @@ export class ModuleRepository {
         await tx.approvalStep.create({
           data: {
             recommendationId: id,
-            actorUserId: input.actorUserId || context.userId || null,
+            actorUserId,
             assignment: WorkflowAssignmentType.APPROVER,
             status,
             action: input.stepKey,
@@ -1737,7 +1814,7 @@ export class ModuleRepository {
       record.supplierOrgId ? this.db.supplierRiskProfile.findUnique({ where: { supplierOrgId: record.supplierOrgId } }) : Promise.resolve(null)
     ]);
     return {
-      ...contractDetailDto(record, audit),
+      ...contractDetailDto(record, audit, context),
       goodsInspections: goodsInspections.map((item) => workflowRecordDto(item as unknown as Record<string, unknown>)),
       threeWayMatches: threeWayMatches.map((item) => workflowRecordDto(item as unknown as Record<string, unknown>)),
       paymentApprovals: paymentApprovals.map((item) => workflowRecordDto(item as unknown as Record<string, unknown>)),
@@ -1902,6 +1979,7 @@ export class ModuleRepository {
       const milestone = await tx.contractMilestone.findUnique({ where: { id: milestoneId }, include: { contract: true } });
       if (!milestone || milestone.contractId !== contractId) throw requestError('Contract milestone was not found.', 404);
       assertContractVisible(milestone.contract, context);
+      assertContractManager(milestone.contract, context);
       await tx.contractMilestone.update({
         where: { id: milestone.id },
         data: {
@@ -2018,6 +2096,7 @@ export class ModuleRepository {
       const item = await tx.contractMobilizationItem.findUnique({ where: { id: itemId }, include: { contract: true } });
       if (!item || item.contractId !== contractId) throw requestError('Mobilization item was not found.', 404);
       assertContractVisible(item.contract, context);
+      assertContractManager(item.contract, context);
       await tx.contractMobilizationItem.update({
         where: { id: item.id },
         data: {
@@ -2039,7 +2118,7 @@ export class ModuleRepository {
 
   async createInspection(contractId: string, input: InspectionInput, context: AwardContractRequestContext) {
     await this.db.$transaction(async (tx) => {
-      const contract = await this.requireContract(tx, contractId, context);
+      const contract = await this.requireContract(tx, contractId, context, true);
       await tx.contractInspection.create({
         data: {
           contractId,
@@ -2060,10 +2139,11 @@ export class ModuleRepository {
 
   async createGoodsInspection(contractId: string, input: GoodsInspectionInput, context: AwardContractRequestContext) {
     await this.db.$transaction(async (tx) => {
-      const contract = await this.requireContract(tx, contractId, context);
+      const contract = await this.requireContract(tx, contractId, context, true);
       const result = input.result ?? ContractLifecycleItemStatus.OPEN;
+      const inspectionNo = input.inspectionNo || goodsInspectionReference();
       await tx.goodsInspection.upsert({
-        where: { contractId_inspectionNo: { contractId, inspectionNo: input.inspectionNo } },
+        where: { contractId_inspectionNo: { contractId, inspectionNo } },
         update: {
           milestoneId: input.milestoneId,
           deliverableId: input.deliverableId,
@@ -2085,7 +2165,7 @@ export class ModuleRepository {
           contractId,
           milestoneId: input.milestoneId,
           deliverableId: input.deliverableId,
-          inspectionNo: input.inspectionNo,
+          inspectionNo,
           goodsDescription: input.goodsDescription,
           quantityOrdered: input.quantityOrdered,
           quantityReceived: input.quantityReceived,
@@ -2107,7 +2187,7 @@ export class ModuleRepository {
       if (input.deliverableId && result === ContractLifecycleItemStatus.APPROVED) {
         await tx.contractDeliverable.update({ where: { id: input.deliverableId }, data: { status: ContractLifecycleItemStatus.APPROVED, reviewedAt: new Date() } });
       }
-      await this.audit(tx, contract.buyerOrgId, context.userId, 'contract.goods_inspection.upserted', 'contract', contractId, { inspectionNo: input.inspectionNo, result });
+      await this.audit(tx, contract.buyerOrgId, context.userId, 'contract.goods_inspection.upserted', 'contract', contractId, { inspectionNo, result });
     });
     return this.getContract(contractId, context);
   }
@@ -2115,6 +2195,7 @@ export class ModuleRepository {
   async createInvoice(contractId: string, input: InvoiceInput, context: AwardContractRequestContext) {
     await this.db.$transaction(async (tx) => {
       const contract = await this.requireContract(tx, contractId, context);
+      assertContractSupplier(contract, context);
       if (contract.status === ContractStatus.TERMINATION_REVIEW && input.status !== InvoiceStatus.BLOCKED && input.status !== InvoiceStatus.REJECTED) {
         throw requestError('Invoices are blocked while termination review is active.', 409);
       }
@@ -2491,7 +2572,7 @@ export class ModuleRepository {
 
   async createTermination(contractId: string, input: TerminationInput, context: AwardContractRequestContext) {
     await this.db.$transaction(async (tx) => {
-      const contract = await this.requireContract(tx, contractId, context);
+      const contract = await this.requireContract(tx, contractId, context, true);
       await tx.contractTermination.create({
         data: {
           contractId,
@@ -2523,6 +2604,12 @@ export class ModuleRepository {
       const termination = await tx.contractTermination.findUnique({ where: { id: terminationId }, include: { contract: true } });
       if (!termination || termination.contractId !== contractId) throw requestError('Termination record was not found.', 404);
       assertContractVisible(termination.contract, context);
+      if (!context.isAdmin && termination.contract.buyerOrgId !== context.organizationId) {
+        const supplierOnly = Object.entries(input).every(([key, value]) => value === undefined || ['supplierResponse', 'payload'].includes(key));
+        if (!supplierOnly || termination.contract.supplierOrgId !== context.organizationId) {
+          throw requestError('Buyer contract access is required for termination decisions.', 403);
+        }
+      }
       await tx.contractTermination.update({
         where: { id: termination.id },
         data: {
@@ -2549,6 +2636,7 @@ export class ModuleRepository {
   async addTerminationNotice(contractId: string, terminationId: string, input: TerminationNoticeInput, context: AwardContractRequestContext) {
     await this.db.$transaction(async (tx) => {
       const termination = await this.requireTermination(tx, contractId, terminationId, context);
+      assertContractManager(termination.contract, context);
       await tx.terminationNotice.create({
         data: {
           terminationId,
@@ -2587,6 +2675,7 @@ export class ModuleRepository {
   async upsertTerminationValuation(contractId: string, terminationId: string, input: TerminationValuationInput, context: AwardContractRequestContext) {
     await this.db.$transaction(async (tx) => {
       const termination = await this.requireTermination(tx, contractId, terminationId, context);
+      assertContractManager(termination.contract, context);
       await tx.terminationValuation.upsert({
         where: { terminationId },
         update: { ...input, payload: input.payload as Prisma.InputJsonObject },
@@ -2600,6 +2689,7 @@ export class ModuleRepository {
   async upsertTerminationSettlement(contractId: string, terminationId: string, input: TerminationSettlementInput, context: AwardContractRequestContext) {
     await this.db.$transaction(async (tx) => {
       const termination = await this.requireTermination(tx, contractId, terminationId, context);
+      assertContractManager(termination.contract, context);
       await tx.terminationSettlement.upsert({
         where: { terminationId },
         update: {
@@ -2624,6 +2714,7 @@ export class ModuleRepository {
   async upsertReplacementProcurement(contractId: string, terminationId: string, input: ReplacementProcurementInput, context: AwardContractRequestContext) {
     await this.db.$transaction(async (tx) => {
       const termination = await this.requireTermination(tx, contractId, terminationId, context);
+      assertContractManager(termination.contract, context);
       await tx.replacementProcurementPlan.upsert({
         where: { terminationId },
         update: {
@@ -2782,6 +2873,7 @@ export class ModuleRepository {
   async createDeliverable(contractId: string, input: DeliverableInput, context: AwardContractRequestContext) {
     await this.db.$transaction(async (tx) => {
       const contract = await this.requireContract(tx, contractId, context);
+      assertContractSupplier(contract, context);
       await tx.contractDeliverable.create({
         data: {
           contractId,
@@ -2804,12 +2896,13 @@ export class ModuleRepository {
   async createAcceptance(contractId: string, input: AcceptanceInput, context: AwardContractRequestContext) {
     await this.db.$transaction(async (tx) => {
       const contract = await this.requireContract(tx, contractId, context, true);
+      const certificateNo = input.certificateNo || acceptanceCertificateReference();
       await tx.contractAcceptance.create({
         data: {
           contractId,
           deliverableId: input.deliverableId,
           inspectionId: input.inspectionId,
-          certificateNo: input.certificateNo || null,
+          certificateNo,
           status: input.status ?? ContractLifecycleItemStatus.APPROVED,
           acceptedValue: input.acceptedValue,
           currency: input.currency,
@@ -2821,7 +2914,7 @@ export class ModuleRepository {
       if (input.deliverableId) {
         await tx.contractDeliverable.update({ where: { id: input.deliverableId }, data: { status: input.status ?? ContractLifecycleItemStatus.APPROVED, reviewedAt: new Date() } });
       }
-      await this.audit(tx, contract.buyerOrgId, context.userId, 'contract.acceptance.created', 'contract', contractId, { certificateNo: input.certificateNo });
+      await this.audit(tx, contract.buyerOrgId, context.userId, 'contract.acceptance.created', 'contract', contractId, { certificateNo });
     });
     return this.getContract(contractId, context);
   }
@@ -2907,6 +3000,8 @@ export class ModuleRepository {
   async upsertRequiredDocument(contractId: string, input: RequiredDocumentInput, context: AwardContractRequestContext) {
     await this.db.$transaction(async (tx) => {
       const contract = await this.requireContract(tx, contractId, context);
+      if (/supplier/i.test(input.ownerRole)) assertContractSupplier(contract, context);
+      else assertContractManager(contract, context);
       if (input.documentId) await this.assertDocumentVisible(tx, input.documentId, context);
       await tx.contractRequiredDocument.upsert({
         where: { contractId_documentType: { contractId, documentType: input.documentType } },
@@ -2995,6 +3090,7 @@ export class ModuleRepository {
       const item = await delegate.findUnique({ where: { id: itemId }, include: { contract: true } });
       if (!item || item.contractId !== contractId) throw requestError(`${label} item was not found.`, 404);
       assertContractVisible(item.contract, context);
+      assertContractManager(item.contract, context);
 
       const sharedData = {
         ...(input.status !== undefined ? { status: input.status } : {}),
@@ -3060,6 +3156,100 @@ export class ModuleRepository {
     };
     if (existing) return tx.approvalStep.update({ where: { id: existing.id }, data });
     return tx.approvalStep.create({ data: { recommendationId, ...data } });
+  }
+
+  private approvalActorUserId(inputActorUserId: string | undefined, context: AwardContractRequestContext) {
+    if (!context.userId) throw requestError('Authenticated user is required for approval actions.', 401);
+    if (inputActorUserId && inputActorUserId !== context.userId) {
+      throw requestError('Approval actor must be the authenticated user.', 403);
+    }
+    return context.userId;
+  }
+
+  private async upsertSingleUserAwardApproval(
+    tx: DbClient,
+    recommendationId: string,
+    context: AwardContractRequestContext,
+    status: ApprovalStatus,
+    note: string
+  ) {
+    const actorUserId = this.approvalActorUserId(undefined, context);
+    const route = await tx.awardApprovalRoute.upsert({
+      where: {
+        recommendationId_routeKey: {
+          recommendationId,
+          routeKey: 'single-user-award-approval'
+        }
+      },
+      update: {
+        title: 'Single-user award approval',
+        status,
+        currentStepOrder: 1,
+        requiredQuorum: 1,
+        note: note || null,
+        payload: {
+          hidden: true,
+          model: 'single-user',
+          actorUserId,
+          organizationId: context.organizationId ?? null
+        } as Prisma.InputJsonObject
+      },
+      create: {
+        recommendationId,
+        routeKey: 'single-user-award-approval',
+        title: 'Single-user award approval',
+        status,
+        currentStepOrder: 1,
+        requiredQuorum: 1,
+        note: note || null,
+        payload: {
+          hidden: true,
+          model: 'single-user',
+          actorUserId,
+          organizationId: context.organizationId ?? null
+        } as Prisma.InputJsonObject
+      }
+    });
+
+    await tx.awardApprovalStep.upsert({
+      where: {
+        routeId_stepKey: {
+          routeId: route.id,
+          stepKey: 'award-owner-approval'
+        }
+      },
+      update: {
+        stepOrder: 1,
+        role: 'Award Owner',
+        actorUserId,
+        status,
+        dueDate: null,
+        decidedAt: new Date(),
+        note: note || null,
+        payload: {
+          hidden: true,
+          model: 'single-user',
+          organizationId: context.organizationId ?? null
+        } as Prisma.InputJsonObject
+      },
+      create: {
+        routeId: route.id,
+        recommendationId,
+        stepOrder: 1,
+        stepKey: 'award-owner-approval',
+        role: 'Award Owner',
+        actorUserId,
+        status,
+        dueDate: null,
+        decidedAt: new Date(),
+        note: note || null,
+        payload: {
+          hidden: true,
+          model: 'single-user',
+          organizationId: context.organizationId ?? null
+        } as Prisma.InputJsonObject
+      }
+    });
   }
 
   private async findOrCreateContractFromNotice(
@@ -3171,6 +3361,20 @@ export class ModuleRepository {
             ]
           }
         },
+        purchaseOrders: {
+          create: {
+            reference: purchaseOrderReference(),
+            buyerOrgId: notice.buyerOrgId,
+            amount: notice.recommendation.amount ?? 0,
+            currency: notice.recommendation.currency,
+            payload: {
+              source: 'award_acceptance',
+              noticeId: notice.id,
+              awardId: notice.recommendationId,
+              tenderReference: notice.recommendation.workspace.tender.reference
+            } as Prisma.InputJsonObject
+          }
+        },
         requiredDocuments: {
           createMany: {
             data: defaultRequiredDocuments(String(notice.recommendation.workspace.tender.type))
@@ -3185,7 +3389,7 @@ export class ModuleRepository {
           create: {
             objectives: `Deliver ${notice.recommendation.workspace.tender.title} according to the approved tender scope, winning bid, agreed time, quality, and cost.`,
             monitoringPlan: 'Track milestones, KPIs, risks, inspections, payments, variations, disputes, and close-out actions in ProcureX.',
-            reportingPlan: 'Contract manager reviews progress and exceptions regularly with technical, finance, legal, buyer, and supplier participants.',
+            reportingPlan: 'The contract owner reviews progress and exceptions regularly in ProcureX and records any needed specialist input as supporting evidence.',
             communicationPlan: 'All formal notices, evidence, comments, and decisions are recorded in ProcureX.',
             payload: {}
           }

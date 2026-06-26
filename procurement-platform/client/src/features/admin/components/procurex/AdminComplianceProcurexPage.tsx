@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { adminApi, type ComplianceCase, type ComplianceRule, type PageDto, type WorkflowRecord } from '@/features/admin/api';
-import { ActionFormPanel, option, riskLevelOptions } from '@/features/awardsContracts/components/procurex/AwardContractActionForms';
+import { ActionFormPanel, option, recordPickerOptions, riskLevelOptions } from '@/features/awardsContracts/components/procurex/AwardContractActionForms';
 import { useBodyPageMetadata } from '@/shared/hooks/useBodyPageMetadata';
 import { AdminCommandDrawer, AdminError, AdminHero, AdminPanel, AdminShell, EmptyRow, Pager, badgeClass, displayLabel, formatDate, useAdminCommand } from './AdminShared';
 
@@ -16,10 +16,7 @@ function recordText(record: Record<string, unknown>, key: string, fallback = '')
 }
 
 function workflowOptions(items: WorkflowRecord[], emptyLabel: string) {
-  return [
-    option('', emptyLabel),
-    ...items.map((item) => option(item.id, recordText(item, 'title', recordText(item, 'enforcementType', recordText(item, 'violationType', item.id)))))
-  ];
+  return recordPickerOptions(items as unknown as Array<Record<string, unknown>>, emptyLabel);
 }
 
 function WorkflowRegister({ title, items }: { title: string; items: WorkflowRecord[] }) {
@@ -385,7 +382,7 @@ export function AdminComplianceProcurexPage() {
               onComplete={() => void load(1, 1)}
             />
             <ActionFormPanel
-              title="Supplier risk profile"
+              title="Admin supplier risk profile"
               badge="Profile"
               fields={[
                 { name: 'supplierOrgId', label: 'Supplier organization ID', kind: 'uuid', required: true },

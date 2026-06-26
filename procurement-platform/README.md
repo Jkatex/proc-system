@@ -33,6 +33,17 @@ npm run db:seed:twice
 npm test
 ```
 
+To load the optional API-backed Awarding and Contract Management demo dataset:
+
+```powershell
+npm run infra:up
+npm run db:migrate
+npm run db:seed
+npm run db:seed:awards-demo
+```
+
+The demo seed is idempotent and only recreates records marked as the `award-contract-full` dataset or references prefixed with `PX-DEMO-AC-`. Use `award-buyer@procurex.tz`, `award-supplier@procurex.tz`, or `award-admin@procurex.tz` with the normal demo passwords to inspect populated award queues, contract formation, post-award tracking, payment, risk, termination, close-out, supplier performance, and compliance screens.
+
 ## Local Testing Data
 
 Registration code delivery is temporary in local development. With `IDENTITY_EMAIL_PROVIDER=dev-console` and `IDENTITY_PHONE_PROVIDER=dev-console`, the registration phone code and email activation code are shown in the UI and logged by the server. Real SMS and email delivery will replace this once those providers are fully wired.

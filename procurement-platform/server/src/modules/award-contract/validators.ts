@@ -543,7 +543,7 @@ export const goodsInspectionBodySchema = z
   .object({
     milestoneId: uuidSchema.optional(),
     deliverableId: uuidSchema.optional(),
-    inspectionNo: z.string().trim().min(1).max(120),
+    inspectionNo: z.string().trim().max(120).optional(),
     goodsDescription: nonEmptyText.max(1000),
     quantityOrdered: z.coerce.number().finite().nonnegative().optional(),
     quantityReceived: z.coerce.number().finite().nonnegative().optional(),

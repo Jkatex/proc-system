@@ -21,19 +21,55 @@ export type AwardContractStep =
   | 'buyer-review'
   | 'supplier-review'
   | 'negotiation'
-  | 'legal-review'
-  | 'final-approval'
+  | 'contract-owner-approval'
   | 'signatures'
   | 'execution';
 
 export type AwardResponseAction = 'accept' | 'clarify' | 'decline';
-export type ContractTabId = 'overview' | 'buyer-review' | 'supplier-review' | 'negotiation' | 'legal-review' | 'final-approval' | 'signatures' | 'activity';
+export type ContractTabId = 'overview' | 'buyer-review' | 'supplier-review' | 'negotiation' | 'contract-owner-approval' | 'signatures' | 'activity';
 export type PostAwardMode = 'active' | 'closed';
 export type PostAwardTabId = 'milestones' | 'payments' | 'issues' | 'variations' | 'closure' | 'performance';
 
 export type BadgeTone = 'success' | 'warning' | 'error' | 'info';
 
 export type LifecycleRoleContext = 'BUYER' | 'SUPPLIER';
+export type ViewerRole = LifecycleRoleContext | 'ADMIN' | 'NONE';
+export type WorkflowActionOwner = LifecycleRoleContext | 'ADMIN' | 'ANY';
+
+export type WorkflowAccess = {
+  viewerRole: ViewerRole;
+  canManageBuyerActions: boolean;
+  canSubmitSupplierActions: boolean;
+  canSignBuyer: boolean;
+  canSignSupplier: boolean;
+  readOnlyReason: string | null;
+};
+
+export type PickerOption = {
+  value: string;
+  label: string;
+  description?: string;
+  status?: string;
+};
+
+export type LinkedRecordPickerConfig = {
+  emptyLabel?: string;
+  options: PickerOption[];
+};
+
+export type AwardContractActionDefinition = {
+  key: string;
+  label: string;
+  owner: WorkflowActionOwner;
+  group: string;
+  targetRecordType?: string;
+};
+
+export type ActionDrawerState = {
+  open: boolean;
+  actionKey: string | null;
+  title: string;
+};
 
 export type LifecycleAction = {
   id: string;
@@ -43,6 +79,8 @@ export type LifecycleAction = {
   awardId: string | null;
   noticeId: string | null;
   contractId: string | null;
+  reference?: string | null;
+  noticeReference?: string | null;
   title: string;
   otherParty: string;
   currentStage: string;
@@ -87,6 +125,9 @@ export type ContractLifecycleItemDto = {
 };
 
 export type AwardRecommendationDetailDto = LifecycleAction & {
+  reference?: string | null;
+  notice?: { id: string; reference?: string | null; status: string; contractId: string | null } | null;
+  access?: WorkflowAccess;
   approvalRoutes?: Array<Record<string, unknown>>;
   tieBreakers?: Array<Record<string, unknown>>;
   feasibilityChecks?: Array<Record<string, unknown>>;
@@ -97,6 +138,7 @@ export type AwardRecommendationDetailDto = LifecycleAction & {
 };
 
 export type ContractDetailDto = {
+  access?: WorkflowAccess;
   id: string;
   reference: string;
   title: string;
@@ -127,6 +169,7 @@ export type ContractDetailDto = {
   inspections: ContractLifecycleItemDto[];
   goodsInspections?: Array<Record<string, unknown>>;
   paymentSchedules?: ContractLifecycleItemDto[];
+  purchaseOrders?: Array<Record<string, unknown>>;
   invoices?: Array<Record<string, unknown>>;
   payments?: Array<Record<string, unknown>>;
   threeWayMatches?: Array<Record<string, unknown>>;

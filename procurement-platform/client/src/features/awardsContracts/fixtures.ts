@@ -140,8 +140,7 @@ export const contractTabs: ContractTab[] = [
   { id: 'buyer-review', label: 'Buyer Review' },
   { id: 'supplier-review', label: 'Supplier Review' },
   { id: 'negotiation', label: 'Negotiation' },
-  { id: 'legal-review', label: 'Legal Review' },
-  { id: 'final-approval', label: 'Final Approval' },
+  { id: 'contract-owner-approval', label: 'Owner Approval' },
   { id: 'signatures', label: 'Signatures' },
   { id: 'activity', label: 'Activity' }
 ];

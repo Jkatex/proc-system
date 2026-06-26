@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import type { PickerOption } from '../../types';
 import { StatusBadge } from './AwardsContractsProcurexShared';
+import { actionDefinitionForTitle } from './AwardContractActionCatalogue';
+import { canUseWorkflowOwner, inferActionOwner, LockedWorkflowPanel, ownerLockedReason, useAwardContractAccess } from './AwardContractRoleAccess';
 
 export type FieldOption = {
   label: string;
   value: string;
+  description?: string;
+  status?: string;
 };
 
 export type AwardContractFieldKind =
@@ -17,7 +22,8 @@ export type AwardContractFieldKind =
   | 'uuid'
   | 'currency'
   | 'json'
-  | 'multi';
+  | 'multi'
+  | 'picker';
 
 export type AwardContractFieldConfig = {
   name: string;
@@ -31,6 +37,10 @@ export type AwardContractFieldConfig = {
   max?: number;
   step?: string;
   note?: string;
+  helpText?: string;
+  section?: 'basics' | 'linked' | 'dates' | 'amounts' | 'decision' | 'evidence' | 'payload';
+  advanced?: boolean;
+  picker?: boolean | { options?: PickerOption[]; emptyLabel?: string };
 };
 
 type FormValue = string | boolean | string[];
@@ -47,6 +57,7 @@ type ActionFormPanelProps = {
   onSubmit: (payload: AwardContractPayload, values: AwardContractFormValues) => Promise<unknown>;
   onComplete?: (result: unknown) => void;
   children?: ReactNode;
+  drawerSummary?: ReactNode;
 };
 
 export const lifecycleStatusOptions = ['OPEN', 'IN_PROGRESS', 'SUBMITTED', 'APPROVED', 'REJECTED', 'WAIVED', 'CLOSED'].map((value) => option(value));
@@ -99,11 +110,97 @@ export function displayLabel(value: string) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-export function itemOptions(items: Array<{ id: string; title?: string; type?: string; status?: string }>, emptyLabel = 'Select record') {
+type PickerRecord = {
+  id: string;
+  title?: string | null;
+  subject?: string | null;
+  reference?: string | null;
+  inspectionNo?: string | null;
+  certificateNo?: string | null;
+  confirmationReference?: string | null;
+  commitmentNo?: string | null;
+  scoreType?: string | null;
+  forecastType?: string | null;
+  type?: string | null;
+  status?: string | null;
+  riskLevel?: string | null;
+  amount?: number | string | null;
+  paidAmount?: number | string | null;
+  score?: number | string | null;
+  probability?: number | string | null;
+  currency?: string | null;
+  dueDate?: string | null;
+  createdAt?: string | null;
+};
+
+function shortRecordId(value: string) {
+  return value.length <= 12 ? value : `${value.slice(0, 8)}...${value.slice(-4)}`;
+}
+
+function dateLabel(value?: string | null) {
+  if (!value) return '';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString();
+}
+
+function pickerRecordTitle(item: PickerRecord) {
+  return item.title || item.subject || item.reference || item.inspectionNo || item.certificateNo || item.confirmationReference || item.commitmentNo || item.scoreType || item.forecastType || item.type || shortRecordId(item.id);
+}
+
+function pickerRecordDescription(item: PickerRecord) {
+  const parts = [
+    item.type ? displayLabel(String(item.type)) : '',
+    item.amount !== null && item.amount !== undefined ? `${item.currency ?? ''} ${item.amount}`.trim() : '',
+    item.paidAmount !== null && item.paidAmount !== undefined ? `Paid ${item.currency ?? ''} ${item.paidAmount}`.trim() : '',
+    item.score !== null && item.score !== undefined ? `Score ${item.score}` : '',
+    item.probability !== null && item.probability !== undefined ? `Probability ${item.probability}` : '',
+    item.dueDate ? `Due ${dateLabel(item.dueDate)}` : '',
+    item.createdAt ? `Created ${dateLabel(item.createdAt)}` : '',
+    `ID ${shortRecordId(item.id)}`
+  ].filter(Boolean);
+  return parts.join(' | ');
+}
+
+export function itemOptions(items: PickerRecord[], emptyLabel = 'Select record'): FieldOption[] {
   return [
     option('', emptyLabel),
-    ...items.map((item) => option(item.id, `${item.title || item.id}${item.status ? ` (${item.status})` : ''}`))
+    ...items.map((item) => ({
+      value: item.id,
+      label: pickerRecordTitle(item),
+      description: pickerRecordDescription(item),
+      status: item.status || item.riskLevel || undefined
+    }))
   ];
+}
+
+export function recordPickerOptions(records: Array<Record<string, unknown>>, emptyLabel = 'Select record'): FieldOption[] {
+  return itemOptions(
+    records
+      .map((record) => ({
+        id: String(record.id ?? ''),
+        title: record.title === null || record.title === undefined ? undefined : String(record.title),
+        subject: record.subject === null || record.subject === undefined ? undefined : String(record.subject),
+        reference: record.reference === null || record.reference === undefined ? undefined : String(record.reference),
+        inspectionNo: record.inspectionNo === null || record.inspectionNo === undefined ? undefined : String(record.inspectionNo),
+        certificateNo: record.certificateNo === null || record.certificateNo === undefined ? undefined : String(record.certificateNo),
+        confirmationReference: record.confirmationReference === null || record.confirmationReference === undefined ? undefined : String(record.confirmationReference),
+        commitmentNo: record.commitmentNo === null || record.commitmentNo === undefined ? undefined : String(record.commitmentNo),
+        scoreType: record.scoreType === null || record.scoreType === undefined ? undefined : String(record.scoreType),
+        forecastType: record.forecastType === null || record.forecastType === undefined ? undefined : String(record.forecastType),
+        type: record.type === null || record.type === undefined ? undefined : String(record.type),
+        status: record.status === null || record.status === undefined ? undefined : String(record.status),
+        riskLevel: record.riskLevel === null || record.riskLevel === undefined ? undefined : String(record.riskLevel),
+        amount: record.amount as number | string | null | undefined,
+        paidAmount: record.paidAmount as number | string | null | undefined,
+        score: record.score as number | string | null | undefined,
+        probability: record.probability as number | string | null | undefined,
+        currency: record.currency === null || record.currency === undefined ? undefined : String(record.currency),
+        dueDate: record.dueDate === null || record.dueDate === undefined ? undefined : String(record.dueDate),
+        createdAt: record.createdAt === null || record.createdAt === undefined ? undefined : String(record.createdAt)
+      }))
+      .filter((record) => record.id),
+    emptyLabel
+  );
 }
 
 export function signatureOptions() {
@@ -130,6 +227,44 @@ function normalizeDatetime(value: string) {
 
 function slug(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'form';
+}
+
+function fieldSection(field: AwardContractFieldConfig) {
+  if (field.section) return field.section;
+  if (field.kind === 'json' || field.advanced) return 'payload';
+  if (field.kind === 'uuid' && !field.options?.length && !field.picker) return 'payload';
+  if (/id$/i.test(field.name) || field.kind === 'picker' || field.picker) return 'linked';
+  if (/date|at$/i.test(field.name) || field.kind === 'date' || field.kind === 'datetime') return 'dates';
+  if (/amount|cost|price|currency|score|quantity|days|weight|tax|retention|advance|damages|withholding|probability/i.test(field.name)) return 'amounts';
+  if (/status|note|reason|decision|response|comment|approval|result/i.test(field.name)) return 'decision';
+  if (/document|evidence|certificate|proof/i.test(field.name)) return 'evidence';
+  return 'basics';
+}
+
+const sectionLabels: Record<ReturnType<typeof fieldSection>, string> = {
+  basics: 'Basics',
+  linked: 'Linked records',
+  dates: 'Dates and timing',
+  amounts: 'Amounts and scores',
+  decision: 'Decision',
+  evidence: 'Evidence',
+  payload: 'Advanced payload'
+};
+
+function shouldUsePicker(field: AwardContractFieldConfig) {
+  return field.kind === 'picker' || Boolean(field.picker) || (field.kind === 'select' && /id$/i.test(field.name) && Boolean(field.options?.length));
+}
+
+function pickerOptions(field: AwardContractFieldConfig) {
+  const configured = typeof field.picker === 'object' ? field.picker.options : undefined;
+  return configured ?? field.options ?? [];
+}
+
+function formCounts(fields: AwardContractFieldConfig[]) {
+  const required = fields.filter((field) => field.required).length;
+  const linked = fields.filter((field) => fieldSection(field) === 'linked').length;
+  const advanced = fields.filter((field) => fieldSection(field) === 'payload').length;
+  return { required, linked, advanced };
 }
 
 export function buildAwardContractPayload(fields: AwardContractFieldConfig[], values: AwardContractFormValues) {
@@ -181,8 +316,14 @@ export function ActionFormPanel({
   submitLabel = 'Submit',
   onSubmit,
   onComplete,
-  children
+  children,
+  drawerSummary
 }: ActionFormPanelProps) {
+  const access = useAwardContractAccess();
+  const actionDefinition = actionDefinitionForTitle(title);
+  const owner = actionDefinition?.owner ?? inferActionOwner(title, badge);
+  const allowed = canUseWorkflowOwner(access, owner);
+  const [open, setOpen] = useState(false);
   const formKey = useMemo(() => slug(title), [title]);
   const defaults = useMemo(
     () => Object.fromEntries(fields.map((field) => [field.name, initialValues?.[field.name] ?? defaultValue(field)])) as AwardContractFormValues,
@@ -199,6 +340,19 @@ export function ActionFormPanel({
 
   const built = buildAwardContractPayload(fields, values);
   const blocked = saving || built.errors.length > 0;
+  const counts = formCounts(fields);
+  const fieldsBySection = useMemo(() => {
+    const grouped = new Map<string, AwardContractFieldConfig[]>();
+    for (const field of fields) {
+      const section = fieldSection(field);
+      grouped.set(section, [...(grouped.get(section) ?? []), field]);
+    }
+    return grouped;
+  }, [fields]);
+
+  if (!allowed) {
+    return <LockedWorkflowPanel title={title} owner={owner} reason={ownerLockedReason(access, owner)} />;
+  }
 
   function setValue(name: string, value: FormValue) {
     setValues((current) => ({ ...current, [name]: value }));
@@ -217,6 +371,7 @@ export function ActionFormPanel({
       const result = await onSubmit(next.payload, values);
       setMessage(`${title} saved.`);
       onComplete?.(result);
+      setOpen(false);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : `${title} could not be saved.`);
     } finally {
@@ -225,37 +380,86 @@ export function ActionFormPanel({
   }
 
   return (
-    <form className="award-action-form" data-award-contract-form={title} noValidate onSubmit={submit}>
-      <div className="panel-heading">
+    <article className="award-action-launcher" data-award-contract-form={title}>
+      <div className="award-action-launcher-head">
         <div>
           {eyebrow ? <span className="section-kicker">{eyebrow}</span> : null}
           <h2>{title}</h2>
+          <p>{counts.linked ? `${counts.linked} linked selector${counts.linked === 1 ? '' : 's'}` : 'Direct workflow action'}{counts.required ? ` · ${counts.required} required` : ''}</p>
         </div>
         <StatusBadge value={badge} />
       </div>
-      {children}
-      <div className="award-form-grid">
-        {fields.map((field) => (
-          <AwardContractField
-            field={field}
-            formKey={formKey}
-            value={values[field.name] ?? defaultValue(field)}
-            onChange={(value) => setValue(field.name, value)}
-            key={field.name}
-          />
-        ))}
+      <div className="award-action-launcher-meta">
+        <span>{actionDefinition?.group ?? 'Workflow action'}</span>
+        <span>{owner === 'ANY' ? 'Shared action' : owner === 'BUYER' ? 'Buyer action' : owner === 'SUPPLIER' ? 'Supplier action' : 'Admin action'}</span>
+        {counts.advanced ? <span>{counts.advanced} advanced field{counts.advanced === 1 ? '' : 's'}</span> : null}
       </div>
-      {built.errors.length > 0 ? <p className="panel-note">{built.errors[0]}</p> : null}
-      {message ? <p className="panel-note" aria-live="polite">{message}</p> : null}
       <div className="inline-actions">
-        <button className="btn btn-primary btn-sm" type="submit" disabled={blocked}>
-          {saving ? 'Saving...' : submitLabel}
-        </button>
-        <button className="btn btn-secondary btn-sm" type="button" disabled={saving} onClick={() => setValues(defaults)}>
-          Reset
-        </button>
+        <button className="btn btn-primary btn-sm" type="button" onClick={() => setOpen(true)}>Open action</button>
       </div>
-    </form>
+      {open ? (
+        <div className="award-action-drawer-backdrop" role="presentation">
+          <aside className="award-action-drawer" role="dialog" aria-modal="true" aria-label={title}>
+            <form className="award-action-form award-action-form-drawer" noValidate onSubmit={submit}>
+              <div className="award-drawer-heading">
+                <div>
+                  {eyebrow ? <span className="section-kicker">{eyebrow}</span> : null}
+                  <h2>{title}</h2>
+                  <p>{owner === 'ANY' ? 'Shared workflow action' : owner === 'BUYER' ? 'Buyer-owned workflow action' : owner === 'SUPPLIER' ? 'Supplier-owned workflow action' : 'Admin-owned workflow action'}</p>
+                </div>
+                <div className="award-drawer-heading-actions">
+                  <StatusBadge value={badge} />
+                  <button className="btn btn-secondary btn-sm" type="button" onClick={() => setOpen(false)}>Close</button>
+                </div>
+              </div>
+              {drawerSummary ?? children}
+              {Array.from(fieldsBySection.entries()).map(([section, sectionFields]) => {
+                const content = (
+                  <div className="award-form-grid">
+                    {sectionFields.map((field) => (
+                      <AwardContractField
+                        field={field}
+                        formKey={formKey}
+                        value={values[field.name] ?? defaultValue(field)}
+                        onChange={(value) => setValue(field.name, value)}
+                        key={field.name}
+                      />
+                    ))}
+                  </div>
+                );
+                if (section === 'payload') {
+                  return (
+                    <details className="award-form-section award-form-section-advanced" key={section}>
+                      <summary>{sectionLabels[section as keyof typeof sectionLabels]}</summary>
+                      {content}
+                    </details>
+                  );
+                }
+                return (
+                  <section className="award-form-section" key={section}>
+                    <h3>{sectionLabels[section as keyof typeof sectionLabels]}</h3>
+                    {content}
+                  </section>
+                );
+              })}
+              {built.errors.length > 0 ? <p className="panel-note">{built.errors[0]}</p> : null}
+              {message ? <p className="panel-note" aria-live="polite">{message}</p> : null}
+              <div className="inline-actions award-drawer-footer">
+                <button className="btn btn-primary btn-sm" type="submit" disabled={blocked}>
+                  {saving ? 'Saving...' : submitLabel}
+                </button>
+                <button className="btn btn-secondary btn-sm" type="button" disabled={saving} onClick={() => setValues(defaults)}>
+                  Reset
+                </button>
+                <button className="btn btn-secondary btn-sm" type="button" disabled={saving} onClick={() => setOpen(false)}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </aside>
+        </div>
+      ) : null}
+    </article>
   );
 }
 
@@ -271,6 +475,7 @@ function AwardContractField({
   onChange: (value: FormValue) => void;
 }) {
   const id = `award-contract-${formKey}-${field.name}`;
+  const [filter, setFilter] = useState('');
   const label = (
     <>
       {field.label}
@@ -298,6 +503,50 @@ function AwardContractField({
     );
   }
 
+  if (shouldUsePicker(field)) {
+    const options = pickerOptions(field);
+    const selected = options.find((item) => item.value === String(value));
+    const filtered = options.filter((item) => `${item.label} ${item.description ?? ''} ${item.status ?? ''} ${item.value}`.toLowerCase().includes(filter.trim().toLowerCase()));
+    return (
+      <div className="award-form-field award-picker-field">
+        <label htmlFor={`${id}-search`}>
+          <span>{label}</span>
+        </label>
+        <input
+          className="form-input"
+          id={`${id}-search`}
+          type="search"
+          value={filter}
+          placeholder={selected ? selected.label : field.placeholder ?? 'Search records'}
+          onChange={(event) => setFilter(event.target.value)}
+        />
+        <div className="award-picker-list" role="listbox" aria-label={field.label}>
+          {filtered.length === 0 ? (
+            <button className="award-picker-option" type="button" disabled>No matching records</button>
+          ) : filtered.map((item) => (
+            <button
+              className={`award-picker-option${item.value === String(value) ? ' selected' : ''}`}
+              type="button"
+              role="option"
+              aria-selected={item.value === String(value)}
+              onClick={() => {
+                onChange(item.value);
+                setFilter('');
+              }}
+              key={item.value}
+            >
+              <strong>{item.label}</strong>
+              <span>{item.description || (item.value ? `ID ${shortRecordId(item.value)}` : 'No selection')}</span>
+              {item.status ? <StatusBadge value={item.status} /> : null}
+            </button>
+          ))}
+        </div>
+        {selected ? <em>Selected: {selected.label}</em> : null}
+        {field.note ?? field.helpText ? <em>{field.note ?? field.helpText}</em> : null}
+      </div>
+    );
+  }
+
   if (field.kind === 'select') {
     return (
       <label className="award-form-field" htmlFor={id}>
@@ -307,7 +556,7 @@ function AwardContractField({
             <option value={item.value} key={item.value}>{item.label}</option>
           ))}
         </select>
-        {field.note ? <em>{field.note}</em> : null}
+        {field.note ?? field.helpText ? <em>{field.note ?? field.helpText}</em> : null}
       </label>
     );
   }

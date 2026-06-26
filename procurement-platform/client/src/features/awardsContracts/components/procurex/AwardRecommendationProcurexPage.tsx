@@ -1,14 +1,18 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { awardsContractsApi } from '../../api';
 import type { AwardRecommendationDetailDto, LifecycleAction } from '../../types';
-import { ActionFormPanel, itemOptions, option, riskLevelOptions } from './AwardContractActionForms';
+import { ActionFormPanel, option, riskLevelOptions } from './AwardContractActionForms';
+import { AwardContractAccessProvider } from './AwardContractRoleAccess';
 import {
   AwardHero,
   AwardSidebar,
+  RegisterCard,
+  RecordRegister,
   formatMoney,
   ProcurexAwardFrame,
   SimpleTable,
+  shortId,
   StatusBadge,
   TopSummary
 } from './AwardsContractsProcurexShared';
@@ -18,7 +22,7 @@ function getRecommendationId(search: string) {
 }
 
 const awardReadinessChecks = [
-  'Evaluation committee completed scoring',
+  'Evaluation scoring completed',
   'Financial evaluation completed',
   'Due diligence completed',
   'Recommended supplier is eligible',
@@ -27,26 +31,90 @@ const awardReadinessChecks = [
 ];
 
 const statusOptions = ['DRAFT', 'PENDING', 'IN_PROGRESS', 'APPROVED', 'RETURNED', 'WAIVED', 'EXPIRED', 'SENT', 'FAILED'].map((value) => option(value));
-const approvalStatusOptions = ['PENDING', 'APPROVED', 'REJECTED', 'RETURNED'].map((value) => option(value));
+const awardWorkflowGroups = [
+  { id: 'readiness', label: 'Readiness', description: 'Checks and award decision.' },
+  { id: 'validation', label: 'Validation', description: 'Tie-breaker and feasibility.' },
+  { id: 'notice', label: 'Notice', description: 'Standstill and notification.' },
+  { id: 'budget', label: 'Budget', description: 'Budget reservation.' },
+  { id: 'registers', label: 'Registers', description: 'All saved records.' }
+] as const;
 
-function recordText(record: Record<string, unknown>, key: string, fallback = '') {
-  const value = record[key];
-  return value === null || value === undefined || value === '' ? fallback : String(value);
+type AwardWorkflowGroupId = (typeof awardWorkflowGroups)[number]['id'];
+
+function AwardSectionTabs({
+  activeGroup,
+  counts,
+  onSelect
+}: {
+  activeGroup: AwardWorkflowGroupId;
+  counts: Partial<Record<AwardWorkflowGroupId, number>>;
+  onSelect: (group: AwardWorkflowGroupId) => void;
+}) {
+  return (
+    <div className="award-workflow-tabs" role="tablist" aria-label="Award workflow sections">
+      {awardWorkflowGroups.map((group) => (
+        <button
+          className={`award-workflow-tab${activeGroup === group.id ? ' active' : ''}`}
+          type="button"
+          role="tab"
+          aria-selected={activeGroup === group.id}
+          onClick={() => onSelect(group.id)}
+          key={group.id}
+        >
+          <strong>{group.label}</strong>
+          <span>{group.description}</span>
+          {counts[group.id] !== undefined ? <em>{counts[group.id]}</em> : null}
+        </button>
+      ))}
+    </div>
+  );
 }
 
-function RecordRegister({ title, records }: { title: string; records: Array<Record<string, unknown>> }) {
+function AwardContextCard({
+  kicker,
+  title,
+  badge,
+  children
+}: {
+  kicker: string;
+  title: string;
+  badge: string;
+  children: ReactNode;
+}) {
   return (
-    <SimpleTable headers={['Record', 'Status', 'Note']}>
-      {records.length === 0 ? (
-        <tr><td colSpan={3}><div className="scope-empty">No {title.toLowerCase()} records yet.</div></td></tr>
-      ) : records.map((record) => (
-        <tr key={recordText(record, 'id', JSON.stringify(record))}>
-          <td><strong>{recordText(record, 'title', recordText(record, 'subject', recordText(record, 'routeKey', recordText(record, 'type', 'Record'))))}</strong><span>{recordText(record, 'id')}</span></td>
-          <td><StatusBadge value={recordText(record, 'status', 'Recorded')} /></td>
-          <td>{recordText(record, 'note', recordText(record, 'summary', 'No note'))}</td>
-        </tr>
-      ))}
-    </SimpleTable>
+    <section className="award-workspace-card">
+      <div className="panel-heading">
+        <div>
+          <span className="section-kicker">{kicker}</span>
+          <h2>{title}</h2>
+        </div>
+        <StatusBadge value={badge} />
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function AwardActionWorkspace({
+  kicker,
+  title,
+  badge,
+  context,
+  children
+}: {
+  kicker: string;
+  title: string;
+  badge: string;
+  context: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="award-action-workspace">
+      <AwardContextCard kicker={kicker} title={title} badge={badge}>
+        {context}
+      </AwardContextCard>
+      <div className="award-action-stack">{children}</div>
+    </div>
   );
 }
 
@@ -56,9 +124,9 @@ export function AwardRecommendationProcurexPage() {
   const selectedRecommendationId = useMemo(() => getRecommendationId(location.search), [location.search]);
   const [recommendations, setRecommendations] = useState<LifecycleAction[]>([]);
   const [recommendationDetail, setRecommendationDetail] = useState<AwardRecommendationDetailDto | null>(null);
+  const [activeGroup, setActiveGroup] = useState<AwardWorkflowGroupId>('readiness');
 
   useEffect(() => {
-    if (import.meta.env.MODE === 'test') return;
     let active = true;
     awardsContractsApi.dashboard()
       .then((data) => {
@@ -75,17 +143,30 @@ export function AwardRecommendationProcurexPage() {
   const activeRecommendation =
     recommendations.find((item) => item.awardId === selectedRecommendationId || item.id === selectedRecommendationId) ?? recommendations[0] ?? null;
   const activeRecommendationId = activeRecommendation?.awardId ?? activeRecommendation?.id.replace(/^award-/, '') ?? '';
-  const approvalRouteOptions = itemOptions(
-    (recommendationDetail?.approvalRoutes ?? []).map((record) => ({
-      id: recordText(record, 'id'),
-      title: recordText(record, 'title', recordText(record, 'routeKey')),
-      status: recordText(record, 'status')
-    })).filter((record) => record.id),
-    'Select approval route'
-  );
+  const access = recommendationDetail?.access ?? {
+    viewerRole: activeRecommendation?.roleContext ?? 'NONE',
+    canManageBuyerActions: activeRecommendation?.roleContext === 'BUYER',
+    canSubmitSupplierActions: activeRecommendation?.roleContext === 'SUPPLIER',
+    canSignBuyer: activeRecommendation?.roleContext === 'BUYER',
+    canSignSupplier: activeRecommendation?.roleContext === 'SUPPLIER',
+    readOnlyReason: activeRecommendation?.roleContext === 'SUPPLIER' ? 'Buyer actions are read-only for the supplier.' : null
+  } as const;
+  const registerCounts = {
+    readiness: awardReadinessChecks.length,
+    validation: (recommendationDetail?.tieBreakers?.length ?? 0) + (recommendationDetail?.feasibilityChecks?.length ?? 0),
+    notice: (recommendationDetail?.standstillPeriods?.length ?? 0) + (recommendationDetail?.awardNotifications?.length ?? 0),
+    budget: recommendationDetail?.budgetCommitments?.length ?? 0,
+    registers:
+      (recommendationDetail?.approvalRoutes?.length ?? 0) +
+      (recommendationDetail?.tieBreakers?.length ?? 0) +
+      (recommendationDetail?.feasibilityChecks?.length ?? 0) +
+      (recommendationDetail?.standstillPeriods?.length ?? 0) +
+      (recommendationDetail?.awardNotifications?.length ?? 0) +
+      (recommendationDetail?.budgetCommitments?.length ?? 0)
+  } satisfies Record<AwardWorkflowGroupId, number>;
 
   useEffect(() => {
-    if (!activeRecommendationId || import.meta.env.MODE === 'test') {
+    if (!activeRecommendationId) {
       setRecommendationDetail(null);
       return;
     }
@@ -146,6 +227,8 @@ export function AwardRecommendationProcurexPage() {
           {activeRecommendation ? (
             <TopSummary
               items={[
+                { label: 'Award No', value: recommendationDetail?.reference ?? activeRecommendation.reference ?? activeRecommendation.id },
+                { label: 'Notice No', value: recommendationDetail?.notice?.reference ?? activeRecommendation.noticeReference ?? 'Not issued' },
                 { label: 'Tender', value: activeRecommendation.title },
                 { label: 'Recommended Supplier', value: activeRecommendation.otherParty },
                 { label: 'Award Value', value: activeRecommendation.amount === null ? 'Not priced' : formatMoney(activeRecommendation.amount, activeRecommendation.currency) },
@@ -181,194 +264,217 @@ export function AwardRecommendationProcurexPage() {
           </section>
 
           {activeRecommendation ? (
+            <AwardContractAccessProvider access={access}>
             <section className="procurement-panel evaluation-panel">
               <div className="panel-heading">
-                <div><span className="section-kicker">Readiness checks</span><h2>Before award notice and contract formation</h2></div>
-                <StatusBadge value="Checklist" />
+                <div><span className="section-kicker">Award workspace</span><h2>Before award notice and contract formation</h2></div>
+                <StatusBadge value={awardWorkflowGroups.find((group) => group.id === activeGroup)?.label ?? 'Workflow'} />
               </div>
-              <div className="award-control-grid">
-                <ActionFormPanel
-                  title="Approve award"
-                  badge="Buyer"
-                  submitLabel="Approve Award"
-                  fields={[{ name: 'note', label: 'Approval note', kind: 'textarea' }]}
-                  initialValues={{ note: 'Approved from ProcureX award recommendation workspace' }}
-                  onSubmit={(payload) => awardsContractsApi.approveRecommendation(activeRecommendation.awardId ?? activeRecommendation.id.replace(/^award-/, ''), String(payload.note ?? ''))}
-                  onComplete={() => void refreshRecommendations()}
-                />
-                <ActionFormPanel
-                  title="Return award"
-                  badge="Buyer"
-                  submitLabel="Return Award"
-                  fields={[{ name: 'note', label: 'Return note', kind: 'textarea', required: true }]}
-                  initialValues={{ note: 'Returned for evaluation clarification from ProcureX award recommendation workspace' }}
-                  onSubmit={(payload) => awardsContractsApi.returnRecommendation(activeRecommendation.awardId ?? activeRecommendation.id.replace(/^award-/, ''), String(payload.note ?? ''))}
-                  onComplete={() => void refreshRecommendations()}
-                />
-                <ActionFormPanel
-                  title="Approval route"
-                  badge="Route"
-                  submitLabel="Save Route"
-                  fields={[
-                    { name: 'routeKey', label: 'Route key', kind: 'text', required: true },
-                    { name: 'title', label: 'Route title', kind: 'text', required: true },
-                    { name: 'status', label: 'Status', kind: 'select', required: true, options: statusOptions },
-                    { name: 'currentStepOrder', label: 'Current step order', kind: 'number', min: 1 },
-                    { name: 'requiredQuorum', label: 'Required quorum', kind: 'number', min: 1 },
-                    { name: 'note', label: 'Route note', kind: 'textarea' },
-                    { name: 'payload', label: 'Route payload', kind: 'json', rows: 4 }
-                  ]}
-                  initialValues={{ routeKey: 'award-approval', title: 'Award approval route', status: 'PENDING', currentStepOrder: '1', requiredQuorum: '1', payload: '{}' }}
-                  onSubmit={(payload) => awardsContractsApi.upsertAwardApprovalRoute(activeRecommendationId, payload)}
-                  onComplete={refreshRecommendationDetail}
-                />
-                <ActionFormPanel
-                  title="Approval step"
-                  badge="Step"
-                  submitLabel="Save Step"
-                  fields={[
-                    { name: 'routeId', label: 'Approval route', kind: 'select', required: true, options: approvalRouteOptions },
-                    { name: 'stepOrder', label: 'Step order', kind: 'number', min: 1, required: true },
-                    { name: 'stepKey', label: 'Step key', kind: 'text', required: true },
-                    { name: 'role', label: 'Approver role', kind: 'text', required: true },
-                    { name: 'actorUserId', label: 'Actor user ID', kind: 'uuid' },
-                    { name: 'status', label: 'Status', kind: 'select', options: approvalStatusOptions },
-                    { name: 'dueDate', label: 'Due date', kind: 'date' },
-                    { name: 'note', label: 'Step note', kind: 'textarea' },
-                    { name: 'payload', label: 'Step payload', kind: 'json', rows: 4 }
-                  ]}
-                  initialValues={{ routeId: approvalRouteOptions[1]?.value ?? '', stepOrder: '1', stepKey: 'procurement-approval', role: 'PROCUREMENT_MANAGER', status: 'PENDING', payload: '{}' }}
-                  onSubmit={(payload) => awardsContractsApi.upsertAwardApprovalStep(activeRecommendationId, payload)}
-                  onComplete={refreshRecommendationDetail}
-                />
-                <ActionFormPanel
-                  title="Tie-breaker"
-                  badge="Tie-break"
-                  submitLabel="Record Tie-breaker"
-                  fields={[
-                    { name: 'triggerReason', label: 'Trigger reason', kind: 'textarea', required: true },
-                    { name: 'method', label: 'Method', kind: 'text', required: true },
-                    { name: 'criteria', label: 'Criteria JSON array', kind: 'json', rows: 4 },
-                    { name: 'outcomeBidId', label: 'Outcome bid ID', kind: 'uuid' },
-                    { name: 'status', label: 'Status', kind: 'select', required: true, options: statusOptions },
-                    { name: 'note', label: 'Decision note', kind: 'textarea' },
-                    { name: 'payload', label: 'Tie-breaker payload', kind: 'json', rows: 4 }
-                  ]}
-                  initialValues={{ triggerReason: 'Equal evaluated score requires tie-break resolution.', method: 'Best delivery and compliance score', criteria: '[]', status: 'PENDING', payload: '{}' }}
-                  onSubmit={(payload) => awardsContractsApi.createAwardTieBreaker(activeRecommendationId, payload)}
-                  onComplete={refreshRecommendationDetail}
-                />
-                <ActionFormPanel
-                  title="Delivery feasibility"
-                  badge="Feasibility"
-                  submitLabel="Save Feasibility"
-                  fields={[
-                    { name: 'deliveryCapacity', label: 'Delivery capacity', kind: 'textarea' },
-                    { name: 'siteReadiness', label: 'Site readiness', kind: 'textarea' },
-                    { name: 'resourcePlan', label: 'Resource plan', kind: 'textarea' },
-                    { name: 'riskRating', label: 'Risk rating', kind: 'select', options: riskLevelOptions },
-                    { name: 'status', label: 'Status', kind: 'select', required: true, options: statusOptions },
-                    { name: 'note', label: 'Feasibility note', kind: 'textarea' },
-                    { name: 'payload', label: 'Feasibility payload', kind: 'json', rows: 4 }
-                  ]}
-                  initialValues={{ riskRating: 'MEDIUM', status: 'PENDING', payload: '{}' }}
-                  onSubmit={(payload) => awardsContractsApi.upsertDeliveryFeasibility(activeRecommendationId, payload)}
-                  onComplete={refreshRecommendationDetail}
-                />
-                <ActionFormPanel
-                  title="Standstill period"
-                  badge="Standstill"
-                  submitLabel="Save Standstill"
-                  fields={[
-                    { name: 'startsAt', label: 'Starts at', kind: 'datetime' },
-                    { name: 'endsAt', label: 'Ends at', kind: 'datetime' },
-                    { name: 'days', label: 'Days', kind: 'number', min: 0, max: 365 },
-                    { name: 'status', label: 'Status', kind: 'select', required: true, options: statusOptions },
-                    { name: 'waived', label: 'Waived', kind: 'checkbox' },
-                    { name: 'waiverReason', label: 'Waiver reason', kind: 'textarea' },
-                    { name: 'payload', label: 'Standstill payload', kind: 'json', rows: 4 }
-                  ]}
-                  initialValues={{ days: '7', status: 'PENDING', waived: false, payload: '{}' }}
-                  onSubmit={(payload) => awardsContractsApi.upsertStandstillPeriod(activeRecommendationId, payload)}
-                  onComplete={refreshRecommendationDetail}
-                />
-                <ActionFormPanel
-                  title="Award notification"
-                  badge="Notice"
-                  submitLabel="Send Notification"
-                  fields={[
-                    { name: 'recipientOrgId', label: 'Recipient organization ID', kind: 'uuid' },
-                    { name: 'channel', label: 'Channel', kind: 'text' },
-                    { name: 'notificationType', label: 'Notification type', kind: 'text', required: true },
-                    { name: 'subject', label: 'Subject', kind: 'text', required: true },
-                    { name: 'body', label: 'Body', kind: 'textarea' },
-                    { name: 'status', label: 'Status', kind: 'select', required: true, options: statusOptions },
-                    { name: 'payload', label: 'Notification payload', kind: 'json', rows: 4 }
-                  ]}
-                  initialValues={{ channel: 'IN_APP', notificationType: 'AWARD_NOTICE', subject: `Award notice for ${activeRecommendation.title}`, status: 'SENT', payload: '{}' }}
-                  onSubmit={(payload) => awardsContractsApi.createAwardNotification(activeRecommendationId, payload)}
-                  onComplete={refreshRecommendationDetail}
-                />
-                <ActionFormPanel
-                  title="Budget commitment"
-                  badge="Budget"
-                  submitLabel="Commit Budget"
-                  fields={[
-                    { name: 'contractId', label: 'Contract ID', kind: 'uuid' },
-                    { name: 'commitmentNo', label: 'Commitment number', kind: 'text' },
-                    { name: 'budgetCode', label: 'Budget code', kind: 'text', required: true },
-                    { name: 'amount', label: 'Amount', kind: 'number', min: 0, step: '0.01', required: true },
-                    { name: 'currency', label: 'Currency', kind: 'currency' },
-                    { name: 'status', label: 'Status', kind: 'select', required: true, options: statusOptions },
-                    { name: 'note', label: 'Commitment note', kind: 'textarea' },
-                    { name: 'payload', label: 'Budget payload', kind: 'json', rows: 4 }
-                  ]}
-                  initialValues={{ contractId: activeRecommendation.contractId ?? '', budgetCode: 'PROCUREMENT.AWARD', amount: activeRecommendation.amount === null ? '' : String(activeRecommendation.amount), currency: activeRecommendation.currency, status: 'PENDING', payload: '{}' }}
-                  onSubmit={(payload) => awardsContractsApi.createBudgetCommitmentForRecommendation(activeRecommendationId, payload)}
-                  onComplete={refreshRecommendationDetail}
-                />
-              </div>
+              <AwardSectionTabs activeGroup={activeGroup} counts={registerCounts} onSelect={setActiveGroup} />
+
+              {activeGroup === 'readiness' ? (
+                <AwardActionWorkspace
+                  kicker="Readiness"
+                  title="Evaluation handoff checks"
+                  badge="Checklist"
+                  context={
+                    <>
+                      <TopSummary
+                        items={[
+                          { label: 'Stage', value: activeRecommendation.currentStage },
+                          { label: 'Action', value: activeRecommendation.requiredAction },
+                          { label: 'Risk', value: <StatusBadge value={activeRecommendation.riskLevel} /> },
+                          { label: 'Award status', value: <StatusBadge value={activeRecommendation.status} /> }
+                        ]}
+                      />
+                      <SimpleTable headers={['Check', 'Status', 'Owner']} className="award-readiness-table">
+                        {awardReadinessChecks.map((check) => (
+                          <tr key={check}>
+                            <td><strong>{check}</strong></td>
+                            <td><StatusBadge value="Required" /></td>
+                            <td>Logged-in buyer user</td>
+                          </tr>
+                        ))}
+                      </SimpleTable>
+                    </>
+                  }
+                >
+                  <ActionFormPanel
+                    title="Approve award"
+                    badge="Buyer"
+                    submitLabel="Approve Award"
+                    fields={[{ name: 'note', label: 'Approval note', kind: 'textarea' }]}
+                    initialValues={{ note: 'Approved from ProcureX award recommendation workspace' }}
+                    onSubmit={(payload) => awardsContractsApi.approveRecommendation(activeRecommendation.awardId ?? activeRecommendation.id.replace(/^award-/, ''), String(payload.note ?? ''))}
+                    onComplete={() => void refreshRecommendations()}
+                  />
+                  <ActionFormPanel
+                    title="Return award"
+                    badge="Buyer"
+                    submitLabel="Return Award"
+                    fields={[{ name: 'note', label: 'Return note', kind: 'textarea', required: true }]}
+                    initialValues={{ note: 'Returned for evaluation clarification from ProcureX award recommendation workspace' }}
+                    onSubmit={(payload) => awardsContractsApi.returnRecommendation(activeRecommendation.awardId ?? activeRecommendation.id.replace(/^award-/, ''), String(payload.note ?? ''))}
+                    onComplete={() => void refreshRecommendations()}
+                  />
+                </AwardActionWorkspace>
+              ) : null}
+
+              {activeGroup === 'validation' ? (
+                <AwardActionWorkspace
+                  kicker="Validation"
+                  title="Tie-breaker and feasibility"
+                  badge={`${registerCounts.validation} records`}
+                  context={
+                    <div className="award-register-stack">
+                      <RecordRegister title="Tie-breakers" records={recommendationDetail?.tieBreakers ?? []} />
+                      <RecordRegister title="Feasibility checks" records={recommendationDetail?.feasibilityChecks ?? []} />
+                    </div>
+                  }
+                >
+                  <ActionFormPanel
+                    title="Tie-breaker"
+                    badge="Tie-break"
+                    submitLabel="Record Tie-breaker"
+                    fields={[
+                      { name: 'triggerReason', label: 'Trigger reason', kind: 'textarea', required: true },
+                      { name: 'method', label: 'Method', kind: 'text', required: true },
+                      { name: 'criteria', label: 'Criteria JSON array', kind: 'json', rows: 4 },
+                      { name: 'outcomeBidId', label: 'Outcome bid ID', kind: 'uuid' },
+                      { name: 'status', label: 'Status', kind: 'select', required: true, options: statusOptions },
+                      { name: 'note', label: 'Decision note', kind: 'textarea' },
+                      { name: 'payload', label: 'Tie-breaker payload', kind: 'json', rows: 4 }
+                    ]}
+                    initialValues={{ triggerReason: 'Equal evaluated score requires tie-break resolution.', method: 'Best delivery and compliance score', criteria: '[]', status: 'PENDING', payload: '{}' }}
+                    onSubmit={(payload) => awardsContractsApi.createAwardTieBreaker(activeRecommendationId, payload)}
+                    onComplete={refreshRecommendationDetail}
+                  />
+                  <ActionFormPanel
+                    title="Delivery feasibility"
+                    badge="Feasibility"
+                    submitLabel="Save Feasibility"
+                    fields={[
+                      { name: 'deliveryCapacity', label: 'Delivery capacity', kind: 'textarea' },
+                      { name: 'siteReadiness', label: 'Site readiness', kind: 'textarea' },
+                      { name: 'resourcePlan', label: 'Resource plan', kind: 'textarea' },
+                      { name: 'riskRating', label: 'Risk rating', kind: 'select', options: riskLevelOptions },
+                      { name: 'status', label: 'Status', kind: 'select', required: true, options: statusOptions },
+                      { name: 'note', label: 'Feasibility note', kind: 'textarea' },
+                      { name: 'payload', label: 'Feasibility payload', kind: 'json', rows: 4 }
+                    ]}
+                    initialValues={{ riskRating: 'MEDIUM', status: 'PENDING', payload: '{}' }}
+                    onSubmit={(payload) => awardsContractsApi.upsertDeliveryFeasibility(activeRecommendationId, payload)}
+                    onComplete={refreshRecommendationDetail}
+                  />
+                </AwardActionWorkspace>
+              ) : null}
+
+              {activeGroup === 'notice' ? (
+                <AwardActionWorkspace
+                  kicker="Notice and standstill"
+                  title="Supplier notice controls"
+                  badge={`${registerCounts.notice} records`}
+                  context={
+                    <div className="award-register-stack">
+                      <RecordRegister title="Standstill periods" records={recommendationDetail?.standstillPeriods ?? []} />
+                      <RecordRegister title="Award notifications" records={recommendationDetail?.awardNotifications ?? []} />
+                    </div>
+                  }
+                >
+                  <ActionFormPanel
+                    title="Standstill period"
+                    badge="Standstill"
+                    submitLabel="Save Standstill"
+                    fields={[
+                      { name: 'startsAt', label: 'Starts at', kind: 'datetime' },
+                      { name: 'endsAt', label: 'Ends at', kind: 'datetime' },
+                      { name: 'days', label: 'Days', kind: 'number', min: 0, max: 365 },
+                      { name: 'status', label: 'Status', kind: 'select', required: true, options: statusOptions },
+                      { name: 'waived', label: 'Waived', kind: 'checkbox' },
+                      { name: 'waiverReason', label: 'Waiver reason', kind: 'textarea' },
+                      { name: 'payload', label: 'Standstill payload', kind: 'json', rows: 4 }
+                    ]}
+                    initialValues={{ days: '7', status: 'PENDING', waived: false, payload: '{}' }}
+                    onSubmit={(payload) => awardsContractsApi.upsertStandstillPeriod(activeRecommendationId, payload)}
+                    onComplete={refreshRecommendationDetail}
+                  />
+                  <ActionFormPanel
+                    title="Award notification"
+                    badge="Notice"
+                    submitLabel="Send Notification"
+                    fields={[
+                      { name: 'recipientOrgId', label: 'Recipient organization ID', kind: 'uuid' },
+                      { name: 'channel', label: 'Channel', kind: 'text' },
+                      { name: 'notificationType', label: 'Notification type', kind: 'text', required: true },
+                      { name: 'subject', label: 'Subject', kind: 'text', required: true },
+                      { name: 'body', label: 'Body', kind: 'textarea' },
+                      { name: 'status', label: 'Status', kind: 'select', required: true, options: statusOptions },
+                      { name: 'payload', label: 'Notification payload', kind: 'json', rows: 4 }
+                    ]}
+                    initialValues={{ channel: 'IN_APP', notificationType: 'AWARD_NOTICE', subject: `Award notice for ${activeRecommendation.title}`, status: 'SENT', payload: '{}' }}
+                    onSubmit={(payload) => awardsContractsApi.createAwardNotification(activeRecommendationId, payload)}
+                    onComplete={refreshRecommendationDetail}
+                  />
+                </AwardActionWorkspace>
+              ) : null}
+
+              {activeGroup === 'budget' ? (
+                <AwardActionWorkspace
+                  kicker="Budget"
+                  title="Commitment and funding"
+                  badge={`${registerCounts.budget} commitments`}
+                  context={
+                    <>
+                      <TopSummary
+                        items={[
+                          { label: 'Award value', value: activeRecommendation.amount === null ? 'Not priced' : formatMoney(activeRecommendation.amount, activeRecommendation.currency) },
+                          { label: 'Currency', value: activeRecommendation.currency },
+                          { label: 'Contract ID', value: activeRecommendation.contractId ? shortId(activeRecommendation.contractId) : 'Not formed' }
+                        ]}
+                      />
+                      <RecordRegister title="Budget commitments" records={recommendationDetail?.budgetCommitments ?? []} />
+                    </>
+                  }
+                >
+                  <ActionFormPanel
+                    title="Budget commitment"
+                    badge="Budget"
+                    submitLabel="Commit Budget"
+                    fields={[
+                      { name: 'contractId', label: 'Contract ID', kind: 'uuid' },
+                      { name: 'commitmentNo', label: 'Commitment number', kind: 'text' },
+                      { name: 'budgetCode', label: 'Budget code', kind: 'text', required: true },
+                      { name: 'amount', label: 'Amount', kind: 'number', min: 0, step: '0.01', required: true },
+                      { name: 'currency', label: 'Currency', kind: 'currency' },
+                      { name: 'status', label: 'Status', kind: 'select', required: true, options: statusOptions },
+                      { name: 'note', label: 'Commitment note', kind: 'textarea' },
+                      { name: 'payload', label: 'Budget payload', kind: 'json', rows: 4 }
+                    ]}
+                    initialValues={{ contractId: activeRecommendation.contractId ?? '', budgetCode: 'PROCUREMENT.AWARD', amount: activeRecommendation.amount === null ? '' : String(activeRecommendation.amount), currency: activeRecommendation.currency, status: 'PENDING', payload: '{}' }}
+                    onSubmit={(payload) => awardsContractsApi.createBudgetCommitmentForRecommendation(activeRecommendationId, payload)}
+                    onComplete={refreshRecommendationDetail}
+                  />
+                </AwardActionWorkspace>
+              ) : null}
+
+              {activeGroup === 'registers' ? (
+                <div className="award-register-grid">
+                  <RegisterCard kicker="Approval history" title="Single-user approval history" records={recommendationDetail?.approvalRoutes ?? []} countLabel="records" />
+                  <RegisterCard kicker="Tie-breakers" title="Tie-breaker register" records={recommendationDetail?.tieBreakers ?? []} countLabel="records" />
+                  <RegisterCard kicker="Feasibility" title="Delivery feasibility checks" records={recommendationDetail?.feasibilityChecks ?? []} countLabel="checks" />
+                  <RegisterCard kicker="Standstill" title="Standstill periods" records={recommendationDetail?.standstillPeriods ?? []} countLabel="periods" />
+                  <RegisterCard kicker="Notifications" title="Award notifications" records={recommendationDetail?.awardNotifications ?? []} countLabel="sent" />
+                  <RegisterCard kicker="Budget" title="Budget commitments" records={recommendationDetail?.budgetCommitments ?? []} countLabel="commitments" />
+                </div>
+              ) : null}
+
               {activeRecommendation.contractId ? (
                 <div className="inline-actions">
                   <button className="btn btn-secondary btn-sm" type="button" onClick={() => navigate(`/awards-contracts/negotiation?contract=${activeRecommendation.contractId}`)}>Open Contract</button>
                 </div>
               ) : null}
-              <SimpleTable headers={['Check', 'Status', 'Owner']}>
-                {awardReadinessChecks.map((check) => (
-                  <tr key={check}>
-                    <td><strong>{check}</strong></td>
-                    <td><StatusBadge value="Required" /></td>
-                    <td>Buyer evaluation / procurement team</td>
-                  </tr>
-                ))}
-              </SimpleTable>
-              <div className="award-control-grid">
-                <section>
-                  <div className="panel-heading"><div><span className="section-kicker">Approval route</span><h2>Route and steps</h2></div><StatusBadge value={`${recommendationDetail?.approvalRoutes?.length ?? 0} routes`} /></div>
-                  <RecordRegister title="Approval routes" records={recommendationDetail?.approvalRoutes ?? []} />
-                </section>
-                <section>
-                  <div className="panel-heading"><div><span className="section-kicker">Tie-breakers</span><h2>Tie-breaker register</h2></div><StatusBadge value={`${recommendationDetail?.tieBreakers?.length ?? 0} records`} /></div>
-                  <RecordRegister title="Tie-breakers" records={recommendationDetail?.tieBreakers ?? []} />
-                </section>
-                <section>
-                  <div className="panel-heading"><div><span className="section-kicker">Feasibility</span><h2>Delivery feasibility checks</h2></div><StatusBadge value={`${recommendationDetail?.feasibilityChecks?.length ?? 0} checks`} /></div>
-                  <RecordRegister title="Feasibility checks" records={recommendationDetail?.feasibilityChecks ?? []} />
-                </section>
-                <section>
-                  <div className="panel-heading"><div><span className="section-kicker">Standstill</span><h2>Standstill periods</h2></div><StatusBadge value={`${recommendationDetail?.standstillPeriods?.length ?? 0} periods`} /></div>
-                  <RecordRegister title="Standstill periods" records={recommendationDetail?.standstillPeriods ?? []} />
-                </section>
-                <section>
-                  <div className="panel-heading"><div><span className="section-kicker">Notifications</span><h2>Award notifications</h2></div><StatusBadge value={`${recommendationDetail?.awardNotifications?.length ?? 0} sent`} /></div>
-                  <RecordRegister title="Award notifications" records={recommendationDetail?.awardNotifications ?? []} />
-                </section>
-                <section>
-                  <div className="panel-heading"><div><span className="section-kicker">Budget</span><h2>Budget commitments</h2></div><StatusBadge value={`${recommendationDetail?.budgetCommitments?.length ?? 0} commitments`} /></div>
-                  <RecordRegister title="Budget commitments" records={recommendationDetail?.budgetCommitments ?? []} />
-                </section>
-              </div>
             </section>
+            </AwardContractAccessProvider>
           ) : null}
         </main>
       </div>

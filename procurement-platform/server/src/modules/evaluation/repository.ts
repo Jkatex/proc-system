@@ -8,6 +8,7 @@ import {
   type Prisma,
   type PrismaClient
 } from '@prisma/client';
+import { randomBytes } from 'node:crypto';
 import { prisma } from '../../db/prisma.js';
 import type { EvaluationDecisionStatus, EvaluationRecordsQuery, EvaluationRequestContext, SaveEvaluationWorkspaceInput } from './types.js';
 
@@ -22,6 +23,10 @@ const lockableTenderStatuses = [TenderStatus.PUBLISHED, TenderStatus.OPEN] as co
 
 const draftEvaluationStatuses = [EvaluationStatus.IN_PROGRESS, EvaluationStatus.RETURNED] as const;
 const decisionStatuses: EvaluationDecisionStatus[] = ['PENDING', 'PASSED', 'FAILED', 'NEEDS_CLARIFICATION', 'RECOMMENDED'];
+
+function awardReference() {
+  return `PX-AWD-${new Date().getUTCFullYear()}-${randomBytes(4).toString('hex').toUpperCase()}`;
+}
 
 const workspaceTenderInclude = {
   buyerOrg: {
@@ -644,6 +649,7 @@ export class ModuleRepository {
           } else {
             await tx.awardRecommendation.create({
               data: {
+                reference: awardReference(),
                 workspaceId: workspace.id,
                 ...recommendationData
               }

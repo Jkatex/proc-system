@@ -6,6 +6,7 @@ import { useAppDispatch, useAppSelector } from '@/app/store';
 import { accountApi, type AccountActivityEvent } from '@/features/account/api';
 import { assumeUser, signOut, signOutSession } from '@/features/auth/slice';
 import i18nInstance, { ensureProcurexStaticNamespace, hasProcurexStaticNamespace } from '@/i18n';
+import { AccountMenu } from '@/shared/components/AccountMenu';
 import { demoUsers } from '@/shared/data/fixtures';
 import type { SessionUser } from '@/shared/types/domain';
 import { LanguageSwitcher } from '../LanguageSwitcher';
@@ -1127,6 +1128,15 @@ function prepareLanguageSwitcherMount(root: HTMLElement) {
   return root.querySelector<HTMLElement>(languageMountSelector) || insertLanguageHost(root, document);
 }
 
+function prepareStaticAccountMenuMount(root: HTMLElement) {
+  root.querySelectorAll<HTMLElement>('[data-profile-menu]').forEach((menu) => menu.remove());
+  const host = root.querySelector<HTMLElement>('.profile-menu-wrap');
+  if (!host) return null;
+  host.replaceChildren();
+  host.dataset.procurexAccountMenuMount = 'true';
+  return host;
+}
+
 type AuthDemoAccount = {
   email: string;
   password: string;
@@ -1494,6 +1504,7 @@ function handleRegisterSubmit(form: HTMLFormElement, root: HTMLElement) {
 export function ProcurexStaticPage({ pageKey, html, onInitialize }: ProcurexStaticPageProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [languageMount, setLanguageMount] = useState<HTMLElement | null>(null);
+  const [accountMenuMount, setAccountMenuMount] = useState<HTMLElement | null>(null);
   const [staticTranslationVersion, setStaticTranslationVersion] = useState(0);
   const location = useLocation();
   const navigate = useNavigate();
@@ -1531,11 +1542,13 @@ export function ProcurexStaticPage({ pageKey, html, onInitialize }: ProcurexStat
       syncMarketplaceRouteTab(root);
       initializeAuthPage(root, pageKey);
       setLanguageMount(prepareLanguageSwitcherMount(root));
+      setAccountMenuMount(prepareStaticAccountMenuMount(root));
       if (pageKey === 'bid-evaluation') scrollPageToTop();
     }
 
     return () => {
       delete document.body.dataset.procurexReactPage;
+      setAccountMenuMount(null);
     };
   }, [pageKey, staticHtml, i18n.language, location.key, location.pathname, location.search, user]);
 
@@ -1558,6 +1571,7 @@ export function ProcurexStaticPage({ pageKey, html, onInitialize }: ProcurexStat
 
     initializeStaticPage(root, i18n.language, pageKey, location.search);
     personalizeStaticChrome(root, user);
+    setAccountMenuMount(prepareStaticAccountMenuMount(root));
     initializeAuthPage(root, pageKey);
     if (pageKey === 'bid-evaluation') scrollPageToTop();
   }, [pageKey, staticHtml, i18n.language, location.key, location.search, languageMount, user]);
@@ -2082,6 +2096,7 @@ export function ProcurexStaticPage({ pageKey, html, onInitialize }: ProcurexStat
   return (
     <>
       {languageMount ? createPortal(<LanguageSwitcher />, languageMount) : null}
+      {accountMenuMount ? createPortal(<AccountMenu buttonClassName="profile-button" />, accountMenuMount) : null}
       <div
         key={staticPageInstanceKey}
         ref={rootRef}

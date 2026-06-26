@@ -1,9 +1,15 @@
 import type { MouseEvent, ReactNode } from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '@/app/store';
-import { signOut } from '@/features/auth/slice';
-import type { AwardQueueId, BadgeTone } from '../../types';
+import { useAppSelector } from '@/app/store';
+import { AccountMenu } from '@/shared/components/AccountMenu';
+import {
+  PlatformAppsButton,
+  PlatformAppsDrawer,
+  resolvePlatformAppRoute,
+  type PlatformAppPageKey
+} from '@/shared/components/procurex/PlatformAppsDrawer';
+import type { AwardQueueId, BadgeTone, LifecycleAction } from '../../types';
 import { awardQueueLabels } from '../../fixtures';
 
 type FrameProps = {
@@ -34,24 +40,6 @@ const routeByPage: Record<string, string> = {
   'records-history': '/records'
 };
 
-const appMenuItems = [
-  ['app-menu-iam', 'account-profile', 'Registration and Verification', 'Account and identity verification'],
-  ['app-menu-procurement', 'tender-planning', 'Procurement Planning', 'APP, SPP, budgets, approvals'],
-  ['app-menu-procurement', 'marketplace', 'Procurement', 'Marketplace, create tender, bid'],
-  ['app-menu-communication', 'communication-center', 'Communication Center', 'Messages, clarifications, alerts'],
-  ['app-menu-evaluation', 'bid-evaluation', 'Evaluation', 'Evaluate bids on your tenders'],
-  ['app-menu-awarding', 'awarding-contracts', 'Awarding and Contract', 'Awards, negotiations, signatures'],
-  ['app-menu-contracts', 'records-history', 'Records and History', 'Past tenders, bids, awards']
-] as const;
-
-function initials(name?: string | null) {
-  const parts = String(name || 'ProcureX user')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-  return (parts[0]?.[0] || 'P').toUpperCase() + (parts.length > 1 ? (parts[1]?.[0] || '').toUpperCase() : '');
-}
-
 export function routeWithSearch(path: string, routeSearch = '') {
   if (!routeSearch) return path;
   return `${path}?${routeSearch.replace(/^\?/, '')}`;
@@ -59,6 +47,31 @@ export function routeWithSearch(path: string, routeSearch = '') {
 
 export function formatMoney(value: number, currency = 'TZS') {
   return `${currency} ${value.toLocaleString()}`;
+}
+
+export type WorkflowSection<TId extends string> = {
+  id: TId;
+  label: string;
+  description: string;
+  count?: number;
+};
+
+export function recordText(record: Record<string, unknown>, key: string, fallback = '') {
+  const value = record[key];
+  return value === null || value === undefined || value === '' ? fallback : String(value);
+}
+
+export function shortId(value: string) {
+  if (!value) return '';
+  return value.length <= 12 ? value : `${value.slice(0, 8)}...${value.slice(-4)}`;
+}
+
+export function recordTitle(record: Record<string, unknown>) {
+  return recordText(
+    record,
+    'title',
+    recordText(record, 'subject', recordText(record, 'reference', recordText(record, 'inspectionNo', recordText(record, 'certificateNo', recordText(record, 'confirmationReference', recordText(record, 'commitmentNo', recordText(record, 'scoreType', recordText(record, 'forecastType', recordText(record, 'routeKey', recordText(record, 'notificationType', recordText(record, 'budgetCode', recordText(record, 'type', 'Record'))))))))))))
+  );
 }
 
 export function badgeTone(value: string): BadgeTone {
@@ -79,9 +92,9 @@ export function StatusBadge({ value, tone }: { value: string; tone?: BadgeTone }
 
 export function ProcurexAwardFrame({ pageKey, children }: FrameProps) {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
-  const [openMenu, setOpenMenu] = useState<'apps' | 'profile' | null>(null);
+  const [appsOpen, setAppsOpen] = useState(false);
+  const headerRef = useRef<HTMLElement | null>(null);
   const organizationLabel = user?.organization || 'ProcureX account tools';
 
   useEffect(() => {
@@ -92,25 +105,37 @@ export function ProcurexAwardFrame({ pageKey, children }: FrameProps) {
     };
   }, [pageKey]);
 
-  function handleClick(event: MouseEvent<HTMLDivElement>) {
-    const target = event.target as HTMLElement;
-    const menuButton = target.closest<HTMLElement>('[data-app-menu-toggle], [data-profile-menu-toggle]');
-    const navTarget = target.closest<HTMLElement>('[data-navigate]');
-
-    if (menuButton) {
-      event.preventDefault();
-      setOpenMenu((current) => {
-        const next = menuButton.hasAttribute('data-app-menu-toggle') ? 'apps' : 'profile';
-        return current === next ? null : next;
-      });
-      return;
+  useEffect(() => {
+    function handleDocumentClick(event: PointerEvent) {
+      if (!headerRef.current?.contains(event.target as Node)) setAppsOpen(false);
     }
 
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setAppsOpen(false);
+    }
+
+    document.addEventListener('pointerdown', handleDocumentClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handleDocumentClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  function selectPlatformApp(pageKey: PlatformAppPageKey) {
+    setAppsOpen(false);
+    navigate(resolvePlatformAppRoute(pageKey));
+  }
+
+  function handleClick(event: MouseEvent<HTMLDivElement>) {
+    const target = event.target as HTMLElement;
+    const navTarget = target.closest<HTMLElement>('[data-navigate]');
+
     if (navTarget) {
+      if (navTarget.closest('[data-app-menu]')) return;
       event.preventDefault();
       const page = navTarget.getAttribute('data-navigate') || 'workspace-dashboard';
       const routeSearch = navTarget.getAttribute('data-route-search') || '';
-      if (page === 'sign-in') dispatch(signOut());
       navigate(routeWithSearch(routeByPage[page] || '/', routeSearch));
     }
   }
@@ -125,7 +150,7 @@ export function ProcurexAwardFrame({ pageKey, children }: FrameProps) {
       data-procurex-route-search={typeof window === 'undefined' ? '' : window.location.search}
       onClick={handleClick}
     >
-      <header className="app-topbar">
+      <header className="app-topbar" ref={headerRef}>
         <div className="app-topbar-left">
           <button className="app-brand-button" type="button" data-navigate="workspace-dashboard">
             <span className="platform-logo">
@@ -136,74 +161,13 @@ export function ProcurexAwardFrame({ pageKey, children }: FrameProps) {
         </div>
 
         <div className="app-topbar-actions">
-          <button
-            className="icon-menu-btn"
-            type="button"
-            data-app-menu-toggle
-            aria-label="Open apps"
-            aria-expanded={openMenu === 'apps'}
-          >
-            {Array.from({ length: 9 }).map((_, index) => (
-              <span key={index} />
-            ))}
-          </button>
+          <PlatformAppsButton expanded={appsOpen} onClick={() => setAppsOpen((current) => !current)} />
           <div className="profile-menu-wrap">
-            <button
-              className="profile-button"
-              type="button"
-              data-profile-menu-toggle
-              aria-label="Open profile menu"
-              aria-expanded={openMenu === 'profile'}
-            >
-              <span>{initials(user?.displayName)}</span>
-            </button>
+            <AccountMenu buttonClassName="profile-button" />
           </div>
         </div>
 
-        <div className={`app-drawer-menu${openMenu === 'apps' ? ' open' : ''}`} data-app-menu>
-          <div className="app-menu-header">
-            <div className="app-menu-brand">
-              <span className="platform-logo platform-logo-sm">
-                <img className="platform-logo-image" src="/assets/logo.svg" alt="ProcureX" />
-              </span>
-              <strong>ProcureX Apps</strong>
-            </div>
-            <span>{organizationLabel}</span>
-          </div>
-          {appMenuItems.map(([className, nav, title, note]) => (
-            <button className={`app-menu-card ${className}`} type="button" data-navigate={nav} key={nav}>
-              <span className="app-menu-icon">
-                <svg
-                  className="app-menu-svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.1"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M4 4h16v16H4z" />
-                  <path d="M8 8h8" />
-                  <path d="M8 12h8" />
-                  <path d="M8 16h5" />
-                </svg>
-              </span>
-              <span>
-                <strong>{title}</strong>
-                <em>{note}</em>
-              </span>
-            </button>
-          ))}
-        </div>
-
-        <div className={`profile-menu${openMenu === 'profile' ? ' open' : ''}`} data-profile-menu>
-          <button type="button" data-navigate="account-profile">Profile</button>
-          <button type="button" data-navigate="communication-center">Messages</button>
-          <button type="button">Help</button>
-          <button type="button">Language</button>
-          <button type="button" data-navigate="sign-in">Logout</button>
-        </div>
+        <PlatformAppsDrawer open={appsOpen} organizationLabel={organizationLabel} onSelect={selectPlatformApp} />
       </header>
       {children}
     </div>
@@ -233,7 +197,6 @@ export function AwardSidebar({ title, subtitle, activeQueue = 'my-urgent-actions
         ))}
         {extraItems}
         <li><a href="#" data-navigate="workspace-dashboard">Workspace Dashboard</a></li>
-        <li><a href="#" data-navigate="sign-in">Logout</a></li>
       </ul>
     </aside>
   );
@@ -282,6 +245,166 @@ export function TopSummary({ items }: { items: Array<{ label: string; value: Rea
         </div>
       ))}
     </section>
+  );
+}
+
+export function WorkflowSectionTabs<TId extends string>({
+  sections,
+  active,
+  onSelect,
+  label = 'Workflow sections'
+}: {
+  sections: Array<WorkflowSection<TId>>;
+  active: TId;
+  onSelect: (id: TId) => void;
+  label?: string;
+}) {
+  return (
+    <div className="award-workflow-tabs" role="tablist" aria-label={label}>
+      {sections.map((section) => (
+        <button
+          className={`award-workflow-tab${active === section.id ? ' active' : ''}`}
+          type="button"
+          role="tab"
+          aria-selected={active === section.id}
+          onClick={() => onSelect(section.id)}
+          key={section.id}
+        >
+          <strong>{section.label}</strong>
+          <span>{section.description}</span>
+          {section.count !== undefined ? <em>{section.count}</em> : null}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function ActionWorkspace({
+  kicker,
+  title,
+  badge,
+  context,
+  children
+}: {
+  kicker: string;
+  title: string;
+  badge: string;
+  context: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="award-action-workspace">
+      <section className="award-workspace-card">
+        <div className="panel-heading">
+          <div>
+            <span className="section-kicker">{kicker}</span>
+            <h2>{title}</h2>
+          </div>
+          <StatusBadge value={badge} />
+        </div>
+        {context}
+      </section>
+      <div className="award-action-stack">{children}</div>
+    </div>
+  );
+}
+
+export function RecordRegister({
+  title,
+  records,
+  headers = ['Record', 'Status', 'Detail', 'Created'],
+  emptyMessage
+}: {
+  title: string;
+  records: Array<Record<string, unknown>>;
+  headers?: string[];
+  emptyMessage?: string;
+}) {
+  return (
+    <SimpleTable headers={headers} className="award-record-register">
+      {records.length === 0 ? (
+        <tr><td colSpan={headers.length}><div className="scope-empty award-register-empty">{emptyMessage ?? `No ${title.toLowerCase()} records yet.`}</div></td></tr>
+      ) : records.map((record) => (
+        <tr key={recordText(record, 'id', JSON.stringify(record))}>
+          <td>
+            <div className="award-record-title">
+              <strong>{recordTitle(record)}</strong>
+              {recordText(record, 'id') ? <span>ID {shortId(recordText(record, 'id'))}</span> : null}
+            </div>
+          </td>
+          <td><StatusBadge value={recordText(record, 'status', recordText(record, 'riskLevel', 'Recorded'))} /></td>
+          <td>{recordText(record, 'note', recordText(record, 'summary', recordText(record, 'amount', recordText(record, 'paidAmount', recordText(record, 'score', recordText(record, 'probability', '-'))))))}</td>
+          <td>{recordText(record, 'createdAt') ? new Date(recordText(record, 'createdAt')).toLocaleDateString() : '-'}</td>
+        </tr>
+      ))}
+    </SimpleTable>
+  );
+}
+
+export function RegisterCard({
+  kicker,
+  title,
+  records,
+  countLabel = 'records'
+}: {
+  kicker: string;
+  title: string;
+  records: Array<Record<string, unknown>>;
+  countLabel?: string;
+}) {
+  return (
+    <section className="award-register-card">
+      <div className="panel-heading">
+        <div>
+          <span className="section-kicker">{kicker}</span>
+          <h2>{title}</h2>
+        </div>
+        <StatusBadge value={`${records.length} ${countLabel}`} />
+      </div>
+      <RecordRegister title={title} records={records} />
+    </section>
+  );
+}
+
+export function LifecycleActionCard({
+  row,
+  actionLabel,
+  onAction
+}: {
+  row: LifecycleAction;
+  actionLabel?: string;
+  onAction: (row: LifecycleAction) => void;
+}) {
+  const disabled = row.nextAction?.canAct === false;
+  return (
+    <article className="award-lifecycle-card">
+      <div className="award-lifecycle-card-head">
+        <div>
+          <strong>{row.title}</strong>
+          <span>{row.reference ?? row.noticeReference ?? row.otherParty}</span>
+        </div>
+        <StatusBadge value={row.roleContext === 'BUYER' ? 'Buyer' : 'Supplier'} />
+      </div>
+      <div className="award-lifecycle-card-meta">
+        <span><em>Stage</em>{row.currentStage}</span>
+        <span><em>Status</em><StatusBadge value={row.status} /></span>
+        <span><em>Risk</em><StatusBadge value={row.riskLevel} /></span>
+        <span><em>Due</em>{row.dueDate ? new Date(row.dueDate).toLocaleDateString() : 'Not dated'}</span>
+        <span><em>Value</em>{row.amount === null ? 'Not priced' : formatMoney(row.amount, row.currency)}</span>
+      </div>
+      <div className="award-lifecycle-card-action">
+        <span>{row.requiredAction}</span>
+        <button
+          className="btn btn-primary btn-sm"
+          type="button"
+          disabled={disabled}
+          title={row.nextAction?.disabledReason ?? row.requiredAction}
+          onClick={() => onAction(row)}
+        >
+          {actionLabel ?? row.nextAction?.label ?? row.requiredAction}
+        </button>
+      </div>
+    </article>
   );
 }
 

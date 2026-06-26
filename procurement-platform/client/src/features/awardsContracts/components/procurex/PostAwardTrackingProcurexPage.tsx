@@ -9,88 +9,38 @@ import {
   itemOptions,
   lifecycleStatusOptions,
   milestoneStatusOptions,
+  recordPickerOptions,
   riskLevelOptions,
   terminationStatusOptions,
   terminationTypeOptions
 } from './AwardContractActionForms';
+import { AwardContractAccessProvider } from './AwardContractRoleAccess';
 import {
   AwardHero,
   AwardSidebar,
   ProcurexAwardFrame,
+  RegisterCard,
   SimpleTable,
-  StatusBadge
+  StatusBadge,
+  WorkflowSectionTabs,
+  type WorkflowSection
 } from './AwardsContractsProcurexShared';
 
 function getContractId(search: string) {
   return new URLSearchParams(search).get('contract') || '';
 }
 
-function LifecycleTable({ title, items }: { title: string; items: ContractLifecycleItemDto[] }) {
-  return (
-    <section className="procurement-panel evaluation-panel post-award-panel">
-      <div className="panel-heading">
-        <div><span className="section-kicker">{title}</span><h2>{title}</h2></div>
-        <StatusBadge value={`${items.length} records`} />
-      </div>
-      <SimpleTable headers={['Item', 'Type', 'Status', 'Due / Created', 'Note']}>
-        {items.length === 0 ? (
-          <tr><td colSpan={5}><div className="scope-empty">No {title.toLowerCase()} records yet.</div></td></tr>
-        ) : items.map((item) => (
-          <tr key={item.id}>
-            <td><strong>{item.title}</strong></td>
-            <td>{item.type}</td>
-            <td><StatusBadge value={item.status} /></td>
-            <td>{item.dueDate ? new Date(item.dueDate).toLocaleDateString() : new Date(item.createdAt).toLocaleDateString()}</td>
-            <td>{item.note || 'No note'}</td>
-          </tr>
-        ))}
-      </SimpleTable>
-    </section>
-  );
-}
+type PostAwardGroupId = 'cmp' | 'delivery' | 'inspections' | 'payments' | 'risk' | 'changes' | 'termination' | 'warranty' | 'closeout' | 'performance' | 'registers';
 
-function recordText(record: Record<string, unknown>, key: string, fallback = '') {
-  const value = record[key];
-  return value === null || value === undefined || value === '' ? fallback : String(value);
-}
-
-function recordOptions(records: Array<Record<string, unknown>>, emptyLabel: string) {
-  return [
-    { value: '', label: emptyLabel },
-    ...records.map((record) => ({
-      value: recordText(record, 'id'),
-      label: `${recordText(record, 'title', recordText(record, 'reference', recordText(record, 'inspectionNo', recordText(record, 'scoreType', recordText(record, 'forecastType', 'Record')))))}${record.status ? ` (${recordText(record, 'status')})` : ''}`
-    })).filter((record) => record.value)
-  ];
-}
-
-function RecordTable({ title, items }: { title: string; items: Array<Record<string, unknown>> }) {
-  return (
-    <section className="procurement-panel evaluation-panel post-award-panel">
-      <div className="panel-heading">
-        <div><span className="section-kicker">{title}</span><h2>{title}</h2></div>
-        <StatusBadge value={`${items.length} records`} />
-      </div>
-      <SimpleTable headers={['Record', 'Status', 'Amount / Score', 'Created']}>
-        {items.length === 0 ? (
-          <tr><td colSpan={4}><div className="scope-empty">No {title.toLowerCase()} records yet.</div></td></tr>
-        ) : items.map((item) => (
-          <tr key={recordText(item, 'id', JSON.stringify(item))}>
-            <td><strong>{recordText(item, 'title', recordText(item, 'reference', recordText(item, 'inspectionNo', recordText(item, 'scoreType', recordText(item, 'forecastType', 'Record')))))}</strong><span>{recordText(item, 'id')}</span></td>
-            <td><StatusBadge value={recordText(item, 'status', recordText(item, 'riskLevel', 'Recorded'))} /></td>
-            <td>{recordText(item, 'amount', recordText(item, 'paidAmount', recordText(item, 'score', recordText(item, 'probability', '-'))))}</td>
-            <td>{recordText(item, 'createdAt') ? new Date(recordText(item, 'createdAt')).toLocaleDateString() : '-'}</td>
-          </tr>
-        ))}
-      </SimpleTable>
-    </section>
-  );
+function asRecords(items: Array<Record<string, unknown>> | ContractLifecycleItemDto[] | undefined) {
+  return (items ?? []) as Array<Record<string, unknown>>;
 }
 
 export function PostAwardTrackingProcurexPage() {
   const location = useLocation();
   const contractId = useMemo(() => getContractId(location.search), [location.search]);
   const [contract, setContract] = useState<ContractDetailDto | null>(null);
+  const [activeGroup, setActiveGroup] = useState<PostAwardGroupId>('cmp');
 
   useEffect(() => {
     let active = true;
@@ -119,8 +69,23 @@ export function PostAwardTrackingProcurexPage() {
   const today = new Date().toISOString().slice(0, 10);
   const invoices = contract?.invoices ?? [];
   const payments = contract?.payments ?? [];
-  const invoiceOptions = recordOptions(invoices, 'Select invoice');
-  const paymentOptions = recordOptions(payments, 'Select payment');
+  const purchaseOrders = contract?.purchaseOrders ?? [];
+  const invoiceOptions = recordPickerOptions(invoices, 'Select invoice');
+  const paymentOptions = recordPickerOptions(payments, 'Select payment');
+  const purchaseOrderOptions = recordPickerOptions(purchaseOrders, 'No linked purchase order');
+  const sections: Array<WorkflowSection<PostAwardGroupId>> = [
+    { id: 'cmp', label: 'CMP', description: 'Plan and status.', count: contract?.managementPlan ? 1 : 0 },
+    { id: 'delivery', label: 'Delivery', description: 'Mobilization and milestones.', count: (contract?.mobilizationItems.length ?? 0) + (contract?.milestones.length ?? 0) + (contract?.deliverables?.length ?? 0) },
+    { id: 'inspections', label: 'Inspections', description: 'Inspection and acceptance.', count: (contract?.inspections.length ?? 0) + (contract?.goodsInspections?.length ?? 0) + (contract?.acceptances?.length ?? 0) },
+    { id: 'payments', label: 'Payments', description: 'Invoices and approvals.', count: invoices.length + payments.length + (contract?.paymentApprovals?.length ?? 0) },
+    { id: 'risk', label: 'Risk', description: 'Risks and forecasts.', count: (contract?.risks.length ?? 0) + (contract?.riskForecasts?.length ?? 0) },
+    { id: 'changes', label: 'Changes', description: 'Variations, issues, disputes.', count: (contract?.variations.length ?? 0) + (contract?.issues.length ?? 0) + (contract?.disputes.length ?? 0) },
+    { id: 'termination', label: 'Termination', description: 'Termination workflow.', count: contract?.terminations.length ?? 0 },
+    { id: 'warranty', label: 'Warranty', description: 'Defects and documents.', count: (contract?.warranties?.length ?? 0) + (contract?.requiredDocuments?.length ?? 0) },
+    { id: 'closeout', label: 'Close-out', description: 'Completion record.', count: contract?.closeout ? 1 : 0 },
+    { id: 'performance', label: 'Performance', description: 'Scores and supplier risk.', count: (contract?.supplierPerformanceRecords.length ?? 0) + (contract?.performanceScores?.length ?? 0) },
+    { id: 'registers', label: 'Registers', description: 'All saved records.', count: contract ? 1 : 0 }
+  ];
 
   return (
     <ProcurexAwardFrame pageKey="post-award-tracking">
@@ -156,8 +121,20 @@ export function PostAwardTrackingProcurexPage() {
               </div>
             </section>
           ) : (
-            <>
-          <section className="procurement-panel evaluation-panel post-award-panel">
+            <AwardContractAccessProvider access={contract.access}>
+          <section className="procurement-panel evaluation-panel post-award-panel post-award-cmp-panel">
+            <div className="panel-heading">
+              <div>
+                <span className="section-kicker">Post-award workspace</span>
+                <h2>Focused contract management groups</h2>
+              </div>
+              <StatusBadge value={sections.find((section) => section.id === activeGroup)?.label ?? 'CMP'} />
+            </div>
+            <WorkflowSectionTabs sections={sections} active={activeGroup} onSelect={setActiveGroup} label="Post-award tracking sections" />
+          </section>
+          <div className="post-award-grouped" data-post-award-active-group={activeGroup}>
+          {activeGroup === 'cmp' ? (
+          <section className="procurement-panel evaluation-panel post-award-panel post-award-forms-panel">
             <div className="panel-heading">
               <div><span className="section-kicker">Contract Management Plan</span><h2>Objectives and monitoring</h2></div>
               <StatusBadge value={contract.managementPlan ? 'Created' : 'Required'} />
@@ -234,12 +211,16 @@ export function PostAwardTrackingProcurexPage() {
               <tr><td><strong>Communication</strong></td><td>{contract.managementPlan?.communicationPlan || 'Pending'}</td></tr>
             </SimpleTable>
           </section>
-          <section className="procurement-panel evaluation-panel post-award-panel">
+          ) : null}
+          {activeGroup !== 'cmp' && activeGroup !== 'registers' ? (
+          <section className="procurement-panel evaluation-panel post-award-panel post-award-register-panel">
             <div className="panel-heading">
-              <div><span className="section-kicker">Production action forms</span><h2>Record delivery, payment, risk, variation, dispute, termination, closure, and performance</h2></div>
-              <StatusBadge value="All fields" />
+              <div><span className="section-kicker">Production action forms</span><h2>{sections.find((section) => section.id === activeGroup)?.description ?? 'Record contract activity.'}</h2></div>
+              <StatusBadge value={sections.find((section) => section.id === activeGroup)?.label ?? 'Forms'} />
             </div>
             <div className="award-control-grid">
+              {activeGroup === 'delivery' ? (
+              <>
               <ActionFormPanel
                 title="Mobilization update"
                 badge={`${contract.mobilizationItems.length} items`}
@@ -316,6 +297,10 @@ export function PostAwardTrackingProcurexPage() {
                 onSubmit={(payload) => awardsContractsApi.createDeliverable(contract.id, payload)}
                 onComplete={refreshContract}
               />
+              </>
+              ) : null}
+              {activeGroup === 'inspections' ? (
+              <>
               <ActionFormPanel
                 title="Inspection"
                 badge="Inspection"
@@ -342,7 +327,7 @@ export function PostAwardTrackingProcurexPage() {
                 fields={[
                   { name: 'milestoneId', label: 'Milestone', kind: 'select', options: itemOptions(contract.milestones as ContractLifecycleItemDto[], 'No linked milestone') },
                   { name: 'deliverableId', label: 'Deliverable', kind: 'select', options: itemOptions(contract.deliverables ?? [], 'No linked deliverable') },
-                  { name: 'inspectionNo', label: 'Inspection number', kind: 'text', required: true },
+                  { name: 'inspectionNo', label: 'Inspection number', kind: 'text', advanced: true, helpText: 'Leave blank to let ProcureX generate the official goods inspection number.' },
                   { name: 'goodsDescription', label: 'Goods description', kind: 'textarea', required: true },
                   { name: 'quantityOrdered', label: 'Quantity ordered', kind: 'number', min: 0, step: '0.01' },
                   { name: 'quantityReceived', label: 'Quantity received', kind: 'number', min: 0, step: '0.01' },
@@ -356,7 +341,7 @@ export function PostAwardTrackingProcurexPage() {
                   { name: 'note', label: 'Inspection note', kind: 'textarea' },
                   { name: 'payload', label: 'Goods inspection payload', kind: 'json', rows: 4 }
                 ]}
-                initialValues={{ inspectionNo: `GI-${Date.now()}`, goodsDescription: contract.title, unit: 'each', result: 'APPROVED', defects: '[]', payload: '{}' }}
+                initialValues={{ goodsDescription: contract.title, unit: 'each', result: 'APPROVED', defects: '[]', payload: '{}' }}
                 onSubmit={(payload) => awardsContractsApi.createGoodsInspection(contract.id, payload)}
                 onComplete={refreshContract}
               />
@@ -366,7 +351,7 @@ export function PostAwardTrackingProcurexPage() {
                 fields={[
                   { name: 'deliverableId', label: 'Deliverable', kind: 'select', options: itemOptions(contract.deliverables ?? [], 'No linked deliverable') },
                   { name: 'inspectionId', label: 'Inspection', kind: 'select', options: itemOptions(contract.inspections, 'No linked inspection') },
-                  { name: 'certificateNo', label: 'Certificate number', kind: 'text' },
+                  { name: 'certificateNo', label: 'Certificate number', kind: 'text', advanced: true, helpText: 'Leave blank to let ProcureX generate the acceptance certificate number.' },
                   { name: 'status', label: 'Status', kind: 'select', options: lifecycleStatusOptions },
                   { name: 'acceptedValue', label: 'Accepted value', kind: 'number', min: 0, step: '0.01' },
                   { name: 'currency', label: 'Currency', kind: 'currency' },
@@ -378,6 +363,10 @@ export function PostAwardTrackingProcurexPage() {
                 onSubmit={(payload) => awardsContractsApi.createAcceptance(contract.id, payload)}
                 onComplete={refreshContract}
               />
+              </>
+              ) : null}
+              {activeGroup === 'payments' ? (
+              <>
               <ActionFormPanel
                 title="Payment schedule"
                 badge="Schedule"
@@ -399,7 +388,7 @@ export function PostAwardTrackingProcurexPage() {
                 badge="Invoice"
                 fields={[
                   { name: 'reference', label: 'Invoice reference', kind: 'text' },
-                  { name: 'purchaseOrderId', label: 'Purchase order ID', kind: 'uuid' },
+                  { name: 'purchaseOrderId', label: 'Purchase order', kind: 'select', options: purchaseOrderOptions },
                   { name: 'supplierOrgId', label: 'Supplier organization ID', kind: 'uuid' },
                   { name: 'amount', label: 'Amount', kind: 'number', min: 0, step: '0.01', required: true },
                   { name: 'currency', label: 'Currency', kind: 'currency' },
@@ -415,7 +404,7 @@ export function PostAwardTrackingProcurexPage() {
                 badge="3-way"
                 fields={[
                   { name: 'invoiceId', label: 'Invoice', kind: 'select', required: true, options: invoiceOptions },
-                  { name: 'purchaseOrderId', label: 'Purchase order ID', kind: 'uuid' },
+                  { name: 'purchaseOrderId', label: 'Purchase order', kind: 'select', options: purchaseOrderOptions },
                   { name: 'acceptanceId', label: 'Acceptance', kind: 'select', options: itemOptions(contract.acceptances ?? [], 'No linked acceptance') },
                   { name: 'status', label: 'Invoice status after match', kind: 'select', options: invoiceStatusOptions },
                   { name: 'poMatched', label: 'PO matched', kind: 'checkbox' },
@@ -503,6 +492,10 @@ export function PostAwardTrackingProcurexPage() {
                 onSubmit={(payload) => awardsContractsApi.createPaymentConfirmation(contract.id, payload)}
                 onComplete={refreshContract}
               />
+              </>
+              ) : null}
+              {activeGroup === 'risk' ? (
+              <>
               <ActionFormPanel
                 title="Risk"
                 badge="Risk"
@@ -563,6 +556,10 @@ export function PostAwardTrackingProcurexPage() {
                 onSubmit={(payload) => awardsContractsApi.createRiskForecast(contract.id, payload)}
                 onComplete={refreshContract}
               />
+              </>
+              ) : null}
+              {activeGroup === 'changes' ? (
+              <>
               <ActionFormPanel
                 title="Variation"
                 badge="Variation"
@@ -671,6 +668,10 @@ export function PostAwardTrackingProcurexPage() {
                 }}
                 onComplete={refreshContract}
               />
+              </>
+              ) : null}
+              {activeGroup === 'termination' ? (
+              <>
               <ActionFormPanel
                 title="Termination"
                 badge="Termination"
@@ -818,6 +819,10 @@ export function PostAwardTrackingProcurexPage() {
                 }}
                 onComplete={refreshContract}
               />
+              </>
+              ) : null}
+              {activeGroup === 'warranty' ? (
+              <>
               <ActionFormPanel
                 title="Warranty / defects"
                 badge="Warranty"
@@ -856,6 +861,10 @@ export function PostAwardTrackingProcurexPage() {
                 onSubmit={(payload) => awardsContractsApi.upsertRequiredDocument(contract.id, payload)}
                 onComplete={refreshContract}
               />
+              </>
+              ) : null}
+              {activeGroup === 'closeout' ? (
+              <>
               <ActionFormPanel
                 title="Close-out"
                 badge="Close-out"
@@ -872,6 +881,10 @@ export function PostAwardTrackingProcurexPage() {
                 onSubmit={(payload) => awardsContractsApi.upsertCloseout(contract.id, payload)}
                 onComplete={refreshContract}
               />
+              </>
+              ) : null}
+              {activeGroup === 'performance' ? (
+              <>
               <ActionFormPanel
                 title="Supplier performance"
                 badge="Performance"
@@ -931,42 +944,105 @@ export function PostAwardTrackingProcurexPage() {
                 onSubmit={(payload) => awardsContractsApi.upsertSupplierRiskProfile(contract.id, payload)}
                 onComplete={refreshContract}
               />
+              </>
+              ) : null}
             </div>
+            {activeGroup === 'delivery' ? (
+              <div className="post-award-register-grid">
+                <RegisterCard kicker="Delivery" title="Mobilization" records={asRecords(contract.mobilizationItems)} />
+                <RegisterCard kicker="Delivery" title="Milestones" records={asRecords(contract.milestones as ContractLifecycleItemDto[])} />
+                <RegisterCard kicker="Delivery" title="Deliverables" records={asRecords(contract.deliverables as ContractLifecycleItemDto[] | undefined)} />
+              </div>
+            ) : null}
+            {activeGroup === 'inspections' ? (
+              <div className="post-award-register-grid">
+                <RegisterCard kicker="Inspections" title="Inspections" records={asRecords(contract.inspections)} />
+                <RegisterCard kicker="Inspections" title="Goods inspections" records={asRecords(contract.goodsInspections)} />
+                <RegisterCard kicker="Inspections" title="Acceptance" records={asRecords(contract.acceptances as ContractLifecycleItemDto[] | undefined)} />
+              </div>
+            ) : null}
+            {activeGroup === 'payments' ? (
+              <div className="post-award-register-grid">
+                <RegisterCard kicker="Payments" title="Payment schedule" records={asRecords(contract.paymentSchedules as ContractLifecycleItemDto[] | undefined)} />
+                <RegisterCard kicker="Payments" title="Purchase orders" records={asRecords(contract.purchaseOrders)} />
+                <RegisterCard kicker="Payments" title="Invoices" records={asRecords(contract.invoices)} />
+                <RegisterCard kicker="Payments" title="Payments" records={asRecords(contract.payments)} />
+                <RegisterCard kicker="Payments" title="Three-way matches" records={asRecords(contract.threeWayMatches)} />
+                <RegisterCard kicker="Payments" title="Payment approvals" records={asRecords(contract.paymentApprovals)} />
+                <RegisterCard kicker="Payments" title="Payment confirmations" records={asRecords(contract.paymentConfirmations)} />
+              </div>
+            ) : null}
+            {activeGroup === 'risk' ? (
+              <div className="post-award-register-grid">
+                <RegisterCard kicker="Risk" title="Risks" records={asRecords(contract.risks as ContractLifecycleItemDto[])} />
+                <RegisterCard kicker="Risk" title="Risk forecasts" records={asRecords(contract.riskForecasts)} />
+              </div>
+            ) : null}
+            {activeGroup === 'changes' ? (
+              <div className="post-award-register-grid">
+                <RegisterCard kicker="Changes" title="Variations" records={asRecords(contract.variations as ContractLifecycleItemDto[])} />
+                <RegisterCard kicker="Changes" title="Issues" records={asRecords(contract.issues)} />
+                <RegisterCard kicker="Changes" title="Disputes" records={asRecords(contract.disputes)} />
+              </div>
+            ) : null}
+            {activeGroup === 'termination' ? (
+              <div className="post-award-register-grid">
+                <RegisterCard kicker="Termination" title="Termination" records={asRecords(contract.terminations as ContractLifecycleItemDto[])} />
+              </div>
+            ) : null}
+            {activeGroup === 'warranty' ? (
+              <div className="post-award-register-grid">
+                <RegisterCard kicker="Warranty" title="Warranty and defects" records={asRecords(contract.warranties as ContractLifecycleItemDto[] | undefined)} />
+                <RegisterCard kicker="Warranty" title="Required documents" records={asRecords(contract.requiredDocuments)} />
+              </div>
+            ) : null}
+            {activeGroup === 'closeout' ? (
+              <div className="post-award-register-grid">
+                <RegisterCard kicker="Close-out" title="Close-out" records={contract.closeout ? [contract.closeout as Record<string, unknown>] : []} countLabel="records" />
+                <RegisterCard kicker="Audit" title="Audit events" records={asRecords(contract.audit)} countLabel="events" />
+              </div>
+            ) : null}
+            {activeGroup === 'performance' ? (
+              <div className="post-award-register-grid">
+                <RegisterCard kicker="Performance" title="Supplier performance" records={asRecords(contract.supplierPerformanceRecords)} />
+                <RegisterCard kicker="Performance" title="Performance scores" records={asRecords(contract.performanceScores)} />
+                <RegisterCard kicker="Risk" title="Supplier risk profile" records={contract.supplierRiskProfile ? [contract.supplierRiskProfile as Record<string, unknown>] : []} countLabel="profiles" />
+              </div>
+            ) : null}
           </section>
-          <LifecycleTable title="Mobilization" items={contract.mobilizationItems} />
-          <LifecycleTable title="Milestones" items={contract.milestones as ContractLifecycleItemDto[]} />
-          <LifecycleTable title="Deliverables" items={(contract.deliverables ?? []) as ContractLifecycleItemDto[]} />
-          <LifecycleTable title="Inspections" items={contract.inspections} />
-          <RecordTable title="Goods inspections" items={contract.goodsInspections ?? []} />
-          <LifecycleTable title="Acceptance" items={(contract.acceptances ?? []) as ContractLifecycleItemDto[]} />
-          <LifecycleTable title="Payment schedule" items={(contract.paymentSchedules ?? []) as ContractLifecycleItemDto[]} />
-          <RecordTable title="Invoices" items={contract.invoices ?? []} />
-          <RecordTable title="Payments" items={contract.payments ?? []} />
-          <RecordTable title="Three-way matches" items={contract.threeWayMatches ?? []} />
-          <RecordTable title="Payment approvals" items={contract.paymentApprovals ?? []} />
-          <RecordTable title="Payment confirmations" items={contract.paymentConfirmations ?? []} />
-          <LifecycleTable title="Risks" items={contract.risks as ContractLifecycleItemDto[]} />
-          <RecordTable title="Risk forecasts" items={contract.riskForecasts ?? []} />
-          <LifecycleTable title="Variations" items={contract.variations as ContractLifecycleItemDto[]} />
-          <LifecycleTable title="Issues" items={contract.issues} />
-          <LifecycleTable title="Disputes" items={contract.disputes} />
-          <LifecycleTable title="Termination" items={contract.terminations as ContractLifecycleItemDto[]} />
-          <LifecycleTable title="Warranty and defects" items={(contract.warranties ?? []) as ContractLifecycleItemDto[]} />
-          <LifecycleTable title="Urgent actions" items={(contract.urgentActions ?? []) as ContractLifecycleItemDto[]} />
-          <section className="procurement-panel evaluation-panel post-award-panel">
-            <div className="panel-heading">
-              <div><span className="section-kicker">Close-out and performance</span><h2>Audit-ready completion record</h2></div>
-              <StatusBadge value={contract.closeout ? 'Close-out started' : 'Close-out pending'} />
+          ) : null}
+          {activeGroup === 'registers' ? (
+            <div className="post-award-register-grid">
+              <RegisterCard kicker="Delivery" title="Mobilization" records={asRecords(contract.mobilizationItems)} />
+              <RegisterCard kicker="Delivery" title="Milestones" records={asRecords(contract.milestones as ContractLifecycleItemDto[])} />
+              <RegisterCard kicker="Delivery" title="Deliverables" records={asRecords(contract.deliverables as ContractLifecycleItemDto[] | undefined)} />
+              <RegisterCard kicker="Inspections" title="Inspections" records={asRecords(contract.inspections)} />
+              <RegisterCard kicker="Inspections" title="Goods inspections" records={asRecords(contract.goodsInspections)} />
+              <RegisterCard kicker="Inspections" title="Acceptance" records={asRecords(contract.acceptances as ContractLifecycleItemDto[] | undefined)} />
+              <RegisterCard kicker="Payments" title="Payment schedule" records={asRecords(contract.paymentSchedules as ContractLifecycleItemDto[] | undefined)} />
+              <RegisterCard kicker="Payments" title="Purchase orders" records={asRecords(contract.purchaseOrders)} />
+              <RegisterCard kicker="Payments" title="Invoices" records={asRecords(contract.invoices)} />
+              <RegisterCard kicker="Payments" title="Payments" records={asRecords(contract.payments)} />
+              <RegisterCard kicker="Payments" title="Three-way matches" records={asRecords(contract.threeWayMatches)} />
+              <RegisterCard kicker="Payments" title="Payment approvals" records={asRecords(contract.paymentApprovals)} />
+              <RegisterCard kicker="Payments" title="Payment confirmations" records={asRecords(contract.paymentConfirmations)} />
+              <RegisterCard kicker="Risk" title="Risks" records={asRecords(contract.risks as ContractLifecycleItemDto[])} />
+              <RegisterCard kicker="Risk" title="Risk forecasts" records={asRecords(contract.riskForecasts)} />
+              <RegisterCard kicker="Changes" title="Variations" records={asRecords(contract.variations as ContractLifecycleItemDto[])} />
+              <RegisterCard kicker="Changes" title="Issues" records={asRecords(contract.issues)} />
+              <RegisterCard kicker="Changes" title="Disputes" records={asRecords(contract.disputes)} />
+              <RegisterCard kicker="Termination" title="Termination" records={asRecords(contract.terminations as ContractLifecycleItemDto[])} />
+              <RegisterCard kicker="Warranty" title="Warranty and defects" records={asRecords(contract.warranties as ContractLifecycleItemDto[] | undefined)} />
+              <RegisterCard kicker="Worklist" title="Urgent actions" records={asRecords(contract.urgentActions as ContractLifecycleItemDto[] | undefined)} />
+              <RegisterCard kicker="Close-out" title="Close-out" records={contract.closeout ? [contract.closeout as Record<string, unknown>] : []} countLabel="records" />
+              <RegisterCard kicker="Performance" title="Supplier performance" records={asRecords(contract.supplierPerformanceRecords)} />
+              <RegisterCard kicker="Performance" title="Performance scores" records={asRecords(contract.performanceScores)} />
+              <RegisterCard kicker="Risk" title="Supplier risk profile" records={contract.supplierRiskProfile ? [contract.supplierRiskProfile as Record<string, unknown>] : []} countLabel="profiles" />
+              <RegisterCard kicker="Audit" title="Audit events" records={asRecords(contract.audit)} countLabel="events" />
             </div>
-            <SimpleTable headers={['Record', 'Status']}>
-              <tr><td><strong>Close-out</strong></td><td>{contract.closeout ? JSON.stringify(contract.closeout) : 'Pending'}</td></tr>
-              <tr><td><strong>Supplier performance</strong></td><td>{contract.supplierPerformanceRecords.length} record(s)</td></tr>
-              <tr><td><strong>Performance scores</strong></td><td>{contract.performanceScores?.length ?? 0} score(s)</td></tr>
-              <tr><td><strong>Supplier risk profile</strong></td><td>{contract.supplierRiskProfile ? JSON.stringify(contract.supplierRiskProfile) : 'Pending'}</td></tr>
-              <tr><td><strong>Audit events</strong></td><td>{contract.audit.length} event(s)</td></tr>
-            </SimpleTable>
-          </section>
-            </>
+          ) : null}
+          </div>
+            </AwardContractAccessProvider>
           )}
         </main>
       </div>

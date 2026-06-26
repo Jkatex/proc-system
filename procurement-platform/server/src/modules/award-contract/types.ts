@@ -49,6 +49,16 @@ export type ContractQuery = {
 };
 
 export type LifecycleRoleContext = 'BUYER' | 'SUPPLIER';
+export type ViewerRole = LifecycleRoleContext | 'ADMIN' | 'NONE';
+
+export type WorkflowAccessDto = {
+  viewerRole: ViewerRole;
+  canManageBuyerActions: boolean;
+  canSubmitSupplierActions: boolean;
+  canSignBuyer: boolean;
+  canSignSupplier: boolean;
+  readOnlyReason: string | null;
+};
 
 export type LifecycleUrgency = 'Critical' | 'High' | 'Medium' | 'Low';
 
@@ -68,6 +78,8 @@ export type LifecycleActionDto = {
   awardId: string | null;
   noticeId: string | null;
   contractId: string | null;
+  reference: string | null;
+  noticeReference: string | null;
   title: string;
   otherParty: string;
   currentStage: string;
@@ -101,6 +113,7 @@ export type AwardContractDashboardDto = {
 
 export type AwardRecommendationListItemDto = {
   id: string;
+  reference: string;
   tenderId: string;
   tenderReference: string;
   tenderTitle: string;
@@ -119,6 +132,7 @@ export type AwardRecommendationListItemDto = {
 
 export type AwardNoticeDto = {
   id: string;
+  reference: string;
   status: AwardNoticeStatus;
   buyerOrgId: string;
   supplierOrgId: string;
@@ -271,6 +285,7 @@ export type AuditEventDto = {
 };
 
 export type AwardRecommendationDetailDto = AwardRecommendationListItemDto & {
+  access: WorkflowAccessDto;
   reason: string;
   notice: AwardNoticeDto | null;
   contract: ContractDetailDto | null;
@@ -291,6 +306,7 @@ export type AwardRecommendationDetailDto = AwardRecommendationListItemDto & {
 };
 
 export type ContractDetailDto = ContractListItemDto & {
+  access: WorkflowAccessDto;
   awardId: string | null;
   noticeId: string | null;
   payload: Record<string, unknown>;
@@ -308,6 +324,7 @@ export type ContractDetailDto = ContractListItemDto & {
   inspections: ContractLifecycleItemDto[];
   goodsInspections: Array<Record<string, unknown>>;
   paymentSchedules: ContractLifecycleItemDto[];
+  purchaseOrders: Array<Record<string, unknown>>;
   invoices: Array<Record<string, unknown>>;
   payments: Array<Record<string, unknown>>;
   threeWayMatches: Array<Record<string, unknown>>;
@@ -705,7 +722,7 @@ export type BudgetCommitmentInput = {
 export type GoodsInspectionInput = {
   milestoneId?: string;
   deliverableId?: string;
-  inspectionNo: string;
+  inspectionNo?: string;
   goodsDescription: string;
   quantityOrdered?: number;
   quantityReceived?: number;

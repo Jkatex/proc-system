@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '@/app/store';
-import { signOut } from '@/features/auth/slice';
+import { useAppSelector } from '@/app/store';
 import { adminApi, type AdminApp } from '@/features/admin/api';
 import { NotificationCard } from '@/shared/components/NotificationCard';
+import { AccountMenu } from '@/shared/components/AccountMenu';
 import { notificationFromApiError } from '@/shared/api/errors';
 import type { CreateNotificationInput } from '@/shared/types/notifications';
 import { PlatformAppsButton, PlatformAppIcon, type PlatformAppIconKind } from '@/shared/components/procurex/PlatformAppsDrawer';
@@ -117,7 +117,6 @@ const adminAppIconByKey: Record<string, PlatformAppIconKind> = {
 };
 
 export function AdminShell({ currentPath, title, children }: { currentPath: string; title: string; children: ReactNode }) {
-  const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
   const [appsOpen, setAppsOpen] = useState(false);
@@ -185,17 +184,9 @@ export function AdminShell({ currentPath, title, children }: { currentPath: stri
           <button className="btn btn-secondary" type="button" onClick={() => navigate('/admin/search')}>
             Search
           </button>
-          <button
-            className="profile-button"
-            type="button"
-            aria-label="Sign out"
-            onClick={() => {
-              dispatch(signOut());
-              navigate('/sign-in');
-            }}
-          >
-            <span>{initials(user?.displayName)}</span>
-          </button>
+          <div className="profile-menu-wrap">
+            <AccountMenu buttonClassName="profile-button" />
+          </div>
         </div>
       </header>
 

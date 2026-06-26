@@ -11,6 +11,7 @@ import {
   clauseBodySchema,
   contractPaymentBodySchema,
   deliverableBodySchema,
+  goodsInspectionBodySchema,
   contractMilestonePatchBodySchema,
   contractSignatureRequestBodySchema,
   contractStatusPatchBodySchema,
@@ -96,6 +97,38 @@ const contractContext = {
   userId,
   isAdmin: false
 };
+
+function makeLifecycleNumberRepository() {
+  const goodsInspectionUpserts: any[] = [];
+  const acceptanceCreates: any[] = [];
+  const contract = {
+    id: '44444444-4444-4444-8444-444444444444',
+    buyerOrgId: organizationId,
+    supplierOrgId: '55555555-5555-4555-8555-555555555555',
+    status: ContractStatus.ACTIVE
+  };
+  const tx = {
+    goodsInspection: {
+      upsert: async (input: any) => {
+        goodsInspectionUpserts.push(input);
+        return input.create;
+      }
+    },
+    contractAcceptance: {
+      create: async (input: any) => {
+        acceptanceCreates.push(input);
+        return input.data;
+      }
+    }
+  };
+  const repository = new ModuleRepository({
+    $transaction: async (callback: any) => callback(tx)
+  } as any);
+  (repository as any).requireContract = async () => contract;
+  (repository as any).audit = async () => undefined;
+  (repository as any).getContract = async () => ({ id: contract.id });
+  return { repository, goodsInspectionUpserts, acceptanceCreates };
+}
 
 describe('award-contract module', () => {
   it('normalizes award recommendation query defaults', () => {
@@ -237,6 +270,23 @@ describe('award-contract module', () => {
     expect(auditEvents[0].data.event).toBe('contract.signature.signed');
   });
 
+  it('generates goods inspection and acceptance numbers when omitted', async () => {
+    const { repository, goodsInspectionUpserts, acceptanceCreates } = makeLifecycleNumberRepository();
+
+    await expect(
+      repository.createGoodsInspection('44444444-4444-4444-8444-444444444444', { goodsDescription: 'Laptop delivery', payload: {} }, contractContext)
+    ).resolves.toMatchObject({ id: '44444444-4444-4444-8444-444444444444' });
+
+    expect(goodsInspectionUpserts[0].where.contractId_inspectionNo.inspectionNo).toMatch(/^PX-GI-\d{4}-[A-F0-9]{8}$/);
+    expect(goodsInspectionUpserts[0].create.inspectionNo).toBe(goodsInspectionUpserts[0].where.contractId_inspectionNo.inspectionNo);
+
+    await expect(
+      repository.createAcceptance('44444444-4444-4444-8444-444444444444', { acceptedValue: 1000, currency: 'TZS', payload: {} }, contractContext)
+    ).resolves.toMatchObject({ id: '44444444-4444-4444-8444-444444444444' });
+
+    expect(acceptanceCreates[0].data.certificateNo).toMatch(/^PX-ACPT-\d{4}-[A-F0-9]{8}$/);
+  });
+
   it('validates lifecycle risk and termination payloads', () => {
     expect(
       riskBodySchema.parse({
@@ -290,8 +340,19 @@ describe('award-contract module', () => {
       payload: {}
     });
 
+    expect(goodsInspectionBodySchema.parse({ goodsDescription: 'Laptop delivery' })).toMatchObject({
+      goodsDescription: 'Laptop delivery',
+      payload: {}
+    });
+
     expect(acceptanceBodySchema.parse({ certificateNo: 'ACC-1', acceptedValue: 1000 })).toMatchObject({
       certificateNo: 'ACC-1',
+      acceptedValue: 1000,
+      currency: 'TZS',
+      payload: {}
+    });
+
+    expect(acceptanceBodySchema.parse({ acceptedValue: 1000 })).toMatchObject({
       acceptedValue: 1000,
       currency: 'TZS',
       payload: {}
@@ -324,9 +385,9 @@ describe('award-contract module', () => {
       payload: {}
     });
 
-    expect(workflowApprovalBodySchema.parse({ stepKey: 'legal-review', role: 'Legal Officer', status: ContractLifecycleItemStatus.APPROVED })).toMatchObject({
-      stepKey: 'legal-review',
-      role: 'Legal Officer',
+    expect(workflowApprovalBodySchema.parse({ stepKey: 'contract-owner-approval', role: 'Contract Owner', status: ContractLifecycleItemStatus.APPROVED })).toMatchObject({
+      stepKey: 'contract-owner-approval',
+      role: 'Contract Owner',
       status: ContractLifecycleItemStatus.APPROVED,
       payload: {}
     });
