@@ -15,7 +15,10 @@ import type {
   ProcurementPlanningQuery,
   ProcurementMarketplacePayload,
   SaveAnnualPlanInput,
+  SavedTendersPayload,
+  SaveTenderResponseDto,
   TenderDetailDto,
+  UnsaveTenderResponseDto,
   UpdateTenderInput,
   UpdateTenderResponseDto,
   UpdateProcurementPlanInput
@@ -132,7 +135,7 @@ export class ModuleRepository {
 
   async getMarketplaceData(context: { organizationId?: string }, query: MarketplaceQuery): Promise<ProcurementMarketplacePayload> {
     const publicWhere = marketplaceWhere(query);
-    const [matchingTenders, myTenderRecords, myBidRecords] = await Promise.all([
+    const [matchingTenders, myTenderRecords, myBidRecords, savedTenderRecords] = await Promise.all([
       this.db.tender.findMany({
         where: publicWhere,
         include: marketplaceTenderInclude,
@@ -174,14 +177,21 @@ export class ModuleRepository {
             orderBy: [{ updatedAt: 'desc' }],
             take: 500
           })
+        : Promise.resolve([]),
+      context.organizationId
+        ? this.db.savedTender.findMany({
+            where: { organizationId: context.organizationId },
+            select: { tenderId: true }
+          })
         : Promise.resolve([])
     ]);
 
     const sortedTenders = sortMarketplaceTenders(matchingTenders, query.sort);
     const pagedTenders = sortedTenders.slice((query.page - 1) * query.limit, query.page * query.limit);
-    const rows = pagedTenders.map((tender) => toMarketplaceTenderRow(tender, context.organizationId));
-    const myTenders = myTenderRecords.map((tender) => toMyTenderRow(tender, context.organizationId));
-    const myBids = myBidRecords.map((bid) => toMyBidRow(bid, context.organizationId));
+    const savedTenderIds = new Set(savedTenderRecords.map((record) => record.tenderId));
+    const rows = pagedTenders.map((tender) => toMarketplaceTenderRow(tender, context.organizationId, savedTenderIds));
+    const myTenders = myTenderRecords.map((tender) => toMyTenderRow(tender, context.organizationId, savedTenderIds));
+    const myBids = myBidRecords.map((bid) => toMyBidRow(bid, context.organizationId, savedTenderIds));
 
     return {
       tenders: rows,
@@ -390,6 +400,66 @@ export class ModuleRepository {
       }
     });
     return tender ? toCloseTenderResponseDto(tender) : null;
+  }
+
+  async saveTender(tenderId: string, context: { organizationId: string; userId: string }): Promise<SaveTenderResponseDto> {
+    const tender = await this.db.tender.findUnique({
+      where: { id: tenderId },
+      select: {
+        id: true,
+        buyerOrgId: true,
+        status: true,
+        visibility: true
+      }
+    });
+    if (!tender) throw requestError('Tender was not found.', 404);
+    if (tender.buyerOrgId === context.organizationId) throw requestError('You cannot save your own tender.', 409);
+    if (!isPublicOpenTender(tender)) throw requestError('Only public open tenders can be saved.', 409);
+
+    try {
+      await this.db.savedTender.create({
+        data: {
+          tenderId,
+          organizationId: context.organizationId,
+          userId: context.userId
+        }
+      });
+    } catch (error) {
+      if (!isUniqueConstraintError(error)) throw error;
+    }
+
+    return savedTenderResponse();
+  }
+
+  async unsaveTender(tenderId: string, organizationId: string): Promise<UnsaveTenderResponseDto> {
+    await this.db.savedTender.deleteMany({
+      where: {
+        tenderId,
+        organizationId
+      }
+    });
+    return unsaveTenderResponse();
+  }
+
+  async getSavedTenders(organizationId: string): Promise<SavedTendersPayload> {
+    const savedTenders = await this.db.savedTender.findMany({
+      where: {
+        organizationId,
+        tender: {
+          visibility: Visibility.PUBLIC_MARKETPLACE
+        }
+      },
+      include: {
+        tender: { include: marketplaceTenderInclude }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 500
+    });
+
+    const savedTenderIds = new Set(savedTenders.map((record) => record.tenderId));
+    return {
+      tenders: savedTenders.map((record) => toMarketplaceTenderRow(record.tender, organizationId, savedTenderIds))
+    };
   }
 
   async listPlans(query: ProcurementPlanningQuery) {
@@ -749,7 +819,7 @@ function sortMarketplaceTenders(tenders: MarketplaceTenderRecord[], sort: Market
   });
 }
 
-function toMarketplaceTenderRow(tender: MarketplaceTenderRecord, organizationId?: string): MarketplaceTenderRow {
+function toMarketplaceTenderRow(tender: MarketplaceTenderRecord, organizationId?: string, savedTenderIds: Set<string> = new Set()): MarketplaceTenderRow {
   const category = marketplaceCategory(tender);
   return {
     id: tender.id,
@@ -766,11 +836,11 @@ function toMarketplaceTenderRow(tender: MarketplaceTenderRecord, organizationId?
     publishedAt: tender.publishedAt?.toISOString() ?? '',
     closingDate: dateOnly(tender.closingDate),
     createdByCurrentUser: Boolean(organizationId && tender.buyerOrgId === organizationId),
-    isSaved: false
+    isSaved: Boolean(organizationId && savedTenderIds.has(tender.id))
   };
 }
 
-function toMyTenderRow(tender: MarketplaceTenderRecord, organizationId?: string): MyTenderRow {
+function toMyTenderRow(tender: MarketplaceTenderRecord, organizationId?: string, savedTenderIds: Set<string> = new Set()): MyTenderRow {
   const section = myTenderSection(tender.status);
   return {
     id: tender.id,
@@ -781,11 +851,11 @@ function toMyTenderRow(tender: MarketplaceTenderRecord, organizationId?: string)
     lastActivity: tender.updatedAt.toISOString(),
     nav: section === 'draft' ? 'create-tender' : 'tender-details',
     actionLabel: section === 'draft' ? 'Continue Draft' : section === 'completed' ? 'View Record' : 'View My Tender',
-    tender: toMarketplaceTenderRow(tender, organizationId)
+    tender: toMarketplaceTenderRow(tender, organizationId, savedTenderIds)
   };
 }
 
-function toMyBidRow(bid: MarketplaceBidRecord, organizationId?: string): MyBidRow {
+function toMyBidRow(bid: MarketplaceBidRecord, organizationId?: string, savedTenderIds: Set<string> = new Set()): MyBidRow {
   const section = myBidSection(bid.status);
   return {
     id: bid.id,
@@ -798,7 +868,7 @@ function toMyBidRow(bid: MarketplaceBidRecord, organizationId?: string): MyBidRo
     lastActivity: bid.updatedAt.toISOString(),
     nav: 'bidding-workspace',
     actionLabel: section === 'draft' ? 'Continue Bid' : 'Open Bid',
-    tender: toMarketplaceTenderRow(bid.tender, organizationId)
+    tender: toMarketplaceTenderRow(bid.tender, organizationId, savedTenderIds)
   };
 }
 
@@ -886,6 +956,20 @@ function toCloseTenderResponseDto(tender: {
       closingDate: dateOnly(tender.closingDate),
       updatedAt: tender.updatedAt.toISOString()
     }
+  };
+}
+
+function savedTenderResponse(): SaveTenderResponseDto {
+  return {
+    success: true,
+    message: 'Tender saved successfully'
+  };
+}
+
+function unsaveTenderResponse(): UnsaveTenderResponseDto {
+  return {
+    success: true,
+    message: 'Tender removed from saved tenders'
   };
 }
 

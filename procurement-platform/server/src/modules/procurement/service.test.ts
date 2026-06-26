@@ -655,4 +655,75 @@ describe('procurement tender write service', () => {
       expect(repository.closeTender).not.toHaveBeenCalled();
     }
   });
+
+  it('saves tenders for the authenticated organization and user', async () => {
+    const saved = {
+      success: true,
+      message: 'Tender saved successfully'
+    };
+    const repository = {
+      saveTender: vi.fn().mockResolvedValue(saved)
+    };
+    const identity = {
+      requireSession: vi.fn().mockResolvedValue({ user: { id: 'user-1', organizationId: 'org-1' } })
+    };
+    const service = new ModuleService(repository as any, identity as any);
+
+    await expect(service.saveTender('tender-1', 'token-1')).resolves.toBe(saved);
+    expect(identity.requireSession).toHaveBeenCalledWith('token-1');
+    expect(repository.saveTender).toHaveBeenCalledWith('tender-1', { organizationId: 'org-1', userId: 'user-1' });
+  });
+
+  it('removes saved tenders idempotently for the authenticated organization', async () => {
+    const removed = {
+      success: true,
+      message: 'Tender removed from saved tenders'
+    };
+    const repository = {
+      unsaveTender: vi.fn().mockResolvedValue(removed)
+    };
+    const identity = {
+      requireSession: vi.fn().mockResolvedValue({ user: { id: 'user-1', organizationId: 'org-1' } })
+    };
+    const service = new ModuleService(repository as any, identity as any);
+
+    await expect(service.unsaveTender('tender-1', 'token-1')).resolves.toBe(removed);
+    expect(identity.requireSession).toHaveBeenCalledWith('token-1');
+    expect(repository.unsaveTender).toHaveBeenCalledWith('tender-1', 'org-1');
+  });
+
+  it('lists saved tenders for the authenticated organization', async () => {
+    const payload = { tenders: [] };
+    const repository = {
+      getSavedTenders: vi.fn().mockResolvedValue(payload)
+    };
+    const identity = {
+      requireSession: vi.fn().mockResolvedValue({ user: { id: 'user-1', organizationId: 'org-1' } })
+    };
+    const service = new ModuleService(repository as any, identity as any);
+
+    await expect(service.savedTenders('token-1')).resolves.toBe(payload);
+    expect(identity.requireSession).toHaveBeenCalledWith('token-1');
+    expect(repository.getSavedTenders).toHaveBeenCalledWith('org-1');
+  });
+
+  it('requires organization context for saved tender operations', async () => {
+    const identity = {
+      requireSession: vi.fn().mockResolvedValue({ user: { id: 'user-1' } })
+    };
+    const service = new ModuleService({} as any, identity as any);
+
+    await expect(service.saveTender('tender-1', 'token-1')).rejects.toMatchObject({
+      status: 409,
+      message: 'An organization profile is required.'
+    });
+    await expect(service.unsaveTender('tender-1', 'token-1')).rejects.toMatchObject({
+      status: 409,
+      message: 'An organization profile is required.'
+    });
+    await expect(service.savedTenders('token-1')).rejects.toMatchObject({
+      status: 409,
+      message: 'An organization profile is required.'
+    });
+  });
 });

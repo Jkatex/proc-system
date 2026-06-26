@@ -89,6 +89,34 @@ export class ModuleController {
     }
   };
 
+  savedTenders: RequestHandler = async (req, res, next) => {
+    try {
+      res.json(await this.service.savedTenders(bearerToken(req)));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  saveTender: RequestHandler = async (req, res, next) => {
+    try {
+      const params = tenderParamsSchema.safeParse(req.params);
+      if (!params.success) throw requestError('Invalid tender id.');
+      res.json(await this.service.saveTender(params.data.tenderId, bearerToken(req)));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  unsaveTender: RequestHandler = async (req, res, next) => {
+    try {
+      const params = tenderParamsSchema.safeParse(req.params);
+      if (!params.success) throw requestError('Invalid tender id.');
+      res.json(await this.service.unsaveTender(params.data.tenderId, bearerToken(req)));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   publishTender: RequestHandler = async (req, res, next) => {
     try {
       const params = tenderParamsSchema.safeParse(req.params);

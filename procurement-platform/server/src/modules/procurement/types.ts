@@ -299,6 +299,20 @@ export type CloseTenderResponseDto = {
   };
 };
 
+export type SaveTenderResponseDto = {
+  success: true;
+  message: 'Tender saved successfully';
+};
+
+export type UnsaveTenderResponseDto = {
+  success: true;
+  message: 'Tender removed from saved tenders';
+};
+
+export type SavedTendersPayload = {
+  tenders: MarketplaceTenderRow[];
+};
+
 export type ProcurementMarketplaceSummary = {
   openTenders: number;
   myTenders: number;

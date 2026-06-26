@@ -19,7 +19,10 @@ import {
   type PublicWelcomePayload,
   type PublicWelcomeTender,
   type SaveAnnualPlanInput,
+  type SavedTendersPayload,
+  type SaveTenderResponseDto,
   type TenderDetailDto,
+  type UnsaveTenderResponseDto,
   type UpdateTenderInput,
   type UpdateTenderResponseDto,
   type UpdateProcurementPlanInput
@@ -103,6 +106,24 @@ export class ModuleService {
     const closed = await this.repository.closeTender(tenderId, organizationId);
     if (!closed) throw requestError('Tender was not found.', 404);
     return closed;
+  }
+
+  async saveTender(tenderId: string, token: string | undefined): Promise<SaveTenderResponseDto> {
+    const session = await this.identity.requireSession(token);
+    const organizationId = requireOrganization(session.user.organizationId);
+    return this.repository.saveTender(tenderId, { organizationId, userId: session.user.id });
+  }
+
+  async unsaveTender(tenderId: string, token: string | undefined): Promise<UnsaveTenderResponseDto> {
+    const session = await this.identity.requireSession(token);
+    const organizationId = requireOrganization(session.user.organizationId);
+    return this.repository.unsaveTender(tenderId, organizationId);
+  }
+
+  async savedTenders(token: string | undefined): Promise<SavedTendersPayload> {
+    const session = await this.identity.requireSession(token);
+    const organizationId = requireOrganization(session.user.organizationId);
+    return this.repository.getSavedTenders(organizationId);
   }
 
   async planning(query: ProcurementPlanningQuery): Promise<ProcurementPlanningListDto> {
