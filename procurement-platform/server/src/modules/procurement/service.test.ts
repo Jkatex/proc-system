@@ -6,6 +6,7 @@ import {
   marketplaceQuerySchema,
   planLineBodySchema,
   planningQuerySchema,
+  publishTenderBodySchema,
   saveAnnualPlanBodySchema,
   updateTenderBodySchema
 } from './validators.js';
@@ -105,24 +106,24 @@ describe('procurement planning service', () => {
       status: '',
       sort: 'deadline',
       page: 1,
-      limit: 50
+      limit: 20
     });
 
     expect(
       marketplaceQuerySchema.parse({
         search: 'water',
-        type: 'Works',
+        type: 'GOODS',
         budgetBand: 'hundred-million-plus',
-        status: 'Open',
+        status: 'PUBLISHED',
         sort: 'budget-desc',
         page: '2',
         limit: '25'
       })
     ).toMatchObject({
       search: 'water',
-      type: 'Works',
+      type: 'GOODS',
       budgetBand: 'hundred-million-plus',
-      status: 'Open',
+      status: 'PUBLISHED',
       sort: 'budget-desc',
       page: 2,
       limit: 25
@@ -130,6 +131,9 @@ describe('procurement planning service', () => {
 
     expect(() => marketplaceQuerySchema.parse({ budgetBand: 'large' })).toThrow();
     expect(() => marketplaceQuerySchema.parse({ sort: 'random' })).toThrow();
+    expect(() => marketplaceQuerySchema.parse({ search: 'x'.repeat(101) })).toThrow();
+    expect(() => marketplaceQuerySchema.parse({ type: 'Lease' })).toThrow();
+    expect(() => marketplaceQuerySchema.parse({ status: 'Review' })).toThrow();
     expect(() => marketplaceQuerySchema.parse({ page: '0' })).toThrow();
     expect(() => marketplaceQuerySchema.parse({ limit: '101' })).toThrow();
   });
@@ -342,9 +346,12 @@ describe('procurement tender write service', () => {
       })
     ).toThrow();
     expect(() => createTenderBodySchema.parse({ ...createInput, title: 'Bad' })).toThrow();
+    expect(() => createTenderBodySchema.parse({ ...createInput, title: 'x'.repeat(201) })).toThrow();
+    expect(() => createTenderBodySchema.parse({ ...createInput, description: 'Too short' })).toThrow();
     expect(() => createTenderBodySchema.parse({ ...createInput, budget: 0 })).toThrow();
     expect(() => createTenderBodySchema.parse({ ...createInput, closingDate: '2020-08-30' })).toThrow();
     expect(() => createTenderBodySchema.parse({ ...createInput, metadata: [] })).toThrow();
+    expect(() => createTenderBodySchema.parse({ ...createInput, requirements: [] })).toThrow();
     expect(() => createTenderBodySchema.parse({ ...createInput, buyerOrgId: 'org-2' })).toThrow();
     expect(() => createTenderBodySchema.parse({ ...createInput, ownerUserId: 'user-2' })).toThrow();
     expect(() => createTenderBodySchema.parse({ ...createInput, status: 'OPEN' })).toThrow();
@@ -376,10 +383,13 @@ describe('procurement tender write service', () => {
     expect(updateTenderBodySchema.parse({ location: 'Dodoma' })).toEqual({ location: 'Dodoma' });
     expect(() => updateTenderBodySchema.parse({})).toThrow();
     expect(() => updateTenderBodySchema.parse({ title: 'Bad' })).toThrow();
+    expect(() => updateTenderBodySchema.parse({ title: 'x'.repeat(201) })).toThrow();
+    expect(() => updateTenderBodySchema.parse({ description: 'Too short' })).toThrow();
     expect(() => updateTenderBodySchema.parse({ budget: 0 })).toThrow();
     expect(() => updateTenderBodySchema.parse({ closingDate: '2020-08-30' })).toThrow();
     expect(() => updateTenderBodySchema.parse({ type: 'Lease' })).toThrow();
     expect(() => updateTenderBodySchema.parse({ metadata: [] })).toThrow();
+    expect(() => updateTenderBodySchema.parse({ requirements: [] })).toThrow();
     expect(() => updateTenderBodySchema.parse({ buyerOrgId: 'org-2' })).toThrow();
     expect(() => updateTenderBodySchema.parse({ ownerUserId: 'user-2' })).toThrow();
     expect(() => updateTenderBodySchema.parse({ reference: 'PX-NEW' })).toThrow();
@@ -388,6 +398,12 @@ describe('procurement tender write service', () => {
     expect(() => updateTenderBodySchema.parse({ visibility: 'PUBLIC_MARKETPLACE' })).toThrow();
     expect(() => updateTenderBodySchema.parse({ bids: [] })).toThrow();
     expect(() => updateTenderBodySchema.parse({ bidSummary: {} })).toThrow();
+  });
+
+  it('validates publish payloads as empty objects only', () => {
+    expect(publishTenderBodySchema.parse({})).toEqual({});
+    expect(() => publishTenderBodySchema.parse({ status: 'OPEN' })).toThrow();
+    expect(() => publishTenderBodySchema.parse({ publishedAt: '2099-09-30T00:00:00.000Z' })).toThrow();
   });
 
   it('creates draft tenders for the authenticated organization', async () => {
@@ -405,6 +421,23 @@ describe('procurement tender write service', () => {
     await expect(service.createTender('token-1', createInput)).resolves.toBe(createdTender);
     expect(identity.requirePermission).toHaveBeenCalledWith('token-1', 'procurement.create');
     expect(repository.createTender).toHaveBeenCalledWith(createInput, { organizationId: 'org-1', userId: 'user-1' });
+  });
+
+  it('rejects unauthenticated tender creation before repository writes', async () => {
+    const repository = {
+      createTender: vi.fn()
+    };
+    const identity = {
+      requirePermission: vi.fn().mockRejectedValue(Object.assign(new Error('Authentication is required.'), { status: 401 }))
+    };
+    const service = new ModuleService(repository as any, identity as any);
+
+    await expect(service.createTender(undefined, createInput)).rejects.toMatchObject({
+      status: 401,
+      message: 'Authentication is required.'
+    });
+    expect(identity.requirePermission).toHaveBeenCalledWith(undefined, 'procurement.create');
+    expect(repository.createTender).not.toHaveBeenCalled();
   });
 
   it('requires organization context before tender creation', async () => {

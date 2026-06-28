@@ -166,6 +166,8 @@ describe('procurement marketplace repository', () => {
         actionLabel: 'Continue Draft'
       }
     ]);
+    expect(payload.myTenders[0].tender.createdByCurrentUser).toBe(true);
+    expect(payload.myTenders[0].tender.isSaved).toBe(false);
     expect(Object.keys(payload.myTenders[0]).sort()).toEqual(
       ['actionLabel', 'id', 'lastActivity', 'nav', 'section', 'status', 'tender', 'title', 'type'].sort()
     );
@@ -284,6 +286,25 @@ describe('procurement marketplace repository', () => {
       ])
     );
     expect(db.tender.findMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('applies production marketplace sort modes to repository queries', async () => {
+    const db = {
+      tender: {
+        findMany: vi.fn().mockResolvedValue([])
+      }
+    };
+    const repository = new ModuleRepository(db as any);
+
+    await repository.getMarketplaceData({}, { search: '', type: '', budgetBand: '', status: '', sort: 'deadline', page: 1, limit: 20 });
+    await repository.getMarketplaceData({}, { search: '', type: '', budgetBand: '', status: '', sort: 'newest', page: 1, limit: 20 });
+    await repository.getMarketplaceData({}, { search: '', type: '', budgetBand: '', status: '', sort: 'budget-desc', page: 1, limit: 20 });
+    await repository.getMarketplaceData({}, { search: '', type: '', budgetBand: '', status: '', sort: 'budget-asc', page: 1, limit: 20 });
+
+    expect(db.tender.findMany).toHaveBeenNthCalledWith(1, expect.objectContaining({ orderBy: [{ closingDate: 'asc' }, { publishedAt: 'desc' }, { createdAt: 'desc' }] }));
+    expect(db.tender.findMany).toHaveBeenNthCalledWith(2, expect.objectContaining({ orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }] }));
+    expect(db.tender.findMany).toHaveBeenNthCalledWith(3, expect.objectContaining({ orderBy: [{ budget: 'desc' }, { publishedAt: 'desc' }, { createdAt: 'desc' }] }));
+    expect(db.tender.findMany).toHaveBeenNthCalledWith(4, expect.objectContaining({ orderBy: [{ budget: 'asc' }, { publishedAt: 'desc' }, { createdAt: 'desc' }] }));
   });
 
   it('returns only public marketplace rows for unauthenticated requests', async () => {
