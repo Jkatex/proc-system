@@ -295,7 +295,11 @@ describe('intelligence supplier recommendations repository', () => {
     expect(tx.supplierMatchSignal.deleteMany).toHaveBeenCalledWith({
       where: {
         supplierOrgId: 'supplier-org-1',
-        tenderId: { in: result.data.map((row) => row.id) }
+        tenderId: { not: null },
+        AND: [
+          { payload: { path: ['scoringVersion'], equals: 'supplier-recommendations-v1' } },
+          { NOT: { payload: { path: ['direction'], equals: 'buyer_supplier_recommendation' } } }
+        ]
       }
     });
     expect(tx.supplierMatchSignal.createMany).toHaveBeenCalledWith({
@@ -314,7 +318,13 @@ describe('intelligence supplier recommendations repository', () => {
     });
   });
 
-  it('returns an empty payload and skips persistence when no positive matches exist', async () => {
+  it('returns an empty payload and cleans stale supplier-side signals when no positive matches exist', async () => {
+    const tx = {
+      supplierMatchSignal: {
+        deleteMany: vi.fn().mockResolvedValue({ count: 2 }),
+        createMany: vi.fn()
+      }
+    };
     const db = {
       organization: {
         findUnique: vi.fn().mockResolvedValue({
@@ -331,7 +341,7 @@ describe('intelligence supplier recommendations repository', () => {
       tender: {
         findMany: vi.fn().mockResolvedValue([tenderRecord({ id: 'tender-zero', categories: [{ name: 'Roads' }] })])
       },
-      $transaction: vi.fn()
+      $transaction: vi.fn((callback) => callback(tx))
     };
     const repository = new ModuleRepository(db as any);
 
@@ -339,7 +349,17 @@ describe('intelligence supplier recommendations repository', () => {
       success: true,
       data: []
     });
-    expect(db.$transaction).not.toHaveBeenCalled();
+    expect(tx.supplierMatchSignal.deleteMany).toHaveBeenCalledWith({
+      where: {
+        supplierOrgId: 'supplier-org-1',
+        tenderId: { not: null },
+        AND: [
+          { payload: { path: ['scoringVersion'], equals: 'supplier-recommendations-v1' } },
+          { NOT: { payload: { path: ['direction'], equals: 'buyer_supplier_recommendation' } } }
+        ]
+      }
+    });
+    expect(tx.supplierMatchSignal.createMany).not.toHaveBeenCalled();
   });
 
   it('returns null for missing tenders and rejects non-owner supplier recommendations', async () => {

@@ -264,16 +264,19 @@ export class ModuleRepository {
   }
 
   private async refreshMatchSignals(supplierOrgId: string, recommendations: ScoredTender[]) {
-    if (recommendations.length === 0) return;
-    const tenderIds = recommendations.map((recommendation) => recommendation.tender.id);
-
     await this.db.$transaction(async (tx) => {
       await tx.supplierMatchSignal.deleteMany({
         where: {
           supplierOrgId,
-          tenderId: { in: tenderIds }
+          tenderId: { not: null },
+          AND: [
+            { payload: { path: ['scoringVersion'], equals: scoringVersion } },
+            { NOT: { payload: { path: ['direction'], equals: 'buyer_supplier_recommendation' } } }
+          ]
         }
       });
+      if (recommendations.length === 0) return;
+
       await tx.supplierMatchSignal.createMany({
         data: recommendations.map((recommendation) => ({
           tenderId: recommendation.tender.id,

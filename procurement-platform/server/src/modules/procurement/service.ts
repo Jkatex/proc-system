@@ -1,6 +1,7 @@
 import { TenderStatus } from '@prisma/client';
 import { ModuleRepository } from './repository.js';
 import { ModuleService as IdentityService } from '../identity/service.js';
+import { isProductionRuntime } from '../../security/config.js';
 import {
   type CloseTenderResponseDto,
   type CreateTenderInput,
@@ -28,9 +29,18 @@ import {
   type UpdateProcurementPlanInput
 } from './types.js';
 
+export const MARKETPLACE_UNAVAILABLE_MESSAGE = 'Marketplace is temporarily unavailable. Please try again later.';
+export const MARKETPLACE_UNAVAILABLE_CODE = 'MARKETPLACE_UNAVAILABLE';
+
 function requestError(message: string, status = 400) {
   const error = new Error(message) as Error & { status?: number };
   error.status = status;
+  return error;
+}
+
+function marketplaceUnavailableError() {
+  const error = requestError(MARKETPLACE_UNAVAILABLE_MESSAGE, 503) as Error & { code?: string };
+  error.code = MARKETPLACE_UNAVAILABLE_CODE;
   return error;
 }
 
@@ -62,7 +72,11 @@ export class ModuleService {
       const context = await this.contextFromToken(token);
       return await this.repository.getMarketplaceData(context, query);
     } catch (error) {
-      if (isDatabaseUnavailable(error)) return emptyMarketplace(query);
+      if (isDatabaseUnavailable(error)) {
+        if (!isProductionRuntime()) return emptyMarketplace(query);
+        console.error('[procurement.marketplace] Database unavailable while loading marketplace.', error);
+        throw marketplaceUnavailableError();
+      }
       throw error;
     }
   }

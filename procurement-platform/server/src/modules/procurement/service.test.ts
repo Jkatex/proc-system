@@ -1,6 +1,6 @@
 import { TenderStatus, TenderType } from '@prisma/client';
 import { describe, expect, it, vi } from 'vitest';
-import { ModuleService } from './service.js';
+import { MARKETPLACE_UNAVAILABLE_CODE, MARKETPLACE_UNAVAILABLE_MESSAGE, ModuleService } from './service.js';
 import {
   createTenderBodySchema,
   marketplaceQuerySchema,
@@ -295,6 +295,48 @@ describe('procurement planning service', () => {
         hasPreviousPage: false
       }
     });
+  });
+
+  it('logs and rejects with a sanitized marketplace outage error in production', async () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    const originalAppEnv = process.env.APP_ENV;
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const databaseError = new Error("Can't reach database server at db.internal");
+    const query: MarketplaceQuery = {
+      search: '',
+      type: '',
+      budgetBand: '',
+      status: '',
+      sort: 'deadline',
+      page: 1,
+      limit: 20
+    };
+    const service = new ModuleService({
+      getMarketplaceData: async () => {
+        throw databaseError;
+      }
+    } as any);
+
+    try {
+      process.env.NODE_ENV = 'production';
+      delete process.env.APP_ENV;
+
+      await expect(service.marketplace(undefined, query)).rejects.toMatchObject({
+        status: 503,
+        code: MARKETPLACE_UNAVAILABLE_CODE,
+        message: MARKETPLACE_UNAVAILABLE_MESSAGE
+      });
+      expect(consoleError).toHaveBeenCalledWith(
+        '[procurement.marketplace] Database unavailable while loading marketplace.',
+        databaseError
+      );
+    } finally {
+      if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = originalNodeEnv;
+      if (originalAppEnv === undefined) delete process.env.APP_ENV;
+      else process.env.APP_ENV = originalAppEnv;
+      consoleError.mockRestore();
+    }
   });
 });
 

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ModuleController } from './controller.js';
+import { MARKETPLACE_UNAVAILABLE_CODE, MARKETPLACE_UNAVAILABLE_MESSAGE } from './service.js';
 
 const validTenderId = '11111111-1111-4111-8111-111111111111';
 
@@ -45,6 +46,31 @@ describe('procurement controller validation responses', () => {
 
     expectValidationResponse(res, next);
     expect(service.marketplace).not.toHaveBeenCalled();
+  });
+
+  it('returns a sanitized marketplace outage response without raw database details', async () => {
+    const error = new Error(MARKETPLACE_UNAVAILABLE_MESSAGE) as Error & { status?: number; code?: string; cause?: Error };
+    error.status = 503;
+    error.code = MARKETPLACE_UNAVAILABLE_CODE;
+    error.cause = new Error("Can't reach database server at db.internal");
+    const service = {
+      marketplace: vi.fn(async () => {
+        throw error;
+      })
+    };
+    const controller = new ModuleController(service as any);
+    const res = mockResponse();
+    const next = vi.fn();
+
+    await controller.marketplace(mockRequest({ query: {} }) as any, res as any, next);
+
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      message: MARKETPLACE_UNAVAILABLE_MESSAGE
+    });
+    expect(JSON.stringify(res.json.mock.calls)).not.toContain("Can't reach database");
+    expect(next).not.toHaveBeenCalled();
   });
 
   it('returns structured validation errors for invalid tender creation payloads', async () => {

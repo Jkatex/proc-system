@@ -1,6 +1,6 @@
 import type { RequestHandler, Response } from 'express';
 import type { ZodError } from 'zod';
-import { ModuleService } from './service.js';
+import { MARKETPLACE_UNAVAILABLE_CODE, MARKETPLACE_UNAVAILABLE_MESSAGE, ModuleService } from './service.js';
 import {
   createTenderBodySchema,
   moduleStatusQuerySchema,
@@ -36,6 +36,12 @@ function validationResponse(res: Response, error: ZodError) {
   });
 }
 
+function isMarketplaceUnavailableError(error: unknown) {
+  if (!error || typeof error !== 'object') return false;
+  const candidate = error as { code?: unknown; status?: unknown; message?: unknown };
+  return candidate.code === MARKETPLACE_UNAVAILABLE_CODE && candidate.status === 503;
+}
+
 export class ModuleController {
   constructor(private readonly service = new ModuleService()) {}
 
@@ -63,6 +69,13 @@ export class ModuleController {
       if (!query.success) return validationResponse(res, query.error);
       res.json(await this.service.marketplace(bearerToken(req), query.data));
     } catch (error) {
+      if (isMarketplaceUnavailableError(error)) {
+        res.status(503).json({
+          success: false,
+          message: MARKETPLACE_UNAVAILABLE_MESSAGE
+        });
+        return;
+      }
       next(error);
     }
   };
