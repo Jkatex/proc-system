@@ -299,6 +299,20 @@ export type CloseTenderResponseDto = {
   };
 };
 
+export type SaveTenderResponseDto = {
+  success: true;
+  message: 'Tender saved successfully';
+};
+
+export type UnsaveTenderResponseDto = {
+  success: true;
+  message: 'Tender removed from saved tenders';
+};
+
+export type SavedTendersPayload = {
+  tenders: MarketplaceTenderRow[];
+};
+
 export type ProcurementMarketplaceSummary = {
   openTenders: number;
   myTenders: number;
@@ -308,11 +322,21 @@ export type ProcurementMarketplaceSummary = {
   closingSoon: number;
 };
 
+export type MarketplacePaginationDto = {
+  page: number;
+  limit: number;
+  matching: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+};
+
 export type ProcurementMarketplacePayload = {
   tenders: MarketplaceTenderRow[];
   myTenders: MyTenderRow[];
   myBids: MyBidRow[];
   summary: ProcurementMarketplaceSummary;
+  pagination: MarketplacePaginationDto;
 };
 
 export type TenderDetailDto = {
