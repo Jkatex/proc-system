@@ -513,10 +513,7 @@ export class ModuleRepository {
       }
     });
 
-    const capabilities =
-      input.entityType === 'individual'
-        ? [OrganizationCapabilityName.SUPPLIER]
-        : [OrganizationCapabilityName.BUYER, OrganizationCapabilityName.SUPPLIER];
+    const capabilities = [OrganizationCapabilityName.BUYER, OrganizationCapabilityName.SUPPLIER];
 
     for (const capability of capabilities) {
       await this.db.organizationCapability.upsert({
@@ -534,6 +531,20 @@ export class ModuleRepository {
         }
       });
     }
+
+    await this.db.buyerProfile.upsert({
+      where: { organizationId: organization.id },
+      update: {},
+      create: {
+        organizationId: organization.id,
+        procuringType: input.entityType === 'individual' ? 'Verified individual buyer' : 'Verified procuring entity',
+        payload: {
+          entityType: input.entityType,
+          registrySource: input.registrySource,
+          registryNumber: input.registryNumber
+        }
+      }
+    });
 
     await this.db.supplierProfile.upsert({
       where: { organizationId: organization.id },
